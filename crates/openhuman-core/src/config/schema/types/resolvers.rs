@@ -7,6 +7,13 @@ use super::output_language::output_language_directive;
 use crate::config::schema::Config;
 
 impl Config {
+    /// The folder agent deliverables are written to (#5505): the Settings
+    /// override when set, else `~/OpenHuman/projects/Files`. Every producer
+    /// and the boot migration read it through here.
+    pub fn files_dir(&self) -> PathBuf {
+        crate::config::resolve_files_dir(&self.files_dir_override)
+    }
+
     /// Resolve the root directory where chunk `.md` files are stored.
     ///
     /// Resolution order:

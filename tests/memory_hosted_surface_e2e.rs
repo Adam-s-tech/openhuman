@@ -4,10 +4,15 @@
 //! The four memory suites (`memory_roundtrip_e2e`, `memory_sources_e2e`,
 //! `memory_graph_roundtrip_e2e`, `memory_tree_health_e2e`) run on the local
 //! module, whose engine serves every family. The hosted engine serves the
-//! mandatory families plus ingestion and answers; this suite holds it to what
-//! that means for a user: what it serves works, what it does not serve answers
-//! a clean refusal rather than failing some other way, auto-recall reaches the
-//! notes a user saved, and a refused lookup says why.
+//! mandatory families, ingestion and answers, and goals, tool rules, documents,
+//! the source sink, maintenance, retrieval, ingest, profile, episodic memory,
+//! scoring and a tree drawn from the server's understanding (tinymemory's
+//! hosted-families spec); local sources are synced by the host through its
+//! sink. This suite holds it to what that means for a user: what it serves
+//! works, what it does not serve answers a clean refusal rather than failing
+//! some other way, auto-recall reaches the notes a user saved, a refused lookup
+//! says why, the Brain graph draws what the server understood, and a synced
+//! folder reaches hosted memory.
 //!
 //! ```text
 //! RUST_MIN_STACK=67108864 cargo test -p openhuman-cli \
@@ -119,12 +124,10 @@ fn a_refused_credential_and_an_outage_have_their_own_names() {
     });
 }
 
-/// The handler answers from the host log when the driver keeps no run log
-/// (`SourceSync` is absent), for a driver that serves the `Sources` sink
-/// without owning pipelines. This fixture builds no `CoreContext`, so the
-/// registry's capability gate stays open and the handler is reachable here.
-/// In the app, an engine without `Sources` (hosted among them) has no
-/// `memory_sources.*` methods at all, and Brain gates the panel on that.
+/// The handler answers from the host log when the driver keeps no run log:
+/// hosted memory serves the `Sources` sink without owning pipelines
+/// (`SourceSync` is absent), so its `memory_sources.*` methods are registered
+/// and Sync History reads what the host recorded.
 #[test]
 fn sync_history_answers_from_the_host_log_on_an_engine_without_one() {
     run_on_big_stack("hosted-sync-history", || async {
@@ -135,6 +138,172 @@ fn sync_history_answers_from_the_host_log_on_an_engine_without_one() {
             .await;
         let history = result_of(&v, "sync_audit_log on hosted");
         assert!(history["entries"].is_array(), "{history}");
+        unbind(&fx).await;
+    });
+}
+
+/// The Brain graph on hosted memory is the server's understanding: a fact it
+/// derived from the user's notes is a node labelled by what it says, under
+/// the namespace it came from, named for what that holds.
+#[test]
+fn the_hosted_engine_draws_the_brain_graph_from_its_understanding() {
+    run_on_big_stack("hosted-graph", || async {
+        let fx = Fixture::new().await;
+        bind_hosted(&fx).await;
+        fx.hosted.layers.lock().unwrap().insert(
+            ("facts".to_string(), "tm:global".to_string()),
+            vec![json!({
+                "id": "fact_tea",
+                "scope": "tm:global",
+                "subject": { "type": "entity", "id": "ent_user", "name": "User" },
+                "predicate": "prefers",
+                "object": { "type": "literal", "datatype": "string", "value": "oolong tea" },
+                "supports": [],
+                "confidence": 0.9,
+                "valid_from": "2026-09-01T00:00:00Z",
+                "recorded_from": "2026-09-01T00:00:00Z",
+            })],
+        );
+        let v = fx
+            .call(
+                "openhuman.memory_tree_graph_export",
+                json!({ "mode": "tree" }),
+            )
+            .await;
+        let graph = result_of(&v, "graph export on hosted");
+        let labels: Vec<&str> = graph["nodes"]
+            .as_array()
+            .expect("nodes")
+            .iter()
+            .filter_map(|node| node["label"].as_str())
+            .collect();
+        assert!(labels.contains(&"User prefers oolong tea"), "{graph}");
+        assert!(
+            labels.contains(&"Memory"),
+            "the global namespace reads as what it holds: {graph}"
+        );
+        unbind(&fx).await;
+    });
+}
+
+/// A folder source on hosted memory is read by the host and sent through the
+/// engine's sink, and the run lands in Sync History like any other.
+#[test]
+fn a_local_folder_syncs_into_hosted_memory() {
+    run_on_big_stack("hosted-folder-sync", || async {
+        let fx = Fixture::new().await;
+        bind_hosted(&fx).await;
+        let folder = fx._tmp.path().join("notes");
+        std::fs::create_dir_all(&folder).expect("folder");
+        std::fs::write(folder.join("tea.md"), "# Tea\n\nOolong, always.").expect("note");
+        let v = fx
+            .call(
+                "openhuman.memory_sources_add",
+                json!({
+                    "kind": "folder",
+                    "label": "Notes",
+                    "enabled": true,
+                    "path": folder.to_string_lossy(),
+                }),
+            )
+            .await;
+        let source_id = result_of(&v, "add a folder source")["source"]["id"]
+            .as_str()
+            .expect("a source id")
+            .to_string();
+        let v = fx
+            .call(
+                "openhuman.memory_sources_sync",
+                json!({ "source_id": source_id }),
+            )
+            .await;
+        result_of(&v, "sync a folder on hosted");
+        let synced = fx.hosted.events.lock().unwrap().iter().any(|event| {
+            event["scope"] == "tm:sources/tm:documents"
+                && event["content"]["text"]
+                    .as_str()
+                    .is_some_and(|text| text.contains("Oolong, always."))
+        });
+        assert!(synced, "the note reaches the hosted documents namespace");
+        let v = fx
+            .call("openhuman.memory_sources_sync_audit_log", json!({}))
+            .await;
+        let history = result_of(&v, "sync history after a hosted folder sync");
+        assert!(
+            history["entries"].to_string().contains(&source_id),
+            "{history}"
+        );
+        unbind(&fx).await;
+    });
+}
+
+/// The first `documentId` anywhere in `value`.
+fn document_id(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::Object(map) => map
+            .get("documentId")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string)
+            .or_else(|| map.values().find_map(document_id)),
+        serde_json::Value::Array(items) => items.iter().find_map(document_id),
+        _ => None,
+    }
+}
+
+/// The families hosted memory serves beyond the mandatory ones, through the
+/// app's RPCs: documents and tool rules round-trip.
+#[test]
+fn the_hosted_engine_serves_documents_and_tool_rules() {
+    run_on_big_stack("hosted-families", || async {
+        let fx = Fixture::new().await;
+        bind_hosted(&fx).await;
+
+        let v = fx
+            .call(
+                "openhuman.memory_doc_put",
+                json!({
+                    "namespace": NS, "key": "tea", "title": "Tea",
+                    "content": "The user drinks oolong.", "source_type": "doc",
+                    "priority": "medium", "tags": [], "metadata": null,
+                    "category": "core"
+                }),
+            )
+            .await;
+        result_of(&v, "doc_put on hosted");
+        let v = fx
+            .call("openhuman.memory_doc_list", json!({ "namespace": NS }))
+            .await;
+        let listed = result_of(&v, "doc_list on hosted").clone();
+        assert!(listed.to_string().contains("Tea"), "{listed}");
+        let id = document_id(&listed).unwrap_or_else(|| panic!("no document id: {listed}"));
+        let v = fx
+            .call(
+                "openhuman.memory_doc_delete",
+                json!({ "namespace": NS, "document_id": id }),
+            )
+            .await;
+        let deleted = result_of(&v, "doc_delete on hosted");
+        assert!(
+            deleted.to_string().contains("\"deleted\":true"),
+            "{deleted}"
+        );
+
+        let v = fx
+            .call(
+                "openhuman.memory_tool_rule_put",
+                json!({ "tool_name": "shell", "rule": "quote every path" }),
+            )
+            .await;
+        result_of(&v, "tool_rule_put on hosted");
+        let v = fx
+            .call(
+                "openhuman.memory_tool_rule_list",
+                json!({ "tool_name": "shell" }),
+            )
+            .await;
+        let rules = result_of(&v, "tool_rule_list on hosted");
+        assert!(rules.to_string().contains("quote every path"), "{rules}");
+
         unbind(&fx).await;
     });
 }
@@ -154,15 +323,6 @@ fn what_the_hosted_engine_does_not_serve_is_refused_cleanly() {
                 json!({ "namespace": NS, "subject": "a", "predicate": "knows", "object": "b" }),
             ),
             ("openhuman.memory_graph_query", json!({ "namespace": NS })),
-            // memory_roundtrip_e2e
-            (
-                "openhuman.memory_doc_put",
-                json!({
-                    "namespace": NS, "key": "k", "title": "t", "content": "c",
-                    "source_type": "doc", "priority": "medium", "tags": [],
-                    "metadata": null, "category": "core"
-                }),
-            ),
         ];
         // Collected rather than asserted one by one, so a run names every
         // method that answers some other way.
@@ -189,12 +349,14 @@ fn what_the_hosted_engine_does_not_serve_is_refused_cleanly() {
             .call("openhuman.memory_tree_list_sources", json!({}))
             .await;
         assert_eq!(result_of(&v, "tree list_sources on hosted"), &json!([]));
+        // Hosted memory serves Maintenance: the doctor answers from the
+        // service's health probe rather than naming a missing family.
         let v = fx.call("openhuman.memory_tree_doctor", json!({})).await;
         let doctor = result_of(&v, "tree doctor on hosted");
-        assert_eq!(doctor["healthy"], false, "{doctor}");
+        assert_eq!(doctor["healthy"], true, "{doctor}");
         assert!(
-            doctor.to_string().contains("does not serve Maintenance"),
-            "the doctor names the missing family: {doctor}"
+            doctor.to_string().contains("\"service\""),
+            "the doctor reports the hosted service stage: {doctor}"
         );
         let v = fx
             .call("openhuman.memory_tree_pipeline_status", json!({}))

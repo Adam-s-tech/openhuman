@@ -658,8 +658,8 @@ pub fn all_tools_with_runtime(
     // managed Python venv, no first-call install latency. Always
     // registered.
     #[cfg(feature = "documents")]
-    tools.push(Box::new(PresentationTool::new(
-        root_config.workspace_dir.clone(),
+    tools.push(Box::new(PresentationTool::for_config(
+        root_config,
         security.clone(),
     )));
 
@@ -668,8 +668,8 @@ pub fn all_tools_with_runtime(
     // real `.docx` through the same byte-agnostic artifact pipeline as
     // the presentation tool. Always registered; same constructor shape.
     #[cfg(feature = "documents")]
-    tools.push(Box::new(DocumentTool::new(
-        root_config.workspace_dir.clone(),
+    tools.push(Box::new(DocumentTool::for_config(
+        root_config,
         security.clone(),
     )));
 

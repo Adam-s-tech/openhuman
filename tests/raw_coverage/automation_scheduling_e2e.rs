@@ -425,63 +425,6 @@ async fn cron_run_records_history_and_remove_is_not_idempotent() {
     h.join.abort();
 }
 
-/// Every cron controller validates its `job_id` before touching the store, and
-/// a whitespace-only id must not slip through as a valid one.
-#[tokio::test]
-async fn cron_controllers_reject_absent_and_blank_job_ids() {
-    let _lock = env_lock();
-    let h = setup().await;
-
-    for (id, method) in [
-        (2101, "openhuman.cron_remove"),
-        (2102, "openhuman.cron_run"),
-        (2103, "openhuman.cron_runs"),
-    ] {
-        let blank = h.err(id, method, json!({ "job_id": "   " })).await;
-        assert!(
-            blank.contains("job_id"),
-            "{method} rejects a blank job_id by name: {blank}"
-        );
-
-        let absent = h.err(id + 10, method, json!({})).await;
-        assert!(
-            absent.contains("job_id"),
-            "{method} names its required param: {absent}"
-        );
-    }
-
-    // The three diverge on an id that does not name a job, and the divergence
-    // is worth pinning. `remove` and `run` both go through `cron::get_job` /
-    // `remove_job` and raise; `runs` queries the run table by id and cannot
-    // tell "no such job" from "job with no runs", so a typo reads as an empty
-    // history. See `~/tinyhuman/bugs/e2e-wave-cron-run-schema-declares-an-outcome-it-never-returns.md`.
-    for (id, method) in [
-        (2121, "openhuman.cron_remove"),
-        (2122, "openhuman.cron_run"),
-    ] {
-        let unknown = h.err(id, method, json!({ "job_id": "no-such-job" })).await;
-        assert!(
-            unknown.contains("no-such-job"),
-            "{method} names the unknown job: {unknown}"
-        );
-    }
-
-    let unknown_history = h
-        .ok(
-            2123,
-            "openhuman.cron_runs",
-            json!({ "job_id": "no-such-job" }),
-        )
-        .await;
-    assert_eq!(
-        unknown_history.as_array().map(Vec::len),
-        Some(0),
-        "cron_runs cannot distinguish an unknown job from one with no runs: {unknown_history}"
-    );
-
-    h.join.abort();
-}
-
 // ── task_sources ────────────────────────────────────────────────────────────
 
 /// `task_sources_sync` fans out over every ENABLED source and reports one

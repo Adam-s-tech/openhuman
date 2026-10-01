@@ -231,6 +231,12 @@ pub struct RemoveResponse {
 pub async fn remove_rpc(req: RemoveRequest) -> Result<Outcome<RemoveResponse>, String> {
     tracing::info!(id = %req.id, "[memory_sources] remove_rpc: entry");
     let removed = registry::remove_source(&req.id).await?;
+    if removed {
+        // A removed source is never synced again, so the host's record of
+        // what it sent goes with it. Its memory stays, as on the local engine.
+        let config = config_rpc::load_config_with_timeout().await?;
+        crate::memory::sources::hosted_sync::forget_state(&config, &req.id);
+    }
     Ok(Outcome::new(RemoveResponse { removed }, vec![]))
 }
 

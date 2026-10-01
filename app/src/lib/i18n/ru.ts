@@ -5488,6 +5488,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'Переменная окружения OPENHUMAN_TOOL_TIMEOUT_SECS переопределяет эту настройку, поэтому изменения здесь не вступят в силу, пока она не будет сброшена.',
   'settings.agentAccess.grantedFolders': 'Предоставленные папки',
+  'settings.agentAccess.filesFolder.label': 'Папка файлов',
+  'settings.agentAccess.filesFolder.desc':
+    'Куда сохраняются файлы, которые создаёт агент: презентации, документы, изображения и видео. Изменение применяется к новым файлам; существующие остаются на месте.',
+  'settings.agentAccess.filesFolder.save': 'Сохранить',
+  'settings.agentAccess.filesFolder.reset': 'Использовать по умолчанию',
+  'settings.agentAccess.filesFolder.saved': 'Папка файлов обновлена',
+  'settings.agentAccess.filesFolder.loadError': 'Не удалось загрузить папку файлов.',
+  'settings.agentAccess.filesFolder.open': 'Показать в папке',
+  'settings.agentAccess.filesFolder.openError': 'Не удалось открыть папку файлов.',
   'settings.agentAccess.alwaysAllow': 'Всегда разрешенные инструменты',
   'settings.agentAccess.alwaysAllowDesc':
     'Инструменты, которые вы отметили в чате как «Всегда разрешать», запускаются без запроса. Удалите один, чтобы запрос появился снова.',
@@ -6488,6 +6497,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'Не удалось получить артефакт. Попробуйте ещё раз.',
   'chat.files.error.download_failed': 'Не удалось загрузить файл. Попробуйте ещё раз.',
   'chat.files.error.delete_failed': 'Не удалось удалить файл. Попробуйте ещё раз.',
+  'chat.files.error.reveal_failed':
+    'Не удалось показать файл. Возможно, он был перемещён или удалён вне OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Автоматизации',
   'activity.tabs.automationsDescription':

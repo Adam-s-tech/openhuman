@@ -218,3 +218,27 @@ fn error_envelopes_carry_the_classified_message() {
     let message = outcome.value.error.expect("error").message;
     assert!(message.starts_with("INSUFFICIENT_CREDITS:"), "{message}");
 }
+
+/// A hit as a driver ranking without scoring sends it: a rank, no signal.
+fn ranked_hit(key: &str, rank_score: f64) -> NamespaceMemoryHit {
+    let mut hit = crate::memory::guard::test_support::namespace_hit("global", key, key, 0.0);
+    hit.score = rank_score;
+    hit.score_breakdown.final_score = rank_score;
+    hit
+}
+
+#[test]
+fn a_ranking_with_no_signal_is_rank_only_and_a_scored_one_is_not() {
+    let ranked = vec![ranked_hit("a", 1.0), ranked_hit("b", 0.9)];
+    assert!(rank_only(&ranked));
+    assert!(!rank_only(&[]), "nothing is not a ranking");
+    let mut keyword = ranked.clone();
+    keyword[1].score_breakdown.keyword_relevance = 0.4;
+    assert!(!rank_only(&keyword), "one measured signal makes it scored");
+    let mut recent = ranked.clone();
+    recent[0].score_breakdown.freshness = 0.7;
+    assert!(!rank_only(&recent), "recency is a signal");
+    let mut unranked = ranked;
+    unranked[0].score_breakdown.final_score = 0.0;
+    assert!(!rank_only(&unranked), "a zero final score is not a rank");
+}

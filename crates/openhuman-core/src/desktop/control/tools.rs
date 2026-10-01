@@ -295,14 +295,17 @@ impl Tool for DesktopTool {
             }
             Err(error) => return Ok(ToolResult::error(error)),
         };
-        let accessibility = permission
+        let accessibility_raw = permission
             .data
             .as_ref()
             .and_then(|data| data.get("accessibility"))
             .and_then(|value| value.get("state"))
             .and_then(Value::as_str)
             .unwrap_or("unknown");
+        let accessibility =
+            super::ops::normalize_permission_for_platform(accessibility_raw, std::env::consts::OS);
         if accessibility != "granted"
+            && accessibility != "not_required"
             && !matches!(
                 self.kind,
                 DesktopToolKind::Apps | DesktopToolKind::Windows | DesktopToolKind::Launch
