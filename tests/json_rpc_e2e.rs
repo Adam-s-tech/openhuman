@@ -11133,7 +11133,7 @@ async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
     let proposal = build_out
         .get("proposal")
         .filter(|p| !p.is_null())
-        .expect("flows_build returns a non-null proposal");
+        .unwrap_or_else(|| panic!("flows_build returns a non-null proposal: {build_out}"));
     assert_eq!(
         proposal.get("type").and_then(Value::as_str),
         Some("workflow_proposal")
