@@ -2,7 +2,7 @@
 //!
 //! This suite uses temp workspaces, fake binaries, and loopback HTTP/WS servers
 //! only. It must not call host Ollama, MLX, Python, Whisper, Piper, models, or
-//! download endpoints.
+//! download endpoints, and OpenHuman itself must not launch any of them.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -26,7 +26,7 @@ use openhuman_core::security::credentials::{
 };
 use openhuman_core::inference::http;
 use openhuman_core::inference::host_runtime::{
-    local_ai_assets_status, local_ai_downloads_progress, LocalAiService,
+    local_ai_status, LocalAiService,
 };
 use openhuman_core::voice::streaming::handle_dictation_ws;
 use serde_json::{json, Value};
@@ -241,37 +241,28 @@ async fn dictation_ws_empty_stop_and_audio_cap_do_not_load_whisper() {
 }
 
 #[tokio::test]
-async fn local_service_assets_report_state_from_fake_files_and_binaries() {
+async fn local_service_reports_endpoint_state_from_mocked_ollama_without_spawning() {
     let _env = env_lock();
     let (base, _state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
+    // Runtime binaries on PATH leave a marker if run: OpenHuman probes the
+    // user's endpoint and must never launch a runtime itself.
     let scripts = tempdir().expect("scripts");
-    write_stub_script(scripts.path(), "ollama", "#!/bin/sh\nexit 42\n");
-    write_stub_script(scripts.path(), "python", "#!/bin/sh\nexit 42\n");
-    write_stub_script(scripts.path(), "python3", "#!/bin/sh\nexit 42\n");
-    write_stub_script(scripts.path(), "mlx_lm.generate", "#!/bin/sh\nexit 42\n");
-    write_stub_script(scripts.path(), "piper", "#!/bin/sh\nexit 42\n");
-
-    // The `stt` asset slot still exists (the hosted-STT migration left the
-    // generic local-AI asset plumbing in place), so a present file on disk
-    // must still report "ready" — only the transcription engine behind it is
-    // gone. Nothing reads this file any more; it exists to drive the state
-    // machine.
-    let fake_model = tmp.path().join("fake-stt-asset.bin");
-    std::fs::write(&fake_model, b"not a real stt model").expect("fake model");
+    let spawn_marker = scripts.path().join("spawned.marker");
+    let marker_script = format!("#!/bin/sh\ntouch '{}'\nexit 42\n", spawn_marker.display());
+    for name in ["ollama", "python", "python3", "mlx_lm.generate", "piper"] {
+        write_stub_script(scripts.path(), name, &marker_script);
+    }
 
     let mut config = temp_config(&tmp);
     config.local_ai.runtime_enabled = true;
     config.local_ai.opt_in_confirmed = true;
     config.local_ai.provider = "ollama".to_string();
     config.local_ai.base_url = Some(base.clone());
-    config.local_ai.selected_tier = Some("custom".to_string());
     config.local_ai.chat_model_id = "gemma3:1b-it-qat".to_string();
     config.local_ai.embedding_model_id = "bge-m3".to_string();
     config.local_ai.vision_model_id = "vision-ready".to_string();
-    config.local_ai.stt_model_id = fake_model.display().to_string();
     config.local_ai.tts_voice_id = "round23-voice".to_string();
-    config.local_ai.tts_download_url = Some(format!("{base}/asset/tts"));
     config.save().await.expect("save config");
 
     let _path = EnvVarGuard::set("PATH", scripts.path());
@@ -282,34 +273,26 @@ async fn local_service_assets_report_state_from_fake_files_and_binaries() {
 
     let runtime = openhuman_core::inference::local_runtime_config(&config);
     let service = LocalAiService::new(&runtime);
-    let assets = service.assets_status(&runtime).await.expect("assets");
-    assert!(assets.ollama_available);
-    assert_eq!(assets.chat.state, "ready");
-    assert_eq!(assets.embedding.state, "ready");
-    // Since #5253 (vision-capable routing), the configured "vision-ready" id
-    // passes `is_vision_capable` (name carries the vision marker) instead of
-    // being rejected by the old MVP allowlist — and the mock's /api/tags
-    // advertises it, so an Ondemand-mode vision model that is present reports
-    // "ready", not "ondemand".
-    assert_eq!(assets.vision.state, "ready");
-    assert_eq!(assets.tts.state, "ondemand");
+    service.bootstrap(&runtime).await;
+    let status = service.status();
+    assert_eq!(status.state, "ready");
+    assert_eq!(status.vision_mode, "ondemand");
+    assert_eq!(status.chat_model_id, "gemma3:1b-it-qat");
 
-    let progress = service.downloads_progress(&runtime).await.expect("progress");
-    assert_eq!(progress.tts.state, "ondemand");
+    let diagnostics = service.diagnostics(&runtime).await.expect("diagnostics");
+    assert_eq!(diagnostics["expected"]["chat_found"], true);
+    assert_eq!(diagnostics["expected"]["embedding_found"], true);
+    assert_eq!(diagnostics["expected"]["vision_found"], true);
+    assert_eq!(diagnostics["repair_actions"], json!([]));
 
-    // No transcription assertion here any more: `transcribe_with_prompt` is a
-    // hosted call to the backend proxy since the whisper.cpp engine was
-    // deleted, so there is no local binary to stub and nothing this offline
-    // test can drive. Hosted STT is covered where the backend is mocked.
+    // No transcription assertion here: `transcribe_with_prompt` is a hosted
+    // call to the backend proxy since the whisper.cpp engine was deleted.
 
-    assert_eq!(
-        local_ai_downloads_progress(&config)
-            .await
-            .expect("ops progress")
-            .value
-            .tts
-            .state,
-        "ondemand"
+    let ops_status = local_ai_status(&config).await.expect("ops status").value;
+    assert_eq!(ops_status.provider, "ollama");
+    assert!(
+        !spawn_marker.exists(),
+        "OpenHuman must never launch a local runtime binary"
     );
 }
 
@@ -319,7 +302,6 @@ async fn serve_mock() -> (String, MockState) {
         .route("/v1/chat/completions", post(ollama_chat_completions))
         .route("/api/tags", get(ollama_tags))
         .route("/api/show", post(ollama_show))
-        .route("/asset/tts", get(asset_tts))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -420,14 +402,6 @@ async fn ollama_show(Json(body): Json<Value>) -> impl IntoResponse {
         }
     }))
     .into_response()
-}
-
-async fn asset_tts() -> impl IntoResponse {
-    Response::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_LENGTH, "12")
-        .body(Body::from("voice-bytes!"))
-        .expect("tts response")
 }
 
 fn sse_response<const N: usize>(events: [Value; N]) -> Response<Body> {
