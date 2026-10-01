@@ -1,7 +1,7 @@
 //! Skill registry E2E: exercises browse, search, sources, and install
 //! JSON-RPC endpoints against a real core router.
 //!
-//! Run: `cargo test --test skill_registry_e2e`
+//! Run: `cargo test -p openhuman-cli --test in_process_all skill_registry_e2e`
 //!
 //! The test uses a local fixture catalog and local SKILL.md download URL so CI
 //! does not depend on the live Hermes API.

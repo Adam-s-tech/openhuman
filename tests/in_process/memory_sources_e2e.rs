@@ -4,7 +4,7 @@
 //! exercises the full user flow: add source → list → list_items →
 //! read_item → ingest into memory tree → verify chunks indexed.
 //!
-//! Run with: `cargo test --test memory_sources_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all memory_sources_e2e`
 
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
