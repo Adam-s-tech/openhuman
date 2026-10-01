@@ -8,9 +8,8 @@
 use std::time::Duration;
 
 use crate::agent::harness::fork_context::ParentExecutionContext;
-use crate::agent::orchestration::running_subagents::{
-    self, DetachedSubagentStatus, WaitError, WaitOutcome,
-};
+use crate::agent::orchestration::running_subagents;
+use tinyagents_orchestration::subagent::{DetachedSubagentStatus, WaitError, WaitOutcome};
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
