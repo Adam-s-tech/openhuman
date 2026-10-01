@@ -38,5 +38,6 @@ pub use retry::{is_transient_fs_error, retry_with_backoff, retry_with_backoff_as
 pub use text::{
     ceil_char_boundary, floor_char_boundary, truncate_at_byte_boundary,
     truncate_with_ellipsis, truncate_with_suffix,
-    utf8_safe_prefix_at_byte_boundary};
+    utf8_safe_prefix_at_byte_boundary,
+};
 pub use types::MaybeSet;

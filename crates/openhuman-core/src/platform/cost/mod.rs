@@ -18,7 +18,8 @@ pub use schemas::{
 pub use tracker::CostTracker;
 pub use types::{
     BudgetStatus, CostDashboard, CostRecord, CostSource, CostSummary, DailyCostEntry, ModelStats,
-    TokenUsage};
+    TokenUsage,
+};
 
 /// Serialises tests that touch the process-global [`CostTracker`].
 ///
