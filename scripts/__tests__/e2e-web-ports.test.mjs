@@ -132,6 +132,14 @@ function markBundle(tree, { mockPort, corePort }) {
   backdateBundleInputs(tree);
 }
 
+function setMtimeAfter(file, reference) {
+  // CI filesystems can have coarse timestamp granularity. Put the input two
+  // seconds past the marker so find -newer exercises the stale-bundle path
+  // deterministically even when both files were created in one test tick.
+  const after = (fs.statSync(reference).mtimeMs + 2000) / 1000;
+  fs.utimesSync(file, after, after);
+}
+
 /**
  * Age every bundle input so the marker is strictly newer, the way a real build
  * leaves them: `build:web` reads the sources and the marker is written after it
@@ -585,7 +593,10 @@ test("the session refuses a bundle older than the sources", async () => {
     const base = await freeBase();
     markBundle(tree, { mockPort: base, corePort: base + 1 });
     stubCore(tree, base + 1);
-    fs.writeFileSync(path.join(tree.root, "app", "src", "App.tsx"), "// edited\n");
+    const marker = path.join(tree.root, "app", "dist-web", MARKER);
+    const edited = path.join(tree.root, "app", "src", "App.tsx");
+    fs.writeFileSync(edited, "// edited\n");
+    setMtimeAfter(edited, marker);
 
     const res = run(tree, "e2e-web-session.sh", { E2E_PORT_BASE: String(base) });
 
@@ -614,6 +625,8 @@ test("a file added after the build is caught even when the file itself is old", 
     fs.writeFileSync(added, "");
     const old = fs.statSync(path.join(tree.root, "app", "index.html")).mtimeMs / 1000;
     fs.utimesSync(added, old, old);
+    const marker = path.join(tree.root, "app", "dist-web", MARKER);
+    setMtimeAfter(path.join(tree.root, "app", "src"), marker);
 
     const res = run(tree, "e2e-web-session.sh", { E2E_PORT_BASE: String(base) });
 

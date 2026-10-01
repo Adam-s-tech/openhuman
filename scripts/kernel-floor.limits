@@ -13,6 +13,13 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   321/304/2  2026-10-01  Merge upstream/main at d0b235b352. The refreshed
+#                      first-party module workspaces add required host APIs and
+#                      transitive dependencies to the always-on flows profile.
+#                      This merged graph measures 321 packages / 304 names /
+#                      2 native builds (libsqlite3-sys and ring). The increase
+#                      is inherited from upstream; no native build dependency
+#                      was added. Keep it visible for a follow-up gating pass.
 #   304/283/2  2026-09-30  TinyChannels now supplies the always-on CLI channel
 #                      and shared channel runtime helpers through its new
 #                      `tinychannels-runtime` crate. The crate's dependencies
@@ -626,4 +633,4 @@
 #                      into the required host runtime. The migration adds five
 #                      resolved packages and four unique crate names; it does
 #                      not add a native build dependency.
-flows:304:283:2
+flows:321:304:2
