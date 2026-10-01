@@ -5,7 +5,6 @@
 //! prefix reconciliation, tool snapshots, resume and persistence remain inside
 //! the runtime session.
 
-use crate::agent::message_convert::{user_message_from_text, user_text_with_markers};
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -17,6 +16,7 @@ use tinyagents_session::transcript::TranscriptMeta;
 use tinyinference_llm::message::Message;
 
 use crate::agent::{
+    message_convert::{user_message_from_text, user_text_with_markers},
     session_host::{
         driver::OpenHumanSessionDriver, OpenHumanSessionHooks, OpenHumanTranscriptCodec,
     },
