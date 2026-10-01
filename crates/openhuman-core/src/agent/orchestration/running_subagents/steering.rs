@@ -66,52 +66,6 @@ fn send_registered_steering(
     true
 }
 
-/// Crate-native steering directives beyond the `InjectMessage`/collect lanes.
-///
-/// These map 1:1 onto the tinyagents [`SteeringCommand`] control variants that
-/// the crate exposes (`Redirect`, `Pause`, `Resume`, `Cancel`). They are
-/// delivered **only** through a registered `SteeringHandle` and therefore land
-/// only at a safe loop boundary (the crate drains before each model call) —
-/// never mid-stream, and never through the `RunQueue` fallback (which has no
-/// equivalent lane). Approval/security is never bypassed: `Redirect` lowers to a
-/// system instruction the normal approval-gated loop still governs, and
-/// `Pause`/`Resume`/`Cancel` are pure control-flow.
-///
-/// The crate's `SetMetadata` command is intentionally *not* mapped here: no
-/// OpenHuman control surface owns run-metadata mutation yet.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum SteeringDirective {
-    /// Redirect the run toward a new instruction (`SteeringCommand::Redirect`).
-    Redirect(String),
-    /// Cooperatively pause at the next checkpoint (`SteeringCommand::Pause`).
-    Pause,
-    /// Clear a pending pause (`SteeringCommand::Resume`).
-    Resume,
-    /// Cooperatively terminate at the next checkpoint (`SteeringCommand::Cancel`) —
-    /// a graceful, safe-boundary alternative to the hard `AbortHandle` cancel.
-    Cancel,
-}
-
-impl SteeringDirective {
-    fn kind(&self) -> SteeringCommandKind {
-        match self {
-            SteeringDirective::Redirect(_) => SteeringCommandKind::Redirect,
-            SteeringDirective::Pause => SteeringCommandKind::Pause,
-            SteeringDirective::Resume => SteeringCommandKind::Resume,
-            SteeringDirective::Cancel => SteeringCommandKind::Cancel,
-        }
-    }
-
-    fn into_command(self) -> SteeringCommand {
-        match self {
-            SteeringDirective::Redirect(instruction) => SteeringCommand::Redirect { instruction },
-            SteeringDirective::Pause => SteeringCommand::Pause,
-            SteeringDirective::Resume => SteeringCommand::Resume,
-            SteeringDirective::Cancel => SteeringCommand::Cancel,
-        }
-    }
-}
-
 /// Inject a message into a running sub-agent. Prefer the crate-native
 /// TinyAgents steering registry when the child run has registered its live
 /// handle, and fall back to the OpenHuman `RunQueue` compatibility path.
