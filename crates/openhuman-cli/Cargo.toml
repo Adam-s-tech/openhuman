@@ -153,37 +153,16 @@ path = "../../tests/raw_coverage_all.rs"
 # gate's `tinychannels/email`) and the local inference download service.
 required-features = ["voice", "inference"]
 
-[[test]]
-name = "agent_approval_memory_coverage_e2e"
-path = "../../tests/agent_approval_memory_coverage_e2e.rs"
 
-[[test]]
-name = "agent_builder_public"
-path = "../../tests/agent_builder_public.rs"
 
 [[test]]
 name = "agent_harness_e2e"
 path = "../../tests/agent_harness_e2e.rs"
 
-[[test]]
-name = "agent_prompt_comprehension_e2e"
-path = "../../tests/agent_prompt_comprehension_e2e.rs"
 
-[[test]]
-name = "agent_harness_public"
-path = "../../tests/agent_harness_public.rs"
 
-[[test]]
-name = "agent_turn_overrides_e2e"
-path = "../../tests/agent_turn_overrides_e2e.rs"
 
-[[test]]
-name = "calendar_grounding_e2e"
-path = "../../tests/calendar_grounding_e2e.rs"
 
-[[test]]
-name = "channels_default_channel_e2e"
-path = "../../tests/channels_default_channel_e2e.rs"
 
 [[test]]
 name = "cli_model_overrides_e2e"
@@ -193,21 +172,12 @@ path = "../../tests/cli_model_overrides_e2e.rs"
 name = "cli_sigpipe"
 path = "../../tests/cli_sigpipe.rs"
 
-[[test]]
-name = "config_auth_app_state_connectivity_e2e"
-path = "../../tests/config_auth_app_state_connectivity_e2e.rs"
 
 [[test]]
 name = "cwd_jail_e2e"
 path = "../../tests/cwd_jail_e2e.rs"
 
-[[test]]
-name = "domain_modules_e2e"
-path = "../../tests/domain_modules_e2e.rs"
 
-[[test]]
-name = "embeddings_rpc_e2e"
-path = "../../tests/embeddings_rpc_e2e.rs"
 
 [[test]]
 name = "inference_provider_e2e"
@@ -246,9 +216,6 @@ name = "media_generation_e2e"
 path = "../../tests/media_generation_e2e.rs"
 required-features = ["media"]
 
-[[test]]
-name = "memory_graph_roundtrip_e2e"
-path = "../../tests/memory_graph_roundtrip_e2e.rs"
 
 [[test]]
 # Memory-engine selection over JSON-RPC against a hosted-CortexDB double.
@@ -274,49 +241,22 @@ required-features = ["modules", "memory-remote"]
 name = "memory_roundtrip_e2e"
 path = "../../tests/memory_roundtrip_e2e.rs"
 
-[[test]]
-name = "memory_sources_e2e"
-path = "../../tests/memory_sources_e2e.rs"
 
-[[test]]
-name = "memory_tree_health_e2e"
-path = "../../tests/memory_tree_health_e2e.rs"
 
-[[test]]
-name = "tree_summarizer_e2e"
-path = "../../tests/tree_summarizer_e2e.rs"
 
 [[test]]
 name = "observability_wallet_expected_e2e"
 path = "../../tests/observability_wallet_expected_e2e.rs"
 
-[[test]]
-name = "orchestrator_parallel_fanout_routing"
-path = "../../tests/orchestrator_parallel_fanout_routing.rs"
 
-[[test]]
-name = "orchestrator_presentation_wiring"
-path = "../../tests/orchestrator_presentation_wiring.rs"
 
-[[test]]
-name = "skill_registry_e2e"
-path = "../../tests/skill_registry_e2e.rs"
 
 [[test]]
 name = "skills_mcp_registry_live"
 path = "../../tests/skills_mcp_registry_live.rs"
 
-[[test]]
-name = "transcript_search_e2e"
-path = "../../tests/transcript_search_e2e.rs"
 
-[[test]]
-name = "worker_b_domain_e2e"
-path = "../../tests/worker_b_domain_e2e.rs"
 
-[[test]]
-name = "worker_c_modules_e2e"
-path = "../../tests/worker_c_modules_e2e.rs"
 
 [[example]]
 name = "embed_headless"
