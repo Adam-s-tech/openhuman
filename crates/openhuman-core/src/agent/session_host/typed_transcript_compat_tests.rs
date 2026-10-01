@@ -233,6 +233,64 @@ fn a_live_image_turn_persists_typed_image_parts_and_resumes_identically() {
     });
 }
 
+/// What the provider is sent for a live image turn on a vision-capable model:
+/// the user message's content blocks of the request the model actually saw.
+async fn live_image_request_blocks() -> Vec<ContentBlock> {
+    use tinyinference_llm::message::Message;
+    use tinyinference_llm::model::{Modalities, ModelProfile};
+
+    let root = tempfile::tempdir().expect("tempdir");
+    let vision = std::sync::Arc::new(
+        tinyagents_harness::testkit::ScriptedModel::new(vec![response(
+            vec![ContentBlock::Text("saw it".into())],
+            Vec::new(),
+        )])
+        .with_profile(ModelProfile {
+            tool_calling: true,
+            modalities: Modalities {
+                image_in: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        }),
+    );
+    let mut host = build_host(root.path(), vision.clone(), true, &thread_id("vision"));
+    host.turn("look [IMAGE:data:image/png;base64,iVBORw0KGgo=] please")
+        .await
+        .expect("turn");
+    let request = vision.requests().last().expect("request").messages.clone();
+    request
+        .into_iter()
+        .rev()
+        .find_map(|message| match message {
+            Message::User(user) => Some(user.content),
+            _ => None,
+        })
+        .expect("user message in the request")
+}
+
+/// Pins the bug the provider-bound flatten caused: the image reached a
+/// vision-capable provider as the literal private marker text, not an image.
+#[test]
+fn live_image_turn_request_carries_the_marker_as_literal_text() {
+    run_async(async {
+        let blocks = live_image_request_blocks().await;
+        assert!(
+            !blocks
+                .iter()
+                .any(|block| matches!(block, ContentBlock::Image(_))),
+            "{blocks:?}"
+        );
+        assert!(
+            blocks.iter().any(|block| matches!(
+                block,
+                ContentBlock::Text(text) if text.contains("[OH_IMAGE:data:image/png;base64,iVBORw0KGgo=]")
+            )),
+            "{blocks:?}"
+        );
+    });
+}
+
 /// The host's own message bridge sees the same model messages whether a row
 /// was stored as a string envelope or as typed fields, for every shape
 /// (including an inline image, which the live flow only produces on a
