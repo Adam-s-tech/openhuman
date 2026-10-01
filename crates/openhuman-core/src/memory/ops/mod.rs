@@ -88,11 +88,10 @@ pub use tool_memory::{
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-pub(crate) use envelope::{error_envelope, memory_counts, memory_request_id};
+pub(crate) use envelope::memory_request_id;
 #[cfg(test)]
 pub(crate) use helpers::{
-    build_retrieval_context, chunk_metadata, default_category, default_priority,
-    default_source_type, extract_entity_type, filter_hits_by_document_ids,
+    build_retrieval_context, chunk_metadata, extract_entity_type, filter_hits_by_document_ids,
     format_llm_context_message, maybe_retrieval_context, relation_identity, relation_metadata,
     timestamp_to_rfc3339, validate_memory_relative_path,
 };

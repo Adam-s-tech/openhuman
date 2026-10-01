@@ -5,7 +5,6 @@ use crate::agent::messages::ChatMessage;
 use crate::agent::prompts::{ConnectedIntegration, ToolCallFormat};
 use crate::memory::conversations;
 use crate::memory::test_support::NoopMemory;
-use crate::memory::Memory;
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use serde_json::json;
