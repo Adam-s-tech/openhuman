@@ -142,41 +142,6 @@ pub(crate) fn steer_directive_error_from_registry(
     }
 }
 
-/// Deliver a crate-native control-flow [`SteeringDirective`] to a running
-/// sub-agent through its registered TinyAgents `SteeringHandle`.
-///
-/// Unlike [`steer`], this has **no** `RunQueue` fallback: the crate control
-/// variants (`Redirect`/`Pause`/`Resume`/`Cancel`) have no OpenHuman queue lane,
-/// so a run must have a live registered handle to receive them. The directive's
-/// command kind is checked against the run's own `SteeringPolicy` *before*
-/// enqueue — a disallowed command would otherwise abort the run — so this can
-/// never smuggle a control kind past a policy that a tighter run class installed.
-pub(crate) fn steer_directive(
-    task_id: &str,
-    parent_session: &str,
-    directive: SteeringDirective,
-) -> Result<(), SteerDirectiveError> {
-    let handle = registry()
-        .steering_handle(&TaskId::new(task_id), parent_session)
-        .map_err(steer_directive_error_from_registry)?;
-    let kind = directive.kind();
-    if !handle.policy().is_allowed(kind) {
-        log::warn!(
-            "[running_subagents] directive rejected by run policy task_id={} kind={}",
-            task_id,
-            kind.as_str()
-        );
-        return Err(SteerDirectiveError::PolicyRejected);
-    }
-    handle.send(directive.into_command());
-    log::info!(
-        "[running_subagents] steered task_id={} directive={} via=tinyagents_registry",
-        task_id,
-        kind.as_str()
-    );
-    Ok(())
-}
-
 /// Inject a message into a running sub-agent. Prefer the crate-native
 /// TinyAgents steering registry when the child run has registered its live
 /// handle, and fall back to the OpenHuman `RunQueue` compatibility path.

@@ -153,15 +153,6 @@ pub(super) async fn proxy(_config: &crate::config::Config) -> Result<tinybus::Pr
     Err("native modules are not compiled into this build".to_string())
 }
 
-pub async fn compact_output_with_policy(
-    content: String,
-    tool_name: &str,
-    enabled: bool,
-    profile: AgentTokenjuiceCompression,
-) -> String {
-    compact_output_with_config(content, tool_name, enabled, profile, None).await
-}
-
 /// Compact tool output using an already-resolved runtime config when available.
 ///
 /// Agent turns must not reload configuration from the middle of a deep tool

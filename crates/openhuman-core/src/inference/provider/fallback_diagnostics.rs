@@ -160,18 +160,6 @@ pub(crate) fn local_vision_unsupported_message(model: &str) -> String {
     )
 }
 
-/// Pure pre-flight for image input: `Ok(())` when `model` accepts images,
-/// `Err(actionable message)` when it does not.
-///
-/// Split from the call sites so the wording is unit-testable and identical
-/// everywhere an image is about to be dropped.
-pub(crate) fn vision_preflight(model: &str, config: &crate::config::Config) -> Result<(), String> {
-    if crate::inference::model_context::model_supports_vision(model, config) {
-        return Ok(());
-    }
-    Err(local_vision_unsupported_message(model))
-}
-
 fn capitalize_first(s: &str) -> String {
     let mut chars = s.chars();
     match chars.next() {

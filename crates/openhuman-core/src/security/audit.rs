@@ -339,17 +339,6 @@ impl AuditLogger {
         self.log(&event)
     }
 
-    /// Log a generated tool execution event with provider/capability
-    /// provenance suitable for runtime policy audits.
-    pub fn log_generated_tool_event(&self, entry: GeneratedToolExecutionLog<'_>) -> Result<()> {
-        let event = AuditEvent::new(AuditEventType::CommandExecution)
-            .with_actor(entry.channel.to_string(), None, None)
-            .with_generated_tool_action(entry.clone())
-            .with_result(entry.success, None, entry.duration_ms, None);
-
-        self.log(&event)
-    }
-
     /// Rotate log if it exceeds max size
     fn rotate_if_needed(&self) -> Result<()> {
         if let Ok(metadata) = std::fs::metadata(&self.log_path) {

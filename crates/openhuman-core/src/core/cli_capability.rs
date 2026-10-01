@@ -212,37 +212,6 @@ pub fn ensure_capability_blocking(required: Option<Capability>, invocation: &str
     capability_verdict(&driver_id, advertised, Some(required), invocation)
 }
 
-/// The pure verdict for the legacy-client gate: does the bound driver class
-/// permit commands that operate on the embedded store directly?
-///
-/// Mirrors [`capability_verdict`]'s default-OPEN posture — `None` from the
-/// caller means "no legacy gate applies", and an unresolvable binding has
-/// already been defaulted-OPEN upstream by the caller skipping this entirely.
-pub fn legacy_client_verdict(driver_id: &str, class: DriverClass, invocation: &str) -> Result<()> {
-    // `Module` passes for the same reason `Embedded` does, and omitting it was
-    // refusing every `openhuman memory` subcommand in the field: `binding::admit`
-    // stopped admitting `Embedded` at all (the built-in driver binds as
-    // `Module`), so a gate that only accepted `Embedded` accepted nothing.
-    //
-    // The gate's premise is about WHERE the memory lives, not how the driver is
-    // linked. A module is a `cdylib` over the in-process bus with no egress and
-    // no process boundary — the local store is still the store these
-    // subcommands operate on. `External` and `Null` stay refused, and for the
-    // reason the message gives: the local store is not the source of truth
-    // there, so reading it directly would answer from the wrong place.
-    if matches!(class, DriverClass::Embedded | DriverClass::Module) {
-        return Ok(());
-    }
-    log::warn!(
-        "[cli][legacy-client-gate] rejected invocation='{invocation}' driver='{driver_id}' \
-         class={} — not the embedded engine",
-        class.as_str()
-    );
-    anyhow::bail!(legacy_client_unavailable_message(
-        driver_id, class, invocation
-    ))
-}
-
 #[cfg(test)]
 #[path = "cli_capability_tests.rs"]
 mod tests;

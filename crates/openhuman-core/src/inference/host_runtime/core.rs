@@ -24,19 +24,6 @@ pub fn try_global() -> Option<Arc<LocalAiService>> {
     LOCAL_AI.get().cloned()
 }
 
-pub fn model_artifact_path(config: &Config) -> PathBuf {
-    let root = crate::config::default_root_openhuman_dir().unwrap_or_else(|_| {
-        config
-            .config_path
-            .parent()
-            .map(std::path::PathBuf::from)
-            .unwrap_or_else(|| config.workspace_dir.clone())
-    });
-    root.join("models")
-        .join("local-ai")
-        .join(effective_chat_model_id(config).replace(':', "-") + ".ollama")
-}
-
 #[cfg(test)]
 #[path = "core_tests.rs"]
 mod tests;

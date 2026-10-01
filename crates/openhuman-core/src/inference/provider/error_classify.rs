@@ -25,13 +25,6 @@ fn classify(err: &anyhow::Error) -> ProviderFailureClass {
     classify_provider_failure(status, None, &message)
 }
 
-pub(crate) fn is_non_retryable(err: &anyhow::Error) -> bool {
-    matches!(
-        classify(err),
-        ProviderFailureClass::NonRetryable | ProviderFailureClass::NonRetryableRateLimit
-    )
-}
-
 pub(crate) fn is_rate_limited(err: &anyhow::Error) -> bool {
     matches!(
         classify(err),

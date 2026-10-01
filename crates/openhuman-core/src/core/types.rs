@@ -5,20 +5,6 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Standard response structure for commands that include execution logs.
-///
-/// This is commonly used in internal APIs and CLI outputs where it's
-/// important to see the side-effects or diagnostic information alongside
-/// the primary result.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CommandResponse<T> {
-    /// The primary data returned by the command.
-    pub result: T,
-    /// A list of log messages generated during command execution.
-    /// These can include warnings, info, or trace messages.
-    pub logs: Vec<String>,
-}
-
 /// Success payload from a core RPC handler before JSON-RPC wrapping.
 ///
 /// This internal type allows handlers to return a generic JSON value along
@@ -43,15 +29,6 @@ impl InvocationResult {
         })
     }
 
-    /// Creates a success result from a serializable value with accompanying logs.
-    ///
-    /// Use this when the domain logic has meaningful logs to surface to the caller.
-    pub fn with_logs<T: Serialize>(v: T, logs: Vec<String>) -> Result<Self, String> {
-        Ok(Self {
-            value: serde_json::to_value(v).map_err(|e| e.to_string())?,
-            logs,
-        })
-    }
 }
 
 /// Formats an [`InvocationResult`] into its standard JSON-RPC format.

@@ -1,48 +1,6 @@
 use super::*;
 
 #[tokio::test]
-async fn unrestricted_outside_scope() {
-    assert!(current_source_scope().is_none());
-    assert!(scope_allowed("anything"));
-}
-
-#[tokio::test]
-async fn restricts_to_allowlisted_scopes() {
-    with_source_scope(
-        Some(vec!["slack:#eng".into(), "  gmail:me  ".into()]),
-        async {
-            let set = current_source_scope().expect("scope set");
-            assert_eq!(set.len(), 2);
-            assert!(scope_allowed("slack:#eng"));
-            assert!(scope_allowed("gmail:me")); // trimmed
-            assert!(!scope_allowed("notion:team"));
-        },
-    )
-    .await;
-    // Must not leak past the scope.
-    assert!(current_source_scope().is_none());
-    assert!(scope_allowed("notion:team"));
-}
-
-#[tokio::test]
-async fn empty_allowlist_blocks_everything() {
-    with_source_scope(Some(vec![]), async {
-        assert!(current_source_scope().is_some());
-        assert!(!scope_allowed("slack:#eng"));
-    })
-    .await;
-}
-
-#[tokio::test]
-async fn explicit_none_is_unrestricted() {
-    with_source_scope(None, async {
-        assert!(current_source_scope().is_none());
-        assert!(scope_allowed("slack:#eng"));
-    })
-    .await;
-}
-
-#[tokio::test]
 async fn chunk_gate_passes_non_source_chunks_and_gates_tagged_ones() {
     let src_tags = vec!["memory_sources".to_string(), "document".to_string()];
     let other_tags = vec!["conversation".to_string()];

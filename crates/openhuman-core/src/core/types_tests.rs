@@ -9,14 +9,6 @@ fn invocation_result_ok_serializes_value() {
 }
 
 #[test]
-fn invocation_result_with_logs() {
-    let result =
-        InvocationResult::with_logs(json!(42), vec!["log1".into(), "log2".into()]).unwrap();
-    assert_eq!(result.value, json!(42));
-    assert_eq!(result.logs.len(), 2);
-}
-
-#[test]
 fn invocation_to_rpc_json_no_logs_returns_value_directly() {
     let inv = InvocationResult {
         value: json!({"data": true}),
@@ -79,18 +71,6 @@ fn both_controller_return_paths_apply_the_same_log_envelope() {
                  both must go through rpc::apply_log_envelope"
         );
     }
-}
-
-#[test]
-fn command_response_serde_roundtrip() {
-    let resp = CommandResponse {
-        result: "ok".to_string(),
-        logs: vec!["log1".into()],
-    };
-    let json = serde_json::to_string(&resp).unwrap();
-    let back: CommandResponse<String> = serde_json::from_str(&json).unwrap();
-    assert_eq!(back.result, "ok");
-    assert_eq!(back.logs.len(), 1);
 }
 
 #[test]

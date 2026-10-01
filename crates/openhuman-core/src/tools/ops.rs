@@ -21,26 +21,6 @@ use tinytools_std::network::{CurlTool, PushoverTool};
 
 pub(crate) use super::capability::tool_capability;
 
-/// Derive the browser tool's host allowlist from the unified web-access list
-/// (`http_request.allowed_domains`).
-///
-/// The browser tool shares the single fetch allowlist rather than the
-/// deprecated `[browser].allowed_domains`, but the `"*"` allow-all wildcard is
-/// stripped on purpose: `web_fetch`/`curl` treat `"*"` as "open to all public
-/// sites", whereas the browser (a real Chromium with JS, cookies, and
-/// logged-in sessions) must NOT inherit blanket access from a fetch-side
-/// toggle. Browser allow-all stays gated by `OPENHUMAN_BROWSER_ALLOW_ALL`
-/// (`allow_all_browser_domains()`), and the tool itself stays behind
-/// `browser.enabled`. Net effect is fail-safe: unifying can only ever narrow
-/// the browser's reach, never widen it.
-pub(crate) fn browser_allowed_domains(http_allowed_domains: &[String]) -> Vec<String> {
-    http_allowed_domains
-        .iter()
-        .filter(|domain| domain.as_str() != "*")
-        .cloned()
-        .collect()
-}
-
 /// Create the default tool registry
 pub fn default_tools(security: Arc<SecurityPolicy>) -> Vec<Box<dyn Tool>> {
     default_tools_with_runtime(security, Arc::new(NativeRuntime::new()))
