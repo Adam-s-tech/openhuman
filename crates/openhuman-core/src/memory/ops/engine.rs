@@ -153,6 +153,12 @@ fn expected_capabilities(id: &str) -> Vec<String> {
             C::Documents,
             C::Sources,
             C::Maintenance,
+            C::Retrieval,
+            C::Ingest,
+            C::Profile,
+            C::Episodic,
+            C::Scoring,
+            C::Tree,
         ],
         _ => &[],
     };

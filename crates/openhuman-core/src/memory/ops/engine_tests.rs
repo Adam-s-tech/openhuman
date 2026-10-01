@@ -63,7 +63,19 @@ fn every_remote_engine_is_listed_with_at_least_the_mandatory_families() {
     assert!(hosted.capabilities.iter().any(|c| c == "answer"));
     // The families only the hosted wire serves (tinymemory
     // `docs/specs/tinyhumans-hosted-families.md`); a direct CortexDB has none.
-    for family in ["goals", "tool_memory", "documents", "sources", "maintenance"] {
+    for family in [
+        "goals",
+        "tool_memory",
+        "documents",
+        "sources",
+        "maintenance",
+        "retrieval",
+        "ingest",
+        "profile",
+        "episodic",
+        "scoring",
+        "tree",
+    ] {
         assert!(
             hosted.capabilities.iter().any(|c| c == family),
             "tinyhumans must advertise {family}: {:?}",
@@ -77,6 +89,34 @@ fn every_remote_engine_is_listed_with_at_least_the_mandatory_families() {
             );
         }
     }
+}
+
+/// The hosted row mirrors what the hosted driver advertises when it binds: the
+/// UI offers a family only when the driver serves it. Hosted memory keeps no
+/// local chunk store, which is what keeps the local-engine controls hidden.
+#[cfg(feature = "memory-remote")]
+#[test]
+fn the_hosted_row_mirrors_what_the_hosted_driver_advertises() {
+    use tinymemory::factory::{build_provider, EngineConfig, EngineCredential};
+    let provider = build_provider(
+        "tinyhumans",
+        &EngineConfig {
+            endpoint: Some("http://127.0.0.1:9".to_string()),
+            deployment: None,
+        },
+        EngineCredential::Static("tiny_live_test".to_string()),
+    )
+    .expect("the hosted driver builds without a request");
+    let mut advertised: Vec<String> = provider
+        .capabilities()
+        .iter()
+        .map(|c| c.as_str().to_string())
+        .collect();
+    let mut row = expected_capabilities("tinyhumans");
+    advertised.sort();
+    row.sort();
+    assert_eq!(row, advertised);
+    assert!(!row.iter().any(|c| c == "chunks"), "{row:?}");
 }
 
 #[test]
