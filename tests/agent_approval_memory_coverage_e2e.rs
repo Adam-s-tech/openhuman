@@ -439,7 +439,7 @@ async fn approval_preauthorize_flow_rejects_malformed_params_over_the_wire() {
 /// Regression guard for openhuman#5862 (Composio write tools bypassed the
 /// approval gate). Reverting the classification fix makes this fail.
 ///
-/// # What is broken
+/// # What was broken
 ///
 /// `ApprovalSecurityMiddleware` decides whether to park a call on exactly one
 /// predicate — `Tool::external_effect_with_args`
