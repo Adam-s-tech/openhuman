@@ -3,7 +3,7 @@
 //! This module contains structs and methods for handling RPC requests and
 //! responses, as well as maintaining application state across subsystems.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 /// Success payload from a core RPC handler before JSON-RPC wrapping.
 ///

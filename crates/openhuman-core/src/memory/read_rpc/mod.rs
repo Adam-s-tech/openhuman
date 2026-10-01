@@ -53,8 +53,6 @@ pub use vault::{obsidian_vault_status_rpc, vault_health_check_rpc};
 // shipped binary (#5560).
 #[cfg(test)]
 pub(crate) use crate::config::Config;
-#[cfg(test)]
-pub(crate) use tinymemory_api::chunks::SourceKind;
 
 #[cfg(test)]
 #[path = "../read_rpc_tests.rs"]

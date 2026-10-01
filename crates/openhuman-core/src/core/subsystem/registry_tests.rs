@@ -1,7 +1,6 @@
 //! Tests for the subsystem registry: bind, rebind, fallback-on-failure, and
 //! health updates.
 
-use std::cell::Cell;
 use std::str::FromStr;
 
 use serde_json::json;
