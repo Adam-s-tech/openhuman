@@ -4,7 +4,7 @@ use super::*;
 use std::sync::Arc;
 use tinychannels::host::{
     ApprovalDecision, ApprovalGate, ConversationMessage, ConversationStore, EventSink,
-    ReactionGate, ReactionQuery, Transcriber,
+    Transcriber,
 };
 
 use crate::config::Config;
@@ -21,24 +21,14 @@ fn approval_gate_maps_core_replies() {
     assert_eq!(gate.parse_reply("banana"), None);
 }
 
-// --- ReactionGate (runtime-disabled short-circuit) ------------------------
+// --- Reactions -----------------------------------------------------------
 
-#[tokio::test]
-async fn reaction_gate_returns_default_when_runtime_disabled() {
-    let mut config = Config::default();
-    config.local_ai.runtime_enabled = false;
-    let gate = InferenceReactionGate {
-        config: Arc::new(config),
-    };
-    let decision = gate
-        .should_react(ReactionQuery {
-            message: "hello".into(),
-            channel_type: "web".into(),
-        })
-        .await
-        .expect("should_react ok");
-    assert!(!decision.should_react);
-    assert!(decision.emoji.is_none());
+/// The host offers no reaction gate: emoji reactions came from a local-model
+/// call that sat on the reply path and could hold back delivery indefinitely.
+#[test]
+fn channel_host_offers_no_reaction_gate() {
+    let host = build_channel_host(Arc::new(Config::default()));
+    assert!(host.reactions().is_none());
 }
 
 // --- OpenHumanEventSink --------------------------------------------------
