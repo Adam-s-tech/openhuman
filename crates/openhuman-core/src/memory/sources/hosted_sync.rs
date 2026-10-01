@@ -34,7 +34,8 @@
 //! walk no longer finds is forgotten by that id (`ForgetSelector::Chunk`). Only
 //! a folder's listing is the whole source; an item missing from a feed or a
 //! repository listing may simply be past its window, so those stay. An empty
-//! listing is never read as "everything was deleted".
+//! listing is never read as "everything was deleted", and leaves the record
+//! as it was.
 //!
 //! Removing a source from the registry stops its syncs and keeps what it
 //! synced, as on the local engine; deleting the source's memory
@@ -317,20 +318,28 @@ pub(in crate::memory::sources) async fn run(
     let mut state = load_state(&path);
     // An item the source no longer lists has nothing left to compare. When
     // the listing is the whole source, it was removed, and its memory goes
-    // too. An empty listing is not taken as "every file was deleted": that is
-    // far likelier a folder that could not be walked.
-    let vanished: Vec<(String, Seen)> = if removes_vanished(&entry.kind) && !listed_ids.is_empty() {
-        state
-            .items
-            .iter()
-            .filter(|(id, _)| !listed_ids.contains(*id))
-            .map(|(id, seen)| (id.clone(), seen.clone()))
-            .collect()
+    // too.
+    //
+    // An empty listing is neither: it is far likelier a folder that could not
+    // be walked than one whose every file was deleted, so the record is kept
+    // whole — dropping it would lose the ids that forget a file once a later
+    // walk confirms it is gone, and the forgets still waiting to be retried.
+    let forgotten = if listed_ids.is_empty() {
+        0
     } else {
-        Vec::new()
+        let vanished: Vec<(String, Seen)> = if removes_vanished(&entry.kind) {
+            state
+                .items
+                .iter()
+                .filter(|(id, _)| !listed_ids.contains(*id))
+                .map(|(id, seen)| (id.clone(), seen.clone()))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        state.items.retain(|id, _| listed_ids.contains(id));
+        forget_vanished(entry, sink, vanished, &mut state).await
     };
-    state.items.retain(|id, _| listed_ids.contains(id));
-    let forgotten = forget_vanished(entry, sink, vanished, &mut state).await;
     tracing::debug!(
         source_id = %entry.id,
         kind = entry.kind.as_str(),

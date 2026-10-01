@@ -484,3 +484,29 @@ async fn an_empty_listing_forgets_nothing() {
     run(&config, &entry, &sink).await.expect("empty");
     assert!(forgotten(&sink).is_empty());
 }
+
+/// An empty walk leaves the record whole, so a file that a later walk shows
+/// is gone can still be forgotten by the id the sink gave it.
+#[tokio::test]
+async fn an_empty_listing_keeps_the_record_for_a_later_walk() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let folder = folder_of(dir.path(), &["a", "b"], 40);
+    let entry = folder_entry(&folder);
+    let cfg = config(dir.path());
+    let sink = RecordingSink::default();
+    run(&cfg, &entry, &sink).await.expect("first");
+
+    let a = std::fs::read_to_string(folder.join("a.md")).expect("read a");
+    std::fs::remove_file(folder.join("a.md")).expect("hide a");
+    std::fs::remove_file(folder.join("b.md")).expect("delete b");
+    run(&cfg, &entry, &sink).await.expect("empty walk");
+    assert!(forgotten(&sink).is_empty(), "an empty walk forgets nothing");
+
+    std::fs::write(folder.join("a.md"), a).expect("a is back");
+    run(&cfg, &entry, &sink).await.expect("walk again");
+    assert_eq!(
+        forgotten(&sink),
+        ["stored:b.md"],
+        "the record survived the empty walk, so b is forgotten by its id"
+    );
+}
