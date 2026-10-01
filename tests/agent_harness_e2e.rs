@@ -2212,26 +2212,12 @@ async fn multi_hop_delegation_chain_inner() {
 
 mod streaming_support {
     use async_trait::async_trait;
-    use openhuman_core::agent::OpenHumanSessionHost;
-    use openhuman_core::config::{AgentConfig, ContextConfig};
-    use openhuman_core::memory::Memory;
-    use serde_json::json;
     use std::collections::VecDeque;
-    use std::path::{Path, PathBuf};
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::{Arc, Mutex};
-    use tempfile::TempDir;
-    use tinyinference_llm::message::{AssistantMessage, ContentBlock};
+    use std::sync::Mutex;
     use tinyinference_llm::model::{
         ChatModel, ModelProfile, ModelRequest, ModelResponse, ModelStream, ModelStreamItem,
     };
-    use tinyinference_llm::tool::ToolCall;
     use tinyinference_llm::usage::Usage;
-    use tinytools::{
-        PermissionLevel, Tool, ToolCallOptions, ToolContent, ToolResult,
-        ToolScope as RuntimeToolScope,
-    };
-    use tinytools_agent::dialect::NativeDialect;
 
     // ── ScriptedProvider ────────────────────────────────────────────────────
     // Copied (minimal) from tests/agent_session_turn_raw_coverage_e2e.rs:76-152.
