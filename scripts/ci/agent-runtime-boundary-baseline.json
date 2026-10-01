@@ -479,7 +479,7 @@
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/subagent_host/ops/runner.rs",
     "line": 633,
-    "text": "let run_result = with_spawn_depth(attempted_depth, async {",
+    "text": "let run_result = Box::pin(with_spawn_depth(attempted_depth, async {",
     "occurrence": 1
   },
   {
@@ -743,6 +743,20 @@
   },
   {
     "rule": "openhuman-task-local",
+    "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model_calls.rs",
+    "line": 29,
+    "text": "with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),",
+    "occurrence": 1
+  },
+  {
+    "rule": "openhuman-task-local",
+    "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model_calls.rs",
+    "line": 59,
+    "text": "with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),",
+    "occurrence": 2
+  },
+  {
+    "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model.rs",
     "line": 141,
     "text": "pub fn with_thread_id(mut self, thread_id: Option<impl AsRef<str>>) -> Self {",
@@ -754,20 +768,6 @@
     "line": 466,
     "text": "fn with_thread_id(request: ModelRequest, thread_id: Option<&str>) -> ModelRequest {",
     "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model.rs",
-    "line": 597,
-    "text": "with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model.rs",
-    "line": 627,
-    "text": "with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),",
-    "occurrence": 2
   },
   {
     "rule": "openhuman-task-local",
@@ -1390,6 +1390,13 @@
     "path": "vendor/tinyagents/crates/tinyagents-session/src/transcript/typed_rows_test.rs",
     "line": 9,
     "text": "use tinytools_agent::dialect::{NativeToolCall, encode_assistant_envelope, encode_tool_envelope};",
+    "occurrence": 1
+  },
+  {
+    "rule": "tinyagents-tool-calling-facade",
+    "path": "vendor/tinyagents/crates/tinyagents-session/src/transcript/types.rs",
+    "line": 5,
+    "text": "use tinytools_agent::dialect::{",
     "occurrence": 1
   },
   {
