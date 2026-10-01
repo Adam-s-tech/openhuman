@@ -46,8 +46,8 @@ use std::sync::Arc;
 /// `MemoryHooksConfig::default()` sets to **500**. An `AgentExperience` is
 /// stored as its serialized JSON, and truncated JSON does not parse, so the
 /// record would silently vanish on read. So the pre-#5560 behaviour is
-/// preserved exactly: no policy layer between this store and the driver. The store runs the full scrubber over its own free-text
-/// fields before serialization (`store::redact_experience`), which is what
+/// preserved exactly: no policy layer between this store and the driver. The store runs the full
+/// scrubber over its own free-text fields before serialization (`store::redact_experience`), which is what
 /// keeps that safe rather than merely unguarded.
 ///
 /// # Home

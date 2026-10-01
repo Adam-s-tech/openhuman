@@ -75,8 +75,8 @@ Records are stored through the `Memory` trait (no dedicated DB), served by `Driv
 
 ## Notes / gotchas
 
-- Two redaction layers at write time: `capture::build_experience` masks `Bearer …`, `sk-…`, and `token=/password:` pairs with `types::redact_text`; `store::put` then runs the full `memory::safety::sanitize_text` scrubber (private keys, vendor secrets, national-ID / phone / card PII) over the free-text fields. 
+- Two redaction layers at write time: `capture::build_experience` masks `Bearer …`, `sk-…`, and `token=/password:` pairs with `types::redact_text`; `store::put` then runs the full `memory::safety::sanitize_text` scrubber (private keys, vendor secrets, national-ID / phone / card PII) over the free-text fields.
 - Retrieval scoring is **lexical, not embedding-based**: term sets keep only tokens length > 2, normalized lowercase; score combines tool overlap (weighted highest), tag overlap, query-term overlap over summary+lesson+hints, plus small agent/entrypoint match boosts and a confidence prior. `max_hits == 0` short-circuits to empty. The live-turn path additionally drops hits with no `match_reasons`.
 - `render_experience_hits` is hard byte-capped (`max_bytes`) with UTF-8-boundary-safe truncation, so the injected prompt block can't blow the context budget.
 - The capture hook is gated by an `enabled` flag passed at construction; when disabled `on_turn_complete` is a no-op, and capture failures only `log::warn!` (never fail the turn).
-- `DriverMemory` wraps the driver, not `MemoryGuard`, on purpose: the guard truncates `store` content at `capture_max_chars`, and truncated base64 does not decode. Its `ops.rs` rustdoc notes it belongs next to `memory::binding` and only sits here because both callers do.
+- `DriverMemory` wraps the driver, not `MemoryGuard`, on purpose: the guard truncates `store` content at `capture_max_chars`, and truncated JSON does not parse. Its `ops.rs` rustdoc notes it belongs next to `memory::binding` and only sits here because both callers do.
