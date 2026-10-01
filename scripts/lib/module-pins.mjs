@@ -177,6 +177,68 @@ export function classifyPin({ id, version, submodulePath, actual, exemption }) {
 }
 
 /**
+ * Decide what a provider record's pin state means.
+ *
+ * A provider module (tinyruntime-nodejs, tinyruntime-python) is released from
+ * its OWN repository on its OWN version line, so its version can never equal
+ * the tag of the shared source submodule it is built against. What can be
+ * checked offline is: (1) the registry record names the release that
+ * module-provider-pins.json declares, and (2) that release was built against
+ * the commit the host's submodule is at now.
+ *
+ * `lock` is the provider's entry from module-provider-pins.json, `sourceHead`
+ * the full commit of the submodule it is built against.
+ */
+export function classifyProviderPin({
+  id,
+  version,
+  releaseUrl,
+  lock,
+  sourceSubmodule,
+  sourceHead,
+}) {
+  if (!lock || !lock.repo || !lock.version || !lock.built_against) {
+    return {
+      ok: false,
+      message:
+        `"${id}" is a provider record but module-provider-pins.json has no complete ` +
+        `entry (repo, version, built_against) for it.`,
+    };
+  }
+  const problems = [];
+  if (lock.version !== version) {
+    problems.push(
+      `registry.rs version is ${version} but module-provider-pins.json says the ` +
+        `provider release is ${lock.version}.`,
+    );
+  }
+  const wantedUrl = `https://github.com/${lock.repo}/releases/tag/v${lock.version}`;
+  if (releaseUrl !== wantedUrl) {
+    problems.push(
+      `registry.rs release_url is ${releaseUrl ?? "(none)"} but the provider pin implies ${wantedUrl}.`,
+    );
+  }
+  if (!/^[0-9a-f]{40}$/.test(lock.built_against)) {
+    problems.push(
+      `module-provider-pins.json built_against must be a full 40-hex commit, got "${lock.built_against}".`,
+    );
+  } else if (lock.built_against !== sourceHead) {
+    problems.push(
+      `provider release v${lock.version} was built against ${sourceSubmodule} ${lock.built_against.slice(0, 8)}, ` +
+        `but the host pins ${sourceHead.slice(0, 8)}. Re-release the provider from ${lock.repo} ` +
+        `against the new source and re-pin it.`,
+    );
+  }
+  if (problems.length > 0) {
+    return {
+      ok: false,
+      message: `"${id}" provider pin is inconsistent:\n    ${problems.join("\n    ")}`,
+    };
+  }
+  return { ok: true };
+}
+
+/**
  * Every record in `ALL` must be known to the pin map, and every pin-map entry
  * must still be a record.
  *
