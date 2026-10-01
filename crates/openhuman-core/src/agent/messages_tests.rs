@@ -1,6 +1,6 @@
 use super::*;
-use tinyagents_session::transcript::TranscriptPart;
 use serde::{Deserialize, Serialize};
+use tinyagents_session::transcript::TranscriptPart;
 
 #[derive(Serialize, Deserialize)]
 struct Holder {
@@ -22,13 +22,23 @@ fn history_wire_writes_only_role_and_content() {
         rows: vec![row],
         maybe: None,
     };
+    let written = serde_json::to_value(&holder).unwrap();
+    let rows = written["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 1);
     assert_eq!(
-        serde_json::to_value(&holder).unwrap(),
-        serde_json::json!({
-            "rows": [{"role": "tool", "content": "{\"tool_call_id\":\"c1\",\"content\":\"ok\"}"}],
-            "maybe": null,
-        })
+        rows[0].as_object().unwrap().keys().collect::<Vec<_>>(),
+        ["content", "role"]
     );
+    assert_eq!(rows[0]["role"], "tool");
+    // Compared as JSON: key order inside the envelope depends on whether a
+    // downstream build unifies serde_json's `preserve_order`.
+    let envelope: serde_json::Value =
+        serde_json::from_str(rows[0]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        envelope,
+        serde_json::json!({"tool_call_id": "c1", "content": "ok"})
+    );
+    assert!(written["maybe"].is_null());
 }
 
 #[test]
@@ -57,7 +67,8 @@ fn history_wire_option_defaults_to_none_when_absent() {
 fn history_wire_lifts_flat_strings_into_typed_rows_and_hands_them_back_exactly() {
     // Key order and `null` content are the writer's, not ours: the string a
     // file held is the string it keeps.
-    let envelope = "{\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"name\":\"n\",\"arguments\":\"{}\"}]}";
+    let envelope =
+        "{\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"name\":\"n\",\"arguments\":\"{}\"}]}";
     let tool = "{\"tool_call_id\":\"c1\",\"content\":\"ok\"}";
     let raw = serde_json::json!({
         "rows": [
@@ -81,11 +92,15 @@ fn history_wire_lifts_flat_strings_into_typed_rows_and_hands_them_back_exactly()
 #[test]
 fn history_wire_writes_image_parts_as_host_markers() {
     let row = TranscriptMessage::user_with_parts(vec![
-        TranscriptPart::Text { text: "see ".into() },
+        TranscriptPart::Text {
+            text: "see ".into(),
+        },
         TranscriptPart::Image {
             url: "data:image/png;base64,AA==".into(),
         },
-        TranscriptPart::Text { text: " there".into() },
+        TranscriptPart::Text {
+            text: " there".into(),
+        },
     ]);
     let holder = Holder {
         rows: vec![row],

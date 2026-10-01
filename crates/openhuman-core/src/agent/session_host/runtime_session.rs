@@ -1628,7 +1628,8 @@ impl OpenHumanSessionHost {
                                 &mut options.run_context.data,
                             )
                             .await;
-                        request.input = crate::agent::message_convert::user_message_from_text(&enriched);
+                        request.input =
+                            crate::agent::message_convert::user_message_from_text(&enriched);
                         let mut preparation = prelude
                             .prepare(!view.resumed && view.history.is_empty())
                             .await
