@@ -213,40 +213,62 @@ fn user_blocks_from_parts(parts: &[TranscriptPart]) -> Vec<ContentBlock> {
     }
 }
 
-/// A user [`Message`] from the text a person (or a channel) sent: any
+/// A user [`Message`] from the text a person (or a channel) sent: each
 /// `[IMAGE:<ref>]` marker whose payload is a provider-ready reference becomes a
 /// typed [`ContentBlock::Image`], so the turn is stored and replayed with real
-/// image parts instead of a text marker. Text without such a marker is a plain
-/// text message, byte for byte.
+/// image parts instead of a text marker. The surrounding text is kept verbatim
+/// (unlike the provider-bound lift in [`user_content_blocks`], which trims), so
+/// [`user_text_with_markers`] gives back exactly the text that came in. Text
+/// without a ready marker is a plain text message, byte for byte.
 pub(crate) fn user_message_from_text(text: &str) -> Message {
-    Message::User(UserMessage {
-        content: user_content_blocks(text.to_string()),
-    })
+    const PREFIX: &str = "[IMAGE:";
+    if !text.contains(PREFIX) {
+        return Message::user(text);
+    }
+    let mut blocks: Vec<ContentBlock> = Vec::new();
+    let mut pending = String::new();
+    let mut rest = text;
+    let mut images = 0usize;
+    while let Some(start) = rest.find(PREFIX) {
+        let after = &rest[start + PREFIX.len()..];
+        let Some(end) = after.find(']') else {
+            break;
+        };
+        let payload = after[..end].trim();
+        if is_provider_ready_image_reference(payload) {
+            pending.push_str(&rest[..start]);
+            if !pending.is_empty() {
+                blocks.push(ContentBlock::Text(std::mem::take(&mut pending)));
+            }
+            blocks.push(ContentBlock::Image(ImageRef {
+                url: payload.to_string(),
+                mime_type: data_uri_mime(payload),
+            }));
+            images += 1;
+        } else {
+            pending.push_str(&rest[..start + PREFIX.len() + end + 1]);
+        }
+        rest = &after[end + 1..];
+    }
+    if images == 0 {
+        return Message::user(text);
+    }
+    pending.push_str(rest);
+    if !pending.is_empty() {
+        blocks.push(ContentBlock::Text(pending));
+    }
+    log::debug!("[agent][message_convert] stored {images} image attachment(s) as typed parts");
+    Message::User(UserMessage { content: blocks })
 }
 
 /// The inverse of [`user_message_from_text`]: a user message's text with each
 /// image block rendered back as an `[IMAGE:<url>]` marker. A text-only message
 /// is exactly [`Message::text`].
 pub(crate) fn user_text_with_markers(msg: &Message) -> String {
-    let Message::User(user) = msg else {
-        return msg.text();
-    };
-    if !user
-        .content
-        .iter()
-        .any(|block| matches!(block, ContentBlock::Image(_)))
-    {
-        return msg.text();
+    match msg {
+        Message::User(user) => user_row(msg, user).display_content(),
+        other => other.text(),
     }
-    user.content
-        .iter()
-        .filter_map(|block| match block {
-            ContentBlock::Text(text) => Some(text.clone()),
-            ContentBlock::Image(image) => Some(format!("[IMAGE:{}]", image.url)),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 /// Build the content blocks for a user turn, lifting any `[IMAGE:…]` markers out
@@ -500,11 +522,7 @@ pub(crate) fn messages_to_conversation(messages: &[Message]) -> Vec<TranscriptEn
         content: String,
         extra_metadata: Option<serde_json::Value>,
     ) -> TranscriptEntry {
-        TranscriptEntry::Chat(DialectMessage {
-            role,
-            content,
-            extra_metadata,
-        })
+        TranscriptEntry::Chat(DialectMessage::new(role, content).with_metadata(extra_metadata))
     }
 
     for msg in messages {
