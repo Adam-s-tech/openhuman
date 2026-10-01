@@ -16,39 +16,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tinyagents_harness::title::{title_from_user_message, title_log_fingerprint};
 
-pub(super) fn request_id() -> String {
-    uuid::Uuid::new_v4().to_string()
-}
-
-pub(super) fn counts(
-    entries: impl IntoIterator<Item = (&'static str, usize)>,
-) -> BTreeMap<String, usize> {
-    entries
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v))
-        .collect()
-}
-
-pub(super) fn envelope<T: Serialize>(
-    data: T,
-    counts: Option<BTreeMap<String, usize>>,
-    pagination: Option<PaginationMeta>,
-) -> Outcome<ApiEnvelope<T>> {
-    Outcome::new(
-        ApiEnvelope {
-            data: Some(data),
-            error: None,
-            meta: ApiMeta {
-                request_id: request_id(),
-                latency_seconds: None,
-                cached: None,
-                counts,
-                pagination,
-            },
-        },
-        vec![],
-    )
-}
+// One envelope/counts implementation for every ApiEnvelope-returning domain.
+pub(super) use crate::memory::ops::envelope::{envelope, memory_counts as counts};
 
 pub(super) async fn workspace_dir() -> Result<PathBuf, String> {
     Config::load_or_init()
