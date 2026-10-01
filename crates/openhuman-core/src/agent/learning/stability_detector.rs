@@ -86,10 +86,17 @@ pub const BUDGET_OVERFLOW: usize = 5;
 /// Every rebuild recomputes every facet, and decay alone moves its scores a
 /// little each time. Writing each one back cost a write per facet per cycle —
 /// several billed requests each on hosted memory — to record a change no
-/// reader would act on. Skipping it loses nothing: decay is exponential in the
-/// time since `last_seen_at`, so the next cycle, computing from the older row,
-/// arrives at the score a write-every-cycle would have reached. The tolerance
-/// only bounds how stale the stored scores may read in between.
+/// reader would act on. Skipping it loses nothing:
+///
+/// - confidence decays exponentially in the time since `last_seen_at`, so the
+///   next cycle, computing from the older row, reaches the confidence a
+///   write-every-cycle would have;
+/// - stability counts time since the last reinforcement, which a skipped
+///   write no longer refreshes, so the rebuild reads it from the previous
+///   rebuild instead (`StabilityDetector::last_rebuild_at`), as the refresh
+///   would have.
+///
+/// The tolerance only bounds how stale the stored scores may read in between.
 pub const REWRITE_TOLERANCE: f64 = 0.01;
 
 /// Per-class top-N budget for Active rows.
@@ -164,6 +171,18 @@ pub struct RebuildOutcome {
 pub struct StabilityDetector {
     pub(crate) cache: FacetCache,
     pub(crate) buffer: &'static candidate::Buffer,
+    /// When the previous rebuild in this process finished.
+    ///
+    /// A facet's stability counts time since its last reinforcement, read from
+    /// `last_seen_at`, which every rebuild used to refresh by writing every
+    /// row. A rebuild now skips rows that barely moved (see
+    /// [`REWRITE_TOLERANCE`]), so `last_seen_at` can be older than the last
+    /// rebuild; this is the time the refresh would have carried, so stability
+    /// reads as it did when every row was written.
+    pub(crate) last_rebuild_at: std::sync::Mutex<Option<f64>>,
+    /// How far a score may move before its row is written again. A field so a
+    /// test can compare against a detector that writes every row every cycle.
+    pub(crate) rewrite_tolerance: f64,
 }
 
 impl StabilityDetector {
@@ -174,6 +193,8 @@ impl StabilityDetector {
         Self {
             cache,
             buffer: candidate::global(),
+            last_rebuild_at: std::sync::Mutex::new(None),
+            rewrite_tolerance: REWRITE_TOLERANCE,
         }
     }
 
@@ -198,6 +219,13 @@ impl StabilityDetector {
             "[learning::stability] drained {} candidates from buffer",
             candidates.len()
         );
+
+        // The previous rebuild's time stands in for the refresh a skipped
+        // write did not make (see `last_rebuild_at`).
+        let refreshed_at = *self
+            .last_rebuild_at
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
 
         // Step 2 — load existing facets.
         let existing_facets = self.cache.list_all().await?;
@@ -240,7 +268,7 @@ impl StabilityDetector {
             let final_stability = stability(
                 dominant_cue(cands, existing),
                 total_evidence_count(cands, existing),
-                most_recent_reinforcement(cands, existing, now, *class),
+                most_recent_reinforcement(cands, existing, refreshed_at, now, *class),
                 now,
                 *class,
                 has_explicit,
@@ -381,7 +409,7 @@ impl StabilityDetector {
                 kept += 1;
             }
             let held = existing_by_key.get(&cf.facet.key);
-            if held.is_some_and(|held| !worth_rewriting(held, &cf.facet)) {
+            if held.is_some_and(|held| !worth_rewriting(held, &cf.facet, self.rewrite_tolerance)) {
                 continue;
             }
             rewritten += 1;
@@ -408,6 +436,11 @@ impl StabilityDetector {
         tracing::info!(
             "[learning::stability] rebuild added={added} evicted={evicted} kept={kept} total={total_size}"
         );
+
+        *self
+            .last_rebuild_at
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(now);
 
         // Step 8 — publish CacheRebuilt event.
         BUS.publish(DomainEvent::CacheRebuilt {
@@ -473,9 +506,13 @@ fn select_winning_value(
 
 /// Whether a recomputed facet says something its stored row does not: any
 /// field other than the two scores, or a score that moved by at least
-/// [`REWRITE_TOLERANCE`]. `last_seen_at` is left out on purpose — see the
-/// constant's docs.
-pub(crate) fn worth_rewriting(held: &ProfileFacet, computed: &ProfileFacet) -> bool {
+/// `tolerance` ([`REWRITE_TOLERANCE`] in production). `last_seen_at` is left
+/// out on purpose — see the constant's docs.
+pub(crate) fn worth_rewriting(
+    held: &ProfileFacet,
+    computed: &ProfileFacet,
+    tolerance: f64,
+) -> bool {
     held.value != computed.value
         || held.state != computed.state
         || held.user_state != computed.user_state
@@ -486,8 +523,8 @@ pub(crate) fn worth_rewriting(held: &ProfileFacet, computed: &ProfileFacet) -> b
         || held.class != computed.class
         || held.cue_families != computed.cue_families
         || held.first_seen_at != computed.first_seen_at
-        || (held.confidence - computed.confidence).abs() >= REWRITE_TOLERANCE
-        || (held.stability - computed.stability).abs() >= REWRITE_TOLERANCE
+        || (held.confidence - computed.confidence).abs() >= tolerance
+        || (held.stability - computed.stability).abs() >= tolerance
 }
 
 /// Aggregate stability contribution from all candidates (not per-value).
@@ -606,9 +643,13 @@ fn total_evidence_count(cands: &[LearningCandidate], existing: Option<&ProfileFa
 /// `rebuild` is class-scoped, and the half-lives span 7d (Channel) to 90d
 /// (Identity), so a hardcoded class would over-retain longer-lived facets and
 /// evict shorter-lived ones too early.
+/// An existing row counts as reinforced when it was last written, or at the
+/// previous rebuild (`refreshed_at`), whichever is later: that rebuild would
+/// have rewritten the row before rows that barely moved were skipped.
 fn most_recent_reinforcement(
     cands: &[LearningCandidate],
     existing: Option<&ProfileFacet>,
+    refreshed_at: Option<f64>,
     now: f64,
     class: FacetClass,
 ) -> f64 {
@@ -617,7 +658,10 @@ fn most_recent_reinforcement(
         .map(|c| c.observed_at)
         .fold(f64::NEG_INFINITY, f64::max);
     let existing_ts = existing
-        .map(|f| f.last_seen_at)
+        .map(|f| {
+            f.last_seen_at
+                .max(refreshed_at.unwrap_or(f64::NEG_INFINITY))
+        })
         .unwrap_or(f64::NEG_INFINITY);
     newest_cand.max(existing_ts).max(now - half_life(class))
 }
