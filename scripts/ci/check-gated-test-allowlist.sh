@@ -21,7 +21,6 @@ agent/harness/definition_tests.rs
 agent/session_host/builder/factory.rs
 agent/session_host/runtime_session.rs
 agent/session_host/runtime_session_tests.rs
-agent/session_host/turn/tools.rs
 agent/registry/agents/loader.rs
 agent/registry/agents/loader_tests_specialist_agents_tests.rs
 agent/registry/agents/mod.rs
