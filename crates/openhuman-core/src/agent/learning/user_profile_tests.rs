@@ -1,3 +1,4 @@
+use crate::memory::test_support::RetainingMemory;
 use super::*;
 use crate::agent::hooks::TurnContext;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry};
@@ -5,81 +6,6 @@ use async_trait::async_trait;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-#[derive(Default)]
-struct MockMemory {
-    entries: Mutex<HashMap<String, MemoryEntry>>,
-}
-
-#[async_trait]
-impl Memory for MockMemory {
-    fn name(&self) -> &str {
-        "mock"
-    }
-
-    async fn store(
-        &self,
-        namespace: &str,
-        key: &str,
-        content: &str,
-        category: MemoryCategory,
-        session_id: Option<&str>,
-    ) -> anyhow::Result<()> {
-        self.entries.lock().insert(
-            key.to_string(),
-            MemoryEntry {
-                id: key.to_string(),
-                key: key.to_string(),
-                content: content.to_string(),
-                namespace: Some(namespace.to_string()),
-                category,
-                timestamp: "now".into(),
-                session_id: session_id.map(str::to_string),
-                score: None,
-                taint: Default::default(),
-            },
-        );
-        Ok(())
-    }
-
-    async fn recall(
-        &self,
-        _query: &str,
-        _limit: usize,
-        _opts: crate::memory::RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn get(&self, _namespace: &str, key: &str) -> anyhow::Result<Option<MemoryEntry>> {
-        Ok(self.entries.lock().get(key).cloned())
-    }
-
-    async fn list(
-        &self,
-        _namespace: Option<&str>,
-        _category: Option<&MemoryCategory>,
-        _session_id: Option<&str>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(self.entries.lock().values().cloned().collect())
-    }
-
-    async fn forget(&self, _namespace: &str, key: &str) -> anyhow::Result<bool> {
-        Ok(self.entries.lock().remove(key).is_some())
-    }
-
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<crate::memory::NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(self.entries.lock().len())
-    }
-
-    async fn health_check(&self) -> bool {
-        true
-    }
-}
 
 #[test]
 fn extract_preferences_finds_patterns() {
@@ -286,7 +212,7 @@ fn preference_dfa_compiles_and_has_expected_pattern_count() {
 
 #[tokio::test]
 async fn store_preferences_skips_duplicates_and_empty_slugs() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     memory_impl
         .store(
             "user_profile",
@@ -315,7 +241,7 @@ async fn store_preferences_skips_duplicates_and_empty_slugs() {
     .await
     .unwrap();
 
-    let keys: Vec<String> = memory_impl.entries.lock().keys().cloned().collect();
+    let keys: Vec<String> = memory_impl.list(None, None, None).await.unwrap().into_iter().map(|e| e.key).collect();
     assert_eq!(keys.len(), 2);
     assert!(keys.contains(&"pref/i_prefer_rust".into()));
     assert!(keys.contains(&"pref/my_timezone_is_pst".into()));
@@ -323,7 +249,7 @@ async fn store_preferences_skips_duplicates_and_empty_slugs() {
 
 #[tokio::test]
 async fn on_turn_complete_respects_feature_flags_and_stores_preferences() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     let ctx = TurnContext {
         user_message: "My language is English. Please always use concise output.".into(),
@@ -338,7 +264,7 @@ async fn on_turn_complete_respects_feature_flags_and_stores_preferences() {
 
     let disabled = UserProfileHook::new(LearningConfig::default(), memory.clone());
     disabled.on_turn_complete(&ctx).await.unwrap();
-    assert!(memory_impl.entries.lock().is_empty());
+    assert!(memory_impl.list(None, None, None).await.unwrap().is_empty());
 
     let enabled = UserProfileHook::new(
         LearningConfig {
@@ -351,9 +277,8 @@ async fn on_turn_complete_respects_feature_flags_and_stores_preferences() {
     enabled.on_turn_complete(&ctx).await.unwrap();
 
     let values: Vec<String> = memory_impl
-        .entries
-        .lock()
-        .values()
+        .list(None, None, None).await.unwrap()
+        .iter()
         .map(|entry| entry.content.clone())
         .collect();
     assert!(values

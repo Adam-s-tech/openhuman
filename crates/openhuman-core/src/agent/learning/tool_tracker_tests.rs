@@ -1,3 +1,4 @@
+use crate::memory::test_support::RetainingMemory;
 use super::*;
 use crate::agent::hooks::{ToolCallRecord, TurnContext};
 use crate::memory::{Memory, MemoryCategory, MemoryEntry};
@@ -5,81 +6,6 @@ use async_trait::async_trait;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-#[derive(Default)]
-struct MockMemory {
-    entries: Mutex<HashMap<String, MemoryEntry>>,
-}
-
-#[async_trait]
-impl Memory for MockMemory {
-    fn name(&self) -> &str {
-        "mock"
-    }
-
-    async fn store(
-        &self,
-        namespace: &str,
-        key: &str,
-        content: &str,
-        category: MemoryCategory,
-        session_id: Option<&str>,
-    ) -> anyhow::Result<()> {
-        self.entries.lock().insert(
-            key.to_string(),
-            MemoryEntry {
-                id: key.to_string(),
-                key: key.to_string(),
-                content: content.to_string(),
-                namespace: Some(namespace.to_string()),
-                category,
-                timestamp: "now".into(),
-                session_id: session_id.map(str::to_string),
-                score: None,
-                taint: Default::default(),
-            },
-        );
-        Ok(())
-    }
-
-    async fn recall(
-        &self,
-        _query: &str,
-        _limit: usize,
-        _opts: crate::memory::RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn get(&self, _namespace: &str, key: &str) -> anyhow::Result<Option<MemoryEntry>> {
-        Ok(self.entries.lock().get(key).cloned())
-    }
-
-    async fn list(
-        &self,
-        _namespace: Option<&str>,
-        _category: Option<&MemoryCategory>,
-        _session_id: Option<&str>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(self.entries.lock().values().cloned().collect())
-    }
-
-    async fn forget(&self, _namespace: &str, key: &str) -> anyhow::Result<bool> {
-        Ok(self.entries.lock().remove(key).is_some())
-    }
-
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<crate::memory::NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(self.entries.lock().len())
-    }
-
-    async fn health_check(&self) -> bool {
-        true
-    }
-}
 
 #[test]
 fn tool_stats_record_call_updates_correctly() {
@@ -131,7 +57,7 @@ fn tool_stats_keeps_only_recent_unique_error_patterns() {
 
 #[tokio::test]
 async fn update_stats_merges_with_existing_memory_entry() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     memory_impl
         .store(
             "tool_effectiveness",
@@ -176,7 +102,7 @@ async fn update_stats_merges_with_existing_memory_entry() {
 
 #[tokio::test]
 async fn on_turn_complete_skips_when_disabled_or_no_tools() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     let hook = ToolTrackerHook::new(LearningConfig::default(), memory);
     let ctx = TurnContext {
@@ -191,12 +117,12 @@ async fn on_turn_complete_skips_when_disabled_or_no_tools() {
     };
 
     hook.on_turn_complete(&ctx).await.unwrap();
-    assert!(memory_impl.entries.lock().is_empty());
+    assert!(memory_impl.list(None, None, None).await.unwrap().is_empty());
 }
 
 #[tokio::test]
 async fn on_turn_complete_records_each_tool_call() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     let hook = ToolTrackerHook::new(
         LearningConfig {
