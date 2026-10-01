@@ -18,7 +18,7 @@ import { createPortal } from 'react-dom';
 
 import { useAppUpdate } from '../hooks/useAppUpdate';
 import { useT } from '../lib/i18n/I18nContext';
-import { formatBytes } from '../utils/localAiHelpers';
+import { formatBytes } from '../utils/format';
 import Button from './ui/Button';
 
 interface AppUpdatePromptProps {
