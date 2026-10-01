@@ -1,7 +1,7 @@
 use anyhow::Result;
 use openhuman_core::agent::messages::ChatMessage;
 use openhuman_core::agent::multimodal::{
-    contains_image_markers, count_image_markers, extract_ollama_image_payload, parse_image_markers,
+    count_image_markers, extract_ollama_image_payload, parse_image_markers,
     prepare_messages_for_provider,
 };
 use openhuman_core::config::{MultimodalConfig, MultimodalFileConfig};
@@ -17,7 +17,6 @@ fn marker_helpers_cover_mixed_content_and_payload_extraction() {
     assert_eq!(cleaned, "look  then");
     assert_eq!(refs.len(), 2);
     assert_eq!(count_image_markers(&messages), 2);
-    assert!(contains_image_markers(&messages));
     assert_eq!(
         extract_ollama_image_payload("data:image/png;base64,abcd").as_deref(),
         Some("abcd")
@@ -37,10 +36,6 @@ fn marker_helpers_cover_mixed_content_and_payload_extraction() {
     let (cleaned_empty, refs_empty) = parse_image_markers("keep [IMAGE:] literal");
     assert_eq!(cleaned_empty, "keep [IMAGE:] literal");
     assert!(refs_empty.is_empty());
-
-    assert!(!contains_image_markers(&[ChatMessage::assistant(
-        "no user refs"
-    )]));
 }
 
 #[tokio::test]

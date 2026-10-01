@@ -213,22 +213,12 @@ pub fn count_image_markers(messages: &[ChatMessage]) -> usize {
         .unwrap_or(0)
 }
 
-/// Whether the latest user message carries any image marker.
-pub fn contains_image_markers(messages: &[ChatMessage]) -> bool {
-    count_image_markers(messages) > 0
-}
-
 /// Count `[FILE:…]` markers in the **latest** user message only — same
 /// per-turn semantics as [`count_image_markers`].
 pub fn count_file_markers(messages: &[ChatMessage]) -> usize {
     latest_user_message(messages)
         .map(|m| markers::parse_file_markers(&m.content).1.len())
         .unwrap_or(0)
-}
-
-/// Whether the latest user message carries any file marker.
-pub fn contains_file_markers(messages: &[ChatMessage]) -> bool {
-    count_file_markers(messages) > 0
 }
 
 fn latest_user_message(messages: &[ChatMessage]) -> Option<&ChatMessage> {
