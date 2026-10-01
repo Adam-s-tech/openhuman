@@ -25,9 +25,6 @@ pub(crate) use environment::{environment_for_base, ingestion_url, skip_push};
 pub(crate) use journal_export::journal_push_ready;
 
 #[cfg(test)]
-use tinyagents_harness::observability::trace_export::TraceContext;
-
-#[cfg(test)]
 use crate::config::Config;
 #[cfg(test)]
 use environment::push_allowed;
@@ -41,8 +38,6 @@ use tinyagents_harness::observability::trace_export::{SpanStatus, TraceSpan};
 use tinyagents_harness::observability::AgentObservation;
 
 const LOG_TARGET: &str = "agent-tracing::langfuse";
-/// Cap the push so a slow/hung Langfuse never stalls run teardown.
-const PUSH_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[cfg(test)]
 #[path = "langfuse_tests.rs"]

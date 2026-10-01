@@ -1,9 +1,8 @@
 use super::*;
 use std::collections::BTreeMap;
 
-use tinyagents_harness::ids::{CallId, EventId, RunId};
+use tinyagents_harness::ids::{EventId, RunId};
 use tinyagents_harness::observability::trace_export::SpanKind;
-use tinyinference_llm::usage::Usage;
 
 fn span(
     trace: &str,
