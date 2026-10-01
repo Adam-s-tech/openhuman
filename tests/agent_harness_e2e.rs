@@ -3079,8 +3079,9 @@ async fn provider_sse_tool_args_accumulation() {
 
 /// A wedged model call is cut off by the PER-CALL ceiling, not by the turn
 /// deadline: with a 2s per-call ceiling under a 600s turn deadline, an upstream
-/// that never answers in time must terminate the turn in seconds, and the
-/// terminal event must name the per-call bound.
+/// that never answers in time must end the turn as a `turn_timeout` once its
+/// retries (each also cut at the ceiling) are spent, long before the 600s turn
+/// deadline.
 #[test]
 fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline() {
     run_on_agent_stack(
@@ -3155,16 +3156,30 @@ async fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline_inner()
     // THE assertion, and the one that distinguishes the two ceilings. The
     // upstream holds every reply for 25s. Bounded only by the turn's remainder
     // — the pre-#5767 behaviour — that stall completes well inside the 600s
-    // budget and the turn SUCCEEDS. Only a per-call ceiling can stop it at ~2s.
-    // Measured: 2.4s with the ceiling wired, 25.5s with it reverted.
-    // 8s, not a looser bound: the ceiling under test is 2s, so anything up to
-    // ~4x it still fails while leaving room for boot and SSE delivery. A 15s
-    // bound would also admit an implementation that ignored
-    // `OPENHUMAN_MODEL_CALL_TIMEOUT_SECS` and used a fixed 10s ceiling.
+    // budget and the turn SUCCEEDS with `chat_done`; only a per-call ceiling
+    // can end it in `chat_error`, which the assertions above already pinned.
+    //
+    // A per-call timeout is a retryable `CallTimeout` ("this one call wedged",
+    // tinyagents `retry::is_retryable`), and the turn policy retries a
+    // retryable call on a 5-attempt schedule with 3/6/12/24s backoff (#6413). So
+    // the turn does NOT end at ~2s any more: each of the attempts is cut at the
+    // 2s ceiling and the turn fails after the last one, about 10s of ceilings
+    // plus 34-56s of backoff. Pin that shape rather than a latency from before
+    // the retry schedule existed:
+    //  * the ceiling cut the FIRST attempt (the call was retried at all — it
+    //    would have returned at 25s otherwise);
+    //  * no attempt was allowed to run its full 25s stall, so the whole turn
+    //    is far shorter than even two un-bounded attempts would take.
+    let upstream_calls = with_captured(|c| c.len());
     assert!(
-        elapsed < Duration::from_secs(8),
-        "the turn must be cut off by the 2s per-call ceiling, not by the 25s \
-         upstream stall completing under the 600s turn deadline; took {elapsed:?}"
+        upstream_calls >= 2,
+        "the 2s per-call ceiling must cut the wedged call and the harness must retry it; \
+         saw {upstream_calls} upstream call(s)"
+    );
+    assert!(
+        elapsed < Duration::from_secs(90),
+        "every attempt must be cut off by the 2s per-call ceiling, not left to run out the 25s \
+         stall; the retry schedule alone is about 45s, but the turn took {elapsed:?}"
     );
 
     // Deliberately NOT asserted: that the event names *which* ceiling fired.
