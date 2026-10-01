@@ -15,8 +15,8 @@
     {
       "id": "tinymcp",
       "submodule": "vendor/tinymcp",
-      "expect": "v0.3.5-97-gd2feb798",
-      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published. Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
+      "expect": "v0.3.5-113-g74e8b109",
+      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published, plus tinymcp#33 (branch w4-mcp-hosts): the optional library-only `tools` additions `tinymcp::tools::{SecretScrubber, McpListServersTool, McpListToolsTool, McpCallTool}`, which the core links as a Rust path dependency and which the loadable module artifact does not build (the feature is off for the cdylib). Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
     },
     {
       "id": "tinyruntime",
@@ -61,10 +61,10 @@
       "reason": "The pin is v0.7.0 plus only the new pure-library crate tinycomputer-accessibility (tinycomputer#63, branch oh-accessibility-on-v0.7.0), which the core links as a Rust path dependency for in-process focus, permission and Globe-key queries. No module, contract or bus source changes relative to v0.7.0, so the registry's v0.7.0 artifact still matches the contract compiled here. Remove when tinycomputer#63 ships in a release and both pins move to it."
     },
     {
-      "id": "tinyconnectors",
-      "submodule": "vendor/tinyconnectors",
-      "expect": "v0.10.4-10-ge69b1226",
-      "reason": "The pin is v0.10.4 plus only pure-library changes to the tinyconnectors crate (tinyhumansai/tinyconnectors branch w4-connectors, also pushed as oh-w4-connectors-on-v0.10.4): execute::apply_calendar_query_defaults and execute::{apply_window_args, filter_response} (moved from the core, called by the host, never by the module), extra classify tests, and a default-on `module` cargo feature that gates the TinyBus adapter so the core can link the crate with default-features = false and no second copy of tinybus. The shipped module build (default features) and its contract, bus and module source are unchanged, so the registry's artifact still matches the contract compiled here. The registry record stays on v0.10.3; v0.10.3..v0.10.4 changes only the version, Cargo.lock and the tinybus pin (same tinybus commit the core compiles). Remove when the tinyconnectors PR ships in a release and both pins move to it."
+      "id": "tinyhosts",
+      "submodule": "vendor/tinyhosts",
+      "expect": "v0.1.10-9-ge041ad00",
+      "reason": "The registry artifact stays on the verified v0.1.9 release. The gitlink was already at v0.1.10 on main (pre-existing drift) and now adds only the library-only, off-by-default `tools` feature (tinyhumansai/tinyhosts#16) that the core links for the hosting_* agent tools; the module cdylib is unaffected. Remove when a tinyhosts release containing #16 is pinned in the registry with digests from its checksum.toml."
     }
   ]
 }

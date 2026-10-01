@@ -650,7 +650,7 @@ tinyjuice = { path = "../../vendor/tinyjuice", default-features = false, feature
 # After cloning: `git submodule update --init vendor/tinyhosts`.
 #
 # Optional: exclusive to the default-OFF `hosting` feature.
-tinyhosts = { path = "../../vendor/tinyhosts", default-features = false, features = ["vercel"], optional = true }
+tinyhosts = { path = "../../vendor/tinyhosts", default-features = false, features = ["vercel", "tools"], optional = true }
 
 # TinyWallet — host-agnostic multi-chain wallet primitives. Owns the address
 # formats themselves: parsing, validation, and the conversions between their
