@@ -124,8 +124,6 @@ export interface ChatDoneEvent {
    * Absent on synthetic done events that never ran a real turn.
    */
   usage?: TurnUsageWire | null;
-  /** Emoji reaction decided by the local model (if any). */
-  reaction_emoji?: string | null;
   /** Total segments when the response was split into bubbles by Rust. */
   segment_total?: number | null;
   /** Memory citations captured during retrieval for this response. */
@@ -168,7 +166,6 @@ export interface ChatSegmentEvent {
   seq?: number;
   segment_index: number;
   segment_total: number;
-  reaction_emoji?: string | null;
   citations?: ChatCitation[] | null;
 }
 
