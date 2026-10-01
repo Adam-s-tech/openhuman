@@ -63,6 +63,45 @@ pub struct TurnOverrides {
     pub suppress_transcript_autoload: bool,
 }
 
+impl OpenHumanSessionHost {
+    /// How this turn resumes its history.
+    ///
+    /// `suppress_transcript_autoload` is decided here, BEFORE `turn()` runs its
+    /// explicit identity-keyed resume. `begin_turn_resume` applies the same
+    /// override later, inside the lifecycle's resume hook, which is too late for
+    /// a thread-bound session: that resume has already loaded the thread's own
+    /// transcript into the history, so the override suppressed nothing (#6377).
+    pub(super) fn turn_resume_mode(&self) -> tinyagents_runtime::ResumeMode {
+        use tinyagents_runtime::ResumeMode;
+        let suppressed = self
+            .runtime_state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .pending_turn_overrides
+            .suppress_transcript_autoload;
+        if suppressed {
+            tracing::debug!(
+                thread_id = ?self.thread_id,
+                "[session_host] transcript autoload suppressed for this turn"
+            );
+            ResumeMode::Never
+        } else if self.session.is_some() {
+            // Exact, identity-keyed resume. Unlike `LatestForAgent` it cannot
+            // splice a different thread's transcript into this turn, and the
+            // file it reads is the file the turn appends to.
+            ResumeMode::Session
+        } else if self
+            .runtime_session
+            .as_ref()
+            .is_some_and(|session| session.history().is_empty())
+        {
+            ResumeMode::LatestForAgent
+        } else {
+            ResumeMode::Never
+        }
+    }
+}
+
 /// An autonomous or semi-autonomous AI agent.
 ///
 /// The `OpenHumanSessionHost` is the central component that manages conversation state,

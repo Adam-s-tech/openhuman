@@ -125,6 +125,21 @@ impl ScriptedModel {
         })
     }
 
+    /// A model that declares native tool calling. The default profile does not,
+    /// and the hosted harness then renders the toolbelt into the prompt text and
+    /// sends an empty `request.tools`, so a test that asserts on the provider's
+    /// tool schema must use this constructor.
+    fn native_tools(responses: Vec<ModelResponse>) -> Arc<Self> {
+        Arc::new(Self {
+            responses: Mutex::new(responses.into_iter().collect()),
+            requests: Mutex::new(Vec::new()),
+            profile: ModelProfile {
+                tool_calling: true,
+                ..ModelProfile::default()
+            },
+        })
+    }
+
     fn requests(&self) -> Vec<CapturedRequest> {
         self.requests.lock().unwrap().clone()
     }
@@ -394,24 +409,25 @@ async fn suppress_active_goal_keeps_the_thread_goal_out_of_the_prompt_inner() {
 
 // ─── suppress_transcript_autoload ───────────────────────────────────────────
 
-/// The silent one. `turn()` auto-resumes an empty-history session from the
-/// agent's most recent on-disk transcript, and that lookup resolves the latest
-/// transcript **by agent name — it is not thread-scoped**. A host that has just
-/// re-bound its in-memory history to a different chat therefore gets the
-/// previous thread's conversation back underneath it and answers grounded in the
-/// wrong one, with no error anywhere (#1725).
+/// The silent one (#1725). A host that re-binds its in-memory history and then
+/// gets the previous conversation back underneath it answers grounded in the
+/// wrong chat, with no error anywhere.
+///
+/// What produced that has changed. `turn()` used to resume the agent's most
+/// recent on-disk transcript by agent NAME, which was not thread-scoped. A
+/// thread-bound session now resumes by durable session identity
+/// (`SessionRef` derived from the thread id and agent id, `ResumeMode::Session`),
+/// an exact lookup that cannot reach another thread's transcript (see the doc on
+/// `TurnOverrides::suppress_transcript_autoload`). So this test pins the three
+/// facts that remain:
+///
+/// 1. another thread's transcript is never replayed, with no override needed;
+/// 2. the same thread's transcript IS resumed (the control: without it the
+///    suppression below would pass vacuously);
+/// 3. `suppress_transcript_autoload` makes that same-thread turn start clean
+///    (`ResumeMode::Never`), which is what the cron, flow-builder and
+///    one-shot-chat callers rely on.
 #[test]
-#[ignore = "TODO(#6377): transcript autoload does not fire for a hosted root session"]
-// The hosted root authority this fixture now brings (`turn_overrides_definition`)
-// was necessary but is NOT sufficient here: with it, two of this file's four
-// quarantined tests pass and this one still fails, and it fails in its own
-// CONTROL (:466) rather than in the assertion under test. The control says a
-// fresh agent must auto-load the prior transcript by agent name; under the
-// hosted path it does not, so the test cannot prove that
-// `suppress_transcript_autoload` prevents anything. Not yet isolated: whether
-// `auto_save` no longer writes where `latest_for_agent` looks, or the lookup
-// key changed with the stamped session id. Do not lift this by relaxing the
-// control — the control is what makes the test non-vacuous.
 fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript() {
     run_on_agent_stack(
         "turn-overrides-suppress-transcript-autoload",
@@ -425,22 +441,10 @@ async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript
     let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
 
     const PRIOR_MARKER: &str = "turn-overrides-prior-thread-secret-topic";
-    // Two ids, so the run enacts #1725's actual shape: a host that has re-bound
-    // its history to a *different* chat, not merely a second agent on the same
-    // one.
-    //
-    // These scopes do not steer the lookup, and are not meant to. Autoload is
-    // `session_io_impl_01_part_01.rs:45` — `latest_for_agent(&self.agent_definition_name)`
-    // — which never read a conversation-thread carrier; that
-    // agent-name-only resolution IS the defect the override exists to work
-    // around. They are here so the control states the stronger fact (the prior
-    // transcript is replayed *even under a different thread id*), and so that a
-    // future change making autoload thread-scoped fails this control loudly
-    // instead of passing while quietly changing what the test means.
     const PRIOR_THREAD: &str = "turn-overrides-autoload-thread-a";
     const LATER_THREAD: &str = "turn-overrides-autoload-thread-b";
 
-    // A first conversation persists a transcript under this agent name.
+    // A first conversation persists a transcript for PRIOR_THREAD.
     {
         let first_model = ScriptedModel::new(vec![text("first thread reply")]);
         let mut first = agent_with(
@@ -456,10 +460,28 @@ async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript
             .expect("first thread turn should succeed");
     }
 
-    // Everything below is the *later* chat the host has re-bound to.
+    // 1. A different thread never gets that conversation back.
     {
-        // CONTROL — a fresh agent with an empty history DOES pick that transcript
-        // up, across the thread change.
+        let model = ScriptedModel::new(vec![text("other thread reply")]);
+        let mut other = agent_with(
+            model.clone(),
+            Vec::new(),
+            workspace_path.clone(),
+            Box::new(XmlDialect),
+        );
+        other.set_thread_id(Some(LATER_THREAD));
+        other
+            .turn("an unrelated question")
+            .await
+            .expect("other-thread turn should succeed");
+        assert!(
+            !model.all_prompt_text().contains(PRIOR_MARKER),
+            "a different thread id must not resume another thread's transcript"
+        );
+    }
+
+    // 2. CONTROL — the same thread resumes its own transcript.
+    {
         let control_model = ScriptedModel::new(vec![text("control reply")]);
         let mut control = agent_with(
             control_model.clone(),
@@ -467,19 +489,20 @@ async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript
             workspace_path.clone(),
             Box::new(XmlDialect),
         );
-        control.set_thread_id(Some(LATER_THREAD));
+        control.set_thread_id(Some(PRIOR_THREAD));
         control
             .turn("an unrelated question")
             .await
             .expect("control turn should succeed");
         assert!(
             control_model.all_prompt_text().contains(PRIOR_MARKER),
-            "control: a fresh agent must auto-load the prior thread's transcript even under a \
-             different thread id, otherwise this test cannot prove that \
-             suppress_transcript_autoload prevents anything"
+            "control: a fresh agent on the same thread must resume that thread's transcript, \
+             otherwise this test cannot prove that suppress_transcript_autoload prevents anything"
         );
+    }
 
-        // SUPPRESSED — the same shape must not see the earlier conversation.
+    // 3. SUPPRESSED — the same shape, same thread, starts clean.
+    {
         let model = ScriptedModel::new(vec![text("clean reply")]);
         let mut agent = agent_with(
             model.clone(),
@@ -487,7 +510,7 @@ async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript
             workspace_path.clone(),
             Box::new(XmlDialect),
         );
-        agent.set_thread_id(Some(LATER_THREAD));
+        agent.set_thread_id(Some(PRIOR_THREAD));
         agent.set_next_turn_overrides(TurnOverrides {
             suppress_transcript_autoload: true,
             ..Default::default()
@@ -500,8 +523,8 @@ async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript
         let prompt = model.all_prompt_text();
         assert!(
             !prompt.contains(PRIOR_MARKER),
-            "suppress_transcript_autoload must not replay another conversation's transcript \
-             into the prompt; found the prior thread's marker in: {prompt}"
+            "suppress_transcript_autoload must not replay the transcript into the prompt; \
+             found the prior marker in: {prompt}"
         );
     }
 }
@@ -515,17 +538,6 @@ async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript
 /// suppression that leaked forward would silently strip a real task turn of its
 /// toolbelt.
 #[test]
-#[ignore = "TODO(#6377): a hosted root turn carries no tool schema upstream"]
-// As above: the hosted root authority is necessary and not sufficient. Turn 2
-// sets no overrides and must therefore carry the session's belt, but
-// `requests[1].tool_names` comes back empty (:549). Tried and ruled out: the
-// definition's `ToolScope` is not the cause — `Named(["turn_overrides_echo"])`
-// and `Wildcard` both produce an empty schema. Note turn 1's assertion cannot
-// distinguish the two explanations, since a suppressed belt and a belt that
-// never arrives are both empty. The open question is whether
-// `suppress_tools` leaks past its one turn or the belt never reaches the
-// model on this path at all; the cheap next step is a variant with no
-// overrides set at all.
 fn turn_overrides_apply_to_exactly_one_turn_and_then_reset() {
     run_on_agent_stack(
         "turn-overrides-reset",
@@ -538,7 +550,7 @@ async fn turn_overrides_apply_to_exactly_one_turn_and_then_reset_inner() {
     let (_temp, workspace_path) = workspace("overrides-reset");
     let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
 
-    let model = ScriptedModel::new(vec![text("suppressed reply"), text("restored reply")]);
+    let model = ScriptedModel::native_tools(vec![text("suppressed reply"), text("restored reply")]);
     let mut agent = agent_with(
         model.clone(),
         vec![Box::new(EchoTool)],
