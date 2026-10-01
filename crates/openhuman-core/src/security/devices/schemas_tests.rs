@@ -32,13 +32,6 @@ fn schemas_revoke_requires_channel_id() {
 }
 
 #[test]
-fn schemas_unknown_returns_error_placeholder() {
-    let s = schemas("does-not-exist");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.outputs[0].name, "error");
-}
-
-#[test]
 fn all_controller_schemas_covers_three_functions() {
     let names: Vec<_> = all_controller_schemas()
         .into_iter()

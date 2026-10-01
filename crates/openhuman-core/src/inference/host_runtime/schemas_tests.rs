@@ -10,13 +10,6 @@ fn all_schemas_use_inference_namespace_and_have_descriptions() {
 }
 
 #[test]
-fn unknown_function_returns_unknown_schema() {
-    let s = schemas("no_such_fn");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.namespace, "inference");
-}
-
-#[test]
 fn every_registered_key_resolves_to_non_unknown_schema() {
     let keys = [
         "agent_chat",

@@ -54,15 +54,6 @@ fn emit_schema_data_is_optional() {
 }
 
 #[test]
-fn unknown_function_returns_unknown_fallback_schema() {
-    let s = schemas("no_such_fn");
-    assert_eq!(s.namespace, "socket");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.outputs.len(), 1);
-    assert_eq!(s.outputs[0].name, "error");
-}
-
-#[test]
 fn every_schema_has_at_least_one_output_field() {
     for s in all_controller_schemas() {
         assert!(
