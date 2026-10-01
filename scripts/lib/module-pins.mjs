@@ -75,6 +75,7 @@ export function parseRecords(src) {
       name,
       id: field("id"),
       version: field("version"),
+      releaseUrl: field("release_url"),
       assets,
     });
   }
