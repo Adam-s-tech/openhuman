@@ -83,12 +83,12 @@ impl MemoryTool {
             forget: MemoryForgetTool::new(security),
             doctor: MemoryDoctorTool::new(Arc::clone(&config)),
             flavour: MemoryFlavourTool::new(config),
-            hybrid_search: MemoryHybridSearchTool,
-            vector_search: MemoryVectorSearchTool,
-            chunk_context: MemoryChunkContextTool,
-            raw_search: MemoryStoreRawSearchTool,
-            raw_chunks: MemoryStoreRawChunksTool,
-            kinds: MemoryStoreKindsTool,
+            hybrid_search: MemoryHybridSearchTool::default(),
+            vector_search: MemoryVectorSearchTool::default(),
+            chunk_context: MemoryChunkContextTool::default(),
+            raw_search: MemoryStoreRawSearchTool::default(),
+            raw_chunks: MemoryStoreRawChunksTool::default(),
+            kinds: MemoryStoreKindsTool::default(),
         }
     }
 

@@ -120,8 +120,11 @@ pub async fn estimate_sync_cost_rpc(
         return Err(unserved(&binding, "source sync", "estimate_sync_cost"));
     };
 
-    let reader = readers::reader_for(&source.kind);
-    let items = reader.list_items(&source, &config).await?;
+    let reader = readers::reader_for_request(&source.kind);
+    let items = reader
+        .list_items(&source, &config.workspace_dir)
+        .await
+        .map_err(|error| error.to_string())?;
 
     let item_count = items.len() as u32;
     // estimated_tokens includes both input (500/item) and output (100/item)

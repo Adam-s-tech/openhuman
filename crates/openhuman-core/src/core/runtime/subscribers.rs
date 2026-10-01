@@ -190,7 +190,7 @@ pub(super) fn register_domain_subscribers(
         // so they observe a real policy on their first iteration (otherwise they
         // fall back to `Policy::Normal` and miss the initial throttle decision on
         // battery-powered hosts).
-        crate::cron::scheduler_gate::init_global(&config);
+        crate::cron::scheduler_gate::init_global(config.scheduler_gate.clone());
 
         // A headless host (Docker / VPS / CI) has no interactive login; it
         // hands the core a credential through the environment instead. The

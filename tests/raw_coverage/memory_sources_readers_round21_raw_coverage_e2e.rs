@@ -128,10 +128,11 @@ async fn round21_rss_reader_rejects_private_hosts_before_fetching() {
                 url: Some(status_url),
                 ..source_entry("rss-status", SourceKind::RssFeed)
             },
-            &config,
+            &config.workspace_dir,
         )
         .await
-        .expect_err("private feed host rejected before fetch");
+        .expect_err("private feed host rejected before fetch")
+        .to_string();
     assert!(
         status_err.contains("public host"),
         "private RSS hosts must be rejected before fetching: {status_err}"
@@ -158,7 +159,7 @@ async fn round21_github_reader_covers_commit_issue_comments_and_error_paths() {
     };
 
     let items = reader
-        .list_items(&entry, &config)
+        .list_items(&entry, &config.workspace_dir)
         .await
         .expect("list items");
     assert!(items.iter().any(|item| item.id == "commit:abc123"));
@@ -166,14 +167,14 @@ async fn round21_github_reader_covers_commit_issue_comments_and_error_paths() {
     assert!(items.iter().any(|item| item.id == "pr:43"));
 
     let commit = reader
-        .read_item(&entry, "commit:abc123", &config)
+        .read_item(&entry, "commit:abc123", &config.workspace_dir)
         .await
         .expect("read commit");
     assert_eq!(commit.content_type, ContentType::Markdown);
     assert!(commit.body.contains("Round21 commit subject"));
 
     let issue = reader
-        .read_item(&entry, "issue:42", &config)
+        .read_item(&entry, "issue:42", &config.workspace_dir)
         .await
         .expect("read issue with comments");
     assert!(issue.body.contains("## Comments"));
@@ -188,9 +189,10 @@ async fn round21_github_reader_covers_commit_issue_comments_and_error_paths() {
     );
 
     let bad_pr = reader
-        .read_item(&entry, "pr:not-a-number", &config)
+        .read_item(&entry, "pr:not-a-number", &config.workspace_dir)
         .await
-        .expect_err("bad pr number rejected");
+        .expect_err("bad pr number rejected")
+        .to_string();
     assert!(bad_pr.contains("invalid PR number"));
 }
 

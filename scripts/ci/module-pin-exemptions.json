@@ -39,8 +39,8 @@
     {
       "id": "tinymemory",
       "submodule": "vendor/tinymemory",
-      "expect": "v1.18.0-17-g2ad4c128",
-      "reason": "The pin is tinymemory main (v1.18.0 plus tinymemory#170 conversations and #172 scheduler_gate_decide) plus pure-library additions only: the new crate tinymemory-guard (GuardedProvider<P: GuardPolicy>) and conformance seeds (FixedRecallProvider, InMemoryProvider::len, RecordingProvider::with_session_turns/with_pending_segments), tinymemory#173 (branch w4-memory-guard). The core links them as Rust path dependencies. No module, contract or bus source changes, so the registry's v1.17.0 artifact still matches the contract compiled here. Remove when #170, #172 and #173 ship in a release and both pins move to it."
+      "expect": "v1.18.0-52-g0f5af00c",
+      "reason": "The pin is tinymemory main (v1.18.0 plus tinymemory#170 conversations and #172 scheduler_gate_decide) plus pure-library additions only: the new crate tinymemory-guard (GuardedProvider<P: GuardPolicy>) and conformance seeds (FixedRecallProvider, InMemoryProvider::len, RecordingProvider::with_session_turns/with_pending_segments), tinymemory#173 (branch w4-memory-guard); then tinymemory#174 (branch w4-memory-rest, stacked on #173): the new crates tinymemory-safety, tinymemory-tools, tinymemory-gate and tinymemory-import, the composio/twitter readers, reader_for_request and the pure reconcile decisions in tinymemory-sources, and tinymemory-core re-exporting those readers instead of carrying adapters (its nested tinycortex is bumped to tinycortex#178, which delegates store::safety to tinymemory-safety). The core links them as Rust path dependencies. No module, contract or bus source changes, so the registry's v1.17.0 artifact still matches the contract compiled here. Remove when #170, #172, #173 and #174 ship in a release and both pins move to it."
     },
     {
       "id": "tinybox",
