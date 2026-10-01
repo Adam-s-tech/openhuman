@@ -470,6 +470,16 @@ fn all_tools_registers_gitbooks_when_enabled() {
     );
 }
 
+/// The `docs` MCP server the registry-gate tests declare in config.
+fn docs_server() -> crate::config::McpServerConfig {
+    crate::config::McpServerConfig::from(tinymcp_bus::McpServerConfig {
+        name: "docs".into(),
+        endpoint: "https://example.com/mcp".into(),
+        description: Some("Example docs MCP".into()),
+        ..Default::default()
+    })
+}
+
 #[test]
 // Wholly about the static MCP bridge surface, which the `mcp` feature compiles
 // out — no meaningful residue to assert in the disabled build (the
@@ -480,17 +490,7 @@ fn all_tools_registers_generic_mcp_bridge_tools_when_servers_exist() {
     let tmp = TempDir::new().unwrap();
     let mut cfg = test_config(&tmp);
     cfg.gitbooks.enabled = false;
-    cfg.mcp_client.servers.push(crate::config::McpServerConfig {
-        name: "docs".into(),
-        endpoint: "https://example.com/mcp".into(),
-        description: Some("Example docs MCP".into()),
-        enabled: true,
-        allowed_tools: Vec::new(),
-        disallowed_tools: Vec::new(),
-        timeout_secs: 30,
-        auth: crate::config::McpAuthConfig::None,
-        ..Default::default()
-    });
+    cfg.mcp_client.servers.push(docs_server());
 
     let tools = integration_tools_for_config(&tmp, &cfg);
     let names = tool_names(&tools);
@@ -514,17 +514,7 @@ fn all_tools_omits_mcp_tools_when_gate_off() {
     let tmp = TempDir::new().unwrap();
     let mut cfg = test_config(&tmp);
     cfg.gitbooks.enabled = false;
-    cfg.mcp_client.servers.push(crate::config::McpServerConfig {
-        name: "docs".into(),
-        endpoint: "https://example.com/mcp".into(),
-        description: Some("Example docs MCP".into()),
-        enabled: true,
-        allowed_tools: Vec::new(),
-        disallowed_tools: Vec::new(),
-        timeout_secs: 30,
-        auth: crate::config::McpAuthConfig::None,
-        ..Default::default()
-    });
+    cfg.mcp_client.servers.push(docs_server());
 
     let names = tool_names(&integration_tools_for_config(&tmp, &cfg));
     let leaked: Vec<&String> = names

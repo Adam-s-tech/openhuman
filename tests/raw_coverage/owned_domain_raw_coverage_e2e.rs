@@ -23,9 +23,7 @@ use openhuman_core::tools::registry::{
     is_capability_provider_trusted_enabled, list_capability_providers, list_tools,
     normalize_capability_provider_id,
 };
-use openhuman_core::tools::registry::{
-    denials as tool_registry_denials, ops as tool_registry_ops,
-};
+use openhuman_core::tools::registry::{denials as tool_registry_denials, ops as tool_registry_ops};
 
 static OWNED_DOMAIN_ENV_LOCK: &std::sync::OnceLock<std::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
@@ -335,16 +333,22 @@ fn tool_registry_public_apis_cover_entries_diagnostics_and_provider_policy() {
     config.mcp_client.enabled = true;
     config.mcp_client.servers = vec![
         McpServerConfig {
-            name: "filesystem".to_string(),
-            enabled: true,
-            allowed_tools: vec!["read_file".to_string(), "write_file".to_string()],
-            disallowed_tools: vec!["delete_file".to_string()],
-            ..McpServerConfig::default()
+            server: tinymcp_bus::McpServerConfig {
+                name: "filesystem".to_string(),
+                enabled: true,
+                allowed_tools: vec!["read_file".to_string(), "write_file".to_string()],
+                disallowed_tools: vec!["delete_file".to_string()],
+                ..Default::default()
+            },
+            ..Default::default()
         },
         McpServerConfig {
-            name: "disabled".to_string(),
-            enabled: false,
-            ..McpServerConfig::default()
+            server: tinymcp_bus::McpServerConfig {
+                name: "disabled".to_string(),
+                enabled: false,
+                ..Default::default()
+            },
+            ..Default::default()
         },
     ];
     config.capability_providers = vec![
@@ -553,7 +557,10 @@ async fn tool_registry_controller_handlers_cover_list_get_and_validation_paths()
         .handler;
     let dir = tempdir().expect("tempdir");
     let previous_workspace = {
-        let _env_guard = OWNED_DOMAIN_ENV_LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let _env_guard = OWNED_DOMAIN_ENV_LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let previous_workspace = std::env::var_os("OPENHUMAN_WORKSPACE");
         std::env::set_var("OPENHUMAN_WORKSPACE", dir.path());
         previous_workspace
@@ -562,7 +569,10 @@ async fn tool_registry_controller_handlers_cover_list_get_and_validation_paths()
         .await
         .expect("diagnostics value");
     {
-        let _env_guard = OWNED_DOMAIN_ENV_LOCK.get_or_init(|| Mutex::new(())).lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let _env_guard = OWNED_DOMAIN_ENV_LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         match previous_workspace {
             Some(value) => std::env::set_var("OPENHUMAN_WORKSPACE", value),
             None => std::env::remove_var("OPENHUMAN_WORKSPACE"),

@@ -84,6 +84,9 @@ impl std::fmt::Debug for McpAuthDebug<'_> {
                 .field(name)
                 .field(&"<redacted>")
                 .finish(),
+            // The contract's auth enum is non-exhaustive: a kind added later
+            // must not print its credential before this learns its shape.
+            _ => f.write_str("<redacted>"),
         }
     }
 }
@@ -99,21 +102,19 @@ impl McpServer {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        Self(McpServerConfig {
-            name: name.into(),
-            command: command.into(),
-            args: args.into_iter().map(Into::into).collect(),
-            ..Default::default()
-        })
+        let mut config = McpServerConfig::default();
+        config.name = name.into();
+        config.command = command.into();
+        config.args = args.into_iter().map(Into::into).collect();
+        Self(config)
     }
 
     /// A remote server over Streamable HTTP.
     pub fn http(name: impl Into<String>, endpoint: impl Into<String>) -> Self {
-        Self(McpServerConfig {
-            name: name.into(),
-            endpoint: endpoint.into(),
-            ..Default::default()
-        })
+        let mut config = McpServerConfig::default();
+        config.name = name.into();
+        config.endpoint = endpoint.into();
+        Self(config)
     }
 
     /// Environment variables for a stdio server. MCP stdio auth is normally
