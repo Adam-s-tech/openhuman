@@ -12,10 +12,6 @@
 //! `NoopMemory`, a `MockPriceTool`, `make_workspace` for identity-file
 //! fixtures, and a re-export of `agent::bus::use_real_agent_handler`.
 //!
-//! `context.rs` sits in this directory but is not declared below, so it does
-//! not compile; the live coverage for `channels/context.rs` is
-//! `channels/context_tests.rs`.
-//!
 //! * `discord_integration.rs` — end-to-end dispatch through the Discord
 //!   channel with every cross-module boundary (agent runtime, memory,
 //!   provider) substituted, proving the domain stays encapsulated.
@@ -25,9 +21,6 @@
 //!   markdown into the Project Context section.
 //! * `memory.rs` — conversation-history and memory-context wiring through
 //!   `process_channel_message`.
-//! * `personality.rs` — acceptance coverage for #6027/#6028 (channel turns
-//!   carry the active personality; identity edits reach the next turn
-//!   without a restart).
 //! * `prompt.rs` — system-prompt section assembly and bootstrap truncation.
 //! * `runtime_dispatch.rs` — the dispatch loop through
 //!   `runtime::test_support::run_dispatch_harness`: inbound-envelope

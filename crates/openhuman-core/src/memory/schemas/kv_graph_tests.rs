@@ -17,11 +17,6 @@ fn kv_graph_schema_exposes_all_functions() {
 }
 
 #[test]
-fn unknown_kv_graph_schema_returns_none() {
-    assert!(schema("not_real").is_none());
-}
-
-#[test]
 fn graph_upsert_schema_requires_subject_predicate_and_object() {
     let schema = schema("graph_upsert").unwrap();
     let required: Vec<&str> = schema

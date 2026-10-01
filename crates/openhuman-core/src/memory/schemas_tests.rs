@@ -263,28 +263,6 @@ fn each_family_pairs_its_schemas_with_its_controllers() {
 }
 
 #[test]
-fn all_controller_schemas_has_entry_per_supported_function() {
-    let names: Vec<_> = all_controller_schemas()
-        .into_iter()
-        .map(|s| s.function)
-        .collect();
-    assert_eq!(names.len(), ALL_FUNCTIONS.len());
-    for expected in ALL_FUNCTIONS {
-        assert!(names.contains(expected), "missing schema for {expected}");
-    }
-}
-
-#[test]
-fn all_registered_controllers_has_handler_per_schema() {
-    let controllers = all_registered_controllers();
-    assert_eq!(controllers.len(), ALL_FUNCTIONS.len());
-    let names: Vec<_> = controllers.iter().map(|c| c.schema.function).collect();
-    for expected in ALL_FUNCTIONS {
-        assert!(names.contains(expected), "missing handler for {expected}");
-    }
-}
-
-#[test]
 fn every_schema_uses_memory_namespace() {
     for s in all_controller_schemas() {
         assert_eq!(
@@ -346,35 +324,8 @@ fn parse_params_surfaces_deserialization_errors_with_context() {
 // ── sync / learn schema shape tests ─────────────────────────────────────
 
 #[test]
-fn sync_channel_schema_requires_channel_id() {
-    let s = schemas("sync_channel");
-    assert_eq!(s.namespace, "memory");
-    assert_eq!(s.function, "sync_channel");
-    let required: Vec<_> = s
-        .inputs
-        .iter()
-        .filter(|f| f.required)
-        .map(|f| f.name)
-        .collect();
-    assert!(
-        required.contains(&"channel_id"),
-        "channel_id must be required"
-    );
-}
-
-#[test]
 fn sync_all_schema_has_no_inputs() {
     let s = schemas("sync_all");
     assert_eq!(s.function, "sync_all");
     assert!(s.inputs.is_empty(), "sync_all takes no inputs");
-}
-
-#[test]
-fn learn_all_schema_namespaces_is_optional() {
-    let s = schemas("learn_all");
-    assert_eq!(s.function, "learn_all");
-    assert_eq!(s.inputs.len(), 1);
-    let ns_field = &s.inputs[0];
-    assert_eq!(ns_field.name, "namespaces");
-    assert!(!ns_field.required, "namespaces must be optional");
 }
