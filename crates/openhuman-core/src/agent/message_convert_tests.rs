@@ -431,14 +431,19 @@ fn history_projection_keeps_native_tool_round_structure() {
         Message::Assistant(AssistantMessage {
             id: None,
             content: vec![],
-            tool_calls: vec![TaToolCall::new("c1", "echo", serde_json::json!({}))],
+            tool_calls: vec![TaToolCall {
+                id: "c1".into(),
+                name: "echo".into(),
+                arguments: serde_json::json!({}),
+                invalid: None,
+            }],
             usage: None,
             origin: None,
         }),
         Message::Tool(ToolMessage {
             tool_call_id: "c1".into(),
             content: vec![ContentBlock::Text("ok".into())],
-            is_error: false,
+            trusted_verbatim: false,
             artifact: None,
         }),
     ];

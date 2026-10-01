@@ -253,7 +253,9 @@ impl OpenHumanSessionHost {
     pub fn history(&self) -> Vec<TranscriptEntry> {
         self.runtime_session
             .as_ref()
-            .map(|session| crate::agent::message_convert::messages_to_history_projection(session.history()))
+            .map(|session| {
+                crate::agent::message_convert::messages_to_history_projection(session.history())
+            })
             .unwrap_or_default()
     }
 
