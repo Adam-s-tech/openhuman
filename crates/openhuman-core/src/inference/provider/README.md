@@ -90,10 +90,6 @@ consumers: the agent harness (`agent/session_host/builder/factory.rs`,
   `list_providers`).
   Preserves the original `pub use ops::*` contract split out of a single `ops.rs`.
 - Claude Code CLI provider: `tinyagents_harness::providers::claude_code` in `vendor/tinyagents`; see the [Claude Code provider guide](../../../../../gitbooks/developing/providers/claude-code.md).
-- `schemas.rs`: a `providers.list_models` controller that is **not**
-  registered in `core/all.rs`; the live method is `inference.list_models`
-  (`openhuman.providers_list_models` survives only as a legacy alias in
-  `core/legacy_aliases.rs`).
 
 ## Tests
 

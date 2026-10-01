@@ -339,7 +339,6 @@ path = "../../examples/run_memory_reconcile.rs"
 # Direct core access: every test and bin names `openhuman_core::` paths.
 # `default-features = false` so the gates below are the only ones on.
 openhuman-core = { path = "../openhuman-core", package = "openhuman", default-features = false }
-openhuman-embed = { path = "../openhuman-embed", default-features = false }
 openhuman-tinyhumans = { path = "../openhuman-tinyhumans", default-features = false }
 openhuman-rpc = { workspace = true, features = ["server"] }
 anyhow = "1.0"
@@ -431,8 +430,6 @@ skills = ["openhuman-core/skills", "openhuman-tinyhumans/skills"]
 mcp = ["openhuman-core/mcp", "openhuman-tinyhumans/mcp"]
 channels = ["openhuman-core/channels", "openhuman-tinyhumans/channels"]
 sandbox-landlock = ["openhuman-core/sandbox-landlock", "openhuman-tinyhumans/sandbox-landlock"]
-sandbox-bubblewrap = ["openhuman-core/sandbox-bubblewrap", "openhuman-tinyhumans/sandbox-bubblewrap"]
-landlock = ["openhuman-core/landlock"]
 whatsapp-web = ["openhuman-core/whatsapp-web", "openhuman-tinyhumans/whatsapp-web"]
 e2e-test-support = ["openhuman-core/e2e-test-support"]
 rss-bench = ["openhuman-core/rss-bench"]
