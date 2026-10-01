@@ -273,8 +273,6 @@ describe('OnboardingLayout — Joyride walkthrough integration (#1123)', () => {
     const existing = ['shell', 'cron_add', 'cron_list'];
     const { mockSetOnboardingTasks } = await setupLayout({
       accessibilityPermissionGranted: false,
-      localModelConsentGiven: false,
-      localModelDownloadStarted: false,
       enabledTools: existing,
       connectedSources: [],
       updatedAtMs: 1,
@@ -308,8 +306,6 @@ describe('OnboardingLayout — Joyride walkthrough integration (#1123)', () => {
   it('carries a recorded accessibility permission through onboarding completion', async () => {
     const { mockSetOnboardingTasks } = await setupLayout({
       accessibilityPermissionGranted: true,
-      localModelConsentGiven: false,
-      localModelDownloadStarted: false,
       enabledTools: ['shell'],
       connectedSources: [],
       updatedAtMs: 1,

@@ -33,8 +33,6 @@ function coreState(enabledTools: string[]) {
       localState: {
         onboardingTasks: {
           accessibilityPermissionGranted: false,
-          localModelConsentGiven: false,
-          localModelDownloadStarted: false,
           enabledTools,
           connectedSources: [],
         },
@@ -118,8 +116,6 @@ describe('<ToolsPanel /> — saving tools preserves the onboarding flags it does
       localState: {
         onboardingTasks: {
           accessibilityPermissionGranted: true,
-          localModelConsentGiven: true,
-          localModelDownloadStarted: true,
           enabledTools: ['shell'],
           connectedSources: ['gmail'],
         },
@@ -147,8 +143,8 @@ describe('<ToolsPanel /> — saving tools preserves the onboarding flags it does
     const saved = mocks.setOnboardingTasks.mock.calls[0][0];
 
     // The flags this panel does not own must survive its save untouched. A
-    // hardcoded `false` here silently revokes a recorded macOS permission and
-    // a recorded local-model consent every time someone edits tool settings.
+    // hardcoded `false` here silently revokes a recorded macOS permission
+    // every time someone edits tool settings.
     expect(saved.accessibilityPermissionGranted).toBe(true);
     expect(saved.connectedSources).toEqual(['gmail']);
 

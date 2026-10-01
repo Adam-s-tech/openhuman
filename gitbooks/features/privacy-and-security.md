@@ -18,7 +18,7 @@ OpenHuman is designed so that the **memory of your life lives on your machine**.
 
 **No training on your data.** Your conversations, your Memory Tree, and your personal information are never used to train AI models or improve systems.
 
-**Optional** [**Local AI**](model-routing/local-ai.md)**.** If you want embeddings and summary-tree building to stay on your machine, opt in. Learning and reflection passes can be moved on-device the same way.
+**Optional** [**Local AI**](model-routing/local-ai.md)**.** If you want embeddings and summary-tree building to stay on your machine, run a local runtime such as Ollama, pull the models yourself, and add it as a provider. Learning and reflection passes, and chat if you choose, can be moved on-device the same way. OpenHuman does not install the runtime or download models.
 
 ---
 
