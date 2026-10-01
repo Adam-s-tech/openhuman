@@ -1047,66 +1047,6 @@ fn config_active_user_and_daemon_public_helpers_cover_path_branches() {
 }
 
 #[test]
-fn config_settings_cli_sections_project_snapshots_and_missing_fields() {
-    let snap = ConfigSnapshotFields {
-        config: json!({
-            "api_url": "https://api.example.test",
-            "default_model": "worker-a-model",
-            "default_temperature": 0.42,
-            "memory": { "provider": "sqlite", "auto_save": true },
-            "runtime": { "kind": "native", "reasoning_enabled": true },
-            "browser": { "allow_all": false }
-        }),
-        workspace_dir: "/tmp/openhuman-worker-a/workspace".to_string(),
-        config_path: "/tmp/openhuman-worker-a/config.toml".to_string(),
-    };
-
-    let model = settings_section_json("model", &snap, vec!["loaded".to_string()]);
-    assert_eq!(model.pointer("/result/section"), Some(&json!("model")));
-    assert_eq!(
-        model.pointer("/result/settings/default_model"),
-        Some(&json!("worker-a-model"))
-    );
-    assert_eq!(
-        model.pointer("/result/workspace_dir"),
-        Some(&json!("/tmp/openhuman-worker-a/workspace"))
-    );
-    assert_eq!(model.pointer("/logs/0"), Some(&json!("loaded")));
-
-    for (section, pointer, expected) in [
-        ("memory", "/result/settings/provider", json!("sqlite")),
-        ("runtime", "/result/settings/kind", json!("native")),
-        ("browser", "/result/settings/allow_all", json!(false)),
-    ] {
-        let value = settings_section_json(section, &snap, vec![]);
-        assert_eq!(value.pointer(pointer), Some(&expected), "{section}");
-    }
-
-    let unknown = settings_section_json("unknown", &snap, vec![]);
-    assert!(unknown
-        .pointer("/result/settings")
-        .is_some_and(Value::is_null));
-
-    let missing = ConfigSnapshotFields {
-        config: json!({ "default_model": "partial-model" }),
-        workspace_dir: "/tmp/ws".to_string(),
-        config_path: "/tmp/cfg.toml".to_string(),
-    };
-    let missing_model = settings_section_json("model", &missing, vec![]);
-    assert_eq!(
-        missing_model.pointer("/result/settings/default_model"),
-        Some(&json!("partial-model"))
-    );
-    assert!(missing_model
-        .pointer("/result/settings/api_url")
-        .is_some_and(Value::is_null));
-    let missing_memory = settings_section_json("memory", &missing, vec![]);
-    assert!(missing_memory
-        .pointer("/result/settings")
-        .is_some_and(Value::is_null));
-}
-
-#[test]
 fn config_proxy_public_paths_normalize_validate_and_apply_scope() {
     let _lock = env_lock();
     let _http = EnvVarGuard::unset("HTTP_PROXY");

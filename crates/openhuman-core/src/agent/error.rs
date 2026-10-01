@@ -203,16 +203,6 @@ pub fn is_max_iterations_error(error_msg: &str) -> bool {
     error_msg.contains(MAX_ITERATIONS_ERROR_PREFIX)
 }
 
-/// Check if an error message indicates a context/prompt-too-long failure.
-pub fn is_context_limit_error(error_msg: &str) -> bool {
-    let lower = error_msg.to_lowercase();
-    lower.contains("prompt is too long")
-        || lower.contains("context_length_exceeded")
-        || lower.contains("maximum context length")
-        || lower.contains("prompt too long")
-        || lower.contains("token limit")
-}
-
 #[cfg(test)]
 #[path = "error_tests.rs"]
 mod tests;
