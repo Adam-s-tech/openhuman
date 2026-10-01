@@ -149,13 +149,15 @@ const MOD_RS_STEMS = new Set(["mod", "lib", "main"]);
  *
  * `stem` is the source file's name without `.rs`; `taken` holds sibling file
  * names that already exist. A module nested in other inline modules (the
- * `mod imp { ... }` wrapper around platform code) gets a `#[path]` that climbs
- * out of the directories those modules imply. `subdir` puts the test files in
- * a subdirectory of the source file's own, which a crate root in `src/bin/`
- * needs: Cargo would build any `.rs` file placed directly there as a binary.
- * Returns the rewritten source,
- * the moved bodies (`{ name, fileName, body, line }`) and `skipped` modules
- * that need a human.
+ * `mod imp { ... }` wrapper around platform code) is written to the directory
+ * rustc implies for it (`foo/imp/` for `foo.rs`), so its `#[path]` is a bare
+ * file name. `subdir` puts a top-level module's file in a subdirectory of the
+ * source file's own, which a crate root in `src/bin/` needs: Cargo builds any
+ * `.rs` file placed directly there as a binary.
+ *
+ * Returns the rewritten source, the moved bodies
+ * (`{ name, fileName, relDir, body, line }`, `relDir` relative to the source
+ * file) and `skipped` modules that need a human.
  */
 export function externalizeSource(src, stem, taken = new Set(), { subdir = "" } = {}) {
   const code = codeMask(src);

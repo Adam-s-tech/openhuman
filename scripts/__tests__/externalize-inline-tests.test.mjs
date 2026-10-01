@@ -76,15 +76,16 @@ test("leaves cfg(not(test)) and plain inline modules alone", () => {
   assert.equal(out.source, src);
 });
 
-test("moves a module nested in an inline wrapper and climbs out of its directories", () => {
+test("writes a module nested in an inline wrapper to the directory rustc implies", () => {
   const src = "#[cfg(target_os = \"macos\")]\nmod imp {\n    fn a() {}\n\n    #[cfg(test)]\n    mod tests {\n        use super::*;\n\n        #[test]\n        fn t() {}\n    }\n}\n";
   const plain = externalizeSource(src, "cf_type");
   assert.equal(plain.moves[0].fileName, "cf_type_tests.rs");
+  assert.equal(plain.moves[0].relDir, "cf_type/imp");
   assert.equal(plain.moves[0].body, "use super::*;\n\n#[test]\nfn t() {}\n");
-  assert.match(plain.source, /    #\[cfg\(test\)\]\n    #\[path = "..\/..\/cf_type_tests.rs"\]\n    mod tests;\n}\n$/);
+  assert.match(plain.source, /    #\[cfg\(test\)\]\n    #\[path = "cf_type_tests.rs"\]\n    mod tests;\n}\n$/);
   assert.deepEqual(plain.skipped, []);
-  // A `mod.rs` or crate root owns its directory, so it climbs one level less.
-  assert.match(externalizeSource(src, "mod").source, /#\[path = "..\/mod_tests.rs"\]/);
+  // A `mod.rs` or crate root owns its directory, so the wrapper's directory sits beside it.
+  assert.equal(externalizeSource(src, "mod").moves[0].relDir, "imp");
 });
 
 test("names a second nested module after its wrapper when the file name is taken", () => {
@@ -92,6 +93,7 @@ test("names a second nested module after its wrapper when the file name is taken
     `mod ${wrapper} {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n`;
   const out = externalizeSource(`${block("imp")}\n${block("raise")}`, "ops");
   assert.deepEqual(out.moves.map((m) => m.fileName), ["ops_tests.rs", "ops_raise_tests.rs"]);
+  assert.deepEqual(out.moves.map((m) => m.relDir), ["ops/imp", "ops/raise"]);
   assert.deepEqual(out.skipped, []);
 });
 
@@ -99,8 +101,7 @@ test("puts a bin crate root's tests in a subdirectory Cargo will not build as a 
   const src = "fn main() {}\n\n#[cfg(test)]\nmod tests {\n    fn a() {}\n}\n";
   const out = externalizeSource(src, "tool", new Set(), { subdir: "tool" });
   assert.match(out.source, /#\[path = "tool\/tool_tests.rs"\]\nmod tests;/);
-  const nested = "mod imp {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n";
-  assert.match(externalizeSource(nested, "tool", new Set(), { subdir: "tool" }).source, /#\[path = "..\/tool\/tool_tests.rs"\]/);
+  assert.equal(out.moves[0].relDir, "tool");
 });
 
 test("reports a test module nested inside a function instead of moving it", () => {
