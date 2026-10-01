@@ -146,4 +146,28 @@ describe('Desktop connection', () => {
       await screen.findByText('Could not load pending desktop approvals. Refresh to try again.')
     ).toBeInTheDocument();
   });
+
+  it('treats not_required accessibility as ready on Windows and suppresses the settings button', async () => {
+    const windowsReady: DesktopStatus = {
+      ...enabled,
+      platform: 'windows',
+      accessibility: 'not_required',
+      screen_recording: 'not_required',
+    };
+    vi.mocked(callCoreRpc).mockImplementation(async ({ method }) => {
+      if (method === 'openhuman.desktop_status') return windowsReady as never;
+      if (method === 'openhuman.desktop_pending') return [] as never;
+      if (method === 'openhuman.desktop_probe') return { ok: true, app_count: 1 } as never;
+      throw new Error(`Unexpected method: ${method}`);
+    });
+    renderWithProviders(<DesktopConnectionPage />);
+
+    // "Not required" is a success state — the status badge should report connected.
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    // No "Open settings" button should appear for permissions that are not_required.
+    expect(screen.queryByRole('button', { name: 'Open settings' })).not.toBeInTheDocument();
+    // The probe should succeed.
+    fireEvent.click(screen.getByRole('button', { name: 'Test desktop access' }));
+    expect(await screen.findByText('Desktop access works.')).toBeInTheDocument();
+  });
 });
