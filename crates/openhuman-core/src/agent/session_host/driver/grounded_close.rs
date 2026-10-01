@@ -8,11 +8,11 @@
 
 use futures::StreamExt;
 use tinyinference_llm::model::{ModelRequest, ModelStreamItem};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
     message_convert::{dialect_response_from_provider, message_to_native_chat_message},
-    messages::TranscriptMessage,
     session_host::turn_checkpoint::{
         self, build_deterministic_checkpoint, build_deterministic_final_summary,
         close_repair_instruction, close_verification_prompt, final_answer_instruction,

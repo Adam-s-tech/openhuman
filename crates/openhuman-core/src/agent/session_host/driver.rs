@@ -14,10 +14,10 @@ use tinyagents_runtime::{
     DriverFailure, DriverOutcome, DriverRequest, RuntimeError, SessionDriver, TranscriptPartial,
 };
 use tinyinference_llm::message::Message;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
-    messages::TranscriptMessage,
     session_host::turn::graph::{self, ChatTurnGraph},
     tinyagents::{host::OpenHumanHostBase, host::OpenHumanRunContext, TurnModelSource},
 };
