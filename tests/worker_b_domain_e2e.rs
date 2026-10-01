@@ -152,16 +152,6 @@ async fn setup() -> TestHarness {
     }
 }
 
-async fn schema(rpc_base: &str) -> Value {
-    let url = format!("{}/schema", rpc_base.trim_end_matches('/'));
-    reqwest::get(&url)
-        .await
-        .unwrap_or_else(|err| panic!("GET {url}: {err}"))
-        .json::<Value>()
-        .await
-        .expect("schema json")
-}
-
 async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
