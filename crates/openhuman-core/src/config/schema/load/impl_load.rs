@@ -155,6 +155,38 @@ fn default_config_boxed() -> Box<Config> {
     Box::new(Config::default())
 }
 
+/// Pre-login config: defaults plus the env overlay, never persisted.
+#[inline(never)]
+fn pre_login_config_boxed(
+    config_path: std::path::PathBuf,
+    workspace_dir: std::path::PathBuf,
+    env: &(dyn EnvLookup + Send + Sync),
+) -> Box<Config> {
+    let mut config = Box::new(Config {
+        config_path,
+        workspace_dir,
+        action_dir: default_action_dir(),
+        ..Default::default()
+    });
+    config.apply_env_overrides_from(env);
+    config
+}
+
+/// A new workspace's config, stamped at the current schema version.
+#[inline(never)]
+fn new_workspace_config_boxed(
+    config_path: std::path::PathBuf,
+    workspace_dir: std::path::PathBuf,
+) -> Box<Config> {
+    Box::new(Config {
+        config_path,
+        workspace_dir,
+        action_dir: default_action_dir(),
+        schema_version: crate::config::migrations::CURRENT_SCHEMA_VERSION,
+        ..Default::default()
+    })
+}
+
 /// [`parse_config_with_recovery`] with the config kept behind a `Box`, so the
 /// async chain that threads it through (load, recover, migrate, save) moves a
 /// pointer instead of an ~8 KB value per hop.
@@ -218,7 +250,9 @@ async fn parse_config_boxed(config_path: &Path, contents: &str) -> (Box<Config>,
 }
 
 async fn parse_toml_off_worker(contents: String) -> Result<Box<Config>, String> {
-    match tokio::task::spawn_blocking(move || toml::from_str::<Config>(&contents).map(Box::new)).await {
+    match tokio::task::spawn_blocking(move || toml::from_str::<Config>(&contents).map(Box::new))
+        .await
+    {
         Ok(Ok(config)) => Ok(config),
         Ok(Err(parse_err)) => Err(parse_err.to_string()),
         Err(join_err) => Err(format!("blocking-pool parse join failed: {join_err}")),
@@ -292,20 +326,16 @@ impl Config {
         default_workspace_dir: &Path,
         env: &(dyn EnvLookup + Send + Sync),
     ) -> Result<Self> {
-        let (openhuman_dir, workspace_dir, resolution_source) =
-            resolve_runtime_config_dirs_with(default_openhuman_dir, default_workspace_dir, env)
-                .await?;
+        let (openhuman_dir, workspace_dir, resolution_source) = Box::pin(
+            resolve_runtime_config_dirs_with(default_openhuman_dir, default_workspace_dir, env),
+        )
+        .await?;
 
         let config_path = openhuman_dir.join("config.toml");
 
         if resolution_source == ConfigResolutionSource::DefaultConfigDir && !config_path.exists() {
-            let mut config = Config {
-                config_path: config_path.clone(),
-                workspace_dir: workspace_dir.clone(),
-                action_dir: default_action_dir(),
-                ..Default::default()
-            };
-            config.apply_env_overrides_from(env);
+            let mut config =
+                pre_login_config_boxed(config_path.clone(), workspace_dir.clone(), env);
 
             tracing::debug!(
                 path = %config.config_path.display(),
@@ -315,7 +345,7 @@ impl Config {
                 persisted = false,
                 "Config loaded (pre-login, in-memory only — no dirs or files written)"
             );
-            return Ok(config);
+            return Ok(*config);
         }
 
         fs::create_dir_all(&openhuman_dir)
@@ -531,7 +561,7 @@ impl Config {
                 );
             }
         }
-        Ok(config)
+        Ok(*config)
     }
 
     /// The branch of [`Self::load_or_init_with_env_lookup`] that creates and
@@ -542,13 +572,7 @@ impl Config {
         resolution_source: ConfigResolutionSource,
         env: &(dyn EnvLookup + Send + Sync),
     ) -> Result<Self> {
-        let mut config = Config {
-            config_path: config_path.clone(),
-            workspace_dir,
-            action_dir: default_action_dir(),
-            schema_version: crate::config::migrations::CURRENT_SCHEMA_VERSION,
-            ..Default::default()
-        };
+        let mut config = new_workspace_config_boxed(config_path.clone(), workspace_dir);
         // A workspace created here is stamped at the *current* schema
         // version, so the `run_pending` call below has no gate left to
         // cross — including the `== 1` step that is the only place the
