@@ -299,6 +299,22 @@ tinymemory-conformance = { path = "../../vendor/tinymemory/crates/tinymemory-con
 # — stay here, behind `memory::guard::HostGuardPolicy`. Only `tinymemory-api`,
 # `async-trait`, `serde_json`, `chrono`, `log` and `tracing`, all already here.
 tinymemory-guard = { path = "../../vendor/tinymemory/crates/tinymemory-guard" }
+# `tinymemory-import` holds the OpenClaw / Hermes workspace importers behind
+# `config::migration_helpers`. It writes into whichever `Memory` the host
+# opens (`target_memory_backend`, which refuses a null driver) and adds no
+# dependency beyond rusqlite, already linked here.
+tinymemory-import = { path = "../../vendor/tinymemory/crates/tinymemory-import" }
+# `tinymemory-tools` holds the memory agent tools (tree retrieval, raw chunk and
+# entity search, hybrid and vector search, tool-scoped rules) as
+# `tinytools::Tool`s generic over a host; `memory::tools::host` is this host.
+# Its one extra dependency is `tinytools`, which the root `[patch]` points at
+# the copy vendored through tinyagents, so there is still exactly one `Tool`.
+tinymemory-tools = { path = "../../vendor/tinymemory/crates/tinymemory-tools" }
+# `tinymemory-safety` is the secret and PII scrubber (credential patterns,
+# sensitive-key classifier, checksum-gated multilingual national-ID redaction)
+# that `memory::safety` used to carry a private copy of. `regex`, `serde_json`
+# and `log` only, no engine. The host takes the default (strictest) policy.
+tinymemory-safety = { path = "../../vendor/tinymemory/crates/tinymemory-safety" }
 # `tinymemory-sources` is the source registry, its types and its readers, in a
 # crate of its own. Taken directly rather than through `tinymemory-core`
 # (OpenHuman#5560): `tinymemory_core::sources` is a thin layer over it —
@@ -521,11 +537,12 @@ tokio-stream = { version = "0.1.18", default-features = false, features = ["sync
 url = "2"
 tempfile = "3"
 fs2 = "0.4"
-# Cross-platform battery probe for the scheduler gate. Maintained fork of
-# the abandoned `battery` crate; same `use battery::*;` API surface. Used
-# only by `openhuman::scheduler_gate::signals` to decide when to throttle
-# background LLM work on laptops.
-starship-battery = { version = "0.10", optional = true }
+# The scheduler gate: host power/CPU sampling and the cooperative wait that
+# keeps background LLM work from lagging a laptop. The cross-platform battery
+# probe (`starship-battery`) is its `battery` feature, forwarded by this crate's
+# `scheduler-gate` feature. The process-wide wiring stays in
+# `cron::scheduler_gate`.
+tinymemory-gate = { path = "../../vendor/tinymemory/crates/tinymemory-gate" }
 # Multi-chain wallet signing.
 # - bitcoin: P2WPKH PSBT build/sign/broadcast (includes secp256k1).
 # - ed25519-dalek: Solana transaction signing.
@@ -1254,7 +1271,7 @@ rss-bench = []
 # `tracing` and `tracing-subscriber` are NOT part of this gate and stay always-on.
 file-logging = ["dep:tracing-appender", "dep:tracing-log"]
 
-scheduler-gate = ["dep:starship-battery"]
+scheduler-gate = ["tinymemory-gate/battery"]
 
 
 [lints.rust]

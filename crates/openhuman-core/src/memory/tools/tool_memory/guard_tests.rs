@@ -1,5 +1,14 @@
+//! Host-integration tests for the tool-memory agent tools: they run the
+//! `tinymemory-tools` implementations against this host's real guarded driver,
+//! so the tier gate, the ambient workspace and the shared store are all live.
+//! The tools' own argument, schema and wording tests live with them in
+//! `tinymemory-tools`.
+
 use super::*;
 use std::ffi::OsString;
+
+use crate::memory::api::provider::MemoryProvider;
+use crate::memory::api::tool_memory::{ToolMemoryPriority, ToolMemorySource};
 
 use tempfile::TempDir;
 
@@ -60,77 +69,12 @@ async fn isolated_config(tmp: &TempDir) -> (WorkspaceEnvGuard, Config) {
     (guard, config)
 }
 
-#[test]
-fn parse_priority_defaults_to_normal() {
-    assert_eq!(parse_priority(None), ToolMemoryPriority::Normal);
-    assert_eq!(parse_priority(Some("normal")), ToolMemoryPriority::Normal);
-    assert_eq!(parse_priority(Some("unknown")), ToolMemoryPriority::Normal);
-}
-
-#[test]
-fn parse_priority_accepts_critical_and_high_case_insensitively() {
-    assert_eq!(
-        parse_priority(Some("critical")),
-        ToolMemoryPriority::Critical
-    );
-    assert_eq!(
-        parse_priority(Some("CRITICAL")),
-        ToolMemoryPriority::Critical
-    );
-    assert_eq!(parse_priority(Some("high")), ToolMemoryPriority::High);
-    assert_eq!(parse_priority(Some("HiGh")), ToolMemoryPriority::High);
-}
-
-#[test]
-fn args_default_tags_to_empty() {
-    let args: Args = serde_json::from_value(json!({
-        "tool_name": "bash",
-        "rule": "Never run rm -rf"
-    }))
-    .unwrap();
-    assert_eq!(args.tool_name, "bash");
-    assert_eq!(args.rule, "Never run rm -rf");
-    assert!(args.priority.is_none());
-    assert!(args.tags.is_empty());
-}
-
-#[test]
-fn parameters_schema_describes_priority_enum() {
-    let tool = MemoryToolsPutTool;
-    let schema = tool.parameters_schema();
-    assert_eq!(schema["required"], json!(["tool_name", "rule"]));
-    assert_eq!(
-        schema["properties"]["priority"]["enum"],
-        json!(["critical", "high", "normal"])
-    );
-}
-
-#[tokio::test]
-async fn execute_rejects_missing_required_fields() {
-    let tool = MemoryToolsPutTool;
-    let err = tool
-        .execute(json!({ "tool_name": "bash" }))
-        .await
-        .expect_err("missing rule should fail");
-    assert!(err
-        .to_string()
-        .contains("invalid arguments for memory_tools_put"));
-
-    let err = tool
-        .execute(json!({ "rule": "Never run rm -rf" }))
-        .await
-        .expect_err("missing tool_name should fail");
-    assert!(err
-        .to_string()
-        .contains("invalid arguments for memory_tools_put"));
-}
-
 #[tokio::test]
 async fn execute_success_path_persists_rule_in_isolated_workspace() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let (_workspace, _cfg) = isolated_config(&tmp).await;
-    let tool = MemoryToolsPutTool;
+    let tool = MemoryToolsPutTool::default();
     let result = tool
         .execute(json!({
             "tool_name": "bash",
@@ -174,7 +118,7 @@ async fn execute_defaults_unknown_priority_to_normal() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let (_workspace, _cfg) = isolated_config(&tmp).await;
-    let tool = MemoryToolsPutTool;
+    let tool = MemoryToolsPutTool::default();
     let result = tool
         .execute(json!({
             "tool_name": "bash",
@@ -200,7 +144,7 @@ async fn execute_is_refused_under_the_readonly_tier() {
     let tmp = TempDir::new().expect("tempdir");
     let (_workspace, _cfg) = isolated_config(&tmp).await;
     let _tier = scoped_tier(AutonomyLevel::ReadOnly);
-    let tool = MemoryToolsPutTool;
+    let tool = MemoryToolsPutTool::default();
     let err = tool
         .execute(json!({
             "tool_name": "bash",
@@ -223,7 +167,7 @@ async fn execute_succeeds_under_the_full_tier() {
     let tmp = TempDir::new().expect("tempdir");
     let (_workspace, _cfg) = isolated_config(&tmp).await;
     let _tier = scoped_tier(AutonomyLevel::Full);
-    let tool = MemoryToolsPutTool;
+    let tool = MemoryToolsPutTool::default();
     let result = tool
         .execute(json!({
             "tool_name": "bash",
@@ -242,7 +186,7 @@ async fn guarded_put_and_guarded_list_share_the_store() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let (_workspace, _cfg) = isolated_config(&tmp).await;
-    let put = MemoryToolsPutTool;
+    let put = MemoryToolsPutTool::default();
     let stored = put
         .execute(json!({
             "tool_name": "web_search",
@@ -255,7 +199,7 @@ async fn guarded_put_and_guarded_list_share_the_store() {
         serde_json::from_str(&stored.text()).expect("put result should be json");
     let stored_id = stored["id"].as_str().expect("stored id").to_string();
 
-    let list = super::super::list::MemoryToolsListTool;
+    let list = MemoryToolsListTool::default();
     let listed = list
         .execute(json!({ "tool_name": "web_search" }))
         .await
@@ -272,4 +216,35 @@ async fn guarded_put_and_guarded_list_share_the_store() {
         ids.contains(&stored_id.as_str()),
         "the guarded list must observe the guarded put: {ids:?}"
     );
+}
+
+#[tokio::test]
+async fn execute_success_path_returns_json_array_for_isolated_workspace() {
+    let tmp = TempDir::new().expect("tempdir");
+    let (_workspace, _cfg) = isolated_config(&tmp).await;
+    let tool = MemoryToolsListTool::default();
+    let result = tool
+        .execute(json!({ "tool_name": "bash" }))
+        .await
+        .expect("valid tool list request should succeed in isolated workspace");
+    assert!(!result.is_error);
+    let payload = result.text();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&payload).expect("result should be valid json");
+    assert!(
+        parsed.is_array(),
+        "list tool rules should serialize a JSON array"
+    );
+}
+
+#[tokio::test]
+async fn execute_accepts_other_tool_names_without_rules() {
+    let tmp = TempDir::new().expect("tempdir");
+    let (_workspace, _cfg) = isolated_config(&tmp).await;
+    let tool = MemoryToolsListTool::default();
+    let result = tool
+        .execute(json!({ "tool_name": "web_search" }))
+        .await
+        .expect("arbitrary tool names should succeed even when empty");
+    assert!(!result.is_error);
 }

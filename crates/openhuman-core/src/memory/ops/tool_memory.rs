@@ -121,7 +121,7 @@ pub async fn tool_rule_get(
 ///
 /// Shared with the `memory_tools_list` / `memory_tools_put` agent tools, which
 /// route through the same family.
-pub(crate) const NO_TOOL_MEMORY: &str = "memory driver does not support the tool_memory family";
+pub(crate) use tinymemory_tools::NO_TOOL_MEMORY;
 
 /// List every tool-scoped rule for a tool.
 ///

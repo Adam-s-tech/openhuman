@@ -55,6 +55,11 @@
 
 use serde::{Deserialize, Serialize};
 
+pub use tinymemory_tools::requests::{
+    CoverWindowRequest, DrillDownRequest, FetchLeavesRequest, QuerySourceRequest,
+    SearchEntitiesRequest,
+};
+
 use crate::config::Config;
 // The contract's retrieval vocabulary, not the engine's: these handlers return
 // what the driver handed back. The two encode identically (see the module
@@ -67,28 +72,6 @@ use crate::memory::source_scope::as_bus_scope;
 use tinymemory_api::chunks::SourceKind;
 
 // ── query_source ──────────────────────────────────────────────────────
-
-/// Request body for `memory_tree_query_source`. All fields are optional;
-/// see [`MemoryRetrieval::retrieve_source`] for selection semantics.
-///
-/// [`MemoryRetrieval::retrieve_source`]: crate::memory::api::provider::retrieval::MemoryRetrieval::retrieve_source
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct QuerySourceRequest {
-    #[serde(default)]
-    pub source_id: Option<String>,
-    #[serde(default)]
-    pub source_kind: Option<String>,
-    #[serde(default)]
-    pub time_window_days: Option<u32>,
-    /// Phase 4 (#710) — optional natural-language query string. When
-    /// provided, candidates are reranked by cosine similarity to the
-    /// query's embedding rather than sorted by recency. Legacy rows
-    /// with no stored embedding fall to the bottom.
-    #[serde(default)]
-    pub query: Option<String>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
 
 /// JSON-RPC handler body for `memory_tree_query_source`. Parses the request,
 /// reads through the bound driver's `MemoryRetrieval` family, and wraps the
@@ -150,23 +133,6 @@ pub async fn query_source_rpc(
 }
 
 // ── cover_window ──────────────────────────────────────────────────────
-
-/// Request body for `memory_tree_cover_window`. `since_ms`/`until_ms` are the
-/// inclusive window bounds in epoch-milliseconds; the source filter mirrors
-/// `query_source`. See [`MemoryRetrieval::cover_window`] for cover semantics.
-///
-/// [`MemoryRetrieval::cover_window`]: crate::memory::api::provider::retrieval::MemoryRetrieval::cover_window
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct CoverWindowRequest {
-    pub since_ms: i64,
-    pub until_ms: i64,
-    #[serde(default)]
-    pub source_id: Option<String>,
-    #[serde(default)]
-    pub source_kind: Option<String>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
 
 /// JSON-RPC handler body for `memory_tree_cover_window`. Parses the request,
 /// reads through the bound driver, logs PII-redacted counts.
@@ -247,16 +213,6 @@ pub async fn cover_window_rpc(
 
 // ── search_entities ───────────────────────────────────────────────────
 
-/// Request body for `memory_tree_search_entities`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SearchEntitiesRequest {
-    pub query: String,
-    #[serde(default)]
-    pub kinds: Option<Vec<String>>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
-
 /// Response envelope for `memory_tree_search_entities`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SearchEntitiesResponse {
@@ -322,23 +278,6 @@ pub async fn search_entities_rpc(
 
 // ── drill_down ────────────────────────────────────────────────────────
 
-/// Request body for `memory_tree_drill_down`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DrillDownRequest {
-    pub node_id: String,
-    #[serde(default)]
-    pub max_depth: Option<u32>,
-    /// When set, visited children are reranked by cosine similarity between
-    /// the query embedding and each child's stored embedding. Legacy children
-    /// without an embedding sort to the bottom.
-    #[serde(default)]
-    pub query: Option<String>,
-    /// Optional cap on the returned hit count, applied AFTER rerank so the
-    /// top-K is relevance-based when `query` is provided.
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
-
 /// Response envelope for `memory_tree_drill_down`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DrillDownResponse {
@@ -403,12 +342,6 @@ pub async fn drill_down_rpc(
 }
 
 // ── fetch_leaves ──────────────────────────────────────────────────────
-
-/// Request body for `memory_tree_fetch_leaves`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct FetchLeavesRequest {
-    pub chunk_ids: Vec<String>,
-}
 
 /// Response envelope for `memory_tree_fetch_leaves`.
 #[derive(Clone, Debug, Serialize, Deserialize)]

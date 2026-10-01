@@ -1,26 +1,26 @@
 //! Memory search tools — all agent-facing retrieval tools consolidated here.
 //!
-//! New tools are defined here. Existing tools from `memory::query` and
-//! `memory_store::tools` are re-exported for a unified import path.
+//! The tools themselves are `tinymemory-tools`'; these are the aliases that run
+//! them under this host ([`HostMemoryTools`]), so the registration sites in
+//! `tools/ops.rs` and every historical import path keep their names. Construct
+//! one with `::default()`.
 
-mod chunk_context;
-mod hybrid_search;
-mod vector_search;
+use crate::memory::tools::host::HostMemoryTools;
 
-// New tools
-pub use chunk_context::MemoryChunkContextTool;
-pub use hybrid_search::MemoryHybridSearchTool;
-pub use vector_search::MemoryVectorSearchTool;
+/// `memory_chunk_context` over this host.
+pub type MemoryChunkContextTool = tinymemory_tools::search::MemoryChunkContextTool<HostMemoryTools>;
+/// `memory_hybrid_search` over this host.
+pub type MemoryHybridSearchTool = tinymemory_tools::search::MemoryHybridSearchTool<HostMemoryTools>;
+/// `memory_vector_search` over this host.
+pub type MemoryVectorSearchTool = tinymemory_tools::search::MemoryVectorSearchTool<HostMemoryTools>;
 
-// Re-export existing tools from memory_store::tools (previously unregistered)
 pub use crate::memory::tools::raw_store::{
     MemoryStoreKindsTool, MemoryStoreRawChunksTool, MemoryStoreRawSearchTool,
 };
 
-// Re-export existing tools from memory::query. The former agentic `walk` /
-// `smart_walk` tools are gone — retrieval is now the deterministic
-// `fast_retrieve` exposed via the `memory_tree` tool's `walk`/`smart_walk`
-// modes (see `memory_tree::retrieval::fast`).
+// The former agentic `walk` / `smart_walk` tools are gone — retrieval is now
+// the deterministic `fast_retrieve` exposed via the `memory_tree` tool's
+// `walk`/`smart_walk` modes.
 pub use crate::memory::query::{
     MemoryTreeDrillDownTool, MemoryTreeFetchLeavesTool, MemoryTreeIngestDocumentTool,
     MemoryTreeQuerySourceTool, MemoryTreeSearchEntitiesTool,

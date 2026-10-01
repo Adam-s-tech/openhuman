@@ -254,8 +254,11 @@ pub async fn list_items_rpc(req: ListItemsRequest) -> Result<Outcome<ListItemsRe
         .ok_or_else(|| format!("source '{}' not found", req.source_id))?;
 
     let config = config_rpc::load_config_with_timeout().await?;
-    let reader = readers::reader_for(&source.kind);
-    let items = reader.list_items(&source, &config).await?;
+    let reader = readers::reader_for_request(&source.kind);
+    let items = reader
+        .list_items(&source, &config.workspace_dir)
+        .await
+        .map_err(|error| error.to_string())?;
 
     Ok(Outcome::new(ListItemsResponse { items }, vec![]))
 }
@@ -285,8 +288,11 @@ pub async fn read_item_rpc(req: ReadItemRequest) -> Result<Outcome<ReadItemRespo
         .ok_or_else(|| format!("source '{}' not found", req.source_id))?;
 
     let config = config_rpc::load_config_with_timeout().await?;
-    let reader = readers::reader_for(&source.kind);
-    let content = reader.read_item(&source, &req.item_id, &config).await?;
+    let reader = readers::reader_for_request(&source.kind);
+    let content = reader
+        .read_item(&source, &req.item_id, &config.workspace_dir)
+        .await
+        .map_err(|error| error.to_string())?;
 
     Ok(Outcome::new(ReadItemResponse { content }, vec![]))
 }
