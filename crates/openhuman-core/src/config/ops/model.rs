@@ -70,7 +70,7 @@ pub struct LocalAiSettingsPatch {
     /// when this is `false`, regardless of `runtime_enabled`. The unified
     /// AI panel ties the two together (both flip on enable, both flip
     /// off on disable) so a single toggle gives the user the obvious
-    /// behaviour without needing to apply a preset first.
+    /// behaviour.
     pub opt_in_confirmed: Option<bool>,
     pub provider: Option<String>,
     pub base_url: Option<Option<String>>,

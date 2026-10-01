@@ -3541,7 +3541,7 @@ async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
 }
 
 #[tokio::test]
-#[ignore = "TODO(#6380): hosted TinyAgents loses agent-team member persistence"]
+#[ignore = "TODO(#6380): agent_team_message_member answers `unknown member: member-...` for ids returned by agent_team_create; run: cargo test -p openhuman-cli --features <product> --test json_rpc_e2e json_rpc_agent_team_coordination_roundtrip -- --ignored"]
 async fn json_rpc_agent_team_coordination_roundtrip() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -6462,21 +6462,53 @@ encrypt = false
 }
 
 // ---------------------------------------------------------------------------
-// Local AI device profile, presets, and apply preset
+// Local AI endpoint status: probe only, never spawn or pull
 // ---------------------------------------------------------------------------
 
+/// OpenHuman talks to a local runtime the user runs; it never launches one,
+/// never pulls a model, and has no tier presets or device profile. With the
+/// configured endpoint on a closed port, `inference_status` must settle on
+/// `unreachable` and no runtime binary on PATH may have been executed.
 #[tokio::test]
-async fn json_rpc_local_ai_device_profile_and_presets() {
+async fn json_rpc_inference_status_reports_unreachable_without_spawning_a_runtime() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
 
+    // Every runtime binary OpenHuman used to launch is a stub that leaves a
+    // marker when executed.
+    let bin_dir = tmp.path().join("bin");
+    std::fs::create_dir_all(&bin_dir).expect("bin dir");
+    let spawn_marker = tmp.path().join("runtime-spawned.marker");
+    for name in ["ollama", "lms", "mlx_lm.server", "piper"] {
+        let path = bin_dir.join(name);
+        std::fs::write(
+            &path,
+            format!("#!/bin/sh\ntouch '{}'\nexit 0\n", spawn_marker.display()),
+        )
+        .expect("write stub");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
+                .expect("chmod stub");
+        }
+    }
+    let original_path = std::env::var_os("PATH").unwrap_or_default();
+    let mut path_entries = vec![bin_dir.clone()];
+    path_entries.extend(std::env::split_paths(&original_path));
+    let joined_path = std::env::join_paths(path_entries).expect("join PATH");
+
     let _home_guard = EnvVarGuard::set_to_path("HOME", home);
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
+    let _ollama_bin_guard = EnvVarGuard::unset("OLLAMA_BIN");
+    let _ollama_host_guard = EnvVarGuard::unset("OLLAMA_HOST");
+    // Port 1 is never listening: the probe is refused immediately.
+    let _ollama_url_guard = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", "http://127.0.0.1:1");
+    let _path_guard = EnvVarGuard::set_to_path("PATH", Path::new(&joined_path));
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
     let mock_origin = format!("http://{}", mock_addr);
@@ -6486,121 +6518,103 @@ async fn json_rpc_local_ai_device_profile_and_presets() {
     let rpc_base = format!("http://{}", rpc_addr);
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // --- device_profile ---
-    let profile = post_json_rpc(
+    // Saving local settings resets the cached probe verdict, so this test is
+    // independent of whatever endpoint an earlier test left the singleton on.
+    let update = post_json_rpc(
         &rpc_base,
         30,
+        "openhuman.inference_update_local_settings",
+        json!({
+            "runtime_enabled": true,
+            "opt_in_confirmed": true,
+            "provider": "ollama",
+            "base_url": "http://127.0.0.1:1",
+            "chat_model_id": "llama3.1:8b"
+        }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&update, "update_local_settings closed port");
+
+    // The first poll schedules the probe; poll until it settles.
+    let mut last = Value::Null;
+    let mut state = String::new();
+    for attempt in 0..50 {
+        let status = post_json_rpc(
+            &rpc_base,
+            31 + attempt,
+            "openhuman.inference_status",
+            json!({}),
+        )
+        .await;
+        let result = assert_no_jsonrpc_error(&status, "inference_status");
+        let payload = result.get("result").unwrap_or(result).clone();
+        state = payload
+            .get("state")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        last = payload;
+        if state == "unreachable" {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    assert_eq!(state, "unreachable", "status never settled: {last}");
+    assert_eq!(
+        last.get("error_category").and_then(Value::as_str),
+        Some("server")
+    );
+    assert!(
+        last.get("warning")
+            .and_then(Value::as_str)
+            .is_some_and(|w| w.contains("does not install or launch")),
+        "warning should tell the user to start their own runtime: {last}"
+    );
+    // The configured model passes through unchanged (no allowlist redirect).
+    assert_eq!(
+        last.get("chat_model_id").and_then(Value::as_str),
+        Some("llama3.1:8b")
+    );
+    for removed in [
+        "download_progress",
+        "downloaded_bytes",
+        "total_bytes",
+        "quantization",
+    ] {
+        assert!(
+            last.get(removed).is_none(),
+            "`{removed}` left on status: {last}"
+        );
+    }
+    assert!(
+        !spawn_marker.exists(),
+        "OpenHuman must never launch a local runtime binary"
+    );
+
+    // The removed download / preset / device-profile RPCs are gone, legacy
+    // names included.
+    for (idx, method) in [
+        "openhuman.inference_presets",
+        "openhuman.inference_apply_preset",
         "openhuman.inference_device_profile",
-        json!({}),
-    )
-    .await;
-    let profile_result = assert_no_jsonrpc_error(&profile, "device_profile");
-    let profile_payload = profile_result.get("result").unwrap_or(profile_result);
-    assert!(
-        profile_payload
-            .get("total_ram_bytes")
-            .and_then(Value::as_u64)
-            .unwrap_or(0)
-            > 0,
-        "expected positive RAM: {profile_result}"
-    );
-    assert!(
-        profile_payload
-            .get("cpu_count")
-            .and_then(Value::as_u64)
-            .unwrap_or(0)
-            > 0,
-        "expected positive CPU count: {profile_result}"
-    );
-
-    // --- presets ---
-    let presets = post_json_rpc(&rpc_base, 31, "openhuman.inference_presets", json!({})).await;
-    let presets_result = assert_no_jsonrpc_error(&presets, "presets");
-    let presets_payload = presets_result.get("result").unwrap_or(presets_result);
-    let presets_arr = presets_payload
-        .get("presets")
-        .and_then(Value::as_array)
-        .expect("presets should be an array");
-    assert_eq!(
-        presets_arr.len(),
-        1,
-        "MVP exposes only the 1B preset: {presets_result}"
-    );
-    assert_eq!(
-        presets_arr[0].get("tier").and_then(Value::as_str),
-        Some("ram_2_4gb"),
-        "only the ram_2_4gb (1B) preset should be exposed: {presets_result}"
-    );
-
-    let recommended = presets_payload
-        .get("recommended_tier")
-        .and_then(Value::as_str)
-        .expect("should have recommended_tier");
-    assert_eq!(
-        recommended, "ram_2_4gb",
-        "MVP recommends the only allowed tier: {recommended}"
-    );
-
-    let current = presets_payload
-        .get("current_tier")
-        .and_then(Value::as_str)
-        .expect("should have current_tier");
-    // Default config now uses gemma3:1b-it-qat which maps to the only allowed (2-4 GB) tier.
-    assert_eq!(
-        current, "ram_2_4gb",
-        "default config should be the 1B / 2-4 GB tier"
-    );
-
-    // --- apply_preset (switch to 2-4 GB) ---
-    let apply = post_json_rpc(
-        &rpc_base,
-        32,
-        "openhuman.inference_apply_preset",
-        json!({"tier": "ram_2_4gb"}),
-    )
-    .await;
-    let apply_result = assert_no_jsonrpc_error(&apply, "apply_preset");
-    let apply_payload = apply_result.get("result").unwrap_or(apply_result);
-    assert_eq!(
-        apply_payload.get("applied_tier").and_then(Value::as_str),
-        Some("ram_2_4gb")
-    );
-    assert_eq!(
-        apply_payload.get("chat_model_id").and_then(Value::as_str),
-        Some("gemma3:1b-it-qat")
-    );
-    assert_eq!(
-        apply_payload.get("vision_mode").and_then(Value::as_str),
-        Some("disabled")
-    );
-
-    // --- verify presets reflects the change ---
-    let presets_after =
-        post_json_rpc(&rpc_base, 33, "openhuman.inference_presets", json!({})).await;
-    let presets_after_result = assert_no_jsonrpc_error(&presets_after, "presets_after");
-    let presets_after_payload = presets_after_result
-        .get("result")
-        .unwrap_or(presets_after_result);
-    assert_eq!(
-        presets_after_payload
-            .get("current_tier")
-            .and_then(Value::as_str),
-        Some("ram_2_4gb"),
-        "current tier should now be 2-4 GB after apply"
-    );
-
-    // --- apply_preset with invalid tier should error ---
-    let bad_apply = post_json_rpc(
-        &rpc_base,
-        34,
-        "openhuman.inference_apply_preset",
-        json!({"tier": "ultra"}),
-    )
-    .await;
-    assert!(
-        bad_apply.get("error").is_some(),
-        "expected error for invalid tier: {bad_apply}"
-    );
+        "openhuman.inference_assets_status",
+        "openhuman.inference_downloads_progress",
+        "openhuman.inference_download_asset",
+        "openhuman.inference_install_piper",
+        "openhuman.inference_piper_install_status",
+        "openhuman.local_ai_presets",
+        "openhuman.local_ai_download_asset",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let response = post_json_rpc(&rpc_base, 200 + idx as i64, method, json!({})).await;
+        assert!(
+            response.get("error").is_some(),
+            "{method} should no longer be registered: {response}"
+        );
+    }
+    assert!(!spawn_marker.exists());
 
     mock_join.abort();
     rpc_join.abort();
@@ -6618,8 +6632,7 @@ async fn json_rpc_local_ai_device_profile_and_presets() {
 ///     and `vendor` is in the root `[workspace] exclude` — no OpenHuman lane
 ///     compiles that package, let alone runs its tests;
 ///   * OpenHuman itself never names `model_requirements`, so there is no
-///     in-crate seam to unit-test the way `local_ai_presets_tests.rs` tests the
-///     preset mapping;
+///     in-crate seam to unit-test it directly;
 ///   * `openhuman.inference_diagnostics` was named by two live e2e targets, but
 ///     only inside a schema-catalog list and an error-path table.
 ///
@@ -6644,7 +6657,6 @@ async fn json_rpc_local_ai_ollama_diagnostics_rejects_a_short_context_model() {
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _ollama_env_guard = EnvVarGuard::unset("OPENHUMAN_OLLAMA_BASE_URL");
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
@@ -6809,7 +6821,6 @@ async fn json_rpc_local_ai_lm_studio_config_diagnostics_and_prompt() {
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _lm_env_guard = EnvVarGuard::unset("OPENHUMAN_LM_STUDIO_BASE_URL");
     let _lm_alias_env_guard = EnvVarGuard::unset("LM_STUDIO_BASE_URL");
 
@@ -7021,7 +7032,6 @@ async fn json_rpc_inference_namespace_lm_studio_prompt_and_status() {
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _lm_env_guard = EnvVarGuard::unset("OPENHUMAN_LM_STUDIO_BASE_URL");
     let _lm_alias_env_guard = EnvVarGuard::unset("LM_STUDIO_BASE_URL");
 
@@ -7191,7 +7201,6 @@ async fn json_rpc_inference_prompt_requires_external_ollama_runtime_when_unreach
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _ollama_url_guard = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", "http://127.0.0.1:1");
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
@@ -7569,6 +7578,9 @@ async fn about_app_rpc_list_lookup_and_search() {
         "expected large capability catalog, got: {list_result}"
     );
     assert!(capabilities.iter().any(|capability| {
+        capability.get("id").and_then(Value::as_str) == Some("local_ai.configure_provider")
+    }));
+    assert!(!capabilities.iter().any(|capability| {
         capability.get("id").and_then(Value::as_str) == Some("local_ai.download_model")
     }));
 
@@ -10961,7 +10973,7 @@ fn opus_sonnet_demo_graph() -> Value {
 /// agent-node run drive the full harness (deep async stacks).
 #[cfg(feature = "flows")]
 #[test]
-#[ignore = "TODO(#6381): hosted TinyAgents builder drops the workflow proposal"]
+#[ignore = "TODO(#6381): flows_build returns proposal=null (the scripted propose_workflow completion is never consumed); run: cargo test -p openhuman-cli --features <product> --test json_rpc_e2e json_rpc_flows_full_arc_discover_build_create_run -- --ignored"]
 fn json_rpc_flows_full_arc_discover_build_create_run() {
     run_json_rpc_e2e_on_agent_stack(
         "json_rpc_flows_full_arc_discover_build_create_run",

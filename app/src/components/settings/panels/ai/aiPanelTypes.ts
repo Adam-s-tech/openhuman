@@ -28,14 +28,12 @@ export type CloudProvider = {
   maskedKey: string;
 };
 
-export type OllamaState =
-  | 'disabled'
-  | 'missing'
-  | 'stopped'
-  | 'starting'
-  | 'running'
-  | 'degraded'
-  | 'error';
+/**
+ * State of the user-run local endpoint. `unreachable` and `stopped` are both
+ * offline; `degraded` is reachable but unhealthy. The app never installs or
+ * starts the runtime, so there are no install / start / download states.
+ */
+export type OllamaState = 'disabled' | 'stopped' | 'running' | 'degraded' | 'unreachable';
 
 export type OllamaModel = { id: string; sizeBytes: number; family: string };
 

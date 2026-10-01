@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn lookup_returns_expected_capability() {
-    let capability = lookup("local_ai.download_model").expect("capability should exist");
+    let capability = lookup("local_ai.configure_provider").expect("capability should exist");
     assert_eq!(capability.category, CapabilityCategory::LocalAI);
     assert_eq!(capability.status, CapabilityStatus::Beta);
 }
@@ -516,14 +516,32 @@ fn catalog_how_to_uses_connections_nav_not_legacy_settings_paths() {
 ///      real route satisfies the check.
 ///   2. The panel stays gone — then each entry either points at the surface that
 ///      actually serves it, or states in prose that the capability has no user
-///      control yet. `local_ai.python_runtime_installer` in the same table is
-///      the in-repo precedent for the second shape: no breadcrumb, status
-///      unchanged, the `how_to` says where the behaviour lives instead.
+///      control yet: no breadcrumb, status unchanged, the `how_to` says where
+///      the behaviour lives instead (see `local_ai.model_context_check`).
 ///
 /// What this cannot assert: that the route named by a breadcrumb resolves in
 /// the React router. That tie is cross-language and belongs to a VU or PW case.
 /// This is the part that can be pinned from Rust — that no `local_ai` entry
 /// names a panel title this repo no longer contains.
+/// OpenHuman no longer downloads local models or installs Piper: the user
+/// runs their own runtime. The catalog
+/// must not advertise those capabilities.
+#[test]
+fn local_ai_catalog_does_not_advertise_model_downloads_or_installers() {
+    for removed in [
+        "local_ai.download_model",
+        "local_ai.manage_model_assets",
+        "local_ai.piper_installer",
+    ] {
+        assert!(lookup(removed).is_none(), "`{removed}` is still advertised");
+    }
+    let provider = lookup("local_ai.configure_provider").expect("configure_provider");
+    assert!(
+        provider.description.contains("ollama pull"),
+        "configure_provider should tell the user to pull models themselves"
+    );
+}
+
 #[test]
 fn local_ai_capabilities_do_not_point_at_the_removed_local_ai_model_panel() {
     const REMOVED_PANEL: &str = "Local AI Model";

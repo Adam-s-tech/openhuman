@@ -250,7 +250,7 @@ const result = await apiClient.post<LoginResponse>("/auth/login", {
 - `channelConnectionsApi`, `mcpClientsApi`, `mcpSetupApi`, `tunnelsApi`: connections
 - `memoryTimelineApi`, `memoryFreshnessApi`, `graphCentralityApi`, `namespaceOverviewApi`: memory/graph
 - `billingApi`, `creditsApi`, `referralApi`, `inviteApi`: commerce
-- `voiceSettingsApi`, `voiceInstallApi`, `aiSettingsApi`, `modelCouncilApi`: AI/voice config
+- `voiceSettingsApi`, `aiSettingsApi`, `modelCouncilApi`: AI/voice config
 
 For the full list, `ls app/src/services/api/`. New feature surfaces get their own module here rather than growing `apiClient`.
 

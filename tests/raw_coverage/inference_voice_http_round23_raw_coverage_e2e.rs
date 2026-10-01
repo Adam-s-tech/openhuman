@@ -2,9 +2,10 @@
 //!
 //! This suite uses temp workspaces, fake binaries, and loopback HTTP/WS servers
 //! only. It must not call host Ollama, MLX, Python, Whisper, Piper, models, or
-//! download endpoints.
+//! download endpoints, and OpenHuman itself must not launch any of them.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::body::Body;
@@ -24,6 +25,9 @@ use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
 use openhuman_core::inference::http;
+use openhuman_core::inference::host_runtime::{
+    local_ai_status, LocalAiService,
+};
 use openhuman_core::voice::streaming::handle_dictation_ws;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
@@ -44,6 +48,13 @@ impl EnvVarGuard {
         let previous = std::env::var_os(key);
         // SAFETY: mutation is serialized by `env_lock()` (see below).
         unsafe { std::env::set_var(key, value) };
+        Self { key, previous }
+    }
+
+    fn unset(key: &'static str) -> Self {
+        let previous = std::env::var_os(key);
+        // SAFETY: mutation is serialized by `env_lock()` (see below).
+        unsafe { std::env::remove_var(key) };
         Self { key, previous }
     }
 }
@@ -229,13 +240,68 @@ async fn dictation_ws_empty_stop_and_audio_cap_do_not_load_whisper() {
         .contains("Recording limit reached"));
 }
 
+#[tokio::test]
+async fn local_service_reports_endpoint_state_from_mocked_ollama_without_spawning() {
+    let _env = env_lock();
+    let (base, _state) = serve_mock().await;
+    let tmp = tempdir().expect("tempdir");
+    // Runtime binaries on PATH leave a marker if run: OpenHuman probes the
+    // user's endpoint and must never launch a runtime itself.
+    let scripts = tempdir().expect("scripts");
+    let spawn_marker = scripts.path().join("spawned.marker");
+    let marker_script = format!("#!/bin/sh\ntouch '{}'\nexit 42\n", spawn_marker.display());
+    for name in ["ollama", "python", "python3", "mlx_lm.generate", "piper"] {
+        write_stub_script(scripts.path(), name, &marker_script);
+    }
+
+    let mut config = temp_config(&tmp);
+    config.local_ai.runtime_enabled = true;
+    config.local_ai.opt_in_confirmed = true;
+    config.local_ai.provider = "ollama".to_string();
+    config.local_ai.base_url = Some(base.clone());
+    config.local_ai.chat_model_id = "gemma3:1b-it-qat".to_string();
+    config.local_ai.embedding_model_id = "bge-m3".to_string();
+    config.local_ai.vision_model_id = "vision-ready".to_string();
+    config.local_ai.tts_voice_id = "round23-voice".to_string();
+    config.save().await.expect("save config");
+
+    let _path = EnvVarGuard::set("PATH", scripts.path());
+    let _workspace = EnvVarGuard::set("OPENHUMAN_WORKSPACE", config.config_path.parent().unwrap());
+    let _ollama_base = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", &base);
+    let _piper_bin = EnvVarGuard::unset("PIPER_BIN");
+    let _ollama_bin = EnvVarGuard::unset("OLLAMA_BIN");
+
+    let runtime = openhuman_core::inference::local_runtime_config(&config);
+    let service = LocalAiService::new(&runtime);
+    service.bootstrap(&runtime).await;
+    let status = service.status();
+    assert_eq!(status.state, "ready");
+    assert_eq!(status.vision_mode, "ondemand");
+    assert_eq!(status.chat_model_id, "gemma3:1b-it-qat");
+
+    let diagnostics = service.diagnostics(&runtime).await.expect("diagnostics");
+    assert_eq!(diagnostics["expected"]["chat_found"], true);
+    assert_eq!(diagnostics["expected"]["embedding_found"], true);
+    assert_eq!(diagnostics["expected"]["vision_found"], true);
+    assert_eq!(diagnostics["repair_actions"], json!([]));
+
+    // No transcription assertion here: `transcribe_with_prompt` is a hosted
+    // call to the backend proxy since the whisper.cpp engine was deleted.
+
+    let ops_status = local_ai_status(&config).await.expect("ops status").value;
+    assert_eq!(ops_status.provider, "ollama");
+    assert!(
+        !spawn_marker.exists(),
+        "OpenHuman must never launch a local runtime binary"
+    );
+}
+
 async fn serve_mock() -> (String, MockState) {
     let state = MockState::default();
     let app = Router::new()
         .route("/v1/chat/completions", post(ollama_chat_completions))
         .route("/api/tags", get(ollama_tags))
         .route("/api/show", post(ollama_show))
-        .route("/asset/tts", get(asset_tts))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -338,14 +404,6 @@ async fn ollama_show(Json(body): Json<Value>) -> impl IntoResponse {
     .into_response()
 }
 
-async fn asset_tts() -> impl IntoResponse {
-    Response::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_LENGTH, "12")
-        .body(Body::from("voice-bytes!"))
-        .expect("tts response")
-}
-
 fn sse_response<const N: usize>(events: [Value; N]) -> Response<Body> {
     let mut body = events
         .into_iter()
@@ -390,3 +448,15 @@ fn store_app_session(config: &Config) {
         .expect("store app session");
 }
 
+fn write_stub_script(dir: &Path, name: &str, body: &str) -> PathBuf {
+    let path = dir.join(name);
+    std::fs::write(&path, body).expect("write stub");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&path).expect("metadata").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&path, perms).expect("chmod");
+    }
+    path
+}

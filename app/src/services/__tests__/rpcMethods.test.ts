@@ -160,7 +160,6 @@ describe('rpcMethods catalog', () => {
 
     const schemaSources = [
       readWithParts('../../../../crates/openhuman-core/src/config/schemas/schema_defs.rs'),
-      readWithParts('../../../../crates/openhuman-core/src/inference/provider/schemas.rs'),
       readWithParts('../../../../crates/openhuman-core/src/inference/schemas.rs'),
       readWithParts('../../../../crates/openhuman-core/src/inference/host_runtime/schemas.rs'),
       readWithParts('../../../../crates/openhuman-core/src/inference/embedding_host/schemas.rs'),

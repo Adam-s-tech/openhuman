@@ -97,27 +97,6 @@ pub fn schemas(function: &str) -> ControllerSchema {
                 "Array of {provider, status, message, timestamp_ms} provider auth errors.",
             )],
         },
-        "device_profile" => ControllerSchema {
-            namespace: "inference",
-            function: "device_profile",
-            description: "Detect the local hardware profile used for local inference recommendations.",
-            inputs: vec![],
-            outputs: vec![json_output("profile", "Device hardware profile.")],
-        },
-        "presets" => ControllerSchema {
-            namespace: "inference",
-            function: "presets",
-            description: "List local inference model presets with recommendation and current selection.",
-            inputs: vec![],
-            outputs: vec![json_output("presets", "Inference preset payload.")],
-        },
-        "apply_preset" => ControllerSchema {
-            namespace: "inference",
-            function: "apply_preset",
-            description: "Apply a local inference preset to the persisted config.",
-            inputs: vec![required_string("tier", "Tier to apply: ram_2_4gb or disabled.")],
-            outputs: vec![json_output("result", "Applied preset payload.")],
-        },
         "diagnostics" => ControllerSchema {
             namespace: "inference",
             function: "diagnostics",

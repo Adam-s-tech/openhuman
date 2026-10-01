@@ -42,7 +42,7 @@ retrieval       search / drill_down / topic / global / fetch
 
 The hot path (canonicalize → chunk → fast-score → persist → enqueue follow-up work) is fast. Heavy work - embeddings, entity extraction, sealing summary buckets, daily digests - runs in background workers so the UI never blocks.
 
-Embeddings and summary-tree building can run **on-device via Ollama** if you turn on [Local AI](../model-routing/local-ai.md); otherwise they go through the OpenHuman backend like any other model call.
+Embeddings and summary-tree building can run **on-device via Ollama** if you set up [Local AI](../model-routing/local-ai.md): run Ollama yourself, pull the models (for example `ollama pull bge-m3`), and route the workloads to it. Otherwise they go through the OpenHuman backend like any other model call.
 
 ## Three trees, three scopes
 

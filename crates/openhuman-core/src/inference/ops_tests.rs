@@ -55,15 +55,6 @@ async fn inference_summarize_reuses_local_ai_disabled_error() {
 }
 
 #[tokio::test]
-async fn inference_embed_reuses_local_ai_disabled_error() {
-    let (config, _tmp) = disabled_config();
-    let err = inference_embed(&config, &["hello".to_string()])
-        .await
-        .expect_err("embed should fail");
-    assert!(err.contains("local ai is disabled"));
-}
-
-#[tokio::test]
 async fn inference_test_provider_model_routes_lmstudio_prefix_through_provider_layer() {
     let (config, _tmp) = disabled_config();
     let app = Router::new().route(
@@ -166,27 +157,6 @@ async fn inference_get_client_config_returns_safe_snapshot() {
         credits_bypass.get("reasoning"),
         Some(&serde_json::Value::Bool(false))
     );
-}
-
-#[tokio::test]
-async fn inference_apply_preset_rejects_invalid_tier() {
-    let (config, _tmp) = disabled_config();
-    config.save().await.expect("save config");
-
-    let err = inference_apply_preset("ram_bogus")
-        .await
-        .expect_err("invalid tier should fail");
-    assert!(err.contains("invalid tier"));
-}
-
-#[tokio::test]
-async fn inference_presets_returns_recommended_tier() {
-    let (config, _tmp) = disabled_config();
-    config.save().await.expect("save config");
-
-    let outcome = inference_presets().await.expect("presets");
-    assert!(outcome.value.get("recommended_tier").is_some());
-    assert!(outcome.value.get("presets").is_some());
 }
 
 #[tokio::test]
