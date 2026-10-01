@@ -9,7 +9,7 @@
     "is a deliberate edit to this file, which is a reviewable diff.",
     "",
     "Delete an entry the moment the pins are reconciled. An exemption that has",
-    "stopped being true fails the gate too — `expect` must still match."
+    "stopped being true fails the gate too \u2014 `expect` must still match."
   ],
   "exemptions": [
     {
@@ -59,6 +59,12 @@
       "submodule": "vendor/tinyhosts",
       "expect": "v0.1.10-9-ge041ad00",
       "reason": "The registry artifact stays on the verified v0.1.9 release. The gitlink was already at v0.1.10 on main (pre-existing drift) and now adds only the library-only, off-by-default `tools` feature (tinyhumansai/tinyhosts#16) that the core links for the hosting_* agent tools; the module cdylib is unaffected. Remove when a tinyhosts release containing #16 is pinned in the registry with digests from its checksum.toml."
+    },
+    {
+      "id": "tinyconnectors",
+      "submodule": "vendor/tinyconnectors",
+      "expect": "v0.11.0-3-g000efcb7",
+      "reason": "The pin is v0.11.0 plus tinyhumansai/tinyconnectors#32 (branch direct-v3-query-parity: merge of main, `limit=200` / `toolkit_versions=latest` (#3932) / repeated `tags=` on the direct route's v3 reads, and the blank-id / slug-trim / description parity fixes). The core links the tinyconnectors library (default-features = false, no TinyBus adapter) and drives `DirectRoute` in-process over a host reqwest `Transport` for the direct-mode connection and tool reads, so that behaviour comes from this source pin, not from the loaded module artifact. The registry artifact is unchanged and the loaded module's bus behaviour does not depend on #32. Remove when #32 is merged and released and both pins move to that release."
     }
   ]
 }
