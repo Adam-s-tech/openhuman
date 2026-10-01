@@ -239,9 +239,7 @@ fn token_usage_row_shape_is_stable_and_old_rows_load() {
             "cache_creation_tokens": 30,
             "reasoning_tokens": 7,
             "cost_usd": 0.0123,
-            "cost_source": "provider_charged",
-            "run_id": null,
-            "root_run_id": null
+            "cost_source": "provider_charged"
         })
     );
 
