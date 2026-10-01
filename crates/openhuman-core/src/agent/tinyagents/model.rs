@@ -118,7 +118,7 @@ fn response_to_model_response(
         // reasoning tokens all have crate homes as of tinyagents 1.7. `Usage::new`
         // seeds input/output/total; set the detail fields on top.
         let mut usage = Usage::new(u.input_tokens, u.output_tokens);
-        usage.cache_read_tokens = u.cached_input_tokens;
+        usage.cache_read_tokens = u.cached_input_tokens();
         usage.cache_creation_tokens = u.cache_creation_tokens;
         usage.reasoning_tokens = u.reasoning_tokens;
         if u.charged_amount_usd.is_finite() && u.charged_amount_usd > 0.0 {
@@ -126,8 +126,8 @@ fn response_to_model_response(
                 (u.charged_amount_usd * 1_000_000.0).round() as i64,
             ));
         }
-        if u.context_window > 0 {
-            usage.context_window_tokens = Some(u.context_window);
+        if u.context_window() > 0 {
+            usage.context_window_tokens = Some(u.context_window());
         }
         usage
     });
@@ -232,7 +232,7 @@ fn openhuman_usage_meta_raw(usage: Option<&BilledUsage>) -> Option<serde_json::V
     }
     let meta = OpenhumanUsageMeta {
         charged_amount_usd: u.charged_amount_usd,
-        context_window: u.context_window,
+        context_window: u.context_window(),
     };
     Some(serde_json::json!({ OPENHUMAN_USAGE_META_KEY: meta }))
 }
