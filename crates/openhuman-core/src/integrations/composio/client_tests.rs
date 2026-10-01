@@ -37,21 +37,31 @@ fn config_with_session_token(tmp: &tempfile::TempDir) -> Config {
     config
 }
 
-/// Direct-mode reads are exercised over HTTP: `DirectComposioClient::new_with_v3_base`
-/// points its `/tools` and `/connected_accounts` GETs at a local axum mock, so we can
-/// assert the outbound `tags` filter (repeated query params) and the v3 ->
-/// canonical-envelope reshape without touching `backend.composio.dev`.
-fn direct_tool_for_mock(base_v3: String) -> std::sync::Arc<crate::tools::DirectComposioClient> {
+/// Direct-mode reads are exercised over HTTP through the connector module:
+/// `DirectCredential::new_with_v3_base` points the module's `/tools` and
+/// `/connected_accounts` GETs at a local axum mock, so we can assert the
+/// outbound `tags` filter (repeated query params) and the v3 ->
+/// canonical-envelope reshape without touching `backend.composio.dev`. These
+/// tests reach the process-global module, so they hold `module_guard`.
+fn direct_tool_for_mock(base_v3: String) -> std::sync::Arc<DirectCredential> {
     direct_tool_for_mock_with_key(base_v3, "ck_test_direct")
 }
 
 fn direct_tool_for_mock_with_key(
     base_v3: String,
     api_key: &str,
-) -> std::sync::Arc<crate::tools::DirectComposioClient> {
-    std::sync::Arc::new(crate::tools::DirectComposioClient::new_with_v3_base(
+) -> std::sync::Arc<DirectCredential> {
+    std::sync::Arc::new(DirectCredential::new_with_v3_base(
         api_key, base_v3,
     ))
+}
+
+/// A config that can load the connector module and names no route.
+fn module_test_config(tmp: &tempfile::TempDir) -> Config {
+    let mut config = Config::default();
+    config.config_path = tmp.path().join("config.toml");
+    config.workspace_dir = tmp.path().join("workspace");
+    config
 }
 
 struct DirectAuthFailureGuard {
@@ -59,7 +69,7 @@ struct DirectAuthFailureGuard {
 }
 
 impl DirectAuthFailureGuard {
-    fn for_tool(tool: &std::sync::Arc<crate::tools::DirectComposioClient>) -> Self {
+    fn for_tool(tool: &std::sync::Arc<DirectCredential>) -> Self {
         let key_id = tool.auth_key_fingerprint();
         crate::integrations::composio::direct_auth::reset_direct_auth_failure(key_id);
         Self { key_id }
@@ -222,6 +232,9 @@ fn store_get_clear_composio_api_key_roundtrip() {
 
 #[tokio::test]
 async fn direct_list_connections_stops_hitting_composio_after_repeated_invalid_api_key() {
+    let _module = module_guard().await;
+    let tmp = tempfile::tempdir().unwrap();
+    let config = module_test_config(&tmp);
     let hits = Arc::new(AtomicUsize::new(0));
     let app = Router::new()
         .route(
@@ -240,7 +253,7 @@ async fn direct_list_connections_stops_hitting_composio_after_repeated_invalid_a
     let _auth_guard = DirectAuthFailureGuard::for_tool(&tool);
 
     for _ in 0..2 {
-        let err = direct_list_connections(&tool)
+        let err = direct_list_connections(&config, &tool)
             .await
             .expect_err("invalid key should reject");
         assert!(
@@ -249,7 +262,7 @@ async fn direct_list_connections_stops_hitting_composio_after_repeated_invalid_a
         );
     }
 
-    let opened = direct_list_connections(&tool)
+    let opened = direct_list_connections(&config, &tool)
         .await
         .expect_err("third invalid-key failure should open the backoff gate");
     assert!(
@@ -257,7 +270,7 @@ async fn direct_list_connections_stops_hitting_composio_after_repeated_invalid_a
         "backoff error should be actionable, got: {opened:#}"
     );
 
-    let short_circuit = direct_list_connections(&tool)
+    let short_circuit = direct_list_connections(&config, &tool)
         .await
         .expect_err("open backoff gate should short-circuit before HTTP");
     assert!(
@@ -273,6 +286,9 @@ async fn direct_list_connections_stops_hitting_composio_after_repeated_invalid_a
 
 #[tokio::test]
 async fn direct_list_tools_forwards_tags_and_reshapes_v3_envelope() {
+    let _module = module_guard().await;
+    let tmp = tempfile::tempdir().unwrap();
+    let config = module_test_config(&tmp);
     use axum::extract::RawQuery;
     use std::sync::Mutex;
 
@@ -303,6 +319,7 @@ async fn direct_list_tools_forwards_tags_and_reshapes_v3_envelope() {
     let tool = direct_tool_for_mock(base);
 
     let resp = super::direct_list_tools(
+        &config,
         &tool,
         &["github".to_string()],
         Some(&["stars".to_string(), "repos".to_string()]),
