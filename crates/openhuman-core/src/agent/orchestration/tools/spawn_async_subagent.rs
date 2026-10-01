@@ -6,7 +6,7 @@
 
 use super::subagent_abort_report::AbortReport;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::orchestration::fleet_tools::FleetToolSet;
 use crate::agent::orchestration::running_subagents::{self, SubagentStatus};
 use crate::agent::orchestration::subagent_sessions::{
@@ -495,7 +495,7 @@ fn durable_task_key_source(
 /// dependency on the feature-gated flows domain — it is a generic scan for a
 /// structured tool payload.
 pub(crate) fn extract_workflow_proposal_from_history(
-    history: &[ChatMessage],
+    history: &[TranscriptMessage],
 ) -> Option<serde_json::Value> {
     history
         .iter()
@@ -520,7 +520,7 @@ fn attach_workflow_proposal(
     parent_thread_id: Option<&str>,
     task_id: &str,
     agent_id: &str,
-    final_history: &[ChatMessage],
+    final_history: &[TranscriptMessage],
     summary: String,
 ) -> String {
     let Some(proposal) = extract_workflow_proposal_from_history(final_history) else {

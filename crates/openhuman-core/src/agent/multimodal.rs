@@ -7,7 +7,7 @@
 //!
 //! | Kept here | Why it cannot be generic |
 //! | --- | --- |
-//! | [`ChatMessage`] adapters | the durable transcript record is OpenHuman's |
+//! | [`TranscriptMessage`] adapters | the durable transcript record is OpenHuman's |
 //! | Config mapping | `MultimodalConfig` is a `config.toml` schema type |
 //! | The `reqwest::Client` | the runtime proxy and its timeouts are host policy |
 //! | [`DocumentsTextExtractor`] | PDF text comes from the `tinydocs` module, behind the `documents` gate and a host-chosen deadline |
@@ -35,7 +35,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use reqwest::Client;
 
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::config::{
     build_runtime_proxy_client_with_timeouts, MultimodalConfig, MultimodalFileConfig,
 };
@@ -66,7 +66,7 @@ const PDF_EXTRACTION_TIMEOUT: Duration = Duration::from_secs(60);
 #[derive(Debug, Clone)]
 pub struct PreparedMessages {
     /// The messages with every marker resolved into a payload.
-    pub messages: Vec<ChatMessage>,
+    pub messages: Vec<TranscriptMessage>,
     /// Whether the turn carried any image markers.
     pub contains_images: bool,
     /// Whether the turn carried any file markers.
@@ -182,7 +182,7 @@ impl TextExtractor for DocumentsTextExtractor {
     }
 }
 
-// ── Marker helpers over `ChatMessage` ────────────────────────────────────
+// ── Marker helpers over `TranscriptMessage` ────────────────────────────────────
 
 /// Strip every `[IMAGE:…]` marker and return `(cleaned_text, refs_in_order)`.
 pub fn parse_image_markers(content: &str) -> (String, Vec<String>) {
@@ -207,31 +207,31 @@ pub fn extract_ollama_image_payload(image_ref: &str) -> Option<String> {
 /// them again on turn 2 even when the new user message had no attachments at
 /// all. Looking only at the most recent user message matches the user's intent
 /// ("how many am I attaching THIS turn") and keeps the cap stable.
-pub fn count_image_markers(messages: &[ChatMessage]) -> usize {
+pub fn count_image_markers(messages: &[TranscriptMessage]) -> usize {
     latest_user_message(messages)
         .map(|m| markers::parse_image_markers(&m.content).1.len())
         .unwrap_or(0)
 }
 
 /// Whether the latest user message carries any image marker.
-pub fn contains_image_markers(messages: &[ChatMessage]) -> bool {
+pub fn contains_image_markers(messages: &[TranscriptMessage]) -> bool {
     count_image_markers(messages) > 0
 }
 
 /// Count `[FILE:…]` markers in the **latest** user message only — same
 /// per-turn semantics as [`count_image_markers`].
-pub fn count_file_markers(messages: &[ChatMessage]) -> usize {
+pub fn count_file_markers(messages: &[TranscriptMessage]) -> usize {
     latest_user_message(messages)
         .map(|m| markers::parse_file_markers(&m.content).1.len())
         .unwrap_or(0)
 }
 
 /// Whether the latest user message carries any file marker.
-pub fn contains_file_markers(messages: &[ChatMessage]) -> bool {
+pub fn contains_file_markers(messages: &[TranscriptMessage]) -> bool {
     count_file_markers(messages) > 0
 }
 
-fn latest_user_message(messages: &[ChatMessage]) -> Option<&ChatMessage> {
+fn latest_user_message(messages: &[TranscriptMessage]) -> Option<&TranscriptMessage> {
     messages.iter().rev().find(|m| m.role == "user")
 }
 
@@ -242,7 +242,7 @@ fn latest_user_message(messages: &[ChatMessage]) -> Option<&ChatMessage> {
 /// Counts are checked against the raw markers before any read happens: a cap
 /// enforced after the fetch is not a cap.
 pub async fn prepare_messages_for_provider(
-    messages: &[ChatMessage],
+    messages: &[TranscriptMessage],
     image_config: &MultimodalConfig,
     file_config: &MultimodalFileConfig,
 ) -> anyhow::Result<PreparedMessages> {
@@ -348,7 +348,7 @@ pub async fn prepare_messages_for_provider(
 
         let content =
             mm::compose_multimodal_message(&cleaned_text, &normalized_image_refs, &file_payloads);
-        normalized_messages.push(ChatMessage {
+        normalized_messages.push(TranscriptMessage {
             id: message.id.clone(),
             role: message.role.clone(),
             content,
@@ -530,7 +530,7 @@ pub async fn stash_image_attachments(message: &str, image_config: &MultimodalCon
     out
 }
 
-// ── Placeholders over `ChatMessage` ──────────────────────────────────────
+// ── Placeholders over `TranscriptMessage` ──────────────────────────────────────
 
 /// Extract the `[Image: … #att:<id>]` sidecar placeholder tokens from `text`,
 /// in order. Used to forward a user's attached images into a delegated vision
@@ -541,7 +541,7 @@ pub fn extract_image_placeholders_in_text(text: &str) -> Vec<String> {
 }
 
 /// True if any message carries an `[Image: … #att:<id>]` sidecar placeholder.
-pub fn has_image_placeholders(messages: &[ChatMessage]) -> bool {
+pub fn has_image_placeholders(messages: &[TranscriptMessage]) -> bool {
     messages
         .iter()
         .any(|m| markers::text_has_image_placeholders(&m.content))
@@ -552,7 +552,7 @@ pub fn has_image_placeholders(messages: &[ChatMessage]) -> bool {
 /// provider-only copy. Resolution re-reads the file at dispatch. Placeholders
 /// whose id is absent (file evicted/swept, or written by a different workspace)
 /// keep their text. Call ONLY for vision-capable models.
-pub fn rehydrate_image_placeholders(messages: &[ChatMessage]) -> Vec<ChatMessage> {
+pub fn rehydrate_image_placeholders(messages: &[TranscriptMessage]) -> Vec<TranscriptMessage> {
     let index = build_attachment_index();
     messages
         .iter()
@@ -560,7 +560,7 @@ pub fn rehydrate_image_placeholders(messages: &[ChatMessage]) -> Vec<ChatMessage
             if !markers::text_has_image_placeholders(&m.content) {
                 return m.clone();
             }
-            ChatMessage {
+            TranscriptMessage {
                 id: m.id.clone(),
                 role: m.role.clone(),
                 content: markers::rehydrate_placeholders_in_text(&m.content, &index),

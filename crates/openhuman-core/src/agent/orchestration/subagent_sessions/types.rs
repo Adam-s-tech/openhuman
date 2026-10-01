@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::subagent_host::SubagentRunStatus;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -62,7 +62,7 @@ pub struct DurableSubagentSession {
     pub current_task_id: Option<String>,
     pub status: DurableSubagentStatus,
     pub reusable: bool,
-    pub latest_history: Option<Vec<ChatMessage>>,
+    pub latest_history: Option<Vec<TranscriptMessage>>,
     pub latest_error: Option<String>,
     pub created_at: String,
     pub updated_at: String,

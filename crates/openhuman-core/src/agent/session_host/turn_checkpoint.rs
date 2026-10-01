@@ -1,6 +1,6 @@
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 
-pub(crate) fn assistant_message_has_tool_calls(msg: &ChatMessage) -> bool {
+pub(crate) fn assistant_message_has_tool_calls(msg: &TranscriptMessage) -> bool {
     if msg.role != "assistant" {
         return false;
     }

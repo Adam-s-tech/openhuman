@@ -12,7 +12,7 @@ use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
     message_convert::{dialect_response_from_provider, message_to_native_chat_message},
-    messages::ChatMessage,
+    messages::TranscriptMessage,
     session_host::turn_checkpoint::{
         self, build_deterministic_checkpoint, build_deterministic_final_summary,
         close_repair_instruction, close_verification_prompt, final_answer_instruction,
@@ -89,11 +89,11 @@ pub(super) async fn repair_required_output(
         return None;
     }
 
-    let mut prompt_history: Vec<ChatMessage> = history
+    let mut prompt_history: Vec<TranscriptMessage> = history
         .iter()
         .filter_map(message_to_native_chat_message)
         .collect();
-    prompt_history.push(ChatMessage::user(wrap_harness_instruction(
+    prompt_history.push(TranscriptMessage::user(wrap_harness_instruction(
         &required::repair_instruction(contract),
     )));
     let (candidate, candidate_usage) =
@@ -178,7 +178,7 @@ pub(super) async fn close_if_needed(
     } else {
         final_answer_instruction(outcome.breaker_halt.as_deref(), &rendered)
     };
-    let base: Vec<ChatMessage> = base_history
+    let base: Vec<TranscriptMessage> = base_history
         .iter()
         .filter_map(message_to_native_chat_message)
         .collect();
@@ -186,7 +186,7 @@ pub(super) async fn close_if_needed(
 
     let ask = |prompt: String| {
         let mut messages = base.clone();
-        messages.push(ChatMessage::user(prompt));
+        messages.push(TranscriptMessage::user(prompt));
         async move { completion(source, model, temperature, thread_id, messages).await }
     };
     // A closing response is only user-visible after a separate, tool-less
@@ -204,7 +204,7 @@ pub(super) async fn close_if_needed(
                 model,
                 temperature,
                 thread_id,
-                vec![ChatMessage::user(prompt)],
+                vec![TranscriptMessage::user(prompt)],
             )
             .await;
             let violation = match parse_close_verdict(&verdict) {
@@ -288,7 +288,7 @@ async fn completion(
     model: &str,
     temperature: f64,
     thread_id: Option<&str>,
-    messages: Vec<ChatMessage>,
+    messages: Vec<TranscriptMessage>,
 ) -> (String, Option<UsageInfo>) {
     let Ok(model_client) = source.build_summarizer(model, temperature, thread_id) else {
         return (String::new(), None);

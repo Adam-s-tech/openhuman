@@ -3,7 +3,7 @@
 //! delivering the draft/final reply.
 
 use crate::agent::bus::{AgentTurnRequest, AgentTurnResponse, AGENT_RUN_TURN_METHOD};
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::channels::context::{
     build_memory_context, compact_sender_history, conversation_history_key,
@@ -200,9 +200,9 @@ pub(crate) async fn process_channel_runtime_message(
     // identity file changed since the last message (#6028); otherwise the
     // same bytes as the previous turn.
     let system_prompt = ctx.system_prompt.current();
-    let mut history = vec![ChatMessage::system(system_prompt.as_str())];
+    let mut history = vec![TranscriptMessage::system(system_prompt.as_str())];
     history.append(&mut prior_turns);
-    history.push(ChatMessage::user(&enriched_message));
+    history.push(TranscriptMessage::user(&enriched_message));
 
     // Determine if this channel supports streaming draft updates
     let use_streaming = target_channel
@@ -486,8 +486,8 @@ pub(crate) async fn process_channel_runtime_message(
                     .lock()
                     .unwrap_or_else(|e| e.into_inner());
                 let turns = histories.entry(history_key).or_default();
-                turns.push(ChatMessage::user(&enriched_message));
-                turns.push(ChatMessage::assistant(&response_text));
+                turns.push(TranscriptMessage::user(&enriched_message));
+                turns.push(TranscriptMessage::assistant(&response_text));
                 // Trim to MAX_CHANNEL_HISTORY (keep recent turns)
                 while turns.len() > crate::channels::context::MAX_CHANNEL_HISTORY {
                     turns.remove(0);

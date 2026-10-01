@@ -1,14 +1,13 @@
 //! Host-side transcript-view tests (the projection itself lives in
 //! `tinyagents_session::transcript::view`): they drive it through OpenHuman's
-//! own writer types (`ChatMessage`, the session codec).
+//! own writer types (`TranscriptMessage`, the session codec).
 //!
 //! Tool-round projection tests: text-dialect rounds persisted through the real
 //! session codec and writer, and transcripts written before calls rode their
 //! issuing row.
 
-use crate::agent::messages::{
-    attach_chat_tool_failure_metadata, transcript_message_from_chat, ChatMessage,
-};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{attach_chat_tool_failure_metadata, transcript_message_from_chat};
 use tempfile::TempDir;
 use tinyagents_session::transcript::view::{
     project_records, project_thread, DisplayItem, ToolCallStatus,
@@ -82,7 +81,7 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
                 content: "unknown tool `file_read`".into(),
             },
         ]),
-        ConversationMessage::Chat(ChatMessage::assistant("Here is what I found.")),
+        ConversationMessage::Chat(TranscriptMessage::assistant("Here is what I found.")),
     ];
     let rendered = crate::agent::message_convert::provider_messages_from_conversation(
         &tinytools_agent::dialect::XmlDialect,
@@ -321,7 +320,7 @@ fn calls_recorded_after_their_results_project_as_settled() {
 
 #[test]
 fn tool_failure_metadata_round_trips_write_to_display_line() {
-    // Full write path: a failed tool ChatMessage stamped with failure metadata
+    // Full write path: a failed tool TranscriptMessage stamped with failure metadata
     // must serialise the additive `failure` line field and read back as a failed
     // display message — proving the harness → transcript → projection seam.
     let dir = TempDir::new().unwrap();
@@ -347,7 +346,7 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
         task_id: None,
     };
 
-    let mut tool_msg = ChatMessage {
+    let mut tool_msg = TranscriptMessage {
         id: Some("call-1".into()),
         role: "tool".into(),
         content: r#"{"tool_call_id":"call-1","content":"boom"}"#.into(),
@@ -357,7 +356,7 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
     attach_chat_tool_failure_metadata(&mut tool_msg, Some("boom: exit 1"));
 
     let messages = vec![
-        ChatMessage {
+        TranscriptMessage {
             id: None,
             role: "user".into(),
             content: "do it".into(),

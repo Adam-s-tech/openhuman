@@ -8,7 +8,7 @@ pub(crate) async fn run_turn_via_tinyagents(
     chat_model: TurnChatModel,
     model: &str,
     temperature: f64,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
     resolved_tools: Vec<Arc<dyn tinytools::Tool>>,
     max_iterations: usize,
 ) -> Result<TinyagentsTurnOutcome> {

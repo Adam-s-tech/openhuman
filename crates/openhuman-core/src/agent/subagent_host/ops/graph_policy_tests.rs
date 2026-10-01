@@ -116,7 +116,7 @@ async fn run_with_spawn_tool_in_parent_surface(allowed: HashSet<String>) -> (boo
         Box::new(EchoTool),
         Box::new(SpawnProbeTool(executed.clone())),
     ]);
-    let mut history = vec![ChatMessage::user("spawn a helper")];
+    let mut history = vec![TranscriptMessage::user("spawn a helper")];
 
     run_subagent_via_graph(
         crate::agent::tinyagents::TurnModelSource::from_model(provider),
@@ -260,8 +260,8 @@ fn mirrored_tool_results_are_hidden_from_the_worker_thread_chat() {
         "researcher",
         "task-1",
         &[
-            ChatMessage::assistant("checking the calendar"),
-            ChatMessage::tool(RAW),
+            TranscriptMessage::assistant("checking the calendar"),
+            TranscriptMessage::tool(RAW),
         ],
         Some("[subagent run failed before completion]"),
     );

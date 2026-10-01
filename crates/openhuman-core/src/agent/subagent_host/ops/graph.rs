@@ -51,7 +51,8 @@ pub(super) use dispatch::{run_subagent_via_graph, AggregatedUsage};
 // of the original flat imports now live with the code that uses them, in
 // `dispatch.rs` / `transcript.rs` / `worker_mirror.rs`).
 #[cfg(test)]
-use crate::agent::messages::{ChatMessage, ConversationMessage};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{ConversationMessage};
 #[cfg(test)]
 use crate::agent::progress::AgentProgress;
 #[cfg(test)]

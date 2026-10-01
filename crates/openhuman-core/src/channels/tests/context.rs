@@ -6,7 +6,7 @@ use super::super::context::{
 };
 use super::super::traits;
 use super::common::DummyModel;
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -53,9 +53,9 @@ fn compact_sender_history_keeps_recent_truncated_messages() {
             .map(|idx| {
                 let content = format!("msg-{idx}-{}", "x".repeat(700));
                 if idx % 2 == 0 {
-                    ChatMessage::user(content)
+                    TranscriptMessage::user(content)
                 } else {
-                    ChatMessage::assistant(content)
+                    TranscriptMessage::assistant(content)
                 }
             })
             .collect::<Vec<_>>(),

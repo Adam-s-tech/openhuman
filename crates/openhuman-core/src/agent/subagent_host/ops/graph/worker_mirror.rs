@@ -1,7 +1,8 @@
 //! Mirroring a sub-agent turn's conversation onto its spawn's worker thread,
 //! matching the legacy `SubagentObserver`.
 
-use crate::agent::messages::{ChatMessage, ConversationMessage};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{ConversationMessage};
 
 /// Append a worker-thread [`StoredMessage`](crate::memory::conversations::ConversationMessage)
 /// with the restored legacy [`SubagentObserver`] metadata (#4466): `scope`,
@@ -169,7 +170,7 @@ pub(super) fn mirror_worker_thread(
     }
 }
 
-/// Worker-thread mirror from a flat [`ChatMessage`] history (the error-recovery
+/// Worker-thread mirror from a flat [`TranscriptMessage`] history (the error-recovery
 /// path, #4466): assistant messages become `agent` rows, tool messages become
 /// `user` rows. Used when only the recovered snapshot (not the typed
 /// `conversation`) is available. `failure_final`, when set, is appended as a
@@ -179,7 +180,7 @@ pub(super) fn mirror_worker_thread_from_history(
     thread_id: &str,
     agent_id: &str,
     task_id: &str,
-    history: &[ChatMessage],
+    history: &[TranscriptMessage],
     failure_final: Option<&str>,
 ) {
     let mut iteration: u64 = 0;

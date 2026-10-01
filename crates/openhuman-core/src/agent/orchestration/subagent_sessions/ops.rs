@@ -5,7 +5,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::subagent_host::SubagentRunStatus;
 
 use super::types::{
@@ -152,7 +152,7 @@ pub fn mark_finished(
     subagent_session_id: &str,
     task_id: &str,
     run_status: &SubagentRunStatus,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
 ) -> Result<(), String> {
     let updated = update_session(store, subagent_session_id, |session, now| {
         session.current_task_id = Some(task_id.to_string());

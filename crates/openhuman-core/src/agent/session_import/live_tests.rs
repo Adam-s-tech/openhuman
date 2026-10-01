@@ -15,10 +15,8 @@ use tinyagents_harness::store::{AppendStore, FileStore, JsonlAppendStore, Store}
 
 use super::live::{dual_write_enabled, shadow_reads_enabled};
 use super::projector::journal_message_from_transcript as project;
-use crate::agent::messages::{
-    attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata,
-    transcript_message_from_chat, ChatMessage,
-};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata, transcript_message_from_chat};
 use tinyagents_session::transcript::import::convert::{
     journal_messages as journal_messages_with, sanitize_store_name, stream_name,
 };
@@ -52,7 +50,7 @@ async fn shadow_read_compare(
 }
 
 fn durable_messages(
-    messages: &[ChatMessage],
+    messages: &[TranscriptMessage],
 ) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
     messages.iter().map(transcript_message_from_chat).collect()
 }
@@ -113,15 +111,15 @@ fn turn_usage() -> TurnUsage {
 /// the tool-failure marker onto the line's top-level `failure`/`failure_detail`
 /// fields, and since #6282 the read-back restores it to `extra_metadata`, so the
 /// marker round-trips.
-fn rich_base_messages() -> Vec<ChatMessage> {
-    let mut failed_tool = ChatMessage::tool("read_file failed: boom");
+fn rich_base_messages() -> Vec<TranscriptMessage> {
+    let mut failed_tool = TranscriptMessage::tool("read_file failed: boom");
     attach_chat_tool_failure_metadata(&mut failed_tool, Some("boom"));
     vec![
-        ChatMessage::system("you are the orchestrator"),
-        ChatMessage::user("read the file"),
-        ChatMessage::assistant("calling read_file"),
+        TranscriptMessage::system("you are the orchestrator"),
+        TranscriptMessage::user("read the file"),
+        TranscriptMessage::assistant("calling read_file"),
         failed_tool,
-        ChatMessage::assistant("done"),
+        TranscriptMessage::assistant("done"),
     ]
 }
 
@@ -147,7 +145,7 @@ async fn live_dual_write_matches_legacy_jsonl_render() {
     // A user turn + an assistant turn. The base messages carry no usage
     // metadata: the legacy writer embeds it from its `turn_usage` argument,
     // exactly as `persist_session_transcript` does in production.
-    let base_messages = vec![ChatMessage::user("hi"), ChatMessage::assistant("done")];
+    let base_messages = vec![TranscriptMessage::user("hi"), TranscriptMessage::assistant("done")];
     let meta = meta("t-root");
     let usage = turn_usage();
 
@@ -378,7 +376,7 @@ async fn shadow_read_unavailable_and_divergence() {
     let legacy = SessionTranscript {
         tools: None,
         meta: meta.clone(),
-        messages: durable_messages(&[ChatMessage::user("hi"), ChatMessage::assistant("done")]),
+        messages: durable_messages(&[TranscriptMessage::user("hi"), TranscriptMessage::assistant("done")]),
     };
     assert_eq!(
         shadow_read_compare(ws.path(), stem, &legacy).await,
@@ -395,9 +393,9 @@ async fn shadow_read_unavailable_and_divergence() {
         tools: None,
         meta,
         messages: durable_messages(&[
-            ChatMessage::user("hi"),
-            ChatMessage::assistant("done"),
-            ChatMessage::user("more"),
+            TranscriptMessage::user("hi"),
+            TranscriptMessage::assistant("done"),
+            TranscriptMessage::user("more"),
         ]),
     };
     assert_eq!(
@@ -489,7 +487,7 @@ async fn shadow_read_matches_across_the_legacy_date_grouped_layout() {
     std::fs::create_dir_all(&dated_dir).expect("create legacy dated dir");
     let jsonl_path = dated_dir.join(format!("{stem}.jsonl"));
 
-    let base_messages = vec![ChatMessage::user("hi"), ChatMessage::assistant("done")];
+    let base_messages = vec![TranscriptMessage::user("hi"), TranscriptMessage::assistant("done")];
     let meta = meta("t-root");
     let usage = turn_usage();
 

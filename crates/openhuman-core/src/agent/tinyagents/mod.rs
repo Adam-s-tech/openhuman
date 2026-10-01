@@ -5,7 +5,7 @@
 //! openhuman's agent execution runs on the `tinyagents` crate
 //! (LangGraph/LangChain-style durable graphs + an agent-loop harness with model/
 //! tool registries, middleware, retry/fallback, and limits). This module is the
-//! **adapter seam**: it bridges openhuman's `Provider`, `Tool`, and `ChatMessage`
+//! **adapter seam**: it bridges openhuman's `Provider`, `Tool`, and `TranscriptMessage`
 //! types onto the crate's `ChatModel`, `Tool`, and `Message` traits, then drives
 //! a turn through [`AgentHarness::invoke`]. The chat / channel / sub-agent
 //! routes call [`run_turn_via_tinyagents_shared`] (default ON in production).

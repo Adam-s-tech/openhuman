@@ -1,5 +1,5 @@
 use anyhow::Result;
-use openhuman_core::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use openhuman_core::agent::multimodal::{
     contains_image_markers, count_image_markers, extract_ollama_image_payload, parse_image_markers,
     prepare_messages_for_provider,
@@ -9,8 +9,8 @@ use openhuman_core::config::{MultimodalConfig, MultimodalFileConfig};
 #[test]
 fn marker_helpers_cover_mixed_content_and_payload_extraction() {
     let messages = vec![
-        ChatMessage::assistant("[IMAGE:/tmp/ignored.png]"),
-        ChatMessage::user("look [IMAGE:/tmp/a.png] then [IMAGE:data:image/png;base64,abcd]"),
+        TranscriptMessage::assistant("[IMAGE:/tmp/ignored.png]"),
+        TranscriptMessage::user("look [IMAGE:/tmp/a.png] then [IMAGE:data:image/png;base64,abcd]"),
     ];
 
     let (cleaned, refs) = parse_image_markers(messages[1].content.as_str());
@@ -38,7 +38,7 @@ fn marker_helpers_cover_mixed_content_and_payload_extraction() {
     assert_eq!(cleaned_empty, "keep [IMAGE:] literal");
     assert!(refs_empty.is_empty());
 
-    assert!(!contains_image_markers(&[ChatMessage::assistant(
+    assert!(!contains_image_markers(&[TranscriptMessage::assistant(
         "no user refs"
     )]));
 }
@@ -46,9 +46,9 @@ fn marker_helpers_cover_mixed_content_and_payload_extraction() {
 #[tokio::test]
 async fn prepare_messages_passthrough_when_no_user_images_exist() -> Result<()> {
     let messages = vec![
-        ChatMessage::system("sys"),
-        ChatMessage::assistant("[IMAGE:/tmp/not-counted.png]"),
-        ChatMessage::user("plain text"),
+        TranscriptMessage::system("sys"),
+        TranscriptMessage::assistant("[IMAGE:/tmp/not-counted.png]"),
+        TranscriptMessage::user("plain text"),
     ];
 
     let prepared = prepare_messages_for_provider(
@@ -66,8 +66,8 @@ async fn prepare_messages_passthrough_when_no_user_images_exist() -> Result<()> 
 #[tokio::test]
 async fn prepare_messages_accepts_data_uris_and_preserves_other_messages() -> Result<()> {
     let messages = vec![
-        ChatMessage::assistant("already there"),
-        ChatMessage::user("inspect [IMAGE:data:image/PNG;base64,iVBORw0KGgo=]"),
+        TranscriptMessage::assistant("already there"),
+        TranscriptMessage::user("inspect [IMAGE:data:image/PNG;base64,iVBORw0KGgo=]"),
     ];
 
     let prepared = prepare_messages_for_provider(
@@ -88,7 +88,7 @@ async fn prepare_messages_accepts_data_uris_and_preserves_other_messages() -> Re
 
 #[tokio::test]
 async fn prepare_messages_rejects_invalid_data_uri_forms() {
-    let invalid_non_base64 = vec![ChatMessage::user("bad [IMAGE:data:image/png,abcd]")];
+    let invalid_non_base64 = vec![TranscriptMessage::user("bad [IMAGE:data:image/png,abcd]")];
     let err = prepare_messages_for_provider(
         &invalid_non_base64,
         &MultimodalConfig::default(),
@@ -100,7 +100,7 @@ async fn prepare_messages_rejects_invalid_data_uri_forms() {
         .to_string()
         .contains("only base64 data URIs are supported"));
 
-    let invalid_mime = vec![ChatMessage::user("bad [IMAGE:data:text/plain;base64,YQ==]")];
+    let invalid_mime = vec![TranscriptMessage::user("bad [IMAGE:data:text/plain;base64,YQ==]")];
     let err = prepare_messages_for_provider(
         &invalid_mime,
         &MultimodalConfig::default(),
@@ -110,7 +110,7 @@ async fn prepare_messages_rejects_invalid_data_uri_forms() {
     .expect_err("unsupported mime should fail");
     assert!(err.to_string().contains("MIME type is not allowed"));
 
-    let invalid_base64 = vec![ChatMessage::user("bad [IMAGE:data:image/png;base64,%%%]")];
+    let invalid_base64 = vec![TranscriptMessage::user("bad [IMAGE:data:image/png;base64,%%%]")];
     let err = prepare_messages_for_provider(
         &invalid_base64,
         &MultimodalConfig::default(),
@@ -127,7 +127,7 @@ async fn prepare_messages_rejects_unknown_local_mime() {
     let file_path = temp.path().join("sample.txt");
     std::fs::write(&file_path, b"not an image").expect("write sample");
 
-    let messages = vec![ChatMessage::user(format!(
+    let messages = vec![TranscriptMessage::user(format!(
         "bad [IMAGE:{}]",
         file_path.display()
     ))];

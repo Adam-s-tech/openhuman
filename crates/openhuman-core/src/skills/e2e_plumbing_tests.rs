@@ -28,7 +28,7 @@ use async_trait::async_trait;
 use parking_lot::Mutex;
 
 use crate::agent::harness::run_channel_turn_via_graph;
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::tools::RunWorkflowTool;
 use crate::config::{Config, MultimodalConfig, MultimodalFileConfig};
 use crate::skills::ops_create::{
@@ -188,7 +188,7 @@ async fn mock_llm_orchestrator_lists_and_runs_workflows_through_the_loop() {
         ]),
     });
 
-    let mut history = vec![ChatMessage::user("Triage my inbox using a workflow.")];
+    let mut history = vec![TranscriptMessage::user("Triage my inbox using a workflow.")];
     let result = run_channel_turn_via_graph(
         crate::agent::tinyagents::TurnModelSource::from_model_with_profile(
             model,

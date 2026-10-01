@@ -8,7 +8,7 @@ use super::dispatch::{
 };
 pub use super::startup::test_support::resolve_yuanbao_app_secret_for_test;
 use crate::agent::bus::{AgentTurnRequest, AgentTurnResponse, AGENT_RUN_TURN_METHOD};
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::channels::context::{ChannelRuntimeContext, CHANNEL_MESSAGE_TIMEOUT_SECS};
 use crate::channels::traits::{ChannelMessage, SendMessage};
@@ -538,7 +538,7 @@ pub async fn run_dispatch_harness(options: DispatchHarnessOptions) -> DispatchHa
         conversation_histories.lock().expect("history lock").insert(
             history_key.clone(),
             (0..options.seed_history_len)
-                .map(|idx| ChatMessage::assistant(format!("prior {idx} {}", "x".repeat(700))))
+                .map(|idx| TranscriptMessage::assistant(format!("prior {idx} {}", "x".repeat(700))))
                 .collect(),
         );
     }

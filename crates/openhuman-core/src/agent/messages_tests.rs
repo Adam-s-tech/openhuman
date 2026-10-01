@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn transcript_adapter_round_trips_cache_breakpoints() {
-    let original = ChatMessage {
+    let original = TranscriptMessage {
         id: Some("message-1".to_string()),
         role: "system".to_string(),
         content: "system prompt".to_string(),

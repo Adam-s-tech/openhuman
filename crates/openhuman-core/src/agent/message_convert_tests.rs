@@ -8,7 +8,7 @@ use tinyinference_llm::model::ModelRequest;
 #[test]
 fn user_image_marker_becomes_an_image_content_block() {
     let png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==";
-    let msg = ChatMessage::user(format!("what is in this screenshot? [IMAGE:{png}]"));
+    let msg = TranscriptMessage::user(format!("what is in this screenshot? [IMAGE:{png}]"));
 
     let Message::User(user) = chat_message_to_message(&msg) else {
         panic!("user role must map to a user message");
@@ -83,7 +83,7 @@ fn image_only_and_multi_image_user_turns_map_to_image_blocks_only() {
     let gif = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 
     let Message::User(only) =
-        chat_message_to_message(&ChatMessage::user(format!("[IMAGE:{jpeg}]")))
+        chat_message_to_message(&TranscriptMessage::user(format!("[IMAGE:{jpeg}]")))
     else {
         panic!("user role must map to a user message");
     };
@@ -92,7 +92,7 @@ fn image_only_and_multi_image_user_turns_map_to_image_blocks_only() {
 
     // Interleaved prose + images preserve source order: text, image, text,
     // image — so each caption stays next to its image.
-    let Message::User(multi) = chat_message_to_message(&ChatMessage::user(format!(
+    let Message::User(multi) = chat_message_to_message(&TranscriptMessage::user(format!(
         "compare [IMAGE:{jpeg}] and [IMAGE:{gif}]"
     ))) else {
         panic!("user role must map to a user message");
@@ -109,7 +109,7 @@ fn image_only_and_multi_image_user_turns_map_to_image_blocks_only() {
 // the provider would reject.
 #[test]
 fn non_data_image_marker_is_kept_as_text() {
-    let Message::User(user) = chat_message_to_message(&ChatMessage::user(
+    let Message::User(user) = chat_message_to_message(&TranscriptMessage::user(
         "see [IMAGE:/tmp/local/path.png] here".to_string(),
     )) else {
         panic!("user role must map to a user message");
@@ -127,7 +127,7 @@ fn non_data_image_marker_is_kept_as_text() {
 // preserves the original (untrimmed) content.
 #[test]
 fn plain_user_text_stays_a_single_text_block() {
-    let Message::User(user) = chat_message_to_message(&ChatMessage::user("  hi there  ")) else {
+    let Message::User(user) = chat_message_to_message(&TranscriptMessage::user("  hi there  ")) else {
         panic!("user role must map to a user message");
     };
     assert_eq!(user.content.len(), 1);
@@ -145,10 +145,10 @@ fn seeded_native_tool_round_recovers_structure_and_round_trips() {
         arguments: r#"{"msg":"hi"}"#.into(),
         extra_content: None,
     };
-    let assistant_cm = ChatMessage::assistant(
+    let assistant_cm = TranscriptMessage::assistant(
         serde_json::json!({ "content": "calling echo", "tool_calls": [oh_call] }).to_string(),
     );
-    let tool_cm = ChatMessage::tool(
+    let tool_cm = TranscriptMessage::tool(
         serde_json::json!({ "tool_call_id": "call-1", "content": "echoed:hi" }).to_string(),
     );
 
@@ -191,7 +191,7 @@ fn seeded_native_tool_round_recovers_structure_and_round_trips() {
 
 #[test]
 fn plain_assistant_prose_is_not_misread_as_a_tool_round() {
-    let a = chat_message_to_message(&ChatMessage::assistant("just a normal reply"));
+    let a = chat_message_to_message(&TranscriptMessage::assistant("just a normal reply"));
     let Message::Assistant(am) = &a else {
         panic!("expected Assistant, got {a:?}");
     };
@@ -201,7 +201,7 @@ fn plain_assistant_prose_is_not_misread_as_a_tool_round() {
 
 #[test]
 fn reasoning_content_uses_typed_thinking_block_and_round_trips_metadata() {
-    let mut chat = ChatMessage::assistant("visible answer");
+    let mut chat = TranscriptMessage::assistant("visible answer");
     chat.extra_metadata = Some(serde_json::json!({ REASONING_EXT_KEY: "private thoughts" }));
 
     let msg = chat_message_to_message(&chat);
@@ -260,9 +260,9 @@ fn legacy_provider_extension_reasoning_still_round_trips() {
 #[test]
 fn roles_round_trip_through_the_bridge() {
     let history = vec![
-        ChatMessage::system("you are helpful"),
-        ChatMessage::user("hello"),
-        ChatMessage::assistant("hi there"),
+        TranscriptMessage::system("you are helpful"),
+        TranscriptMessage::user("hello"),
+        TranscriptMessage::assistant("hi there"),
     ];
     let messages = history_to_messages(&history);
     assert!(matches!(messages[0], Message::System(_)));

@@ -6,7 +6,8 @@ use crate::agent::subagent_host::ops::checkpoint;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::agent::messages::{ChatMessage, ConversationMessage};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{ConversationMessage};
 use crate::agent::progress::AgentProgress;
 use crate::agent::subagent_host::types::SubagentRunError;
 use crate::agent::tinyagents::{run_turn_via_tinyagents_shared, SubagentScope};
@@ -36,7 +37,7 @@ pub(in super::super) async fn run_subagent_via_graph(
     source: crate::agent::tinyagents::TurnModelSource,
     model: &str,
     temperature: f64,
-    history: &mut Vec<ChatMessage>,
+    history: &mut Vec<TranscriptMessage>,
     parent_tools: Arc<Vec<Box<dyn Tool>>>,
     dynamic_tools: Vec<Box<dyn Tool>>,
     specs: Vec<ToolSpec>,
@@ -446,13 +447,13 @@ pub(in super::super) async fn run_subagent_via_graph(
     // persisted transcript reflects the actual final state, not the pre-checkpoint
     // history. `history` already carries this turn's typed suffix.
     let transcript_history;
-    let history_for_transcript: &[ChatMessage] = if (outcome.hit_cap
+    let history_for_transcript: &[TranscriptMessage] = if (outcome.hit_cap
         || outcome.early_exit_tool.is_some())
         && !outcome.text.trim().is_empty()
     {
         transcript_history = {
             let mut messages = history.clone();
-            messages.push(ChatMessage::assistant(outcome.text.clone()));
+            messages.push(TranscriptMessage::assistant(outcome.text.clone()));
             messages
         };
         &transcript_history

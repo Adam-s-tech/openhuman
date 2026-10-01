@@ -331,7 +331,7 @@ impl SpawnAsyncSubagentTool {
             .as_ref()
             .and_then(|session| session.latest_history.clone())
             .map(|mut history| {
-                history.push(ChatMessage::user(follow_up_prompt.clone()));
+                history.push(TranscriptMessage::user(follow_up_prompt.clone()));
                 history
             });
 

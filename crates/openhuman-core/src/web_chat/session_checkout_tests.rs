@@ -14,7 +14,8 @@ use super::{
     checkin_session_agent, checkin_session_agent_if_vacant, checkout_session_agent,
     fingerprint_diff, CheckedOutSession, CheckoutPolicy,
 };
-use crate::agent::messages::{ChatMessage, ConversationMessage};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{ConversationMessage};
 use crate::agent::OpenHumanSessionHost;
 use crate::config::Config;
 use crate::web_chat::ops::{key_for, THREAD_SESSIONS};
@@ -46,9 +47,9 @@ fn write_thread_transcript(workspace_dir: &Path, stem: &str, thread_id: &str, ro
         .enumerate()
         .map(|(index, text)| {
             if index % 2 == 0 {
-                ChatMessage::user(*text)
+                TranscriptMessage::user(*text)
             } else {
-                ChatMessage::assistant(*text)
+                TranscriptMessage::assistant(*text)
             }
         })
         .map(|message| crate::agent::messages::transcript_message_from_chat(&message))

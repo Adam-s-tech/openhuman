@@ -18,7 +18,7 @@
 //! - Tool messages are never mined — they're high-noise and fully
 //!   reconstructable from the transcript itself.
 
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 
 use super::types::{CandidateKind, ConversationReflection, Importance, MemoryCandidate};
 
@@ -210,7 +210,7 @@ fn make_candidate(
 
 /// Extract durable-fact candidates from a transcript.
 pub(super) fn extract_candidates(
-    messages: &[ChatMessage],
+    messages: &[TranscriptMessage],
     prov: &Provenance,
 ) -> Vec<MemoryCandidate> {
     let mut out: Vec<MemoryCandidate> = Vec::new();
@@ -289,7 +289,7 @@ pub(super) fn extract_candidates(
 ///    we surface it as a `recurring` reflection so the next session
 ///    knows this is a stable pattern rather than a one-off remark.
 pub(super) fn extract_reflections(
-    messages: &[ChatMessage],
+    messages: &[TranscriptMessage],
     prov: &Provenance,
 ) -> Vec<ConversationReflection> {
     let mut out: Vec<ConversationReflection> = Vec::new();

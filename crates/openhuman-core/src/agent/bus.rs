@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc;
 
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::agent::turn_origin::{self, AgentTurnOrigin};
 use crate::config::MultimodalConfig;
@@ -54,7 +54,7 @@ pub struct AgentTurnRequest {
     /// user message. The handler mutates an internal clone of this during
     /// the tool-call loop; callers should rebuild their per-session cache
     /// from their own records, not from this vector.
-    pub history: Vec<ChatMessage>,
+    pub history: Vec<TranscriptMessage>,
 
     /// Registered tool implementations available to this turn.
     /// These are provided as trait objects to avoid tight coupling with tool implementations.

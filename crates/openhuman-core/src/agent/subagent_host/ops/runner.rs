@@ -1149,7 +1149,7 @@ async fn run_typed_mode(
     if let Some(ref ctx) = options.context {
         context_parts.push(ctx);
     }
-    let mut history: Vec<crate::agent::messages::ChatMessage> =
+    let mut history: Vec<tinyagents_session::transcript::TranscriptMessage> =
         if let Some(ref initial) = options.initial_history {
             tracing::info!(
                 agent_id = %definition.id,
@@ -1165,8 +1165,8 @@ async fn run_typed_mode(
                 format!("[Context]\n{}\n\n{task_prompt}", context_parts.join("\n\n"))
             };
             vec![
-                crate::agent::messages::ChatMessage::system(system_prompt),
-                crate::agent::messages::ChatMessage::user(user_message),
+                tinyagents_session::transcript::TranscriptMessage::system(system_prompt),
+                tinyagents_session::transcript::TranscriptMessage::user(user_message),
             ]
         };
 

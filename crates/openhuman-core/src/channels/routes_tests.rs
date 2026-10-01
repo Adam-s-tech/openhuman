@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::channels::context::{ChannelRuntimeContext, RouteSelectionMap, TurnModelSourceCacheMap};
 use crate::channels::host::ChannelTurnStateSubscriber;
 use crate::channels::traits::ChannelMessage;
@@ -334,7 +334,7 @@ async fn handle_runtime_command_set_model_clears_sender_history_and_persists_rou
     ctx.conversation_histories
         .lock()
         .unwrap()
-        .insert(key.to_string(), vec![ChatMessage::user("old history")]);
+        .insert(key.to_string(), vec![TranscriptMessage::user("old history")]);
     let channel_impl = Arc::new(RecordingChannel::default());
     let channel: Arc<dyn Channel> = channel_impl.clone();
     let msg = ChannelMessage {
@@ -476,7 +476,7 @@ async fn handle_runtime_command_telegram_new_status_and_sessions_round_trip() {
 
     ctx.conversation_histories.lock().unwrap().insert(
         sender_key.to_string(),
-        vec![ChatMessage::user("old history")],
+        vec![TranscriptMessage::user("old history")],
     );
 
     let new_msg = ChannelMessage {
@@ -499,7 +499,7 @@ async fn handle_runtime_command_telegram_new_status_and_sessions_round_trip() {
     ctx.conversation_histories
         .lock()
         .unwrap()
-        .insert(sender_key.to_string(), vec![ChatMessage::user("after new")]);
+        .insert(sender_key.to_string(), vec![TranscriptMessage::user("after new")]);
     set_route_selection(
         &ctx,
         sender_key,

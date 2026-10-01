@@ -263,14 +263,14 @@ fn reusable_follow_up_message_preserves_context() {
 #[test]
 fn extract_workflow_proposal_finds_last_proposal_tool_result() {
     let history = vec![
-        ChatMessage::user("build me a workflow"),
-        ChatMessage::tool(r#"{"type":"something_else","x":1}"#),
-        ChatMessage::tool(r#"{"type":"workflow_proposal","persisted":false,"name":"Old Draft"}"#),
-        ChatMessage::assistant("revising…"),
-        ChatMessage::tool(
+        TranscriptMessage::user("build me a workflow"),
+        TranscriptMessage::tool(r#"{"type":"something_else","x":1}"#),
+        TranscriptMessage::tool(r#"{"type":"workflow_proposal","persisted":false,"name":"Old Draft"}"#),
+        TranscriptMessage::assistant("revising…"),
+        TranscriptMessage::tool(
             r#"{"type":"workflow_proposal","persisted":false,"name":"Daily X Trending Email"}"#,
         ),
-        ChatMessage::assistant("Here's the proposed workflow."),
+        TranscriptMessage::assistant("Here's the proposed workflow."),
     ];
     let proposal = extract_workflow_proposal_from_history(&history).expect("proposal extracted");
     // The LAST proposal wins — later revisions supersede earlier drafts.
@@ -280,9 +280,9 @@ fn extract_workflow_proposal_finds_last_proposal_tool_result() {
 #[test]
 fn extract_workflow_proposal_ignores_non_proposal_history() {
     let history = vec![
-        ChatMessage::user("hello"),
-        ChatMessage::tool("plain text tool output, not json"),
-        ChatMessage::assistant("done"),
+        TranscriptMessage::user("hello"),
+        TranscriptMessage::tool("plain text tool output, not json"),
+        TranscriptMessage::assistant("done"),
     ];
     assert!(extract_workflow_proposal_from_history(&history).is_none());
 }
@@ -304,7 +304,7 @@ fn attach_workflow_proposal_persists_thread_message_and_extends_summary() {
     )
     .expect("thread created");
 
-    let history = vec![ChatMessage::tool(
+    let history = vec![TranscriptMessage::tool(
         r#"{"type":"workflow_proposal","persisted":false,"name":"Daily X Trending Email","graph":{"nodes":[],"edges":[]}}"#,
     )];
     let summary = attach_workflow_proposal(
@@ -348,7 +348,7 @@ fn attach_workflow_proposal_without_proposal_returns_summary_unchanged() {
         Some("thread-x"),
         "sub-task-2",
         "task_manager_agent",
-        &[ChatMessage::tool("no proposal here")],
+        &[TranscriptMessage::tool("no proposal here")],
         "research done".to_string(),
     );
     assert_eq!(summary, "research done");

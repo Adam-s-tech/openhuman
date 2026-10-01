@@ -24,7 +24,8 @@
 //!  19. Builder validation (missing required fields)
 //!  20. Idempotent system prompt insertion
 
-use crate::agent::messages::{ChatMessage, ConversationMessage};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{ConversationMessage};
 use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
 use crate::inference::provider::ChatResponse;

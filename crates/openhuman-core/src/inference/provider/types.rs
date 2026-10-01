@@ -1,4 +1,4 @@
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 /// Token usage returned by a provider. Defined in the contract crate because
 /// the extracted memory subsystem threads it out of summarisation runs; every
 /// existing `inference::provider::UsageInfo` path keeps naming this one type.
@@ -87,7 +87,7 @@ pub const AGENT_TURN_MAX_OUTPUT_TOKENS: u32 = 16384;
 /// to thread through the request.
 #[derive(Debug, Clone, Copy)]
 pub struct ChatRequest<'a> {
-    pub messages: &'a [ChatMessage],
+    pub messages: &'a [TranscriptMessage],
     pub tools: Option<&'a [ToolSpec]>,
     /// Optional sink for `ProviderDelta` events. When `Some`, providers
     /// that support streaming will ask the upstream API for SSE and

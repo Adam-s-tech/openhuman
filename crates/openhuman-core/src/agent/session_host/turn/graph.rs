@@ -29,7 +29,7 @@ use anyhow::Result;
 use tokio::sync::mpsc::Sender;
 
 use crate::agent::harness::{with_current_sandbox_mode, SandboxMode};
-use crate::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::agent::tinyagents::{
     run_root_turn_via_hosted_agent, TinyagentsTurnOutcome, TurnContextMiddleware,
@@ -52,7 +52,7 @@ pub(crate) struct ChatTurnGraph {
     pub model: String,
     /// Provider-ready messages (system + prior history + this turn's user turn,
     /// multimodal markers already expanded).
-    pub messages: Vec<ChatMessage>,
+    pub messages: Vec<TranscriptMessage>,
     /// The agent's durable, `Arc`-shared harness tool set.
     pub tools: Arc<Vec<Box<dyn Tool>>>,
     /// The delegation tools synthesised for the current connection set,

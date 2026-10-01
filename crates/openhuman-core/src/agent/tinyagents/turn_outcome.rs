@@ -1,7 +1,8 @@
 //! The outcome type a `tinyagents`-driven turn produces, plus the shared
 //! sinks middleware write into to build it.
 
-use crate::agent::messages::{ChatMessage, ConversationMessage};
+use tinyagents_session::transcript::TranscriptMessage;
+use crate::agent::messages::{ConversationMessage};
 use tinyinference_llm::model::ResolvedModelRoute;
 
 /// The outcome of a turn driven on the `tinyagents` harness.
@@ -15,7 +16,7 @@ pub(crate) struct TinyagentsTurnOutcome {
     pub resolved_route: Option<ResolvedModelRoute>,
     /// The full transcript, converted back to openhuman messages (flat — tool
     /// calls rendered as text).
-    pub history: Vec<ChatMessage>,
+    pub history: Vec<TranscriptMessage>,
     /// The **typed** messages this turn appended (after the user turn):
     /// `AssistantToolCalls` / `ToolResults` / final assistant `Chat`. The chat
     /// session persists these to keep structured tool-call history fidelity.

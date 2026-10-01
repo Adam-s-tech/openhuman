@@ -14,7 +14,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use openhuman_core::config::Config;
-use openhuman_core::agent::messages::ChatMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::types::{ChatRequest, ProviderDelta};
 use tinytools::ToolSpec;
