@@ -232,6 +232,7 @@ async fn local_admin_reports_unhealthy_runtime_and_lm_studio_issue_shapes() {
     let tmp = tempdir().expect("tempdir");
     let mut config = temp_config(&tmp);
     config.local_ai.runtime_enabled = true;
+    config.local_ai.opt_in_confirmed = true;
     config.local_ai.base_url = Some("http://127.0.0.1:9".to_string());
     let _ollama_base = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", "http://127.0.0.1:9");
     let runtime = openhuman_core::inference::local_runtime_config(&config);
