@@ -21,7 +21,7 @@ use crate::agent::{
     },
     tinyagents::{TinyagentsTurnOutcome, TurnModelSource},
 };
-use crate::inference::provider::{ChatResponse, UsageInfo, AGENT_TURN_MAX_OUTPUT_TOKENS};
+use crate::inference::provider::{BilledUsage, ChatResponse, AGENT_TURN_MAX_OUTPUT_TOKENS};
 
 /// Accounting from model calls performed after the harness loop has ended.
 #[derive(Default)]
@@ -34,12 +34,12 @@ pub(super) struct RepairUsage {
 }
 
 impl RepairUsage {
-    fn record(&mut self, usage: Option<UsageInfo>) {
+    fn record(&mut self, usage: Option<BilledUsage>) {
         self.model_calls += 1;
         if let Some(usage) = usage {
             self.input_tokens += usage.input_tokens;
             self.output_tokens += usage.output_tokens;
-            self.cached_input_tokens += usage.cached_input_tokens;
+            self.cached_input_tokens += usage.cached_input_tokens();
             self.charged_amount_usd += usage.charged_amount_usd;
         }
     }
@@ -249,9 +249,9 @@ async fn close_with_one_repair<A, AF, V, VF>(
 ) -> (String, RepairUsage)
 where
     A: Fn(String) -> AF,
-    AF: std::future::Future<Output = (String, Option<UsageInfo>)>,
+    AF: std::future::Future<Output = (String, Option<BilledUsage>)>,
     V: Fn(String) -> VF,
-    VF: std::future::Future<Output = (Option<CloseViolation>, Option<UsageInfo>)>,
+    VF: std::future::Future<Output = (Option<CloseViolation>, Option<BilledUsage>)>,
 {
     let mut usage = RepairUsage::default();
     let mut prompt = instruction.clone();
@@ -289,7 +289,7 @@ async fn completion(
     temperature: f64,
     thread_id: Option<&str>,
     messages: Vec<TranscriptMessage>,
-) -> (String, Option<UsageInfo>) {
+) -> (String, Option<BilledUsage>) {
     let Ok(model_client) = source.build_summarizer(model, temperature, thread_id) else {
         return (String::new(), None);
     };

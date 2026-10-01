@@ -1779,7 +1779,6 @@ checksum = "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9"
 dependencies = [
  "curve25519-dalek 4.1.3",
  "ed25519",
- "rand_core 0.6.4",
  "serde",
  "sha2 0.10.9",
  "subtle",
@@ -4017,14 +4016,12 @@ dependencies = [
  "async-trait",
  "axum",
  "base64 0.22.1",
- "bs58",
  "bytes",
  "chacha20poly1305",
  "chrono",
  "directories",
  "dirs 6.0.0",
  "dotenvy",
- "ed25519-dalek",
  "env_logger",
  "flate2",
  "fs2",
@@ -4034,7 +4031,6 @@ dependencies = [
  "hkdf 0.12.4",
  "hostname",
  "iana-time-zone",
- "k256",
  "keyring",
  "lettre",
  "libc",
@@ -4052,8 +4048,6 @@ dependencies = [
  "sentry",
  "serde",
  "serde_json",
- "serde_repr",
- "serde_yaml",
  "sha2 0.10.9",
  "sysinfo",
  "tar",
@@ -4118,7 +4112,6 @@ dependencies = [
  "tinywallet-web3",
  "tinywallet-x402",
  "tokio",
- "tokio-stream",
  "tokio-tungstenite 0.29.0",
  "tokio-util",
  "toml",
@@ -4160,7 +4153,6 @@ dependencies = [
  "libc",
  "log",
  "openhuman",
- "openhuman-embed",
  "openhuman-rpc",
  "openhuman-tinyhumans",
  "parking_lot",
@@ -4282,7 +4274,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "urlencoding",
  "wiremock",
 ]
 
@@ -5715,17 +5706,6 @@ dependencies = [
  "itoa",
  "serde",
  "serde_core",
-]
-
-[[package]]
-name = "serde_repr"
-version = "0.1.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d3b1629de253c70a0508c3899572da79ca359fdab27c7920ff00406df418906"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 3.0.6",
 ]
 
 [[package]]

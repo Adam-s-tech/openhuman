@@ -5433,6 +5433,21 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'Deine Erinnerungen werden kopiert…',
   'memoryEngine.dialog.progress': '{copied} von {total} kopiert',
   'memoryEngine.dialog.progressUnknown': 'Bisher {copied} Erinnerungen kopiert',
+  'memoryEngine.dialog.copies':
+    'Kopiert deine Erinnerungen, Dokumenttitel und Tags, Ziele, dein gelerntes Profil und deinen Gesprächsverlauf.',
+  'memoryEngine.dialog.replayContent':
+    'Synchronisierte Inhalte erneut senden, damit die neue Engine ihre Zusammenfassungen neu aufbaut',
+  'memoryEngine.dialog.replayContentHint':
+    'Das erneute Lesen von Inhalten verbraucht OpenHuman-Credits.',
+  'memoryEngine.dialog.stepProgress': '{step} wird kopiert … bisher {count}',
+  'memoryEngine.step.records': 'Erinnerungen',
+  'memoryEngine.step.documents': 'Dokumenttitel und Tags',
+  'memoryEngine.step.goals': 'Ziele',
+  'memoryEngine.step.profile': 'gelerntes Profil',
+  'memoryEngine.step.episodic': 'Gesprächsverlauf',
+  'memoryEngine.step.content': 'synchronisierte Inhalte',
+  'memoryEngine.notCopied':
+    'Gewechselt. Die neue Engine unterstützt Folgendes nicht, daher wurde es nicht kopiert: {items}.',
   'memoryEngine.dialog.lacking':
     'Die neue Engine unterstützt diese Funktionen deiner aktuellen Engine nicht:',
   'memoryEngine.error.insufficientCredits':

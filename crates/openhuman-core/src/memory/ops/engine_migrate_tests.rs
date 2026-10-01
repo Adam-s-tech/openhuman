@@ -89,6 +89,9 @@ async fn status_reports_the_bare_shape() {
     assert_eq!(json["copied"], 7);
     assert!(json["total"].is_null());
     assert!(json["error"].is_null());
+    assert!(json["step"].is_null(), "no step has reported yet");
+    assert_eq!(json["step_read"], 0);
+    assert_eq!(json["steps"], serde_json::json!([]));
     let _guard = lock();
     clear();
 }
@@ -139,6 +142,7 @@ async fn a_failed_import_fails_the_job_and_the_engine_does_not_switch() {
         id.clone(),
         as_provider(&source),
         as_provider(&target),
+        CopyChoices::default(),
         Duration::from_secs(30),
         move || async move {
             seen.store(true, Ordering::SeqCst);
@@ -171,6 +175,7 @@ async fn a_clean_copy_commits_the_switch_and_records_the_writes_note() {
         id.clone(),
         as_provider(&source),
         as_provider(&target),
+        CopyChoices::default(),
         Duration::from_secs(30),
         move || async move {
             seen.store(true, Ordering::SeqCst);
@@ -203,6 +208,7 @@ async fn a_failing_commit_fails_the_job() {
         id.clone(),
         as_provider(&source),
         as_provider(&target),
+        CopyChoices::default(),
         Duration::from_secs(30),
         || async { Err("the switch was saved but could not be applied".to_string()) },
     )
@@ -226,6 +232,7 @@ async fn cancel_stops_the_copy_without_switching() {
         id.clone(),
         as_provider(&source),
         as_provider(&target),
+        CopyChoices::default(),
         Duration::from_secs(30),
         move || async move {
             seen.store(true, Ordering::SeqCst);
@@ -271,6 +278,7 @@ async fn the_overall_timeout_fails_the_job() {
         id.clone(),
         as_provider(&source),
         as_provider(&target),
+        CopyChoices::default(),
         Duration::from_millis(50),
         || async { Ok(()) },
     );
@@ -293,6 +301,7 @@ async fn a_panicking_task_marks_the_job_failed() {
         id.clone(),
         as_provider(&source),
         as_provider(&target),
+        CopyChoices::default(),
         Duration::from_secs(30),
         || async { Ok(()) },
     );
@@ -337,4 +346,64 @@ async fn switches_are_serialised_on_one_lock() {
         "a second switch must wait for the first"
     );
     drop(held);
+}
+
+// ── What the copy carries, and what holds the switch back ───────────────────
+
+fn step(name: &str, failed: usize) -> MigrateStepStatus {
+    MigrateStepStatus {
+        step: name.to_string(),
+        skipped_because: None,
+        read: 10,
+        written: 10 - failed,
+        unchanged: 0,
+        failed,
+        errors: vec![format!("{name} item refused")],
+    }
+}
+
+#[test]
+fn a_host_synced_target_leaves_reader_sources_out_of_the_replay() {
+    let hosted = copy_choices(true, true);
+    assert!(hosted.replay_content);
+    assert_eq!(hosted.skip_source_prefixes, vec!["mem_src:".to_string()]);
+    let local = copy_choices(false, false);
+    assert!(!local.replay_content);
+    assert!(local.skip_source_prefixes.is_empty());
+}
+
+#[test]
+fn the_replay_defaults_on_for_callers_that_do_not_say() {
+    let params: MigrateParams =
+        serde_json::from_value(serde_json::json!({ "to": { "driver": "tinycortex" } }))
+            .expect("params");
+    assert!(params.replay_content);
+    let params: MigrateParams = serde_json::from_value(
+        serde_json::json!({ "to": { "driver": "tinycortex" }, "replay_content": false }),
+    )
+    .expect("params");
+    assert!(!params.replay_content);
+}
+
+#[test]
+fn only_re_sent_content_may_fail_without_holding_the_switch_back() {
+    assert!(blocking_failure(&[step("content", 3)]).is_none());
+    let steps = [
+        step("documents", 0),
+        step("episodic", 2),
+        step("content", 1),
+    ];
+    assert_eq!(
+        blocking_failure(&steps).map(|s| s.step.as_str()),
+        Some("episodic")
+    );
+}
+
+#[test]
+fn the_note_names_content_the_new_engine_refused() {
+    let clean = finished_note(&[step("content", 0)]);
+    assert_eq!(clean, WRITES_DURING_COPY_NOTE);
+    let refused = finished_note(&[step("documents", 0), step("content", 4)]);
+    assert!(refused.starts_with(WRITES_DURING_COPY_NOTE));
+    assert!(refused.contains("4 pieces of synced content"), "{refused}");
 }

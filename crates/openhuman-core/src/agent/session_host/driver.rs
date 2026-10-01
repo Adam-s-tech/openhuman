@@ -517,15 +517,11 @@ fn driver_error_with_snapshot(
                 .unwrap_or(fallback_model);
             crate::agent::cost::estimate_call_cost_usd(
                 pricing_model,
-                &crate::inference::provider::UsageInfo {
-                    input_tokens: guard.input_tokens,
-                    output_tokens: guard.output_tokens,
-                    context_window: 0,
-                    cached_input_tokens: guard.cached_input_tokens,
-                    cache_creation_tokens: 0,
-                    reasoning_tokens: 0,
-                    charged_amount_usd: 0.0,
-                },
+                &crate::inference::provider::BilledUsage::from_counts(
+                    guard.input_tokens,
+                    guard.output_tokens,
+                )
+                .with_cached_input_tokens(guard.cached_input_tokens),
             )
         };
         observed.duration = Some(elapsed);

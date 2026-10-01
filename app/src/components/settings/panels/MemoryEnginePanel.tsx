@@ -22,6 +22,7 @@ import {
   memoryEngineMigrateCancel,
   memoryEngineMigrateStatus,
   type MemoryEngineMigrateStatus,
+  type MemoryEngineMigrateStep,
   memoryEngineSet,
   type MemoryEngineState,
   type MemoryEngineTarget,
@@ -44,6 +45,21 @@ import {
 } from './memoryEngineUtils';
 
 const log = debug('settings:memory-engine');
+
+/**
+ * The steps a finished copy skipped because the new engine (or the old one)
+ * does not serve them. Content the user chose not to re-send is not "left
+ * behind": they asked for that.
+ */
+export function stepsLeftBehind(
+  status: MemoryEngineMigrateStatus,
+  replayContent: boolean
+): MemoryEngineMigrateStep[] {
+  return (status.steps ?? [])
+    .filter(step => step.skipped_because !== null)
+    .filter(step => replayContent || step.step !== 'content')
+    .map(step => step.step);
+}
 
 /** How often a running migration is polled. */
 export const MIGRATE_POLL_INTERVAL_MS = 1000;
@@ -110,6 +126,12 @@ export default function MemoryEnginePanel() {
   const [confirming, setConfirming] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [migration, setMigration] = useState<MemoryEngineMigrateStatus | null>(null);
+  // Re-send synced content with the copy (the content step); on unless the user opts out.
+  const [replayContent, setReplayContent] = useState(true);
+  // What a finished copy could not carry, shown once the switch is done.
+  const [leftBehind, setLeftBehind] = useState<MemoryEngineMigrateStep[]>([]);
+  // The replay choice the running job was started with (polling outlives the toggle).
+  const replayRequestedRef = useRef(true);
   const mounted = useRef(true);
   // Driver the running migration is copying into (finishSwitch needs it after polling).
   const targetDriverRef = useRef<string>('');
@@ -250,8 +272,15 @@ export default function MemoryEnginePanel() {
     setError(null);
     try {
       targetDriverRef.current = target.driver;
-      const { job_id } = await memoryEngineMigrate(target);
-      log('migrate started job=%s driver=%s', job_id, target.driver);
+      setLeftBehind([]);
+      replayRequestedRef.current = replayContent;
+      const { job_id } = await memoryEngineMigrate(target, { replayContent });
+      log(
+        'migrate started job=%s driver=%s replay_content=%s',
+        job_id,
+        target.driver,
+        replayContent
+      );
       if (!mounted.current) return;
       setMigration({ state: 'running', copied: 0, total: null, error: null });
       setJobId(job_id);
@@ -285,6 +314,7 @@ export default function MemoryEnginePanel() {
           log('migrate done job=%s copied=%d', jobId, status.copied);
           invalidateMemoryEngine();
           await finishSwitch(targetDriverRef.current);
+          if (mounted.current) setLeftBehind(stepsLeftBehind(status, replayRequestedRef.current));
         } else if (status.state === 'cancelled') {
           log('migrate cancelled job=%s', jobId);
           void clearStoredJob();
@@ -355,6 +385,17 @@ export default function MemoryEnginePanel() {
           </Alert>
         ) : null}
 
+        {leftBehind.length > 0 ? (
+          <Alert variant="info" data-testid="memory-engine-left-behind">
+            <AlertDescription>
+              {t('memoryEngine.notCopied').replace(
+                '{items}',
+                leftBehind.map(step => t(`memoryEngine.step.${step}`)).join(', ')
+              )}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         {error ? (
           <MemoryEngineErrorAlert error={error.message} kind={error.kind} />
         ) : loadError ? (
@@ -405,6 +446,9 @@ export default function MemoryEnginePanel() {
             lacking={lacking}
             migration={migration}
             busy={saving}
+            hosted={Boolean(selected.hosted)}
+            replayContent={replayContent}
+            onReplayContentChange={setReplayContent}
             onCopy={() => void doMigrate()}
             onSkipCopy={() => void doSet()}
             onCancel={() => setConfirming(false)}

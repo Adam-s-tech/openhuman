@@ -70,7 +70,10 @@ lists the providers; `factory.rs` builds the client; `schemas.rs` defines the
 The memory contract (`tinymemory-api`, vendored at `vendor/tinymemory/`)
 defines a driver-neutral `MemoryProvider` trait. Engines are built by
 `tinymemory::factory` (`list_engines`, `build_provider`), and
-`tinymemory::migrate::copy` moves every record between two of them.
+`tinymemory::migrate::copy_all` copies a store from one to another: the keyed
+records, then whatever families both engines serve (document titles and tags,
+goals, the learned profile, the conversation history) and the ingested
+content, re-sent raw so the new engine rebuilds its own summaries.
 
 What the user can pick (Settings > Memory Engine, or `openhuman.memory_engine_*`
 over RPC):
@@ -95,7 +98,15 @@ config share its binding handle, so they follow a switch; one with its own
 lock, `engine_set` is refused while a migration runs, and the commit reloads the
 config fresh and patches only `[subsystems.memory]`. Migration (`engine_migrate`) copies first and
 switches only after a clean copy; the source is never modified, and a failed
-run leaves the active engine alone. A running copy can be cancelled (`engine_migrate_cancel`, between pages), is
+run leaves the active engine alone. The job reports each step it runs
+(`step`, `steps`), and a step one engine cannot serve is skipped and named
+rather than failed. Re-sending content is the user's choice
+(`replay_content`, on by default, since hosted memory bills for what it reads
+again); a piece the new engine refuses is reported in the job's `note` instead
+of holding the switch back, because the old engine keeps it and its sync can
+bring it again. When the host syncs sources into the new engine itself (hosted
+memory), reader-based sources (`mem_src:` ids) are left out of the replay: the
+host's own sync sends them from scratch. A running copy can be cancelled (`engine_migrate_cancel`, between pages), is
 bounded by `OPENHUMAN_MEMORY_MIGRATE_TIMEOUT_SECS` (default 2 hours) and fails, not
 hangs, if its task panics. Records written while a copy runs may be missing from
 the new engine; the job result carries a `note` saying so, and this migration does not provide a second-pass delta copy. `OPENHUMAN_MEMORY_DRIVER` pins the engine and makes the switch RPCs

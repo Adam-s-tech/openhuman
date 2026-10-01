@@ -5378,6 +5378,20 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'Copia dei tuoi ricordi in corso…',
   'memoryEngine.dialog.progress': 'Copiati {copied} di {total}',
   'memoryEngine.dialog.progressUnknown': 'Finora copiati {copied} ricordi',
+  'memoryEngine.dialog.copies':
+    'Copia i tuoi ricordi, i titoli e i tag dei documenti, gli obiettivi, il profilo appreso e la cronologia delle conversazioni.',
+  'memoryEngine.dialog.replayContent':
+    'Invia di nuovo anche i contenuti sincronizzati, così il nuovo motore ricostruisce i suoi riassunti',
+  'memoryEngine.dialog.replayContentHint': 'Rileggere i contenuti consuma crediti OpenHuman.',
+  'memoryEngine.dialog.stepProgress': 'Copia di {step}… finora {count}',
+  'memoryEngine.step.records': 'ricordi',
+  'memoryEngine.step.documents': 'titoli e tag dei documenti',
+  'memoryEngine.step.goals': 'obiettivi',
+  'memoryEngine.step.profile': 'profilo appreso',
+  'memoryEngine.step.episodic': 'cronologia delle conversazioni',
+  'memoryEngine.step.content': 'contenuti sincronizzati',
+  'memoryEngine.notCopied':
+    'Passaggio completato. Il nuovo motore non supporta questi elementi, quindi non sono stati copiati: {items}.',
   'memoryEngine.dialog.lacking':
     'Il nuovo motore non supporta queste funzioni del tuo motore attuale:',
   'memoryEngine.error.insufficientCredits':
