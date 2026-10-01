@@ -162,7 +162,6 @@ const LEGACY_ALIASES: &[(&str, &str)] = &[
     // the method was namespaced under `health` as `openhuman.health_system_info`.
     // Sentry CORE-RUST-G0 — https://sentry.tinyhumans.ai/organizations/tinyhumans/issues/6340/
     ("openhuman.system_info", "openhuman.health_system_info"),
-    ("openhuman.inference_embed", "openhuman.embeddings_embed"),
     (
         "openhuman.local_ai_test_connection",
         "openhuman.inference_test_connection",
