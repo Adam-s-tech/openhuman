@@ -248,12 +248,74 @@ async fn probe_requires_accessibility_and_snapshot_before_listing_apps() {
     assert_eq!(module_error.reason.as_deref(), Some("App listing denied"));
 }
 
+#[tokio::test]
+async fn probe_passes_when_accessibility_is_not_required() {
+    use tinycomputer_bus::DesktopResponse;
+
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = Config::default();
+    config.workspace_dir = dir.path().to_path_buf();
+    save(&config, true).unwrap();
+
+    // Simulates the Windows adapter returning "unknown" for accessibility,
+    // which the host normalizes to "not_required" on the windows platform.
+    // Since this test binary runs on the build host (not necessarily windows),
+    // we pass "not_required" directly to prove the probe accepts it.
+    let result = probe_with(&config, true, |member| async move {
+        Ok(DesktopResponse::ok(
+            member,
+            match member {
+                names::methods::PERMISSIONS => serde_json::json!({
+                    "accessibility":{"state":"not_required"},
+                    "screen_recording":{"state":"not_required"}
+                }),
+                names::methods::SNAPSHOT => serde_json::json!({"elements":[]}),
+                names::methods::LIST_APPS => {
+                    serde_json::json!({"apps":[{"name":"Explorer"}]})
+                }
+                _ => panic!("unexpected member"),
+            },
+        ))
+    })
+    .await;
+    assert!(result.ok, "probe should pass when accessibility is not_required");
+    assert_eq!(result.app_count, Some(1));
+    assert!(result.reason.is_none());
+}
+
 #[test]
 fn permission_states_are_normalized() {
     let data = serde_json::json!({"accessibility":{"state":"granted"},
             "screen_recording":{"state":"weird"}});
     assert_eq!(permission(&data, "accessibility"), "granted");
     assert_eq!(permission(&data, "screen_recording"), "unknown");
+    // "unknown" is a recognized pass-through state (distinct from a missing field).
+    let unknown = serde_json::json!({"accessibility":{"state":"unknown"}});
+    assert_eq!(permission(&unknown, "accessibility"), "unknown");
+}
+
+#[test]
+fn windows_unknown_permissions_normalize_to_not_required() {
+    assert_eq!(
+        normalize_permission_for_platform("unknown", "windows"),
+        "not_required"
+    );
+    assert_eq!(
+        normalize_permission_for_platform("unknown", "macos"),
+        "unknown"
+    );
+    assert_eq!(
+        normalize_permission_for_platform("granted", "windows"),
+        "granted"
+    );
+    assert_eq!(
+        normalize_permission_for_platform("denied", "windows"),
+        "denied"
+    );
+    assert_eq!(
+        normalize_permission_for_platform("not_required", "windows"),
+        "not_required"
+    );
 }
 
 #[test]
