@@ -323,15 +323,6 @@ fn optional_string(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-fn optional_bool(name: &'static str, comment: &'static str) -> FieldSchema {
-    FieldSchema {
-        name,
-        ty: TypeSchema::Option(Box::new(TypeSchema::Bool)),
-        comment,
-        required: false,
-    }
-}
-
 fn optional_f64(name: &'static str, comment: &'static str) -> FieldSchema {
     FieldSchema {
         name,
