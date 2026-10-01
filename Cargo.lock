@@ -6743,7 +6743,7 @@ dependencies = [
 
 [[package]]
 name = "tinyconnectors"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -6762,7 +6762,7 @@ dependencies = [
 
 [[package]]
 name = "tinyconnectors-bus"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -6770,7 +6770,7 @@ dependencies = [
 
 [[package]]
 name = "tinyconnectors-sync"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "async-trait",
  "chrono",
