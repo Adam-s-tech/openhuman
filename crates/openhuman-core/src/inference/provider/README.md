@@ -104,8 +104,6 @@ consumers: the agent harness (`agent/session_host/builder/factory.rs`,
 - `ops_tests.rs`, `ops_tests_error_suppression_tests.rs`,
   `ops_tests_models_parsing_tests.rs`, `ops/http_error_tests.rs`, `ops/models_tests.rs`: error
   classification and model listing.
-- `error_classify_tests.rs`: OpenHuman-specific classifier policy; reusable
-  classifier tests live in TinyInference.
 - Claude Code provider tests live with the provider in
   `vendor/tinyagents/crates/tinyagents-harness/src/providers/claude_code/`.
 - `openhuman_backend_model_tests.rs`: managed host transport; reusable provider
