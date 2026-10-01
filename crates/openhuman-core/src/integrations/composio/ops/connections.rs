@@ -76,10 +76,12 @@ pub async fn composio_list_connections(
         else {
             unreachable!("direct Composio mode must construct a direct client")
         };
-        direct_list_connections(&direct).await.map_err(|error| {
-            report_composio_op_error("list_connections", &error);
-            format!("[composio-direct] list_connections: {error:#}")
-        })?
+        direct_list_connections(config, &direct)
+            .await
+            .map_err(|error| {
+                report_composio_op_error("list_connections", &error);
+                format!("[composio-direct] list_connections: {error:#}")
+            })?
     } else {
         connectors::call_bare::<ComposioConnectionsResponse>(config, methods::LIST_CONNECTIONS)
             .await

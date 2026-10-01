@@ -13,8 +13,8 @@ use axum::routing::any;
 use axum::{Json, Router};
 use serde_json::{json, Value};
 
-use openhuman_core::integrations::composio::client::direct_list_connections;
-use openhuman_core::tools::DirectComposioClient;
+use openhuman_core::config::Config;
+use openhuman_core::integrations::composio::client::{direct_list_connections, DirectCredential};
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -32,13 +32,21 @@ struct RecordedRequest {
 
 #[tokio::test]
 async fn direct_composio_client_uses_loopback_for_connected_accounts() {
+    // The read runs in the connector module, which is process-global.
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
+    let dir = tempfile::tempdir().expect("tempdir");
+    let config = Config {
+        workspace_dir: dir.path().to_path_buf(),
+        config_path: dir.path().join("config.toml"),
+        ..Config::default()
+    };
     let state = MockState::default();
     let app = Router::new()
         .fallback(any(composio_direct_handler))
         .with_state(state.clone());
     let base = start_loopback(app).await;
     let tool = Arc::new(
-        DirectComposioClient::new_with_base_urls_for_loopback(
+        DirectCredential::new_with_base_urls_for_loopback(
             " ck_round16 ",
             format!("{base}/api/v2"),
             format!("{base}/api/v3"),
@@ -46,7 +54,7 @@ async fn direct_composio_client_uses_loopback_for_connected_accounts() {
         .expect("loopback direct client"),
     );
 
-    let mapped = direct_list_connections(&tool)
+    let mapped = direct_list_connections(&config, &tool)
         .await
         .expect("mapped connected accounts");
     assert_eq!(mapped.connections.len(), 4);

@@ -111,6 +111,28 @@ describe('Brain page', () => {
     });
   });
 
+  it('shows a loading state, not an empty canvas, until the graph arrives', async () => {
+    let resolveGraph!: (graph: ReturnType<typeof makeGraph>) => void;
+    graphExportMock.mockReturnValue(
+      new Promise(resolve => {
+        resolveGraph = resolve;
+      })
+    );
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+    });
+    expect(screen.getByTestId('brain-graph-loading')).toHaveTextContent('workspace.loadingGraph');
+    expect(screen.queryByTestId('memory-graph')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveGraph(makeGraph(2));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:2');
+    });
+    expect(screen.queryByTestId('brain-graph-loading')).not.toBeInTheDocument();
+  });
+
   it('renders empty-state graph when there are no nodes', async () => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     await act(async () => {

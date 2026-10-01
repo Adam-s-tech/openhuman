@@ -26,6 +26,7 @@ mod harness_assembly;
 mod harness_context_ladder;
 mod harness_tool_registration;
 pub mod host;
+pub(crate) mod hosted_error;
 pub(crate) mod journal;
 pub(crate) mod middleware;
 pub(crate) mod model;

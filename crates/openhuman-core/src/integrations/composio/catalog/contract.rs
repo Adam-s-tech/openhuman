@@ -239,7 +239,7 @@ async fn fetch_raw_toolkit_tools(config: &Config, toolkit: &str) -> Option<Compo
                 e
             })
             .ok(),
-        ComposioRoute::Direct(tool) => direct_list_tools(&tool, &[toolkit.to_string()], None)
+        ComposioRoute::Direct(tool) => direct_list_tools(config, &tool, &[toolkit.to_string()], None)
             .await
             .map_err(|e| {
                 tracing::debug!(target: "flows", %toolkit, error = %e, "[flows] live catalog: direct fetch failed — skipping");
