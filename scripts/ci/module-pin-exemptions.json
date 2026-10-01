@@ -11,18 +11,5 @@
     "Delete an entry the moment the pins are reconciled. An exemption that has",
     "stopped being true fails the gate too \u2014 `expect` must still match."
   ],
-  "exemptions": [
-    {
-      "id": "tinyruntime-nodejs",
-      "submodule": "vendor/tinyruntime",
-      "expect": "v0.2.8",
-      "reason": "The provider is published from its own repository (tinyhumansai/tinyruntime-nodejs) on its own version line, v0.2.3, while the shared source pin is tinyruntime v0.2.8. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.8 touches no module, contract or bus source (only the new pure-library crate tinyruntime-pyserver, CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. The provider repository's main only adds opt-in static-linkage code that the cdylib release does not use. Remove when the provider is re-released against tinyruntime v0.2.8 and the gate compares the provider's own pin."
-    },
-    {
-      "id": "tinyruntime-python",
-      "submodule": "vendor/tinyruntime",
-      "expect": "v0.2.8",
-      "reason": "The provider is published from its own repository (tinyhumansai/tinyruntime-python) on its own version line, v0.2.3, while the shared source pin is tinyruntime v0.2.8. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.8 touches no module, contract or bus source (only the new pure-library crate tinyruntime-pyserver, CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. The provider repository's main only adds opt-in static-linkage code that the cdylib release does not use. Remove when the provider is re-released against tinyruntime v0.2.8 and the gate compares the provider's own pin."
-    }
-  ]
+  "exemptions": []
 }

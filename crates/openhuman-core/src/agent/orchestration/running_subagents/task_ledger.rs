@@ -117,7 +117,7 @@ pub(crate) fn record_cancelled(workspace_dir: &Path, task_id: &str) {
     );
     if let Err(err) = ledger_cancelled(task_store_for_workspace(workspace_dir).as_ref(), task_id) {
         log::debug!(
-            "[running_subagents] cancellation ledger update ignored task_id={task_id} error={err}"
+            "[running_subagents] cancel ledger update ignored task_id={task_id} error={err}"
         );
     }
 }

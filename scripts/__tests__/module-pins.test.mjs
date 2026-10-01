@@ -25,6 +25,7 @@ import {
   checkPinMapCoverage,
   classifyMove,
   classifyPin,
+  classifyProviderPin,
   expandRustIncludes,
   parseAllList,
   parseArtifactCapabilitiesPin,
@@ -182,6 +183,65 @@ test("finds ARTIFACT_CAPABILITIES_PIN and the workflow memory blocks", () => {
     blocks.versions.length,
     blocks.digests.length,
     "version/digest blocks must pair",
+  );
+});
+
+// ── Provider records ──────────────────────────────────────────────────────────
+
+const SHA_A = "a".repeat(40);
+const SHA_B = "b".repeat(40);
+const provider = {
+  id: "tinyx-lang",
+  version: "0.2.4",
+  releaseUrl: "https://github.com/acme/tinyx-lang/releases/tag/v0.2.4",
+  lock: { repo: "acme/tinyx-lang", version: "0.2.4", built_against: SHA_A },
+  sourceSubmodule: "vendor/tinyx",
+  sourceHead: SHA_A,
+};
+
+test("a provider released against the host's source pin passes", () => {
+  assert.equal(classifyProviderPin(provider).ok, true);
+});
+
+test("a provider built against an older source commit fails and says to re-release", () => {
+  const v = classifyProviderPin({ ...provider, sourceHead: SHA_B });
+  assert.equal(v.ok, false);
+  assert.match(v.message, /built against vendor\/tinyx aaaaaaaa/);
+  assert.match(v.message, /Re-release/);
+});
+
+test("a provider whose registry version or url differs from its lock fails", () => {
+  const v = classifyProviderPin({
+    ...provider,
+    version: "0.2.3",
+    releaseUrl: "https://github.com/acme/tinyx-lang/releases/tag/v0.2.3",
+  });
+  assert.equal(v.ok, false);
+  assert.match(v.message, /0\.2\.3/);
+  const url = classifyProviderPin({
+    ...provider,
+    releaseUrl: "https://github.com/other/repo/releases/tag/v0.2.4",
+  });
+  assert.equal(url.ok, false);
+});
+
+test("a provider with no complete lock entry, or a short sha, fails", () => {
+  assert.equal(classifyProviderPin({ ...provider, lock: undefined }).ok, false);
+  const v = classifyProviderPin({
+    ...provider,
+    lock: { ...provider.lock, built_against: "aaaaaaaa" },
+  });
+  assert.equal(v.ok, false);
+  assert.match(v.message, /40-hex/);
+});
+
+test("parseRecords reads release_url", () => {
+  const recs = parseRecords(
+    'const X: ModuleRecord = ModuleRecord {\n    id: "x",\n    version: "1.0.0",\n    release_url: "https://github.com/a/b/releases/tag/v1.0.0",\n    assets: &[],\n};',
+  );
+  assert.equal(
+    recs.get("X").releaseUrl,
+    "https://github.com/a/b/releases/tag/v1.0.0",
   );
 });
 
@@ -356,7 +416,6 @@ test("an unparseable registry fails the gate instead of passing", () => {
       'pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "9.9.9";\n',
     ".github/workflows/ci-full.yml": MINIMAL_WORKFLOW,
     ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
-    ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
   });
   try {
     const r = run(PINS_CLI, [root]);
@@ -411,7 +470,6 @@ test("records with no checked-out submodule fail the gate instead of being skipp
     "crates/openhuman-core/src/modules/memory.rs":
       'pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.12.0";\n',
     ".github/workflows/ci-full.yml": MINIMAL_WORKFLOW,
-    ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
     ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
   });
   try {

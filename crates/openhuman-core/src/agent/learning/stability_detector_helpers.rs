@@ -1,11 +1,73 @@
-//! Private aggregation helpers for the stability detector.
+//! Free helpers behind [`super::StabilityDetector`]: the per-workspace rebuild
+//! turn and rebuild-time file, value resolution, evidence merging and state
+//! assignment. Split out of `stability_detector.rs` to keep it under the line cap.
 
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, OnceLock, PoisonError};
 
-use super::{half_life, TAU_EVICT, TAU_PROMOTE, TAU_PROVISIONAL};
+use fs2::FileExt;
+
 use crate::agent::learning::candidate::{self, CueFamily, FacetClass, LearningCandidate};
 use tinymemory_api::provider::{FacetState, ProfileFacet, UserState};
 
+use super::{half_life, RebuildState, TAU_EVICT, TAU_PROMOTE, TAU_PROVISIONAL};
+
+// ── The rebuild time ──────────────────────────────────────────────────────────
+
+/// The turn rebuilds over `workspace` take, shared by every detector persisted
+/// there in this process.
+pub(super) fn workspace_turn(workspace: &Path) -> Arc<tokio::sync::Mutex<()>> {
+    static TURNS: OnceLock<std::sync::Mutex<HashMap<PathBuf, Arc<tokio::sync::Mutex<()>>>>> =
+        OnceLock::new();
+    TURNS
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .entry(workspace.to_path_buf())
+        .or_default()
+        .clone()
+}
+
+/// The rebuild time stored at `path`, if there is a readable one.
+pub(super) fn read_rebuild_time(path: &Path) -> Option<f64> {
+    std::fs::read(path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<RebuildState>(&bytes).ok())
+        .map(|state| state.last_rebuild_at)
+}
+
+/// Stores `at` at `path` as the last rebuild, unless a later one is there.
+///
+/// Writers in every process take turns on a lock file beside it, held from
+/// the read through the rename: two rebuilds that finish together then
+/// neither interleave their writes nor leave the earlier time standing. The
+/// lock sits on its own file because the rename replaces the state file. A
+/// reader takes no lock, and sees the whole previous file or the whole new
+/// one.
+pub(super) fn store_rebuild_time(path: &Path, at: f64) -> std::io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let lock = std::fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .truncate(false)
+        .open(path.with_extension("json.lock"))?;
+    lock.lock_exclusive()?;
+    let at = read_rebuild_time(path).map_or(at, |stored| stored.max(at));
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(
+        &tmp,
+        serde_json::to_vec(&RebuildState {
+            last_rebuild_at: at,
+        })?,
+    )?;
+    std::fs::rename(&tmp, path)
+}
+
+/// The later of two times, either of which may be unknown.
 pub(super) fn later(a: Option<f64>, b: Option<f64>) -> Option<f64> {
     match (a, b) {
         (Some(a), Some(b)) => Some(a.max(b)),
