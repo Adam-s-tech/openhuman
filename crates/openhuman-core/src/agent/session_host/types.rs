@@ -64,14 +64,15 @@ pub struct TurnOverrides {
 }
 
 impl OpenHumanSessionHost {
-    /// Whether the next turn carries `suppress_transcript_autoload`.
+    /// How this turn resumes its history.
     ///
-    /// `turn()` reads it to pick the resume mode BEFORE its explicit
-    /// identity-keyed resume runs. `begin_turn_resume` applies the same override
-    /// later, inside the lifecycle's resume hook, which is too late for a
-    /// thread-bound session: that resume has already loaded the thread's own
+    /// `suppress_transcript_autoload` is decided here, BEFORE `turn()` runs its
+    /// explicit identity-keyed resume. `begin_turn_resume` applies the same
+    /// override later, inside the lifecycle's resume hook, which is too late for
+    /// a thread-bound session: that resume has already loaded the thread's own
     /// transcript into the history, so the override suppressed nothing (#6377).
-    pub(super) fn transcript_autoload_suppressed(&self) -> bool {
+    pub(super) fn turn_resume_mode(&self) -> tinyagents_runtime::ResumeMode {
+        use tinyagents_runtime::ResumeMode;
         let suppressed = self
             .runtime_state
             .lock()
@@ -83,8 +84,21 @@ impl OpenHumanSessionHost {
                 thread_id = ?self.thread_id,
                 "[session_host] transcript autoload suppressed for this turn"
             );
+            ResumeMode::Never
+        } else if self.session.is_some() {
+            // Exact, identity-keyed resume. Unlike `LatestForAgent` it cannot
+            // splice a different thread's transcript into this turn, and the
+            // file it reads is the file the turn appends to.
+            ResumeMode::Session
+        } else if self
+            .runtime_session
+            .as_ref()
+            .is_some_and(|session| session.history().is_empty())
+        {
+            ResumeMode::LatestForAgent
+        } else {
+            ResumeMode::Never
         }
-        suppressed
     }
 }
 
