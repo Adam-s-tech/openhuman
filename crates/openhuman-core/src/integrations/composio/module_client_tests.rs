@@ -1,6 +1,6 @@
 //! Tests for the connector module shim.
 
-use super::{is_unsupported_by_route, methods};
+use super::{is_unsupported_by_route, member_failure_message, methods};
 
 #[test]
 fn classified_errors_start_with_the_frontend_marker() {
