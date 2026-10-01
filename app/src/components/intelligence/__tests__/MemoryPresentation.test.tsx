@@ -1,35 +1,10 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ActionableItem } from '../../../types/intelligence';
-import type { Chunk } from '../../../utils/tauriCommands';
 import { ActionableCard } from '../ActionableCard';
 import { MemoryEmptyPlaceholder } from '../MemoryEmptyPlaceholder';
 import { MemoryStatsBar } from '../MemoryStatsBar';
-
-function makeChunk(overrides: Partial<Chunk> = {}): Chunk {
-  return {
-    id: 'chunk-1',
-    source_kind: 'email',
-    source_id: 'gmail:alice@example.com|bob@example.com',
-    owner: 'bob@example.com',
-    timestamp_ms: Date.now(),
-    token_count: 120,
-    lifecycle_status: 'admitted',
-    content_preview: 'Review launch checklist. Include final QA notes.',
-    has_embedding: true,
-    tags: [],
-    ...overrides,
-  };
-}
-
-function localDayAt(daysAgo: number, hour: number, minute = 0): number {
-  const d = new Date(Date.now());
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - daysAgo);
-  d.setHours(hour, minute, 0, 0);
-  return d.getTime();
-}
 
 function makeActionableItem(overrides: Partial<ActionableItem> = {}): ActionableItem {
   const createdAt = new Date(Date.now() - 2 * 60 * 1000);

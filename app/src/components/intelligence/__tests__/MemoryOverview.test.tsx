@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Chunk, EntityRef, GraphRelation, Source } from '../../../utils/tauriCommands';
 import { MemoryHeatmap } from '../MemoryHeatmap';
 
 function localDayAt(daysAgo: number, hour: number, minute = 0): number {
@@ -10,54 +9,6 @@ function localDayAt(daysAgo: number, hour: number, minute = 0): number {
   d.setDate(d.getDate() - daysAgo);
   d.setHours(hour, minute, 0, 0);
   return d.getTime();
-}
-
-function makeChunk(overrides: Partial<Chunk> = {}): Chunk {
-  return {
-    id: 'chunk-1',
-    source_kind: 'email',
-    source_id: 'gmail:alice@example.com',
-    owner: 'bob@example.com',
-    timestamp_ms: localDayAt(0, 10),
-    token_count: 100,
-    lifecycle_status: 'admitted',
-    content_preview: 'Memory item',
-    has_embedding: true,
-    tags: [],
-    ...overrides,
-  };
-}
-
-function makeSource(overrides: Partial<Source> = {}): Source {
-  return {
-    source_id: 'gmail:alice@example.com',
-    display_name: 'Alice Inbox',
-    source_kind: 'email',
-    chunk_count: 3,
-    most_recent_ms: localDayAt(0, 10),
-    lifecycle_status: 'admitted',
-    ...overrides,
-  };
-}
-
-function makeEntity(overrides: Partial<EntityRef> = {}): EntityRef {
-  return { entity_id: 'person:Alice', kind: 'person', surface: 'Alice', count: 3, ...overrides };
-}
-
-function makeRelation(overrides: Partial<GraphRelation> = {}): GraphRelation {
-  return {
-    namespace: 'gmail',
-    subject: 'Alice',
-    predicate: 'prefers',
-    object: 'morning updates',
-    attrs: { entity_types: { subject: 'person', object: 'preference' } },
-    updatedAt: localDayAt(0, 10),
-    evidenceCount: 2,
-    orderIndex: null,
-    documentIds: ['doc-1'],
-    chunkIds: ['chunk-1'],
-    ...overrides,
-  };
 }
 
 function paragraphMatching(pattern: RegExp) {
