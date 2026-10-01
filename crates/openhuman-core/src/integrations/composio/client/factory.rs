@@ -15,8 +15,8 @@
 
 use std::sync::Arc;
 
-use crate::config::schema::{COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT};
 use super::DirectCredential;
+use crate::config::schema::{COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT};
 
 // Re-declare the mode strings as local consts so they can be used as
 // pattern arms in the `match` below. `use` imports of `pub const &str`
@@ -75,10 +75,9 @@ fn direct_client(
         std::env::var("OPENHUMAN_COMPOSIO_DIRECT_BASE_V3").ok(),
     ) {
         (Some(base_v2), Some(base_v3)) => {
-            DirectCredential::new_with_base_urls_for_loopback(api_key, base_v2, base_v3)
-                .map_err(|e| {
-                    anyhow::anyhow!("invalid debug composio direct loopback base override: {e}")
-                })?
+            DirectCredential::new_with_base_urls_for_loopback(api_key, base_v2, base_v3).map_err(
+                |e| anyhow::anyhow!("invalid debug composio direct loopback base override: {e}"),
+            )?
         }
         _ => DirectCredential::new(api_key),
     };

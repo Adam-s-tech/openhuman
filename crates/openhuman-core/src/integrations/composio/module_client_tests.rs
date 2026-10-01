@@ -158,5 +158,8 @@ fn a_failure_that_is_not_a_member_failure_is_left_alone() {
     );
     // Another member's failure is not ours to rewrite.
     let other = "Execute: ai.tinyhumans.tinybus.Error.Failed: x";
-    assert_eq!(member_failure_message("ListConnectionsDirect", other), other);
+    assert_eq!(
+        member_failure_message("ListConnectionsDirect", other),
+        other
+    );
 }

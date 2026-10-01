@@ -50,10 +50,9 @@ fn an_https_destination_takes_all_proxy_first_then_https_proxy() {
     );
     assert_eq!(all.unwrap().proxy_url.as_deref(), Some("http://all:1"));
 
-    let https = with_proxy(
-        proxy(None, Some("http://h:2"), Some("http://s:3")),
-        || module_transport(HTTPS_BASE),
-    );
+    let https = with_proxy(proxy(None, Some("http://h:2"), Some("http://s:3")), || {
+        module_transport(HTTPS_BASE)
+    });
     assert_eq!(https.unwrap().proxy_url.as_deref(), Some("http://s:3"));
 
     let http_only = with_proxy(proxy(None, Some("http://h:2"), None), || {
@@ -64,10 +63,9 @@ fn an_https_destination_takes_all_proxy_first_then_https_proxy() {
 
 #[test]
 fn a_plain_http_destination_takes_http_proxy() {
-    let config = with_proxy(
-        proxy(None, Some("http://h:2"), Some("http://s:3")),
-        || module_transport("http://127.0.0.1:9/api/v3"),
-    );
+    let config = with_proxy(proxy(None, Some("http://h:2"), Some("http://s:3")), || {
+        module_transport("http://127.0.0.1:9/api/v3")
+    });
     assert_eq!(config.unwrap().proxy_url.as_deref(), Some("http://h:2"));
 }
 
@@ -123,7 +121,9 @@ fn an_unusable_proxy_url_is_ignored_like_the_hosts_own_clients_do() {
         "the next usable URL is used instead"
     );
 
-    let none = with_proxy(proxy(Some("   "), None, None), || module_transport(HTTPS_BASE));
+    let none = with_proxy(proxy(Some("   "), None, None), || {
+        module_transport(HTTPS_BASE)
+    });
     assert!(none.and_then(|c| c.proxy_url).is_none());
 }
 

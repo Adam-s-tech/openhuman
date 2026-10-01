@@ -52,9 +52,7 @@ fn direct_tool_for_mock_with_key(
     base_v3: String,
     api_key: &str,
 ) -> std::sync::Arc<DirectCredential> {
-    std::sync::Arc::new(DirectCredential::new_with_v3_base(
-        api_key, base_v3,
-    ))
+    std::sync::Arc::new(DirectCredential::new_with_v3_base(api_key, base_v3))
 }
 
 /// A config that can load the connector module and names no route.
@@ -565,6 +563,13 @@ async fn direct_reads_go_through_the_hosts_runtime_proxy() {
         "the first read must have been tunnelled by the proxy"
     );
     assert!(bypassed.is_ok());
-    assert_eq!(bypassed_proxied, 0, "a no_proxy destination skips the proxy");
-    assert_eq!(hits.load(Ordering::SeqCst), 2, "both reads reached Composio");
+    assert_eq!(
+        bypassed_proxied, 0,
+        "a no_proxy destination skips the proxy"
+    );
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        2,
+        "both reads reached Composio"
+    );
 }
