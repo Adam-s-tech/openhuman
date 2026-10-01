@@ -135,36 +135,4 @@ impl OpenHumanSessionHost {
         }
     }
 
-    /// Runs an interactive CLI loop, reading from standard input and printing to standard output.
-    ///
-    /// This method starts a persistent session where the user can chat with the agent
-    /// directly from the console. It handles input until a termination command
-    /// (e.g., `/quit`) is received.
-    pub async fn run_interactive(&mut self) -> Result<()> {
-        println!("🦀 OpenHuman Interactive Mode");
-        println!("Type /quit to exit.\n");
-
-        let (tx, mut rx) = tokio::sync::mpsc::channel(32);
-        let cli = crate::channels::CliChannel::new();
-
-        let listen_handle = tokio::spawn(async move {
-            let _ = crate::channels::Channel::listen(&cli, tx).await;
-        });
-
-        while let Some(msg) = rx.recv().await {
-            match self.run_single(&msg.content).await {
-                Ok(response) => println!("\n{response}\n"),
-                Err(e) => {
-                    // `run_single` already publishes `AgentError` and
-                    // sanitises the payload; surface a concise line here
-                    // for the CLI user and continue the loop.
-                    eprintln!("\nError: {e}\n");
-                    continue;
-                }
-            }
-        }
-
-        listen_handle.abort();
-        Ok(())
-    }
 }

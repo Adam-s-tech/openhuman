@@ -69,15 +69,6 @@ impl OpenHumanSessionHost {
         Arc::clone(&self.tools)
     }
 
-    /// Clone the agent's synthesised delegation tools `Arc`.
-    ///
-    /// Replaced wholesale on every [`OpenHumanSessionHost::refresh_delegation_tools`], so a
-    /// clone taken here is a stable snapshot for the rest of the caller's turn
-    /// even if the connection set changes underneath it.
-    pub fn synthesized_tools_arc(&self) -> Arc<Vec<Box<dyn Tool>>> {
-        Arc::clone(&self.synthesized_tools)
-    }
-
     /// Every tool this agent can execute: the durable registry first, then the
     /// synthesised delegation set — the same order as [`Self::tool_specs`] and
     /// turn dispatch.
@@ -169,19 +160,6 @@ impl OpenHumanSessionHost {
                 .cloned()
                 .map(Arc::new)
         })
-    }
-
-    /// Whether the config-dependent capability adapters can be built from this
-    /// session.
-    ///
-    /// Four of the ten host capabilities (`BudgetGate`, `ContextComposer`,
-    /// `ModelResolver`, and the policy half of `SecurityGate`) need a full
-    /// `Config`, which only the factory path supplies. This is the one-line
-    /// check a caller uses before reaching for them, so "this session cannot
-    /// answer that" stays distinguishable from "the capability failed" — the
-    /// same absence-versus-failure rule the traits themselves are built on.
-    pub fn host_capabilities_available(&self) -> bool {
-        self.runtime_config.is_some()
     }
 
     /// The agent's working directory.

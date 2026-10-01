@@ -172,19 +172,6 @@ pub fn explicit_call_timeout_duration(requested: Option<u64>, cap: u64) -> Optio
 /// reported on a timeout is the un-padded request.
 const TOOL_TIMEOUT_GRACE_SECS: u64 = 5;
 
-/// Resolve a tool's [`ToolTimeout`] policy into the `(deadline, timeout_secs)`
-/// pair the agent tool-execution loop enforces:
-/// - `Inherit` → the global config-driven timeout (a finite deadline).
-/// - `Millis(req)` → the clamped request, padded by [`TOOL_TIMEOUT_GRACE_SECS`]
-///   for the actual deadline while `timeout_secs` reports the un-padded budget.
-/// - `Unbounded` → `(None, 0)`: no deadline; the tool runs to completion.
-///
-/// Moved out of the retired legacy `engine::tools` module during the tinyagents
-/// migration (issue #4249); it lives here next to the timeout constants it uses.
-pub fn resolve_tool_deadline(policy: ToolTimeout) -> (Option<Duration>, u64) {
-    resolve_with(settings(), policy)
-}
-
 /// Pure core of [`resolve_tool_deadline`]: the inherited timeout is a parameter
 /// so tests can table-drive it without touching the process-global.
 #[cfg(test)]

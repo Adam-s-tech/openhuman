@@ -70,35 +70,3 @@ pub enum ProviderDelta {
 /// natural end well below the cap on normal turns — while cutting the
 /// reservation 4× versus a 64k window.
 pub const AGENT_TURN_MAX_OUTPUT_TOKENS: u32 = 16384;
-
-/// Request payload for provider chat calls.
-///
-/// The system prompt is built once at session start and frozen for the
-/// rest of the session — the inference backend's automatic prefix
-/// cache covers the whole thing, so there is no explicit cache-boundary
-/// to thread through the request.
-#[derive(Debug, Clone, Copy)]
-pub struct ChatRequest<'a> {
-    pub messages: &'a [ChatMessage],
-    pub tools: Option<&'a [ToolSpec]>,
-    /// Optional sink for `ProviderDelta` events. When `Some`, providers
-    /// that support streaming will ask the upstream API for SSE and
-    /// forward fine-grained events here. Providers without a streaming
-    /// implementation ignore the sender and return only the aggregated
-    /// response.
-    pub stream: Option<&'a tokio::sync::mpsc::Sender<ProviderDelta>>,
-    /// Optional upper bound on output tokens to request from the provider
-    /// (`max_tokens` on the OpenAI-compatible wire).
-    ///
-    /// Left `None` only for the orchestrator's open-ended generation. Agent
-    /// turns cap at [`AGENT_TURN_MAX_OUTPUT_TOKENS`] and callers whose output
-    /// is bounded by construction set a small concrete value — notably memory
-    /// extraction, whose response is a tiny structured-JSON object.
-    /// Beyond capping wasted generation, this stops credit-metered providers
-    /// (e.g. OpenRouter) from reserving the model's *entire* output window
-    /// during their pre-flight balance check: an unset `max_tokens` makes
-    /// OpenRouter price the request against the full 64k+ window and 402 a
-    /// low-balance BYO user who could easily afford the few thousand tokens
-    /// the turn actually needs (TAURI-RUST-C62).
-    pub max_tokens: Option<u32>,
-}

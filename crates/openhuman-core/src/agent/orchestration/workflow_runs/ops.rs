@@ -55,14 +55,6 @@ pub fn list_definitions() -> WorkflowDefinitionListResponse {
     }
 }
 
-pub fn validate_definition(definition: &WorkflowDefinition) -> Vec<DefinitionError> {
-    let mut errors = validate_structure(definition);
-    if let Some(registry) = AgentDefinitionRegistry::global() {
-        errors.extend(validate_agents(definition, |id| registry.get(id).is_some()));
-    }
-    errors
-}
-
 pub fn list_runs(
     config: &Config,
     request: &WorkflowRunListRequest,

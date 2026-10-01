@@ -176,13 +176,6 @@ impl OpenHumanContextComposer {
         self
     }
 
-    /// Attaches a pre-fetched learned-context snapshot — see the TODO on
-    /// [`Self::learned`].
-    pub fn with_learned_context(mut self, learned: LearnedContextData) -> Self {
-        self.learned = learned;
-        self
-    }
-
     /// Loads the two AGENTS.md layers, honouring the `agents_md_enabled` gate.
     ///
     /// Split out so the gate has exactly one enforcement point and the tests

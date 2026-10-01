@@ -39,15 +39,6 @@ pub struct ResolvedProvider {
 
 // ── Public API ──────────────────────────────────────────────────────────
 
-/// Resolve a provider for a single triage turn. Always returns the remote
-/// backend — local AI is hard-disabled for the chat/triage path.
-pub async fn resolve_provider() -> anyhow::Result<ResolvedProvider> {
-    let config = Config::load_or_init()
-        .await
-        .context("loading config for triage provider resolution")?;
-    resolve_provider_with_config(&config).await
-}
-
 /// Inner half of [`resolve_provider`] that takes an already-loaded
 /// [`Config`]. Exposed for tests and for the evaluator's retry path.
 pub async fn resolve_provider_with_config(config: &Config) -> anyhow::Result<ResolvedProvider> {

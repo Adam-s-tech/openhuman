@@ -199,28 +199,3 @@ where
     // the explicit usage ledger on `OpenHumanRunContext`.
     PARENT_CONTEXT.scope(ctx, Box::pin(future)).await
 }
-
-/// Returns the one-shot context-preparation sources that have already run for
-/// the current parent turn (a snapshot of the live list).
-pub fn current_agent_context_prepared_sources() -> Vec<AgentContextPreparedSource> {
-    AGENT_CONTEXT_PREPARED_SOURCES
-        .try_with(|sources| sources.as_ref().clone())
-        .unwrap_or_default()
-}
-
-/// Run `future` with the current turn's already-prepared context sources
-/// installed.
-pub async fn with_agent_context_prepared_sources<F, R>(
-    sources: Vec<AgentContextPreparedSource>,
-    future: F,
-) -> R
-where
-    F: std::future::Future<Output = R>,
-{
-    // Box before `scope` so only a pointer moves into the task-local frame
-    // rather than the whole nested turn generator — see the measurements on
-    // the explicit usage ledger on `OpenHumanRunContext`.
-    AGENT_CONTEXT_PREPARED_SOURCES
-        .scope(Arc::new(sources), Box::pin(future))
-        .await
-}

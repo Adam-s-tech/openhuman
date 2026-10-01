@@ -162,19 +162,6 @@ impl PythonBootstrap {
         self.adopt(&resolved)
     }
 
-    /// Launch a long-lived stdio Python child.
-    ///
-    /// # Errors
-    ///
-    /// When the interpreter cannot be resolved, or the child cannot be spawned.
-    pub async fn spawn_stdio(
-        &self,
-        spec: &super::process::PythonLaunchSpec,
-    ) -> Result<tokio::process::Child> {
-        let resolved = self.resolve().await?;
-        super::process::spawn_stdio_process(&resolved, spec)
-    }
-
     /// Adapt a module resolution and remember it.
     fn adopt(&self, resolved: &ResolvedRuntime) -> Result<ResolvedPython> {
         let adapted = ResolvedPython::from_module(resolved)?;
