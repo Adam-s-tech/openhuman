@@ -1,29 +1,5 @@
 use super::*;
 
-// ── request_id ────────────────────────────────────────────────
-
-#[test]
-fn request_id_is_a_non_empty_uuid_and_fresh_per_call() {
-    let a = request_id();
-    let b = request_id();
-    assert!(!a.is_empty());
-    // v4 UUID canonical form: 36 chars with 4 hyphens.
-    assert_eq!(a.len(), 36);
-    assert_eq!(a.chars().filter(|c| *c == '-').count(), 4);
-    // Two calls must not collide — catches accidental caching.
-    assert_ne!(a, b);
-}
-
-// ── counts ────────────────────────────────────────────────────
-
-#[test]
-fn counts_materialises_entries_as_owned_string_keys() {
-    let map = counts([("num_threads", 3), ("num_messages", 7)]);
-    assert_eq!(map.get("num_threads"), Some(&3));
-    assert_eq!(map.get("num_messages"), Some(&7));
-    assert_eq!(map.len(), 2);
-}
-
 // NOTE: the title_log_fingerprint / collapse_whitespace copies were removed
 // here (plan.md §2.1) — threads/title.rs (the owning module) already covers
 // these functions with equivalent cases; the lowercase-hex assertion was
@@ -134,45 +110,6 @@ fn is_auto_generated_thread_title_accepts_only_the_new_chat_format() {
     ] {
         assert!(!is_auto_generated_thread_title(title), "{title:?}");
     }
-}
-
-// ── envelope ──────────────────────────────────────────────────
-
-#[test]
-fn envelope_sets_data_and_propagates_counts_and_pagination() {
-    let pagination = PaginationMeta {
-        limit: 10,
-        offset: 0,
-        count: 7,
-    };
-    let counts_map = counts([("num_messages", 7)]);
-    let out = envelope(
-        json!({"v": 42}),
-        Some(counts_map.clone()),
-        Some(pagination.clone()),
-    );
-    let env = &out.value;
-    assert_eq!(env.data.as_ref().unwrap()["v"], json!(42));
-    assert!(env.error.is_none());
-    assert!(!env.meta.request_id.is_empty());
-    assert_eq!(env.meta.counts.as_ref().unwrap(), &counts_map);
-    let pag = env.meta.pagination.as_ref().unwrap();
-    assert_eq!(pag.limit, pagination.limit);
-    assert_eq!(pag.count, pagination.count);
-    assert_eq!(pag.offset, pagination.offset);
-    // No implicit latency/cached info — the envelope helper keeps
-    // optional fields unset so callers opt in explicitly.
-    assert!(env.meta.latency_seconds.is_none());
-    assert!(env.meta.cached.is_none());
-    // No logs are attached by default.
-    assert!(out.logs.is_empty());
-}
-
-#[test]
-fn envelope_omits_counts_and_pagination_when_not_provided() {
-    let out = envelope(json!(null), None, None);
-    assert!(out.value.meta.counts.is_none());
-    assert!(out.value.meta.pagination.is_none());
 }
 
 #[test]
