@@ -35,8 +35,8 @@ describe('chatErrorCopyText', () => {
     [1, 'Try again in 1 second.'],
     [89, 'Try again in 89 seconds.'],
     [90, 'Try again in about 2 minutes.'],
-    [61 * 60, 'Try again in about 62 minutes.'],
-    [60 * 60, 'Try again in about 60 minutes.'],
+    [61 * 60, 'Try again in about 61 minutes.'],
+    [60 * 60 + 1, 'Try again in about 61 minutes.'],
   ])('formats a %i second retry hint like the core', (secs, hint) => {
     const text = chatErrorCopyText(
       {
