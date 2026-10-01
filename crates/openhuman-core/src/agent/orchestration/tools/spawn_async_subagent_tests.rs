@@ -1,10 +1,10 @@
-use crate::memory::test_support::NoopMemory;
 use super::*;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::fork_context::{with_parent_context, ParentExecutionContext};
 use crate::agent::prompts::ToolCallFormat;
 use crate::config::AgentConfig;
-use crate::memory::{Memory};
+use crate::memory::test_support::NoopMemory;
+use crate::memory::Memory;
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;

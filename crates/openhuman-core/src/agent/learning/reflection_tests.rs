@@ -1,6 +1,6 @@
-use crate::memory::test_support::RetainingMemory;
 use super::*;
 use crate::agent::hooks::{ToolCallRecord, TurnContext};
+use crate::memory::test_support::RetainingMemory;
 use crate::memory::{Memory, MemoryCategory};
 use std::sync::Arc;
 
@@ -185,7 +185,13 @@ async fn store_reflection_persists_all_categories() {
     .await
     .unwrap();
 
-    let keys: Vec<String> = memory_impl.list(None, None, None).await.unwrap().into_iter().map(|e| e.key).collect();
+    let keys: Vec<String> = memory_impl
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.key)
+        .collect();
     assert!(keys.iter().any(|key| key.starts_with("obs/")));
     assert!(keys.iter().any(|key| key == "pat/pattern_a"));
     assert!(keys.iter().any(|key| key == "pref/pref_a"));
@@ -222,7 +228,13 @@ async fn store_reflection_persists_every_pattern_and_pref_concurrently() {
     .await
     .unwrap();
 
-    let keys: Vec<String> = memory_impl.list(None, None, None).await.unwrap().into_iter().map(|e| e.key).collect();
+    let keys: Vec<String> = memory_impl
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.key)
+        .collect();
     for expected in [
         "pat/pattern_one",
         "pat/pattern_two",
@@ -305,7 +317,9 @@ async fn on_turn_complete_dedupes_reflections_across_heuristic_and_llm_paths() {
     hook.on_turn_complete(&turn).await.unwrap();
 
     let ref_count = memory_impl
-        .list(None, None, None).await.unwrap()
+        .list(None, None, None)
+        .await
+        .unwrap()
         .iter()
         .filter(|e| e.key.starts_with("ref/"))
         .count();
@@ -380,7 +394,13 @@ async fn on_turn_complete_persists_heuristic_reflection_even_when_complexity_low
     // even without a provider — only the heuristic should write.
     hook.on_turn_complete(&turn).await.unwrap();
 
-    let keys: Vec<String> = memory_impl.list(None, None, None).await.unwrap().into_iter().map(|e| e.key).collect();
+    let keys: Vec<String> = memory_impl
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.key)
+        .collect();
     assert!(
         keys.iter().any(|k| k.starts_with("ref/")),
         "heuristic capture should persist a reflection without LLM round-trip"

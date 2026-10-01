@@ -1,11 +1,11 @@
-use crate::memory::test_support::NoopMemory;
 use super::{ArchetypeDelegationTool, DelegationTarget, SpawnSubagentTool, SpawnWorkerThreadTool};
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::{with_parent_context, ParentExecutionContext};
 use crate::agent::messages::ChatMessage;
 use crate::agent::prompts::{ConnectedIntegration, ToolCallFormat};
 use crate::memory::conversations;
-use crate::memory::{Memory};
+use crate::memory::test_support::NoopMemory;
+use crate::memory::Memory;
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use serde_json::json;
@@ -501,4 +501,3 @@ fn flatten_messages(messages: &[Message]) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-

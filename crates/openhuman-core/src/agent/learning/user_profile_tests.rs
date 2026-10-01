@@ -1,6 +1,6 @@
-use crate::memory::test_support::RetainingMemory;
 use super::*;
 use crate::agent::hooks::TurnContext;
+use crate::memory::test_support::RetainingMemory;
 use crate::memory::{Memory, MemoryCategory};
 use std::sync::Arc;
 
@@ -238,7 +238,13 @@ async fn store_preferences_skips_duplicates_and_empty_slugs() {
     .await
     .unwrap();
 
-    let keys: Vec<String> = memory_impl.list(None, None, None).await.unwrap().into_iter().map(|e| e.key).collect();
+    let keys: Vec<String> = memory_impl
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.key)
+        .collect();
     assert_eq!(keys.len(), 2);
     assert!(keys.contains(&"pref/i_prefer_rust".into()));
     assert!(keys.contains(&"pref/my_timezone_is_pst".into()));
@@ -274,7 +280,9 @@ async fn on_turn_complete_respects_feature_flags_and_stores_preferences() {
     enabled.on_turn_complete(&ctx).await.unwrap();
 
     let values: Vec<String> = memory_impl
-        .list(None, None, None).await.unwrap()
+        .list(None, None, None)
+        .await
+        .unwrap()
         .iter()
         .map(|entry| entry.content.clone())
         .collect();

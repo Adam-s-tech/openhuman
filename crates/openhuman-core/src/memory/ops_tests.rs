@@ -152,8 +152,10 @@ fn format_llm_context_message_includes_entity_types_when_present() {
 
 // ── Pure-helper coverage ───────────────────────────────────────
 
-use super::{chunk_metadata, extract_entity_type, maybe_retrieval_context, memory_request_id,
-    relation_identity, relation_metadata, timestamp_to_rfc3339, validate_memory_relative_path};
+use super::{
+    chunk_metadata, extract_entity_type, maybe_retrieval_context, memory_request_id,
+    relation_identity, relation_metadata, timestamp_to_rfc3339, validate_memory_relative_path,
+};
 use crate::core::Outcome;
 use crate::memory::{ApiEnvelope, MemoryRetrievalContext};
 

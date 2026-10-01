@@ -19,13 +19,13 @@ use crate::agent::messages::{
     attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata,
     transcript_message_from_chat, ChatMessage,
 };
-use tinyagents_session::transcript::import::convert::{journal_messages as journal_messages_with};
+use tinyagents_session::transcript::import::convert::journal_messages as journal_messages_with;
 use tinyagents_session::transcript::import::live::{
     shadow_read_compare as shadow_read_compare_with, write_live_turn as write_live_turn_with,
     ShadowReadOutcome,
 };
 use tinyagents_session::transcript::import::ops::store_root;
-use tinyagents_session::transcript::import::types::{JournalMessage};
+use tinyagents_session::transcript::import::types::JournalMessage;
 use tinyagents_session::transcript::{
     read_transcript, write_transcript, MessageUsage, SessionTranscript, TranscriptMeta,
     TranscriptToolCall, TurnUsage,

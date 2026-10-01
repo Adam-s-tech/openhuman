@@ -141,7 +141,11 @@ async fn invalid_arguments_return_a_tool_error_naming_the_problem() {
     for (args, expected) in cases {
         let result = tool.execute(args.clone()).await.unwrap();
         assert!(result.is_error, "{args}");
-        assert!(result.output().contains(expected), "{args}: {}", result.output());
+        assert!(
+            result.output().contains(expected),
+            "{args}: {}",
+            result.output()
+        );
     }
 }
 

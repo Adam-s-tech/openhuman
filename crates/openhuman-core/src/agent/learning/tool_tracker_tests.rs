@@ -1,6 +1,6 @@
-use crate::memory::test_support::RetainingMemory;
 use super::*;
 use crate::agent::hooks::{ToolCallRecord, TurnContext};
+use crate::memory::test_support::RetainingMemory;
 use crate::memory::{Memory, MemoryCategory};
 use std::sync::Arc;
 

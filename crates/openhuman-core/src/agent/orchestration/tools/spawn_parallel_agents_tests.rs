@@ -1,4 +1,3 @@
-use crate::memory::test_support::NoopMemory;
 use super::*;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::definition::{
@@ -14,7 +13,8 @@ use crate::agent::prompts::ToolCallFormat;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::OpenHumanSessionHost;
 use crate::config::AgentConfig;
-use crate::memory::{Memory};
+use crate::memory::test_support::NoopMemory;
+use crate::memory::Memory;
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use serde_json::json;

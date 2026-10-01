@@ -268,7 +268,10 @@ fn render_subagent_system_prompt_silently_skips_missing_profile_md() {
     // "[File not found]" placeholder.
     let rendered = render_with_files(&[], only(false, true, false));
     assert!(!rendered.contains("### PROFILE.md"), "{rendered}");
-    assert!(!rendered.contains("[File not found: PROFILE.md]"), "{rendered}");
+    assert!(
+        !rendered.contains("[File not found: PROFILE.md]"),
+        "{rendered}"
+    );
 }
 
 #[test]
@@ -309,7 +312,10 @@ fn render_subagent_system_prompt_frames_memory_md_as_background() {
         .find("background — not this conversation")
         .unwrap_or_else(|| panic!("missing background frame: {rendered}"));
     let heading_at = rendered.find("### MEMORY.md").unwrap();
-    assert!(frame_at < heading_at, "frame must precede block: {rendered}");
+    assert!(
+        frame_at < heading_at,
+        "frame must precede block: {rendered}"
+    );
 }
 
 #[test]

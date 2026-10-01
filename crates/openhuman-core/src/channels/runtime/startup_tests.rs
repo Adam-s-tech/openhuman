@@ -22,7 +22,10 @@ fn chat_provider_unset_blank_or_sentinel_resolves_to_cloud() {
     for value in [None, Some(""), Some("cloud"), Some("openhuman")] {
         let config = config_with_chat_provider(value);
         assert!(
-            matches!(resolve_chat_workload(&config), ChatWorkloadResolution::Cloud),
+            matches!(
+                resolve_chat_workload(&config),
+                ChatWorkloadResolution::Cloud
+            ),
             "{value:?} must resolve to cloud"
         );
     }
@@ -48,7 +51,9 @@ fn chat_provider_local_and_byok_strings_resolve_to_workload() {
                 assert_eq!(provider_string, configured);
                 assert_eq!(slug, expected_slug);
             }
-            ChatWorkloadResolution::Cloud => panic!("expected Workload for {configured}, got Cloud"),
+            ChatWorkloadResolution::Cloud => {
+                panic!("expected Workload for {configured}, got Cloud")
+            }
         }
     }
 }

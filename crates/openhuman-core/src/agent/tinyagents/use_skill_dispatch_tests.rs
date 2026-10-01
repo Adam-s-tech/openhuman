@@ -13,12 +13,12 @@
 //! `use_skill`'s registration to `harness.register_tool(adapter)` reproduces
 //! that failure and is the fastest way to see these tests fail red.
 
-use crate::memory::test_support::NoopMemory;
 use super::*;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::ParentExecutionContext;
 use crate::agent::prompts::ToolCallFormat;
 use crate::agent::tinyagents::tools::CanonicalSharedToolAdapter;
+use crate::memory::test_support::NoopMemory;
 use async_trait::async_trait;
 use serde_json::json;
 use std::path::Path;
