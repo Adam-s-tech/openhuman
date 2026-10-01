@@ -431,7 +431,7 @@ pub(crate) fn messages_to_history(messages: &[Message]) -> Vec<TranscriptMessage
 pub(crate) fn message_to_native_chat_message(msg: &Message) -> Option<TranscriptMessage> {
     Some(match msg {
         Message::System(_) => TranscriptMessage::system(msg.text()),
-        Message::User(user) => user_row(user),
+        Message::User(user) => user_row(msg, user),
         Message::Assistant(a) => {
             let mut cm = TranscriptMessage::assistant_with_calls(
                 msg.text(),
@@ -455,13 +455,13 @@ pub(crate) fn message_to_native_chat_message(msg: &Message) -> Option<Transcript
 /// The row of a user message: its text, plus ordered parts when it carries an
 /// image. Json / provider-extension blocks carry no user-visible text, so they
 /// are dropped, as [`Message::text`] drops them.
-fn user_row(user: &UserMessage) -> TranscriptMessage {
+fn user_row(msg: &Message, user: &UserMessage) -> TranscriptMessage {
     let has_image = user
         .content
         .iter()
         .any(|block| matches!(block, ContentBlock::Image(_)));
     if !has_image {
-        return TranscriptMessage::user(Message::User(user.clone()).text());
+        return TranscriptMessage::user(msg.text());
     }
     TranscriptMessage::user_with_parts(
         user.content
