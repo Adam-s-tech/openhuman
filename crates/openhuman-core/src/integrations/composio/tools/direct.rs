@@ -1,22 +1,22 @@
-// Slim host-side HTTP reader for Composio's own v3 API with the user's key.
+// Host-side HTTP transport for Composio's own v3 API with the user's key.
 //
-// Composio execution, the OAuth handoff and connection management all run in
-// the `tinyconnectors` module (see `module_client`). What remains here are the
-// two direct-mode reads whose request parameters the pinned module route does
-// not carry: `/connected_accounts?limit=200` and `/tools` with
-// `toolkit_versions=latest` (#3932).
+// What Composio's direct route sends and how it reshapes the answer is
+// `tinyconnectors::client::DirectRoute` (paths, `limit=200`,
+// `toolkit_versions=latest` (#3932), repeated `tags=`, blank-id filtering,
+// v3-to-envelope translation). This module is only the seam the route needs
+// from the host: a `Transport` that carries the key, refuses non-HTTPS bases,
+// never follows redirects, and goes out through the host's proxy and TLS
+// settings, plus the pre-store API-key probe's client.
 
 #[cfg(test)]
 #[path = "direct_tests.rs"]
 mod tests;
 
-mod connections;
 mod construction;
-mod discovery;
 mod http_errors;
+mod transport;
 mod types;
 
-pub use connections::ComposioConnectedAccount;
 pub use types::DirectComposioClient;
 
 // Test-only bridges: the flat `direct_tests.rs` module still expects these

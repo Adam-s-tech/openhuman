@@ -40,13 +40,13 @@ pub(super) fn is_loopback_http_base(url: &str) -> bool {
     is_loopback_http_url(&format!("{}/", url.trim_end_matches('/')))
 }
 
-/// Slim host-side HTTP reader for Composio's own v3 API with the user's key.
+/// Host-side HTTP transport for Composio's own v3 API with the user's key.
 ///
 /// Composio execution, the OAuth handoff and connection management all run in
-/// the `tinyconnectors` module. This client only serves the two reads whose
-/// request parameters the pinned module route does not carry
-/// (`/connected_accounts?limit=200`, `/tools?toolkit_versions=latest`) and the
-/// pre-store API-key probe.
+/// the `tinyconnectors` module. This client carries the direct-route reads
+/// (`tinyconnectors::client::DirectRoute` over the `Transport` impl in
+/// `transport.rs`) and the pre-store API-key probe through the host's proxy and
+/// TLS settings.
 pub struct DirectComposioClient {
     pub(super) api_key: String,
     /// Base URL for Composio v3 endpoints (`{base}/tools`). Production
@@ -55,4 +55,13 @@ pub struct DirectComposioClient {
     /// the direct-mode `/tools` listing at a local axum mock.
     pub(super) base_v3: String,
     pub(super) allow_insecure_loopback: bool,
+}
+
+// Manual `Debug` (a `Transport` must be `Debug`): never prints the key.
+impl std::fmt::Debug for DirectComposioClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DirectComposioClient")
+            .field("base_v3", &self.base_v3)
+            .finish_non_exhaustive()
+    }
 }
