@@ -2,13 +2,20 @@ use super::*;
 use serde_json::{Map, Value};
 
 #[test]
-fn all_schemas_returns_eleven() {
-    assert_eq!(all_learning_controller_schemas().len(), 11);
+fn schema_and_controller_registries_agree_on_eleven_entries() {
+    let s = all_learning_controller_schemas();
+    let c = all_learning_registered_controllers();
+    assert_eq!(s.len(), 11);
+    assert_eq!(c.len(), 11);
+    assert_eq!(s[0].function, c[0].schema.function);
 }
 
 #[test]
-fn all_controllers_returns_eleven() {
-    assert_eq!(all_learning_registered_controllers().len(), 11);
+fn facet_state_change_schemas_are_registered_under_their_function_names() {
+    for function in ["pin_facet", "unpin_facet", "forget_facet"] {
+        let s = learning_schemas(&format!("learning_{function}"));
+        assert_eq!(s.function, function);
+    }
 }
 
 #[test]
@@ -86,13 +93,6 @@ fn facet_to_json_includes_cue_families_and_evidence_refs() {
 }
 
 #[test]
-fn schemas_and_controllers_match() {
-    let s = all_learning_controller_schemas();
-    let c = all_learning_registered_controllers();
-    assert_eq!(s[0].function, c[0].schema.function);
-}
-
-#[test]
 fn list_facets_schema_shape() {
     let s = learning_schemas("learning_list_facets");
     assert_eq!(s.namespace, "learning");
@@ -115,24 +115,6 @@ fn update_facet_schema_shape() {
     let s = learning_schemas("learning_update_facet");
     assert_eq!(s.function, "update_facet");
     assert!(s.inputs.iter().any(|f| f.name == "value" && f.required));
-}
-
-#[test]
-fn pin_facet_schema_shape() {
-    let s = learning_schemas("learning_pin_facet");
-    assert_eq!(s.function, "pin_facet");
-}
-
-#[test]
-fn unpin_facet_schema_shape() {
-    let s = learning_schemas("learning_unpin_facet");
-    assert_eq!(s.function, "unpin_facet");
-}
-
-#[test]
-fn forget_facet_schema_shape() {
-    let s = learning_schemas("learning_forget_facet");
-    assert_eq!(s.function, "forget_facet");
 }
 
 #[test]
