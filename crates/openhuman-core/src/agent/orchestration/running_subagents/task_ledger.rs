@@ -115,7 +115,11 @@ pub(crate) fn record_cancelled(workspace_dir: &Path, task_id: &str) {
         task_id,
         workspace_dir.display()
     );
-    ledger_cancelled(task_store_for_workspace(workspace_dir).as_ref(), task_id);
+    if let Err(err) = ledger_cancelled(task_store_for_workspace(workspace_dir).as_ref(), task_id) {
+        log::debug!(
+            "[running_subagents] cancel ledger update ignored task_id={task_id} error={err}"
+        );
+    }
 }
 
 pub(crate) fn list_task_records(workspace_dir: &Path) -> Vec<OrchestrationTaskRecord> {
