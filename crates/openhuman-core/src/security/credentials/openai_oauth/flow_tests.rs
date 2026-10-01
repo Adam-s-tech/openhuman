@@ -2,6 +2,7 @@ use super::store::persist_openai_oauth_token;
 use super::{
     complete_openai_oauth, disconnect_openai_oauth, openai_oauth_status, start_openai_oauth,
 };
+use crate::config::test_env::EnvVarGuard;
 use crate::config::Config;
 use crate::inference::provider::factory::lookup_key_for_slug;
 use crate::security::credentials::openai_oauth::store::{
@@ -21,7 +22,6 @@ use tinyinference_providers::oauth::{
 };
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
-use crate::config::test_env::EnvVarGuard;
 
 fn tiny_oauth_config(config: &OAuthConfig, redirect_uri: &str) -> OAuthConfig {
     let mut config = config.clone();

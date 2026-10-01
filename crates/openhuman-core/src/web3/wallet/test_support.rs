@@ -17,8 +17,8 @@ use tempfile::TempDir;
 
 use super::ops::{setup, WalletAccount, WalletChain, WalletSetupParams, WalletSetupSource};
 use crate::config::rpc as config_rpc;
-use crate::config::TEST_ENV_LOCK;
 use crate::config::test_env::EnvVarGuard;
+use crate::config::TEST_ENV_LOCK;
 
 pub(crate) static TEST_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 

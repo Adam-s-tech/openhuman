@@ -3,11 +3,11 @@ use std::ffi::OsString;
 
 use tempfile::TempDir;
 
+use crate::config::test_env::EnvVarGuard;
 use crate::config::Config;
 use crate::config::TEST_ENV_LOCK;
 use serde_json::json;
 use tinytools::Tool;
-use crate::config::test_env::EnvVarGuard;
 
 async fn isolated_config(tmp: &TempDir) -> (EnvVarGuard, Config) {
     let guard = EnvVarGuard::workspace(tmp.path());

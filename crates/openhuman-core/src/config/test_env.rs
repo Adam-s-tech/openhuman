@@ -74,7 +74,8 @@ impl EnvVarGuard {
 
     /// Remove every key in `keys` (caller holds the env lock).
     pub(crate) fn unset_many(keys: &[&'static str]) -> Self {
-        keys.iter().fold(Self::new(), |guard, key| guard.without(key))
+        keys.iter()
+            .fold(Self::new(), |guard, key| guard.without(key))
     }
 
     /// Pin `OPENHUMAN_WORKSPACE` to `path` (caller holds the env lock).

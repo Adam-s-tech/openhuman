@@ -19,9 +19,9 @@ use std::path::PathBuf;
 
 use super::test_scope::ScopedWorkspace;
 use super::{resolve_workspace_dir, workspace_dir_for_file_backend};
+use crate::config::test_env::EnvVarGuard;
 use crate::config::TEST_ENV_LOCK;
 use crate::security::keyring;
-use crate::config::test_env::EnvVarGuard;
 
 /// The root-cause pin: in test builds the keyring workspace must not be
 /// steerable by a process-wide env var, because any test can set it while

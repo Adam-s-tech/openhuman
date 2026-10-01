@@ -23,6 +23,7 @@ fn cache_guard() -> std::sync::MutexGuard<'static, ()> {
 
 // ── Mock-backend integration tests for ops ─────────────────────
 
+use crate::config::test_env::EnvVarGuard;
 use axum::{
     extract::{Path, Query, State},
     http::HeaderMap,
@@ -33,7 +34,6 @@ use chrono::{TimeZone, Utc};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use tinymemory_api::chunks::{chunk_id, Chunk, Metadata, SourceKind, SourceRef};
-use crate::config::test_env::EnvVarGuard;
 
 struct DirectAuthFailureGuard {
     key_id: u64,

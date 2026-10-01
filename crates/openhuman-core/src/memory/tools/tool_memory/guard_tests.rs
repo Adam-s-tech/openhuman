@@ -12,6 +12,7 @@ use crate::memory::api::tool_memory::{ToolMemoryPriority, ToolMemorySource};
 
 use tempfile::TempDir;
 
+use crate::config::test_env::EnvVarGuard;
 use crate::config::Config;
 use crate::config::TEST_ENV_LOCK;
 use crate::memory::guard::policy::GUARD_DENIED_PREFIX;
@@ -20,7 +21,6 @@ use crate::security::policy::{AutonomyLevel, SecurityPolicy};
 use serde_json::json;
 use std::sync::Arc;
 use tinytools::Tool;
-use crate::config::test_env::EnvVarGuard;
 
 /// Install `autonomy` as the live policy for this test thread only. Same
 /// shape `memory/guard/policy_tests.rs` uses; `#[tokio::test]`'s

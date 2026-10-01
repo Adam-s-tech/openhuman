@@ -1,4 +1,5 @@
 use super::*;
+use crate::config::test_env::EnvVarGuard;
 use crate::config::{default_root_openhuman_dir, user_openhuman_dir, write_active_user_id, Config};
 use crate::security::credentials::session_support::local_session_user_id;
 use crate::security::credentials::{
@@ -12,7 +13,6 @@ use base64::Engine;
 use serde_json::json;
 use tempfile::TempDir;
 use tokio::net::TcpListener;
-use crate::config::test_env::EnvVarGuard;
 
 fn test_config(tmp: &TempDir) -> Config {
     let config = Config {

@@ -15,9 +15,9 @@ use std::ffi::OsString;
 
 use tempfile::TempDir;
 
+use crate::config::test_env::EnvVarGuard;
 use crate::config::TEST_ENV_LOCK;
 use tinytools::Tool;
-use crate::config::test_env::EnvVarGuard;
 
 /// Reset the shared goals document, and say why that has to happen at all.
 ///

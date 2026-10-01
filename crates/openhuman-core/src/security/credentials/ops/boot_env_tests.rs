@@ -1,7 +1,7 @@
 use super::*;
+use crate::config::test_env::EnvVarGuard;
 use crate::config::Config;
 use tempfile::TempDir;
-use crate::config::test_env::EnvVarGuard;
 
 fn config_in(tmp: &TempDir) -> Config {
     Config {

@@ -2,8 +2,8 @@ use super::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use tinytools::ToolResult;
 use crate::config::test_env::EnvVarGuard;
+use tinytools::ToolResult;
 
 /// Minimal `Arc<Config>` for the agent-tool constructors. All five
 /// composio agent tools now resolve their client per call through

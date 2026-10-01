@@ -1,7 +1,7 @@
 use super::*;
+use crate::config::test_env::EnvVarGuard;
 use crate::config::TEST_ENV_LOCK;
 use tempfile::TempDir;
-use crate::config::test_env::EnvVarGuard;
 
 async fn write_update_policy(tmp: &TempDir, update: UpdateConfig) {
     let mut cfg = crate::config::Config {

@@ -19,10 +19,10 @@ use crate::memory::sources::types::MemorySourceEntry;
 // Needed to call the family accessors on the *concrete* null provider
 // below; the handlers above reach them through `dyn MemoryProvider`, where
 // the trait is in scope by construction.
+use crate::config::test_env::EnvVarGuard;
 use crate::memory::api::provider::MemoryProvider;
 use std::sync::Arc;
 use tinymemory_api::null::{NullMemoryProvider, NULL_DRIVER_ID};
-use crate::config::test_env::EnvVarGuard;
 
 /// The refusal always names the bound driver. That is the whole contract of
 /// this message: an operator reading it has to be able to tell "no driver

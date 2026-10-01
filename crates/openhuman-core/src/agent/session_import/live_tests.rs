@@ -13,9 +13,9 @@ use std::path::Path;
 use tempfile::TempDir;
 use tinyagents_harness::store::{AppendStore, JsonlAppendStore};
 
-use crate::config::test_env::EnvVarGuard;
 use super::live::{dual_write_enabled, shadow_reads_enabled};
 use super::projector::journal_message_from_transcript as project;
+use crate::config::test_env::EnvVarGuard;
 use tinyagents_session::transcript::import::convert::journal_messages as journal_messages_with;
 use tinyagents_session::transcript::import::live::{
     shadow_read_compare as shadow_read_compare_with, write_live_turn as write_live_turn_with,

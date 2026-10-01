@@ -1,7 +1,7 @@
 use super::*;
 use crate::config::schema::{CapabilityProviderConfig, CapabilityProviderTrustState, Config};
-use crate::core::{FieldSchema, TypeSchema};
 use crate::config::test_env::EnvVarGuard;
+use crate::core::{FieldSchema, TypeSchema};
 
 #[test]
 fn registry_entries_include_mcp_and_controller_tools() {

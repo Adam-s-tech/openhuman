@@ -3,8 +3,8 @@ use std::ffi::OsString;
 use tempfile::TempDir;
 
 use super::*;
-use crate::config::TEST_ENV_LOCK;
 use crate::config::test_env::EnvVarGuard;
+use crate::config::TEST_ENV_LOCK;
 
 #[tokio::test]
 async fn write_read_and_list_memory_files_roundtrip() {
