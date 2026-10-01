@@ -1,7 +1,5 @@
-use tinyagents_orchestration::subagent::FinishedOutcome;
 use super::*;
 use crate::agent::orchestration::fleet_tools::FleetToolSet;
-use tinyagents_orchestration::subagent::{DetachedSubagentStatus, WaitError, DETACHED_LEDGER_TIMEOUT_MS};
 use crate::agent::orchestration::running_subagents::resolve::resume_ref_for_task;
 use crate::agent::orchestration::running_subagents::resolve::task_id_for_session;
 use crate::agent::orchestration::running_subagents::roster::snapshot_for_parent;
@@ -22,6 +20,10 @@ use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::{QueueLane, RunQueue};
 use tinyagents_harness::steering::{
     SteeringCommand, SteeringCommandKind, SteeringHandle, SteeringPolicy,
+};
+use tinyagents_orchestration::subagent::FinishedOutcome;
+use tinyagents_orchestration::subagent::{
+    DetachedSubagentStatus, WaitError, WaitOutcome, DETACHED_LEDGER_TIMEOUT_MS,
 };
 use tokio::sync::watch;
 use tokio::task::AbortHandle;

@@ -4,14 +4,14 @@
 //! the bytes; they must not change when the generic logic moves upstream.
 
 use super::*;
-use tinyagents_orchestration::subagent::WaitError;
-use tinyagents_orchestration::subagent::FinishedOutcome;
 use crate::agent::orchestration::running_subagents::roster::snapshot_for_parent;
 use crate::agent::orchestration::running_subagents::task_ledger::task_store_for_workspace;
 use tinyagents_graph::orchestration::{
     OrchestrationTaskKind, OrchestrationTaskResult, OrchestrationTaskSpec,
 };
 use tinyagents_harness::ids::TaskId;
+use tinyagents_orchestration::subagent::FinishedOutcome;
+use tinyagents_orchestration::subagent::WaitError;
 
 fn spec(id: &str, parent: &str, session: Option<&str>) -> OrchestrationTaskSpec {
     let mut spec = OrchestrationTaskSpec::new(
@@ -61,7 +61,9 @@ async fn roster_status_labels_are_literal() {
                     question: "q".into(),
                 })
                 .unwrap(),
-            "wire-fail" => tx.send(DetachedSubagentStatus::Failed { error: "e".into() }).unwrap(),
+            "wire-fail" => tx
+                .send(DetachedSubagentStatus::Failed { error: "e".into() })
+                .unwrap(),
             _ => {}
         }
     }
@@ -205,8 +207,12 @@ fn reconcile_reason_and_resume_labels_are_literal() {
     store
         .insert(spec("wire-orphan-cancel", "wire-orphan-parent", None))
         .unwrap();
-    store.mark_running(&TaskId::new("wire-orphan-cancel")).unwrap();
-    store.request_cancel(&TaskId::new("wire-orphan-cancel")).unwrap();
+    store
+        .mark_running(&TaskId::new("wire-orphan-cancel"))
+        .unwrap();
+    store
+        .request_cancel(&TaskId::new("wire-orphan-cancel"))
+        .unwrap();
     assert_eq!(reconcile_orphaned_tasks_on_boot(ws.path()), 2);
     let failed = store.get(&TaskId::new("wire-orphan-run")).unwrap();
     assert_eq!(

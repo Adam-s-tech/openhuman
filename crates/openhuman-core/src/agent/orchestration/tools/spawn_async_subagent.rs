@@ -9,7 +9,6 @@ use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::messages::ChatMessage;
 use crate::agent::orchestration::fleet_tools::FleetToolSet;
 use crate::agent::orchestration::running_subagents;
-use tinyagents_orchestration::subagent::DetachedSubagentStatus;
 use crate::agent::orchestration::subagent_sessions::{
     self, DurableSubagentStatus, SubagentSessionSelector, SubagentSessionStore,
     SubagentSessionUpsert,
@@ -25,6 +24,7 @@ use std::sync::Arc;
 use tinyagents_harness::context::{RunConfig, RunContext};
 use tinyagents_harness::run_queue::RunQueue;
 use tinyagents_harness::tool::{ToolDispatch, ToolExecutionContext};
+use tinyagents_orchestration::subagent::DetachedSubagentStatus;
 use tinytools::ToolRunContext;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 

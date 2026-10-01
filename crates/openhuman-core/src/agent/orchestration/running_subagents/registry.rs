@@ -65,7 +65,8 @@ const REGISTRY_SOFT_CAP: usize = 256;
 static REGISTRY: OnceLock<DetachedTaskRegistry<RunningSubagentMetadata, DetachedSubagentStatus>> =
     OnceLock::new();
 
-pub(crate) fn registry() -> &'static DetachedTaskRegistry<RunningSubagentMetadata, DetachedSubagentStatus> {
+pub(crate) fn registry(
+) -> &'static DetachedTaskRegistry<RunningSubagentMetadata, DetachedSubagentStatus> {
     REGISTRY.get_or_init(|| {
         DetachedTaskRegistry::new(
             shared_steering_registry().clone(),
