@@ -49,14 +49,42 @@ struct Scenario {
     layout: Layout,
 }
 
-const SCENARIOS: &[Scenario] = &[
-    Scenario { name: "plain", native: true, layout: Layout::Head },
-    Scenario { name: "native_tools", native: true, layout: Layout::Head },
-    Scenario { name: "image_user", native: true, layout: Layout::Head },
-    Scenario { name: "xml_tools", native: false, layout: Layout::Head },
-    Scenario { name: "compaction_record", native: true, layout: Layout::Head },
-    Scenario { name: "generation_chain", native: true, layout: Layout::Chain },
-    Scenario { name: "legacy_adopted", native: true, layout: Layout::Legacy },
+static SCENARIOS: &[Scenario] = &[
+    Scenario {
+        name: "plain",
+        native: true,
+        layout: Layout::Head,
+    },
+    Scenario {
+        name: "native_tools",
+        native: true,
+        layout: Layout::Head,
+    },
+    Scenario {
+        name: "image_user",
+        native: true,
+        layout: Layout::Head,
+    },
+    Scenario {
+        name: "xml_tools",
+        native: false,
+        layout: Layout::Head,
+    },
+    Scenario {
+        name: "compaction_record",
+        native: true,
+        layout: Layout::Head,
+    },
+    Scenario {
+        name: "generation_chain",
+        native: true,
+        layout: Layout::Chain,
+    },
+    Scenario {
+        name: "legacy_adopted",
+        native: true,
+        layout: Layout::Legacy,
+    },
 ];
 
 fn thread_id(name: &str) -> String {
@@ -217,8 +245,16 @@ fn to_json<T: serde::Serialize>(value: &T) -> Value {
 /// Everything the model and the journal observe after resuming a scenario.
 async fn snapshot(scenario: &'static Scenario) -> Value {
     let root = tempfile::tempdir().expect("tempdir");
-    let next = model(vec![ModelResponse::assistant("next reply")], scenario.native);
-    let mut host = build_host(root.path(), next.clone(), scenario.native, &thread_id(scenario.name));
+    let next = model(
+        vec![ModelResponse::assistant("next reply")],
+        scenario.native,
+    );
+    let mut host = build_host(
+        root.path(),
+        next.clone(),
+        scenario.native,
+        &thread_id(scenario.name),
+    );
     let stem = host.session_id().expect("bound session id");
     place_fixture(root.path(), scenario, &stem);
 
@@ -227,7 +263,10 @@ async fn snapshot(scenario: &'static Scenario) -> Value {
         "{}: fixture must resume",
         scenario.name
     );
-    let runtime = host.runtime_session.as_ref().expect("resumed runtime session");
+    let runtime = host
+        .runtime_session
+        .as_ref()
+        .expect("resumed runtime session");
     let history = to_json(&runtime.history());
     let prefix = to_json(&runtime.prefix_snapshot().messages());
     let recorded_tools = runtime
@@ -246,11 +285,18 @@ async fn snapshot(scenario: &'static Scenario) -> Value {
     let journal: Vec<Value> = transcript
         .messages
         .into_iter()
-        .map(|row| to_json(&crate::agent::session_import::projector::journal_message_from_transcript(row)))
+        .map(|row| {
+            to_json(&crate::agent::session_import::projector::journal_message_from_transcript(row))
+        })
         .collect();
 
     host.turn("next message").await.expect("next turn");
-    let request = next.requests().last().expect("next request").messages.clone();
+    let request = next
+        .requests()
+        .last()
+        .expect("next request")
+        .messages
+        .clone();
 
     json!({
         "history": history,
@@ -274,8 +320,7 @@ fn every_committed_transcript_resumes_to_the_recorded_model_view() {
             let got = snapshot(scenario).await;
             let want = golden(scenario.name);
             assert_eq!(
-                got,
-                want,
+                got, want,
                 "{}: resumed model view drifted from the committed golden",
                 scenario.name
             );
@@ -316,7 +361,12 @@ fn legacy_meta(thread: &str, created: &str) -> TranscriptMeta {
 
 async fn capture_turns(name: &str, native: bool, responses: Vec<ModelResponse>, turns: &[&str]) {
     let root = tempfile::tempdir().expect("tempdir");
-    let mut host = build_host(root.path(), model(responses, native), native, &thread_id(name));
+    let mut host = build_host(
+        root.path(),
+        model(responses, native),
+        native,
+        &thread_id(name),
+    );
     let stem = host.session_id().expect("session id");
     for turn in turns {
         host.turn(turn).await.expect("capture turn");
@@ -329,7 +379,13 @@ async fn capture_all() {
     std::fs::create_dir_all(FIXTURE_DIR).expect("fixture dir");
     let text = |s: &str| response(vec![ContentBlock::Text(s.into())], Vec::new());
 
-    capture_turns("plain", true, vec![text("alpha"), text("beta")], &["one", "two"]).await;
+    capture_turns(
+        "plain",
+        true,
+        vec![text("alpha"), text("beta")],
+        &["one", "two"],
+    )
+    .await;
 
     capture_turns(
         "native_tools",
@@ -337,7 +393,10 @@ async fn capture_all() {
         vec![
             response(
                 vec![
-                    ContentBlock::Thinking { text: "plan the calls".into(), signature: None },
+                    ContentBlock::Thinking {
+                        text: "plan the calls".into(),
+                        signature: None,
+                    },
                     ContentBlock::Text("checking".into()),
                 ],
                 vec![
