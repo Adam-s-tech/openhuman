@@ -152,7 +152,7 @@ fn build_channel_host_advertises_expected_capabilities() {
     assert!(caps.lifecycle);
     assert!(caps.stt);
     assert!(caps.tts);
-    assert!(caps.reaction_gate);
+    assert!(!caps.reaction_gate, "no reaction gate is offered");
     assert!(caps.approvals);
     assert!(caps.conversation_store);
     assert!(caps.event_sink);
