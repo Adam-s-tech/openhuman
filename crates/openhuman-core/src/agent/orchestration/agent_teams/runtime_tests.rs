@@ -8,6 +8,7 @@
 //! real entry point; its `Started` path (which spawns a loop building a real
 //! `Agent` from config) is covered by the JSON-RPC e2e over the live core stack.
 
+use crate::memory::test_support::NoopMemory;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -28,57 +29,6 @@ use tinyinference_llm::model::{ChatModel, ModelRequest, ModelResponse};
 use tinytools::Tool;
 
 // ── Mocks (mirror workflow_runs::engine_tests) ──────────────────────────────
-
-#[derive(Default)]
-struct NoopMemory;
-
-#[async_trait]
-impl Memory for NoopMemory {
-    async fn store(
-        &self,
-        _ns: &str,
-        _key: &str,
-        _content: &str,
-        _cat: MemoryCategory,
-        _sid: Option<&str>,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-    async fn recall(
-        &self,
-        _q: &str,
-        _l: usize,
-        _o: RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-    async fn get(&self, _ns: &str, _key: &str) -> anyhow::Result<Option<MemoryEntry>> {
-        Ok(None)
-    }
-    async fn list(
-        &self,
-        _ns: Option<&str>,
-        _cat: Option<&MemoryCategory>,
-        _sid: Option<&str>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-    async fn forget(&self, _ns: &str, _key: &str) -> anyhow::Result<bool> {
-        Ok(false)
-    }
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(0)
-    }
-    async fn health_check(&self) -> bool {
-        true
-    }
-    fn name(&self) -> &str {
-        "noop"
-    }
-}
 
 fn text_response(text: impl Into<String>) -> ModelResponse {
     ModelResponse::assistant(text)
