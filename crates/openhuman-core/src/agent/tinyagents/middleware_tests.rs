@@ -15,7 +15,6 @@ use async_trait::async_trait;
 use tinyagents_harness::middleware::{AgentRun, BudgetTracker, Middleware, ToolInvocationIdentity};
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
 use tinyinference_llm::message::Message as TaMessage;
-use tinyinference_llm::model::SegmentRole;
 use tinyinference_llm::tool::{ToolCall as TaToolCall, ToolSchema};
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
