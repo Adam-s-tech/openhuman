@@ -20,6 +20,7 @@ mod network;
 mod tests;
 
 pub use credential::DirectCredential;
+pub(crate) use network::module_transport;
 pub use direct::direct_list_connections;
 pub(crate) use direct::direct_list_tools;
 pub(crate) use factory::create_direct_client_for_api_key;

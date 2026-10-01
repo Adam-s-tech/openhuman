@@ -131,8 +131,20 @@ pub fn module_config(config: &Config) -> Result<serde_json::Value, String> {
                 "base_url": std::env::var("OPENHUMAN_COMPOSIO_DIRECT_BASE_V3").ok(),
                 "state_dir": state_dir,
             });
-            if let Some(base) = direct_base {
-                payload["base_url"] = serde_json::Value::String(base);
+            if let Some(base) = &direct_base {
+                payload["base_url"] = serde_json::Value::String(base.clone());
+            }
+            // The host's proxy and TLS policy for Composio, resolved for the
+            // destination the module will dial. Part of the route description,
+            // so a change in the proxy settings reconfigures the module on the
+            // next call. Omitted when it is the module's default (contract 1.10).
+            let destination = direct_base
+                .as_deref()
+                .unwrap_or("https://backend.composio.dev/api/v3");
+            if let Some(transport) =
+                crate::integrations::composio::client::module_transport(destination)
+            {
+                payload["transport"] = serde_json::json!(transport);
             }
             Ok(payload)
         }

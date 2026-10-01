@@ -37,7 +37,7 @@ fn usable(url: Option<&String>) -> Option<String> {
 
 /// The network policy for a request to `base_url`, or `None` when it is the
 /// module's default (no proxy of the host's choosing, bundled roots).
-pub(super) fn module_transport(base_url: &str) -> Option<ComposioTransportConfig> {
+pub(crate) fn module_transport(base_url: &str) -> Option<ComposioTransportConfig> {
     let proxy = runtime_proxy_config();
     let proxy_url = if proxy.should_apply_to_service(SERVICE_KEY) {
         let https = base_url.trim().to_ascii_lowercase().starts_with("https://");
