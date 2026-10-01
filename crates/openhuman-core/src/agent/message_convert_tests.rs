@@ -136,24 +136,20 @@ fn plain_user_text_stays_a_single_text_block() {
 }
 
 #[test]
-fn seeded_native_tool_round_recovers_structure_and_round_trips() {
-    use tinytools_agent::dialect::NativeToolCall as OhToolCall;
-    // The native dispatcher seeds an assistant tool round as a
-    // {content, tool_calls} envelope followed by {tool_call_id, content} rows.
-    let oh_call = OhToolCall {
-        id: "call-1".into(),
-        name: "echo".into(),
-        arguments: r#"{"msg":"hi"}"#.into(),
-        extra_content: None,
-    };
-    let assistant_cm = TranscriptMessage::assistant(
-        serde_json::json!({ "content": "calling echo", "tool_calls": [oh_call] }).to_string(),
+fn typed_native_tool_round_maps_to_structured_messages_and_back() {
+    // A native tool round is carried in typed fields: calls on the assistant
+    // row, the answered call id on the tool row, plain text in `content`.
+    let assistant_cm = TranscriptMessage::assistant_with_calls(
+        "calling echo",
+        vec![TranscriptToolCall {
+            id: "call-1".into(),
+            name: "echo".into(),
+            arguments: r#"{"msg":"hi"}"#.into(),
+            extra_content: None,
+        }],
     );
-    let tool_cm = TranscriptMessage::tool(
-        serde_json::json!({ "tool_call_id": "call-1", "content": "echoed:hi" }).to_string(),
-    );
+    let tool_cm = TranscriptMessage::tool_result("call-1", "echoed:hi");
 
-    // Inbound: the envelopes are recovered into structured harness messages.
     let a = chat_message_to_message(&assistant_cm);
     let Message::Assistant(am) = &a else {
         panic!("expected Assistant, got {a:?}");
@@ -175,19 +171,74 @@ fn seeded_native_tool_round_recovers_structure_and_round_trips() {
     assert!(!tm.trusted_verbatim);
     assert_eq!(t.text(), "echoed:hi");
 
-    // Outbound: re-serialized to a well-formed native tool round (assistant
-    // carries structured tool_calls, the tool row carries the matching id).
+    // Back out: the same typed rows, no envelope string anywhere.
     let a_native = message_to_native_chat_message(&a).expect("assistant converts");
     assert_eq!(a_native.role.as_str(), "assistant");
-    let av: serde_json::Value = serde_json::from_str(&a_native.content).unwrap();
-    assert_eq!(av["tool_calls"][0]["id"], "call-1");
-    assert_eq!(av["content"], "calling echo");
+    assert_eq!(a_native.content, "calling echo");
+    assert_eq!(a_native.tool_calls, assistant_cm.tool_calls);
 
     let t_native = message_to_native_chat_message(&t).expect("tool converts");
     assert_eq!(t_native.role.as_str(), "tool");
-    let tv: serde_json::Value = serde_json::from_str(&t_native.content).unwrap();
-    assert_eq!(tv["tool_call_id"], "call-1");
-    assert_eq!(tv["content"], "echoed:hi");
+    assert_eq!(t_native.content, "echoed:hi");
+    assert_eq!(t_native.tool_call_id.as_deref(), Some("call-1"));
+    assert_eq!(t_native.id.as_deref(), Some("call-1"));
+}
+
+/// A legacy envelope row (what an older release wrote) reads into the same
+/// model messages as its typed form once the reader has lifted it.
+#[test]
+fn legacy_envelope_rows_lift_to_the_same_messages_as_typed_rows() {
+    let envelope = r#"{"content":"calling echo","tool_calls":[{"id":"call-1","name":"echo","arguments":"{\"msg\":\"hi\"}"}]}"#;
+    let tool = r#"{"tool_call_id":"call-1","content":"echoed:hi"}"#;
+    let typed = vec![
+        TranscriptMessage::assistant_with_calls(
+            "calling echo",
+            vec![TranscriptToolCall {
+                id: "call-1".into(),
+                name: "echo".into(),
+                arguments: r#"{"msg":"hi"}"#.into(),
+                extra_content: None,
+            }],
+        ),
+        TranscriptMessage::tool_result("call-1", "echoed:hi"),
+    ];
+    let lifted = vec![
+        TranscriptMessage::from_legacy("assistant", envelope),
+        TranscriptMessage::from_legacy("tool", tool),
+    ];
+    assert_eq!(history_to_messages(&lifted), history_to_messages(&typed));
+    // ...and the lifted rows hand the exact original strings back.
+    assert_eq!(lifted[0].legacy_content(), envelope);
+    assert_eq!(lifted[1].legacy_content(), tool);
+}
+
+#[test]
+fn user_text_with_ready_markers_is_stored_as_typed_image_parts() {
+    let png = "data:image/png;base64,iVBORw0KGgo=";
+    let text = format!("look [IMAGE:{png}] and [IMAGE:/local/path.png] please");
+    let msg = user_message_from_text(&text);
+    let Message::User(user) = &msg else {
+        panic!("user message");
+    };
+    // The path marker is not provider-ready: it stays in the surrounding text.
+    assert_eq!(user.content.len(), 3);
+    assert!(matches!(&user.content[0], ContentBlock::Text(t) if t == "look "));
+    assert!(matches!(&user.content[1], ContentBlock::Image(i) if i.url == png));
+    assert!(
+        matches!(&user.content[2], ContentBlock::Text(t) if t == " and [IMAGE:/local/path.png] please")
+    );
+    // The row keeps the parts; `content` is the text.
+    let row = message_to_native_chat_message(&msg).expect("row");
+    assert_eq!(row.parts.as_ref().map(Vec::len), Some(3));
+    assert_eq!(row.content, "look  and [IMAGE:/local/path.png] please");
+    // The text comes back exactly, markers in place.
+    assert_eq!(user_text_with_markers(&msg), text);
+    // A row round-trips to the same message.
+    assert_eq!(chat_message_to_message(&row), msg);
+    // Text without a ready marker is a plain text message.
+    for plain in ["hello", "see [IMAGE:/p.png]", "dangling [IMAGE:data:x"] {
+        assert_eq!(user_message_from_text(plain), Message::user(plain));
+    }
 }
 
 #[test]
