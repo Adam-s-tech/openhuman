@@ -321,7 +321,6 @@ const en: TranslationMap = {
   'settings.devGroups.diagnosticsLogs': 'Diagnostics & Logs',
   'settings.features': 'Features',
   'settings.aiModels': 'AI & Models',
-  'settings.aiModelsDesc': 'Local AI model setup, downloads, and LLM provider',
   'settings.ai': 'AI Configuration',
   'settings.aiDesc': 'Cloud providers, local Ollama models, and per-workload routing',
   'settings.billingUsage': 'Billing & Usage',
@@ -464,7 +463,6 @@ const en: TranslationMap = {
 
   // Settings: AI & Models
   'settings.ai.localSetup': 'Local AI Setup',
-  'settings.ai.localSetupDesc': 'Download and configure local AI models',
   'settings.ai.llmProvider': 'LLM Provider',
   'settings.ai.llmProviderDesc': 'Choose and configure your AI provider',
 
@@ -1125,11 +1123,11 @@ const en: TranslationMap = {
   'memory.health.remediation.embedding_dim_mismatch':
     'The embedding model returns the wrong vector size (memory expects 1024 dimensions). Pick a 1024-dim model, or request 1024 dimensions for your provider.',
   'memory.health.remediation.local_model_unavailable':
-    'A required local model is not available. Install/run Ollama and pull the model, or switch this workload to a cloud provider in Connections → API keys.',
+    'A required local model is not available. Start your own Ollama server and pull the model there, or switch this workload to a cloud provider in Connections → API keys.',
   'memory.health.remediation.extraction_timeout':
     'The memory extraction model is timing out, so the wiki has little structure. Switch the Memory extraction model to a faster one in Connections → API keys → LLM.',
   'memory.health.remediation.summarizer_unavailable':
-    'No summarization provider is available for Build Summary Trees. Enable local AI (Ollama), or set memory_tree.cloud_summarization_opt_in=true and configure an LLM provider in Connections → API keys → LLM.',
+    'No summarization provider is available for Build Summary Trees. Point a workload at your own local endpoint (such as Ollama) in Connections → API keys → LLM, or set memory_tree.cloud_summarization_opt_in=true and configure an LLM provider there.',
   'memory.health.remediation.empty_input_refused':
     'A memory item was skipped because its text was empty. No action needed: newer items continue to embed normally.',
   'memory.health.remediation.storage_unavailable':
@@ -1222,8 +1220,6 @@ const en: TranslationMap = {
     'Your super-intelligent AI assistant that runs on your computer. Private, simple, and extremely powerful.',
   'onboarding.context': 'Context Gathering',
   'onboarding.contextDesc': 'Connect the tools and services you use every day.',
-  'onboarding.localAI': 'Local AI',
-  'onboarding.localAIDesc': 'Set up a local AI model that runs on your machine.',
   'onboarding.chatProvider': 'Chat Provider',
   'onboarding.chatProviderDesc': 'Choose how you want to interact with your assistant.',
   'onboarding.referral': 'Referral',
@@ -1929,9 +1925,6 @@ const en: TranslationMap = {
   'mcp.catalog.installCount': '{count} installs',
   'app.update.dismissNotification': 'Dismiss update notification',
   'bootCheck.rpcAuthSuffix': 'on every RPC.',
-  'app.localAiDownload.expandAria': 'Expand download progress',
-  'app.localAiDownload.collapseAria': 'Collapse download progress',
-  'app.localAiDownload.dismissAria': 'Dismiss download notification',
   'mobile.nav.ariaLabel': 'Mobile navigation',
   'progress.stepsAria': 'Progress steps',
   'progress.stepAria': 'Step {current} of {total}',
@@ -2119,10 +2112,6 @@ const en: TranslationMap = {
   'mcp.status.unauthorized': 'Sign in needed',
   'mcp.detail.tools': 'Tools',
   'onboarding.skipForNow': 'Skip for Now',
-  'onboarding.localAI.continueWithCloud': 'Continue with Cloud',
-  'onboarding.localAI.useLocalAnyway': 'Use local AI anyway (not recommended for your device)',
-  'onboarding.localAI.useLocalInstead': 'Use local AI instead (connect Ollama now)',
-  'onboarding.localAI.setupIssue': 'Local AI setup encountered an issue',
   'autonomy.title': 'Agent autonomy',
   'autonomy.maxActionsLabel': 'Max actions per hour',
   'autonomy.maxActionsHelp':
@@ -2144,10 +2133,7 @@ const en: TranslationMap = {
   'settings.ai.loadingDuration': 'Loading Duration',
   'settings.ai.localRuntime': 'Local Model Runtime',
   'settings.ai.openManager': 'Open Manager',
-  'settings.ai.retryDownload': 'Retry Download',
   'settings.ai.targetModel': 'Target Model',
-  'settings.ai.download': 'Download',
-  'settings.ai.localModelUnavailable': 'Local model status unavailable.',
   'settings.ai.soulConfig': 'SOUL Persona Configuration',
   'settings.ai.refreshing': 'Refreshing...',
   'settings.ai.refreshSoul': 'Refresh SOUL',
@@ -2345,9 +2331,6 @@ const en: TranslationMap = {
   'voice.customDictionaryDesc':
     'Add names, technical terms, and domain words to improve recognition accuracy.',
   'voice.addWord': 'Add a word...',
-  'voice.sttDisabled':
-    'Voice dictation is disabled until the local STT model is downloaded and ready.',
-  'voice.openLocalAiModel': 'Open Local AI Model',
   'voice.serverRestarted': 'Voice server restarted with the new settings.',
   'voice.settingsSaved': 'Voice settings saved.',
   'voice.serverStarted': 'Voice server started.',
@@ -2387,17 +2370,6 @@ const en: TranslationMap = {
     'Keep the microphone open and send what you say to the agent automatically, no hotkey. Pauses when the screen is locked.',
   'voice.providers.saved': 'Voice providers saved.',
   'voice.providers.failedToSave': 'Failed to save voice providers',
-  'voice.providers.ellipsis': '…',
-  'voice.providers.installing': 'Installing',
-  'voice.providers.installingBusy': 'Installing…',
-  'voice.providers.reinstallLocally': 'Reinstall locally',
-  'voice.providers.repair': 'Repair',
-  'voice.providers.retryLocally': 'Retry locally',
-  'voice.providers.installLocally': 'Install locally',
-  'voice.providers.queued': 'queued',
-  'voice.providers.piperReady': 'Piper is ready.',
-  'voice.providers.piperInstallStarted': 'Piper install started',
-  'voice.providers.failedToInstallPiper': 'Failed to install Piper',
   'voice.mode.title': 'Voice mode',
   'voice.mode.desc': 'Choose how the assistant talks in the Human tab.',
   'voice.mode.realtime': 'Realtime voice (beta)',
@@ -2417,24 +2389,22 @@ const en: TranslationMap = {
   'voice.providers.sttProvider': 'Speech-to-Text Provider',
   'voice.providers.sttProviderAria': 'STT provider',
   'voice.providers.backendSttProxy': 'OpenHuman (Managed)',
-  'voice.providers.installRequired': ' (install required)',
-  'voice.providers.installed': 'Installed',
-  'voice.providers.installFailed': 'Install failed',
-  'voice.providers.notInstalled': 'Not installed',
   'voice.providers.ttsProvider': 'Text-to-Speech Provider',
   'voice.providers.ttsProviderAria': 'TTS provider',
   'voice.providers.cloudElevenLabsProxy': 'OpenHuman (Managed)',
   'voice.providers.localPiper': 'Local Piper',
-  'voice.providers.piperInstalledTitle': 'Piper is installed. Click to reinstall.',
-  'voice.providers.piperDownloadTitle':
-    'Download Piper and the bundled en_US-lessac-medium voice into your workspace.',
   'voice.providers.piperVoice': 'Piper Voice',
   'voice.providers.piperVoiceAria': 'Piper voice',
   'voice.providers.customVoiceOption': 'Other (type below)…',
   'voice.providers.customVoiceAria': 'Piper voice id (custom)',
   'voice.providers.customVoicePlaceholder': 'en_US-lessac-medium',
   'voice.providers.piperVoicesDesc':
-    'Voices come from huggingface.co/rhasspy/piper-voices. Switching voices may require an Install/Reinstall click to download the new .onnx.',
+    'Voices come from huggingface.co/rhasspy/piper-voices. OpenHuman does not download them: download the .onnx file yourself and enter its full path as a custom voice.',
+  'voice.providers.piperSelfInstallHint':
+    "OpenHuman doesn't download Piper or its voices. Install the piper binary yourself (on your PATH or via PIPER_BIN), download a voice from huggingface.co/rhasspy/piper-voices, and enter the full path to its .onnx file as a custom voice.",
+  'voice.providers.piperRecheck': 'Check again',
+  'voice.providers.piperFound': 'Piper found',
+  'voice.providers.piperNotFound': 'Piper not found',
   'voice.providers.mascotVoice': 'Mascot Voice',
   'voice.providers.mascotSettings': 'Mascot settings',
   'voice.providers.hotkeyPlaceholder': 'Fn',
@@ -2468,7 +2438,7 @@ const en: TranslationMap = {
   'voice.modal.saveAndEnable': 'Save & Enable',
   'voice.modal.enable': 'Enable',
   'voice.modal.piperDesc':
-    'Choose a voice and install the Piper binary and ONNX model into your workspace. Piper runs fully offline with low latency.',
+    'Use your own Piper install for local text-to-speech. Piper runs fully offline with low latency.',
 
   // Voice routing section
   'voice.routing.title': 'Voice Routing',
@@ -2547,16 +2517,6 @@ const en: TranslationMap = {
   'cron.refreshCronJobs': 'Refresh Cron Jobs',
 
   // Local Model
-  'localModel.modelStatus': 'Model Status',
-  'localModel.downloadModels': 'Download Models',
-  'localModel.usage': 'Usage',
-  'localModel.usageDesc':
-    'Choose which subsystems run on the local model. Anything off uses the cloud.',
-  'localModel.enableRuntime': 'Enable local AI runtime',
-  'localModel.enableRuntimeDesc':
-    'Master switch. Off by default: Ollama stays idle. When on, the tree summarizer and autocomplete always use the local model.',
-  'localModel.advancedSettings': 'Advanced settings',
-  'localModel.debugTitle': 'Local Model Debug',
 
   // Memory
   'memory.debugTitle': 'Memory Debug',
@@ -2823,17 +2783,6 @@ const en: TranslationMap = {
   'token.tipCacheHit': 'Input tokens served from a cached prompt prefix, billed at a reduced rate.',
   'token.clickForDetails': 'Click for session usage details',
 
-  // Catalog
-  'catalog.noCapabilityBinding': 'No capability binding',
-  'catalog.downloadFailed': 'Download failed',
-  'catalog.active': 'Active',
-  'catalog.installed': 'Installed',
-  'catalog.notDownloaded': 'Not downloaded',
-  'catalog.inUse': 'In Use',
-  'catalog.use': 'Use',
-  'catalog.deleteModel': 'Delete model',
-  'catalog.download': 'Download',
-
   // Navigator
   'navigator.recent': 'Recent',
   'navigator.today': 'Today',
@@ -2850,14 +2799,6 @@ const en: TranslationMap = {
   'dreams.description':
     'Dreams are AI-generated reflections that synthesize patterns from your memories.',
   'dreams.comingSoon': 'Coming soon',
-
-  // Assignment
-  'assignment.memoryLlm': 'Memory LLM',
-  'assignment.memoryLlmAria': 'Memory LLM selection',
-  'assignment.embedder': 'Embedder',
-  'assignment.loaded': 'Loaded',
-  'assignment.notDownloaded': 'Not downloaded',
-  'assignment.usedForExtractSummarise': 'Used for extraction and summarization',
 
   // Insights
   'insights.knownFacts': 'Known Facts',
@@ -3334,7 +3275,6 @@ const en: TranslationMap = {
   'privacy.dataKind.important': 'Important',
 
   // Onboarding: supplementary keys
-  'onboarding.enableLocalAI': 'Enable Local AI',
   'onboarding.skills.status.available': 'Available',
   'onboarding.skills.status.connected': 'Connected',
   'onboarding.skills.status.connecting': 'Connecting',
@@ -3390,12 +3330,6 @@ const en: TranslationMap = {
   'graph.tooltip.contact': 'Contact',
 
   // Local Model: usage labels
-  'localModel.usage.never': 'Never',
-  'localModel.usage.mediumLoad': 'Medium load',
-  'localModel.usage.lowLoad': 'Low load',
-  'localModel.usage.idleMode': 'Idle mode',
-  'localModel.rebootstrapComplete': 'Model re-bootstrap complete.',
-  'localModel.modelsVerified': 'Local models verified.',
 
   // === i18n migration: extracted strings (auto-merged) ===
   'accounts.addModal.allConnected': 'All connected',
@@ -3428,8 +3362,6 @@ const en: TranslationMap = {
   'app.errorFallback.revealLogs': 'Reveal logs',
   'app.errorFallback.subheading': 'An unexpected error occurred',
   'app.errorFallback.tryRecover': 'Try recover',
-  'app.localAiDownload.installing': 'Installing...',
-  'app.localAiDownload.preparing': 'Preparing...',
   'app.openhumanLink.accounts.continueWith': 'Continue with {label} sign-in',
   'app.openhumanLink.accounts.done': 'Done',
   'app.openhumanLink.accounts.intro':
@@ -5957,26 +5889,6 @@ const en: TranslationMap = {
   'settings.cron.schedule.every6hours': 'Every 6 hours',
   'settings.cron.schedule.everyHour': 'Every hour',
   'settings.cron.schedule.onceDaily': 'Once daily (9 AM)',
-  'settings.localModel.deviceCapability.starting': 'Starting…',
-  'settings.localModel.download.capabilityChat': 'Chat',
-  'settings.localModel.download.capabilityEmbedding': 'Embedding',
-  'settings.localModel.download.capabilityStt': 'STT',
-  'settings.localModel.download.capabilityTts': 'TTS',
-  'settings.localModel.download.capabilityVision': 'Vision',
-  'settings.localModel.status.bootstrapResume': 'Bootstrap / Resume',
-  'settings.localModel.status.customLocation': 'Custom location',
-  'settings.localModel.status.customLocationDesc': 'Point to a custom Ollama binary location.',
-  'settings.localModel.status.forceRebootstrap': 'Force Re-bootstrap',
-  'settings.localModel.status.installOllama': 'Install Ollama',
-  'settings.localModel.status.installing': 'Installing...',
-  'settings.localModel.status.ollamaBinaryPath': 'Ollama binary path',
-  'settings.localModel.status.retryBootstrap': 'Retry Bootstrap',
-  'settings.localModel.status.setPath': 'Set Path',
-  'settings.localModel.status.setting': 'Setting...',
-  'settings.localModel.status.suggestedFixes': 'Suggested fixes',
-  'settings.localModel.status.thenSetPath': 'Then set path',
-  'settings.localModel.status.triggering': 'Triggering...',
-  'settings.localModel.status.working': 'Working...',
   'settings.developerMenu.ai.title': 'AI Configuration',
   'settings.developerMenu.ai.desc':
     'Cloud providers, local Ollama models, and per-workload routing',
@@ -6928,20 +6840,21 @@ const en: TranslationMap = {
   'skills.setup.voice.activeDescSuffix': 'Fn',
   'skills.setup.voice.activeTitle': 'Voice Intelligence is Active',
   'skills.setup.voice.customizeSettings': 'Customize settings',
-  'skills.setup.voice.downloadSttBtn': 'Download STT model',
+  'skills.setup.voice.downloadSttBtn': 'Open voice settings',
   'skills.setup.voice.enableDesc': 'Dictate text hands-free using your microphone.',
   'skills.setup.voice.hotkey': 'Hotkey',
   'skills.setup.voice.startBtn': 'Starting...',
   'skills.setup.voice.startError': 'Failed to start voice server',
   'skills.setup.voice.starting': 'Starting...',
   'skills.setup.voice.stepEnable': 'Start voice server',
-  'skills.setup.voice.stepSetup': 'Model download required',
+  'skills.setup.voice.stepSetup': 'Speech-to-text setup required',
   'skills.setup.voice.stepSuccess': 'Ready to go',
   'skills.setup.voice.sttNotReady': 'Speech-to-text model not ready',
   'skills.setup.voice.sttNotReadyDesc':
     'Voice Intelligence needs a working speech-to-text engine. Pick one under Settings › Voice.',
   'skills.setup.voice.sttReady': 'Speech-to-text model ready',
-  'skills.setup.voice.sttReturnHint': 'The speech-to-text model is loading. Come back in a moment.',
+  'skills.setup.voice.sttReturnHint':
+    'Configure a speech-to-text engine in Voice settings, then come back here to start voice.',
   'skills.setup.voice.title': 'Voice Intelligence',
   'skills.uninstall.couldNotUninstall': 'Could not uninstall',
   'skills.uninstall.description':
@@ -7049,9 +6962,6 @@ const en: TranslationMap = {
   'devOptions.menuAgentChatDesc': 'Test agent conversation with model and temperature overrides',
   'devOptions.menuCronJobs': 'Cron Jobs',
   'devOptions.menuCronJobsDesc': 'View and configure scheduled jobs for runtime skills',
-  'devOptions.menuLocalModelDebug': 'Local Model Debug',
-  'devOptions.menuLocalModelDebugDesc':
-    'Ollama config, asset downloads, model tests, and diagnostics',
   'devOptions.menuWebhooksDebug': 'Webhooks',
   'devOptions.menuWebhooksDebugDesc':
     'Inspect runtime webhook registrations and captured request logs',
