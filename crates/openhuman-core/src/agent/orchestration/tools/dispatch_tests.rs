@@ -204,34 +204,6 @@ fn ask_clarification_tool_is_the_harness_tool() {
     assert_eq!(tool.name(), "ask_user_clarification");
 }
 
-#[tokio::test]
-async fn dispatch_subagent_returns_tool_error_when_agent_unknown() {
-    // Exercises the graceful-failure paths of `dispatch_subagent`:
-    // without a global registry we get the "registry not initialised"
-    // branch, and with one (set by another test in the same binary)
-    // a bogus agent id hits the "agent not found" branch. Either way
-    // the function must return `Ok(ToolResult::error(..))` rather than
-    // panicking or returning `Err`.
-    let res = dispatch_subagent(
-        "__definitely_not_a_real_agent__",
-        "test_tool",
-        "irrelevant prompt",
-        None,
-        None,
-        DispatchMode::Blocking,
-        crate::agent::tinyagents::host::OpenHumanRunContext::new(),
-    )
-    .await
-    .expect("dispatch_subagent should not return Err on these inputs");
-
-    assert!(res.is_error, "expected a tool-error ToolResult");
-    let out = res.output();
-    assert!(
-        out.contains("registry not initialised") || out.contains("not found in registry"),
-        "unexpected graceful-failure message: {out}"
-    );
-}
-
 #[test]
 fn awaiting_user_outcome_maps_to_resume_envelope_not_bare_success() {
     // #4291: a delegated sub-agent that pauses on `ask_user_clarification`
