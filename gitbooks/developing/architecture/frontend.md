@@ -172,7 +172,6 @@ Authoritative list = the `reducer` map in `store/index.ts`. One-line purposes:
 | `mascot`              | Mascot appearance / voice selection                                               | `color`, `voiceId`, `customMascotGifUrl`, `selectedMascotId`    |
 | `notifications`       | Notification items + preferences                                                  | `items`, `preferences`                                          |
 | `persona`             | Cosmetic persona display name + description (SOUL.md lives in the core)           | `displayName`, `description`                                    |
-| `providerSurfaces`    | Provider webview surface state                                                    | no                                                               |
 | `ptt`                 | Push-to-talk hotkey + session prefs (`isHeld` deliberately excluded)              | `shortcut`, `speakReplies`, `showOverlay`                        |
 | `queue`               | The core's per-thread run queue plus the composer's pending follow-up messages    | no (in-memory only)                                              |
 | `runMode`             | Per-thread plan/build run mode                                                    | no (in-memory only)                                              |
