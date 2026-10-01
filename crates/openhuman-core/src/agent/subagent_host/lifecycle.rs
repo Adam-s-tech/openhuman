@@ -58,9 +58,10 @@ pub async fn run_subagent_with_parent(
     input: impl Into<String>,
     options: SubagentRunOptions,
 ) -> Result<SubagentRunOutcome, SubagentRunError> {
-    OpenHumanSubagentHost::new(definition, options)
-        .run(parent, input.into())
-        .await
+    // Boxed at every level of the host lifecycle: an unoptimised build keeps each
+    // awaited future inline in its caller's poll frame, so an unboxed chain
+    // multiplies the ~60 KB nested state machine per level (#6379).
+    Box::pin(OpenHumanSubagentHost::new(definition, options).run(parent, input.into())).await
 }
 
 /// Root host entrypoint for callers that begin outside a retained live parent
@@ -74,7 +75,13 @@ pub async fn run_subagent(
     let mut root_data = root_context_from_options(&options);
     let root_config = root_data.root_run_config("subagent-host");
     let root = root_data.into_tinyagents(root_config);
-    run_subagent_with_parent(&root, definition.clone(), input, options).await
+    Box::pin(run_subagent_with_parent(
+        &root,
+        definition.clone(),
+        input,
+        options,
+    ))
+    .await
 }
 
 /// Resume a durable lifecycle with its recovered original task key.  The fresh
@@ -260,8 +267,7 @@ impl OpenHumanSubagentHost {
             child_config,
         )
         .map_err(|error| SubagentRunError::Provider(anyhow::anyhow!(error.to_string())))?;
-        self.run_with_request(parent, task_key, child, input, false)
-            .await
+        Box::pin(self.run_with_request(parent, task_key, child, input, false)).await
     }
 
     async fn continue_with_key(
@@ -277,8 +283,7 @@ impl OpenHumanSubagentHost {
             child_config,
         )
         .map_err(|error| SubagentRunError::Provider(anyhow::anyhow!(error.to_string())))?;
-        self.run_with_request(parent, task_key, child, input, true)
-            .await
+        Box::pin(self.run_with_request(parent, task_key, child, input, true)).await
     }
 
     async fn run_with_request(
@@ -335,16 +340,15 @@ impl OpenHumanSubagentHost {
                 .await;
         }
 
-        let result = self
-            .run_leader(
-                parent,
-                task_key.clone(),
-                child,
-                input,
-                continuation,
-                checkpoint_dir,
-            )
-            .await;
+        let result = Box::pin(self.run_leader(
+            parent,
+            task_key.clone(),
+            child,
+            input,
+            continuation,
+            checkpoint_dir,
+        ))
+        .await;
         entry.complete(result.as_ref().ok().cloned()).await;
         let mut entries = host_in_flight().lock().await;
         if entries
@@ -410,7 +414,7 @@ impl OpenHumanSubagentHost {
         }
         .map_err(map_lifecycle_error)?;
         let cancellation = parent.cancellation.clone();
-        match driver.run(request, cancellation).await {
+        match Box::pin(driver.run(request, cancellation)).await {
             Ok(result) => Ok(outcome_to_host(
                 result,
                 host_outcome
@@ -534,7 +538,7 @@ impl SubagentExecutor<crate::agent::tinyagents::host::OpenHumanRunContext> for O
         // its explicit OpenHuman carrier.
         options.run_context = execution.prepared.run_context.data.clone();
         options.run_context.cancellation = execution.cancellation.clone();
-        match super::ops::run_subagent_direct(
+        match Box::pin(super::ops::run_subagent_direct(
             &definition,
             &execution
                 .prepared
@@ -543,7 +547,7 @@ impl SubagentExecutor<crate::agent::tinyagents::host::OpenHumanRunContext> for O
                 .map(Message::text)
                 .unwrap_or_default(),
             options.clone(),
-        )
+        ))
         .await
         {
             Ok(outcome) => {
