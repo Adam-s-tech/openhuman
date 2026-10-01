@@ -41,7 +41,7 @@ async fn a_completed_run_publishes_its_start_and_finish_and_records_a_row() {
         "src_notes",
         Some(&entry),
         || async {
-            Ok(SyncRunOutcome {
+            Ok::<_, MemoryError>(SyncRunOutcome {
                 records_ingested: 3,
                 ..SyncRunOutcome::default()
             })
@@ -84,7 +84,7 @@ async fn a_completed_run_that_stopped_short_says_so_in_its_detail() {
         "src_capped",
         Some(&folder("src_capped")),
         || async {
-            Ok(SyncRunOutcome {
+            Ok::<_, MemoryError>(SyncRunOutcome {
                 records_ingested: 50,
                 more_pending: true,
                 note: Some("per-source item limit reached".to_string()),
@@ -147,6 +147,45 @@ async fn a_failed_run_publishes_the_described_failure_and_records_it() {
     assert_eq!(rows[0].items_fetched, 0);
 }
 
+/// A run that wrote some batches before one was refused still fails, and its
+/// row counts what it wrote first rather than reading as having stored
+/// nothing; a budget stop before the failure is said in the message.
+#[tokio::test]
+async fn a_failure_after_partial_work_records_what_was_written() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let config = config_in(dir.path());
+    let entry = folder("src_partial");
+    let stages = Stages::default();
+
+    let message = run_recorded(
+        &config,
+        "src_partial",
+        Some(&entry),
+        || async {
+            Err(PartialFailure {
+                error: MemoryError::Unavailable("memory API unavailable".to_string()),
+                done: SyncRunOutcome {
+                    records_ingested: 25,
+                    more_pending: true,
+                    ..SyncRunOutcome::default()
+                },
+            })
+        },
+        |error| format!("described: {error}"),
+        publisher(&stages),
+    )
+    .await
+    .expect_err("the run failed");
+
+    assert!(message.starts_with("described: "), "{message}");
+    assert!(message.contains("more items pending"), "{message}");
+    let rows = read_runs(dir.path(), KEEP_ROWS).expect("read the run log");
+    assert_eq!(rows.len(), 1);
+    assert!(!rows[0].success, "a partial run is still a failure");
+    assert_eq!(rows[0].items_fetched, 25);
+    assert_eq!(rows[0].error.as_deref(), Some(message.as_str()));
+}
+
 /// The history panel refetches when the terminal stage arrives, so the row
 /// has to be on disk by then.
 #[tokio::test]
@@ -159,7 +198,7 @@ async fn the_row_is_on_disk_before_the_terminal_stage_goes_out() {
         &config,
         "src_unknown",
         None,
-        || async { Ok(SyncRunOutcome::default()) },
+        || async { Ok::<_, MemoryError>(SyncRunOutcome::default()) },
         |_| unreachable!("a completed run has no failure to describe"),
         |stage: &str, _detail: Option<String>| {
             if stage == "completed" {

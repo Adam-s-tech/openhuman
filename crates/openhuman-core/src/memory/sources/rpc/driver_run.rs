@@ -72,6 +72,54 @@ pub(in crate::memory::sources) fn bus_stage_publisher(
     }
 }
 
+/// A failed run as `run_recorded` reports it: the error, and what the run had
+/// done before it failed.
+pub(in crate::memory::sources) trait RunFailure {
+    /// Why the run failed.
+    fn error(&self) -> &MemoryError;
+
+    /// What the run had done when it failed, when it did anything.
+    fn done(&self) -> Option<&SyncRunOutcome> {
+        None
+    }
+}
+
+/// A driver's own run reports only its error.
+impl RunFailure for MemoryError {
+    fn error(&self) -> &MemoryError {
+        self
+    }
+}
+
+/// A run that failed after some of its work: a host-side sync that wrote some
+/// batches before one was refused. The run still failed, and its row says how
+/// much it wrote first.
+#[derive(Debug)]
+pub(in crate::memory::sources) struct PartialFailure {
+    pub(in crate::memory::sources) error: MemoryError,
+    pub(in crate::memory::sources) done: SyncRunOutcome,
+}
+
+impl RunFailure for PartialFailure {
+    fn error(&self) -> &MemoryError {
+        &self.error
+    }
+
+    fn done(&self) -> Option<&SyncRunOutcome> {
+        Some(&self.done)
+    }
+}
+
+/// A failure before any work was done.
+impl From<MemoryError> for PartialFailure {
+    fn from(error: MemoryError) -> Self {
+        Self {
+            error,
+            done: SyncRunOutcome::default(),
+        }
+    }
+}
+
 /// Run one driver-backed sync, publishing its start and finish and recording
 /// it in the host's run log.
 ///
@@ -82,7 +130,11 @@ pub(in crate::memory::sources) fn bus_stage_publisher(
 /// The row is written before the terminal stage is published, on purpose: the
 /// history panel refetches when that stage arrives, and a row written after it
 /// would miss that read.
-pub(in crate::memory::sources) async fn run_recorded<Run, Fut, Describe, Publish>(
+///
+/// A failed row counts what the run wrote before it failed, so a run that
+/// stored two batches and then was refused does not read as having stored
+/// nothing. It is still a failure.
+pub(in crate::memory::sources) async fn run_recorded<Run, Fut, Failure, Describe, Publish>(
     config: &Config,
     source_id: &str,
     entry: Option<&MemorySourceEntry>,
@@ -92,7 +144,8 @@ pub(in crate::memory::sources) async fn run_recorded<Run, Fut, Describe, Publish
 ) -> Result<SyncRunOutcome, String>
 where
     Run: FnOnce() -> Fut,
-    Fut: Future<Output = Result<SyncRunOutcome, MemoryError>>,
+    Fut: Future<Output = Result<SyncRunOutcome, Failure>>,
+    Failure: RunFailure,
     Describe: FnOnce(&MemoryError) -> String,
     Publish: Fn(&str, Option<String>),
 {
@@ -142,12 +195,19 @@ where
             );
             Ok(outcome)
         }
-        Err(error) => {
-            let message = describe(&error);
-            record(None, Some(message.clone()));
+        Err(failure) => {
+            let mut message = describe(failure.error());
+            let done = failure.done();
+            if done.is_some_and(|done| done.more_pending) {
+                // Nothing in the row holds "more pending", so the message says
+                // it: the run had already stopped at its budget when it failed.
+                message.push_str(" (the run had stopped at its budget with more items pending)");
+            }
+            record(done, Some(message.clone()));
             tracing::warn!(
                 source_id = %source_id,
                 error = %message,
+                written_before_failure = done.map_or(0, |done| done.records_ingested),
                 "[memory_sources:driver_run] run failed"
             );
             publish("failed", Some(message.clone()));
