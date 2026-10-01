@@ -80,7 +80,11 @@ RPC/tool formatting, and OpenHuman's worktree policy.
   outside an agent turn.
 - `running_subagents.rs` + `running_subagents/` (`registry.rs`, `roster.rs`,
   `resolve.rs`, `cancel.rs`, `steering.rs`, `wait.rs`, `task_ledger.rs`): the
-  detached sub-agent registry mirror. `background_completions.rs` and
+  detached sub-agent host glue (registry instance and metadata, store path,
+  steering, boot reconcile). The status type, wait, ledger helpers, roster and
+  session resolution live in `tinyagents_orchestration::subagent`
+  (`DetachedSubagentStatus`, `wait_detached`, `SubagentIdentity`, ...).
+  `background_completions.rs` and
   `background_delivery.rs` queue and idle-gated, debounced, batched delivery
   of finished background runs back into chat; `run_ledger_finalize.rs` is the
   global-bus subscriber that settles ledger rows for runs that outlive their
