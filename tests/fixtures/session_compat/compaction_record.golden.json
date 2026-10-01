@@ -13,7 +13,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nthree"
+            "text": "Current Date & Time: 2026-10-01 09:05:16 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nthree"
           }
         ]
       }
@@ -40,7 +40,7 @@
       "role": "system"
     },
     {
-      "content": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nthree",
+      "content": "Current Date & Time: 2026-10-01 09:05:16 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nthree",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -72,7 +72,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nthree"
+            "text": "Current Date & Time: <clock>\n\nthree"
           }
         ]
       }
@@ -91,7 +91,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:27 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nnext message"
+            "text": "Current Date & Time: <clock>\n\nnext message"
           }
         ]
       }

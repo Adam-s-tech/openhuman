@@ -13,7 +13,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:25 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none"
+            "text": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none"
           }
         ]
       }
@@ -32,7 +32,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo"
+            "text": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo"
           }
         ]
       }
@@ -59,7 +59,7 @@
       "role": "system"
     },
     {
-      "content": "Current Date & Time: 2026-10-01 08:50:25 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none",
+      "content": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -77,7 +77,7 @@
       "role": "assistant"
     },
     {
-      "content": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo",
+      "content": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -109,7 +109,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:25 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none"
+            "text": "Current Date & Time: <clock>\n\none"
           }
         ]
       }
@@ -128,7 +128,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo"
+            "text": "Current Date & Time: <clock>\n\ntwo"
           }
         ]
       }
@@ -147,7 +147,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:27 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nnext message"
+            "text": "Current Date & Time: <clock>\n\nnext message"
           }
         ]
       }

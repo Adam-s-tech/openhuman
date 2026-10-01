@@ -13,7 +13,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nxml please"
+            "text": "Current Date & Time: 2026-10-01 09:05:16 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nxml please"
           }
         ]
       }
@@ -32,7 +32,7 @@
       "user": {
         "content": [
           {
-            "text": "[Tool results]\n<tool_result id=\"openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-1-tool-1\">\necho:{\"q\":\"x\"}\n</tool_result>\n"
+            "text": "[Tool results]\n<tool_result id=\"openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-1-tool-1\">\necho:{\"q\":\"x\"}\n</tool_result>\n"
           }
         ]
       }
@@ -51,7 +51,7 @@
       "user": {
         "content": [
           {
-            "text": "[Tool results]\n<tool_result id=\"openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-2-tool-1\">\nboom: exit 1\n</tool_result>\n"
+            "text": "[Tool results]\n<tool_result id=\"openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-2-tool-1\">\nboom: exit 1\n</tool_result>\n"
           }
         ]
       }
@@ -78,7 +78,7 @@
       "role": "system"
     },
     {
-      "content": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nxml please",
+      "content": "Current Date & Time: 2026-10-01 09:05:16 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nxml please",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -99,11 +99,11 @@
           "tool_calls": [
             {
               "arguments": "{\"q\":\"x\"}",
-              "id": "openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-1-tool-1",
+              "id": "openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-1-tool-1",
               "name": "echo"
             }
           ],
-          "ts": "2026-10-01T05:50:26.870682918+00:00",
+          "ts": "2026-10-01T06:05:16.354620387+00:00",
           "usage": {
             "cached_input": 0,
             "context_window": 0,
@@ -116,7 +116,7 @@
       "role": "assistant"
     },
     {
-      "content": "[Tool results]\n<tool_result id=\"openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-1-tool-1\">\necho:{\"q\":\"x\"}\n</tool_result>\n",
+      "content": "[Tool results]\n<tool_result id=\"openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-1-tool-1\">\necho:{\"q\":\"x\"}\n</tool_result>\n",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -137,11 +137,11 @@
           "tool_calls": [
             {
               "arguments": "{}",
-              "id": "openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-2-tool-1",
+              "id": "openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-2-tool-1",
               "name": "boom"
             }
           ],
-          "ts": "2026-10-01T05:50:26.870695171+00:00",
+          "ts": "2026-10-01T06:05:16.354636990+00:00",
           "usage": {
             "cached_input": 0,
             "context_window": 0,
@@ -154,13 +154,13 @@
       "role": "assistant"
     },
     {
-      "content": "[Tool results]\n<tool_result id=\"openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-2-tool-1\">\nboom: exit 1\n</tool_result>\n",
+      "content": "[Tool results]\n<tool_result id=\"openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-2-tool-1\">\nboom: exit 1\n</tool_result>\n",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
         },
         "openhuman_tool_failures": [
-          "openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-2-tool-1"
+          "openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-2-tool-1"
         ]
       },
       "role": "user"
@@ -189,7 +189,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:26 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nxml please"
+            "text": "Current Date & Time: <clock>\n\nxml please"
           }
         ]
       }
@@ -208,7 +208,7 @@
       "user": {
         "content": [
           {
-            "text": "[Tool results]\n<tool_result id=\"openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-1-tool-1\">\necho:{\"q\":\"x\"}\n</tool_result>\n"
+            "text": "[Tool results]\n<tool_result id=\"openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-1-tool-1\">\necho:{\"q\":\"x\"}\n</tool_result>\n"
           }
         ]
       }
@@ -227,7 +227,7 @@
       "user": {
         "content": [
           {
-            "text": "[Tool results]\n<tool_result id=\"openhuman-session-b4a71940-e0cd-4279-878a-30b587ebe020-model-2-tool-1\">\nboom: exit 1\n</tool_result>\n"
+            "text": "[Tool results]\n<tool_result id=\"openhuman-session-9ac7adf1-0830-4147-9c45-b214c859ea10-model-2-tool-1\">\nboom: exit 1\n</tool_result>\n"
           }
         ]
       }
@@ -246,7 +246,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 08:50:27 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nnext message"
+            "text": "Current Date & Time: <clock>\n\nnext message"
           }
         ]
       }
