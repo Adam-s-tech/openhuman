@@ -6,7 +6,6 @@
 mod backend_error_code;
 mod budget;
 mod classify;
-mod response_predicates;
 mod retry;
 mod timeout;
 
