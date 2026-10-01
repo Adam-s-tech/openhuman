@@ -128,7 +128,7 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
     let resp = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
+        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
         .json(&body)
         .send()
         .await

@@ -105,7 +105,7 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     let url = format!("{}/rpc", base.trim_end_matches('/'));
     let response = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
+        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
         .json(&json!({
             "jsonrpc": "2.0",
             "id": id,
