@@ -2313,6 +2313,7 @@ async fn multi_hop_delegation_chain_inner() {
 
 mod streaming_support {
     use async_trait::async_trait;
+    use openhuman_core::agent::harness::{AgentDefinition, AgentDefinitionRegistry, ToolScope};
     use openhuman_core::agent::OpenHumanSessionHost;
     use openhuman_core::config::{AgentConfig, ContextConfig};
     use openhuman_core::memory::Memory;
@@ -2499,6 +2500,21 @@ mod streaming_support {
         Arc::new(NoMemory)
     }
 
+    /// The session's own hosted root authority. Every session turn resolves its
+    /// agent id against the host catalogue; `agent_definition_name` only stamps
+    /// an id, so a fixture-only name needs a definition behind it (#6377/#6375).
+    /// `Wildcard` keeps the authority from narrowing the belt under test.
+    fn stream_definition() -> Arc<AgentDefinition> {
+        let mut def = AgentDefinitionRegistry::builtins_only()
+            .get("orchestrator")
+            .cloned()
+            .expect("built-in orchestrator definition");
+        def.id = "round17/orchestrator".to_string();
+        def.tools = ToolScope::Wildcard;
+        def.disallowed_tools.clear();
+        Arc::new(def)
+    }
+
     pub fn agent_with_s(
         provider: Arc<dyn ChatModel<()>>,
         tools: Vec<Box<dyn Tool>>,
@@ -2513,6 +2529,7 @@ mod streaming_support {
             .workspace_dir(workspace_path)
             .event_context("stream-accum-session", "stream-accum-channel")
             .agent_definition_name("round17/orchestrator")
+            .agent_definition(stream_definition())
             .config(config)
             .context_config(ContextConfig::default())
             .auto_save(true)
