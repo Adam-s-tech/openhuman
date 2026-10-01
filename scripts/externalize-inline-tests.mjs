@@ -333,6 +333,7 @@ function run(roots, { write, fmt }) {
     let moved = 0;
     for (const rel of trackedRustFiles(root)) {
       const file = path.join(root, rel);
+      if (!fs.existsSync(file)) continue; // deleted in the working tree, not yet staged
       const src = fs.readFileSync(file, "utf8");
       if (!/#\[cfg\([^\n]*\btest\b/.test(src) && !/\]\s*\n\s*(?:pub[^\n]*\s)?mod\s/.test(src)) continue;
       const base = path.basename(file);
