@@ -4,7 +4,6 @@ use super::super::types::OpenHumanSessionHost;
 use crate::agent::prompts::{
     tool_call_format_from_dialect, LearnedContextData, PromptContext, PromptTool,
 };
-use crate::memory::MemoryCategory;
 use crate::tools::agent_policy::render_tool_policy_boundary;
 
 use anyhow::Result;

@@ -8,7 +8,7 @@
 //!
 //! Frame cap: 64 KB. Rate limit: callers are expected to stay ≤ 100 frames/s.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 
 use crate::platform::socket::global_socket_manager;
