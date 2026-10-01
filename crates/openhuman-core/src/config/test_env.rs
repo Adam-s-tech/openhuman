@@ -123,6 +123,13 @@ impl Drop for EnvVarGuard {
     fn drop(&mut self) {
         for (key, old) in self.saved.drain(..).rev() {
             match old {
+                // `OPENHUMAN_WORKSPACE` has no meaningful ambient value under
+                // test: a prior value can only be another test's deliberate
+                // leak (e.g. the detached-task composio bus tests keep their
+                // workspace pointed at a leaked dir). Restoring it would
+                // carry that stale path into unrelated tests, so clear it,
+                // as the per-file guards this replaced did.
+                Some(_) if key == WORKSPACE => std::env::remove_var(key),
                 Some(value) => std::env::set_var(key, value),
                 None => std::env::remove_var(key),
             }
