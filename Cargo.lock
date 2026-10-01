@@ -4061,6 +4061,7 @@ dependencies = [
  "tinyagents-runtime",
  "tinyagents-session",
  "tinybox-core",
+ "tinybox-docker",
  "tinybox-jail",
  "tinybus",
  "tinychannels",
@@ -6492,7 +6493,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-core"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "async-trait",
  "serde",
@@ -6500,8 +6501,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinybox-docker"
+version = "0.1.11"
+dependencies = [
+ "async-trait",
+ "tinybox-core",
+ "tokio",
+]
+
+[[package]]
 name = "tinybox-jail"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "landlock",
  "log",

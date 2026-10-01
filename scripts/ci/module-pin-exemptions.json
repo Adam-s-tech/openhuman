@@ -39,8 +39,8 @@
     {
       "id": "tinybox",
       "submodule": "vendor/tinybox",
-      "expect": "v0.1.9-3-g94357795",
-      "reason": "The submodule pin is v0.1.9 (already ahead of the registry's v0.1.8 record, which this change does not touch) plus only pure-library additions to tinybox-core: the `shell::classify`, `shell::executor` and `shell::env_guard` modules (tinyhumansai/tinybox#16, branch w4-tinybox-classify), which the core links as a Rust path dependency for `security::policy`. No module, contract or bus source changes relative to v0.1.9, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#16 ships in a release and both pins move to it."
+      "expect": "v0.1.10-5-g4dbf9e04",
+      "reason": "The submodule pin is tinybox main (v0.1.10, already ahead of the registry's v0.1.8 record, which this change does not touch) plus only pure-library additions to tinybox-docker: the `OneShot`/`DockerCli` one-shot `docker run --rm` API (tinyhumansai/tinybox#17, branch w5-docker-oneshot), which the core links as a Rust path dependency for `sandbox::docker`. No module, contract or bus source changes relative to v0.1.10, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#17 ships in a release and both pins move to it."
     },
     {
       "id": "tinyvoice",
