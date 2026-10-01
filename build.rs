@@ -1,7 +1,11 @@
 //! Build script for the `openhuman` core crate.
 //!
-//! Its sole job today is to generate the module list for the aggregated
-//! `raw_coverage_all` integration test target. The `tests/raw_coverage/`
+//! Its main job is to generate the module lists for the two aggregated
+//! integration test targets: `raw_coverage_all` (from `tests/raw_coverage/`)
+//! and `in_process_all` (from `tests/in_process/`, the gate-free router and
+//! public-API suites that used to be ~20 targets of their own). The text below
+//! describes the original `raw_coverage_all` case; `in_process_all` works the
+//! same way. The `tests/raw_coverage/`
 //! directory holds ~76 auto-generated `*_raw_coverage_e2e.rs` coverage suites
 //! that were previously ~76 separate `tests/*.rs` integration targets. Each
 //! separate target statically relinks the entire (very large) `openhuman`
