@@ -23,7 +23,6 @@ use tinytools_agent::dialect::{
 };
 
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{ConversationMessage, ToolResultMessage};
 use crate::inference::provider::ChatResponse;
 
 /// Convert the host provider response at its boundary into the canonical
@@ -35,68 +34,23 @@ pub(crate) fn dialect_response_from_provider(response: &ChatResponse) -> Dialect
     }
 }
 
-/// Replay durable OpenHuman conversation records through a canonical dialect
-/// and return the provider's host message shape.
+/// Replay typed conversation entries through a canonical dialect and return
+/// the provider's message rows.
 pub(crate) fn provider_messages_from_conversation(
     dialect: &dyn ToolDialect,
-    history: &[ConversationMessage],
+    history: &[TranscriptEntry],
 ) -> Vec<TranscriptMessage> {
     dialect
-        .to_provider_messages(
-            &history
-                .iter()
-                .map(conversation_to_transcript_entry)
-                .collect::<Vec<_>>(),
-        )
+        .to_provider_messages(history)
         .into_iter()
-        .map(dialect_message_to_chat_message)
+        .map(dialect_message_to_row)
         .collect()
 }
 
-fn conversation_to_transcript_entry(message: &ConversationMessage) -> TranscriptEntry {
-    match message {
-        ConversationMessage::Chat(chat) => TranscriptEntry::Chat(DialectMessage {
-            role: match chat.role.as_str() {
-                "system" => DialectRole::System,
-                "assistant" => DialectRole::Assistant,
-                "tool" => DialectRole::Tool,
-                _ => DialectRole::User,
-            },
-            content: chat.content.clone(),
-            extra_metadata: chat.extra_metadata.clone(),
-        }),
-        ConversationMessage::AssistantToolCalls {
-            text,
-            tool_calls,
-            reasoning_content,
-            extra_metadata,
-        } => TranscriptEntry::AssistantToolCalls {
-            text: text.clone(),
-            tool_calls: tool_calls.clone(),
-            reasoning_content: reasoning_content.clone(),
-            extra_metadata: extra_metadata.clone(),
-        },
-        ConversationMessage::ToolResults(results) => TranscriptEntry::ToolResults(
-            results
-                .iter()
-                .map(|result| ToolResultEntry {
-                    tool_call_id: result.tool_call_id.clone(),
-                    content: result.content.clone(),
-                    trusted_verbatim: false,
-                })
-                .collect(),
-        ),
-    }
-}
-
-fn dialect_message_to_chat_message(message: DialectMessage) -> TranscriptMessage {
-    TranscriptMessage {
-        id: None,
-        role: message.role.as_str().to_string(),
-        content: message.content,
-        extra_metadata: message.extra_metadata,
-        cache_breakpoints: Vec::new(),
-    }
+fn dialect_message_to_row(message: DialectMessage) -> TranscriptMessage {
+    let mut row = TranscriptMessage::new(message.role.as_str(), message.content);
+    row.extra_metadata = message.extra_metadata;
+    row
 }
 
 /// Key under which a thinking model's `reasoning_content` is echoed through
@@ -383,47 +337,6 @@ fn oh_call_to_ta_call(oh: &tinytools_agent::dialect::NativeToolCall) -> TaToolCa
 /// Convert a seed history into the harness `input` transcript.
 pub(crate) fn history_to_messages(history: &[TranscriptMessage]) -> Vec<Message> {
     history.iter().map(chat_message_to_message).collect()
-}
-
-/// Convert a harness [`Message`] back into an openhuman [`TranscriptMessage`].
-///
-/// Assistant tool calls are flattened to their text (the loop already executed
-/// them and appended `Tool` result messages), and a tool message preserves its
-/// correlation id on [`TranscriptMessage::id`] so downstream persistence keeps it.
-///
-/// Returns `None` for [`Message::Custom`]: that variant is a host-side
-/// out-of-band record (compaction marker, label, audit note) that the harness
-/// never sends to a provider, and a [`TranscriptMessage`] history *is* provider
-/// input, so carrying it across would leak it into the next request.
-pub(crate) fn message_to_chat_message(msg: &Message) -> Option<TranscriptMessage> {
-    Some(match msg {
-        Message::System(_) => TranscriptMessage::system(msg.text()),
-        Message::User(_) => TranscriptMessage::user(msg.text()),
-        Message::Assistant(a) => {
-            let mut cm = TranscriptMessage::assistant(msg.text());
-            cm.extra_metadata = reasoning_extra_metadata(&a.content);
-            cm
-        }
-        Message::Tool(t) => {
-            let mut cm = TranscriptMessage::tool(msg.text());
-            cm.id = Some(t.tool_call_id.clone());
-            cm
-        }
-        Message::Custom(c) => {
-            log::trace!("[message_convert] dropping custom message kind={}", c.kind);
-            return None;
-        }
-    })
-}
-
-/// Convert a harness transcript back into openhuman history.
-///
-/// [`Message::Custom`] records are dropped; see [`message_to_chat_message`].
-pub(crate) fn messages_to_history(messages: &[Message]) -> Vec<TranscriptMessage> {
-    messages
-        .iter()
-        .filter_map(message_to_chat_message)
-        .collect()
 }
 
 /// Serialize a user [`Message`]'s content blocks back into a single string for a
