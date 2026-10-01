@@ -14,9 +14,10 @@ use tinytools::{ToolResult, ToolSpec};
 use tinytools_std::detect_tools::DetectToolsTool;
 use tinytools_std::filesystem::{
     ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,
-    GlobTool, GrepTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
-    UpdateMemoryMdTool,
+    GlobTool, GrepTool, ImageInfoTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
+    UpdateMemoryMdTool, WorkspaceStateTool,
 };
+use tinytools_std::network::{CurlTool, PushoverTool};
 
 pub(crate) use super::capability::tool_capability;
 
@@ -465,10 +466,7 @@ pub fn all_tools_with_runtime(
         Box::new(ReadDiffTool::new(action_dir.to_path_buf())),
         Box::new(RunLinterTool::new(action_dir.to_path_buf())),
         Box::new(RunTestsTool::new(action_dir.to_path_buf())),
-        Box::new(PushoverTool::new(
-            security.clone(),
-            action_dir.to_path_buf(),
-        )),
+        Box::new(PushoverTool::new(security.clone(), action_dir.to_path_buf())),
         // Audio-toolkit podcast tools — gated with the `voice` feature (they
         // live in the `audio_toolkit` domain, which is compiled out when voice
         // is disabled).
@@ -710,7 +708,7 @@ pub fn all_tools_with_runtime(
     // + `security` still gate which hosts are reachable; there is no
     // enable flag because every session needs basic HTTP as a baseline
     // capability.
-    tools.push(Box::new(HttpRequestTool::new(
+    tools.push(Box::new(http_request_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         http_config.max_response_size,
@@ -728,7 +726,7 @@ pub fn all_tools_with_runtime(
     // GET-and-read primitive that reuses the same allowed-domains gate
     // as `http_request`. Use this for docs/READMEs; reach for
     // `http_request` only when you need richer HTTP semantics.
-    tools.push(Box::new(WebFetchTool::new(
+    tools.push(Box::new(web_fetch_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         Some(http_config.max_response_size),
