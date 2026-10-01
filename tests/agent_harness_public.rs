@@ -1,72 +1,9 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use openhuman_core::agent::harness::{current_parent, with_parent_context, ParentExecutionContext};
-use openhuman_core::agent::hooks::{
-    fire_hooks, sanitize_tool_output, PostTurnHook, ToolCallRecord, TurnContext,
-};
-use openhuman_core::config::AgentConfig;
-use openhuman_core::memory::{Memory, MemoryCategory, MemoryEntry};
+use openhuman_core::agent::hooks::{fire_hooks, PostTurnHook, ToolCallRecord, TurnContext};
 use parking_lot::Mutex;
 use std::sync::Arc;
 use tokio::sync::Notify;
-
-struct StubMemory;
-
-#[async_trait]
-impl Memory for StubMemory {
-    async fn store(
-        &self,
-        _namespace: &str,
-        _key: &str,
-        _content: &str,
-        _category: MemoryCategory,
-        _session_id: Option<&str>,
-    ) -> Result<()> {
-        Ok(())
-    }
-
-    async fn recall(
-        &self,
-        _query: &str,
-        _limit: usize,
-        _opts: openhuman_core::memory::RecallOpts<'_>,
-    ) -> Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn get(&self, _namespace: &str, _key: &str) -> Result<Option<MemoryEntry>> {
-        Ok(None)
-    }
-
-    async fn list(
-        &self,
-        _namespace: Option<&str>,
-        _category: Option<&MemoryCategory>,
-        _session_id: Option<&str>,
-    ) -> Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn forget(&self, _namespace: &str, _key: &str) -> Result<bool> {
-        Ok(false)
-    }
-
-    async fn namespace_summaries(&self) -> Result<Vec<openhuman_core::memory::NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-
-    async fn count(&self) -> Result<usize> {
-        Ok(0)
-    }
-
-    async fn health_check(&self) -> bool {
-        true
-    }
-
-    fn name(&self) -> &str {
-        "stub"
-    }
-}
 
 fn sample_turn() -> TurnContext {
     TurnContext {
@@ -84,44 +21,6 @@ fn sample_turn() -> TurnContext {
         agent_id: None,
         entrypoint: None,
         iteration_count: 1,
-    }
-}
-
-fn stub_parent_context() -> ParentExecutionContext {
-    ParentExecutionContext {
-        agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["test".to_string(), "task_manager_agent".to_string()]
-            .into_iter()
-            .collect(),
-        turn_model_source: openhuman_core::agent::tinyagents::TurnModelSource::from_model(
-            Arc::new(tinyagents_harness::testkit::ScriptedModel::replies(vec![
-                "ok",
-            ])),
-        ),
-        all_tools: Arc::new(vec![]),
-        all_tool_specs: Arc::new(vec![]),
-        // #6145: empty means "same surface as `all_tool_specs`" — the
-        // catalogue falls back to it, so these stubs keep the behaviour
-        // they had before the parent's visible set became its own field.
-        visible_tool_specs: Arc::new(Vec::new()),
-        visible_tool_names: std::collections::HashSet::new(),
-        subagent_tool_ceiling_names: std::collections::HashSet::new(),
-        model_name: "stub-model".into(),
-        temperature: 0.4,
-        workspace_dir: std::path::PathBuf::from("/tmp"),
-        workspace_descriptor: None,
-        memory: Arc::new(StubMemory),
-        agent_config: AgentConfig::default(),
-        workflows: Arc::new(vec![]),
-        memory_context: Arc::new(Some("ctx".into())),
-        session_id: "test-session".into(),
-        channel: "test-channel".into(),
-        connected_integrations: vec![],
-        tool_call_format: openhuman_core::agent::prompts::ToolCallFormat::PFormat,
-        session_key: "test-session".into(),
-        session_parent_prefix: None,
-        on_progress: None,
-        run_queue: None,
     }
 }
 
