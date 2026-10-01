@@ -153,7 +153,6 @@ path = "../../tests/raw_coverage_all.rs"
 # gate's `tinychannels/email`) and the local inference download service.
 required-features = ["voice", "inference"]
 
-[[test]]
 # ~20 former `tests/*.rs` targets folded into one binary (one link of the
 # `openhuman` rlib instead of ~20): `tests/in_process/*.rs`, globbed by the
 # root `build.rs`. No `required-features` — these suites exercise gate-free
