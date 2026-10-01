@@ -177,28 +177,29 @@ export function externalizeSource(src, stem, taken = new Set()) {
 
   for (const m of skel.matchAll(MOD_OPEN)) {
     const line = lineOf(m.index);
+    // Walk up over the attributes and comments that belong to this `mod`,
+    // joining a multi-line attribute into one logical entry for the cfg check.
     const attrs = [];
+    const logical = [];
     let first = line;
-    let multiLine = false;
     for (let k = line - 1; k >= 0; k -= 1) {
       const text = lines[k].trim();
-      if (text.startsWith("#[")) {
-        if (!text.endsWith("]")) multiLine = true;
+      if (text.startsWith("//")) {
         attrs.unshift(lines[k]);
         first = k;
-      } else if (text.startsWith("//")) {
-        attrs.unshift(lines[k]);
-        first = k;
+      } else if (text.startsWith("#[") || text.endsWith("]")) {
+        let start = k;
+        while (start > 0 && !lines[start].trim().startsWith("#[")) start -= 1;
+        if (!lines[start].trim().startsWith("#[")) break;
+        attrs.unshift(...lines.slice(start, k + 1));
+        logical.unshift(lines.slice(start, k + 1).map((l) => l.trim()).join(" "));
+        first = start;
+        k = start;
       } else {
-        multiLine ||= text.endsWith("]") && text !== "";
         break;
       }
     }
-    const isTest = attrs.some((a) => CFG_TEST_ATTR.test(a.trim()) && !CFG_NOT_TEST.test(a));
-    if (multiLine && !isTest) {
-      skipped.push({ line: line + 1, reason: `\`mod ${m[3]}\` follows a multi-line attribute; check it by hand` });
-      continue;
-    }
+    const isTest = logical.some((a) => CFG_TEST_ATTR.test(a) && !CFG_NOT_TEST.test(a));
     if (!isTest) continue;
     if (m[1] !== "") {
       nested.push({ index: m.index, line: line + 1, name: m[3] });
