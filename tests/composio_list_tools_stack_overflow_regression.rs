@@ -410,6 +410,9 @@ fn zz_sizes() {
     let f = run_subagent(def, "x", SubagentRunOptions::default());
     eprintln!("SIZE run_subagent future {}", std::mem::size_of_val(&f));
     std::mem::forget(f);
+    let c = openhuman_core::config::Config::default();
+    let f3 = c.save();
+    eprintln!("SIZE save future {}", std::mem::size_of_val(&f3));
     let f2 = openhuman_core::config::Config::load_or_init();
     eprintln!("SIZE load_or_init future {}", std::mem::size_of_val(&f2));
 }
