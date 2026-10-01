@@ -540,8 +540,6 @@ fs2 = "0.4"
 # `scheduler-gate` feature. The process-wide wiring stays in
 # `cron::scheduler_gate`.
 tinymemory-gate = { path = "../../vendor/tinymemory/crates/tinymemory-gate" }
-# Multi-chain wallet signing.
-# - bitcoin: P2WPKH PSBT build/sign/broadcast (includes secp256k1).
 
 # The WhatsApp Web provider (and its `whatsapp-rust` / `wacore` / `serde-big-array`
 # stack) now lives in the tinychannels crate; the `whatsapp-web` feature forwards
@@ -701,11 +699,6 @@ tinywallet-x402 = { path = "../../vendor/tinywallet/crates/tinywallet-x402", def
 # backend) and keeps the controllers, keyring and consent.
 tinywallet-web3 = { path = "../../vendor/tinywallet/crates/tinywallet-web3", default-features = false, features = ["tools"], optional = true }
 
-# secp256k1 signing over the digests the wallet module hands back. Pure Rust,
-# and already in the graph beneath `coins-bip32` (which derives the key being
-# used, via tinywallet's `key` gate), so naming it directly costs nothing and
-# is what lets `bitcoin` go.
-k256 = { version = "0.13", default-features = false, features = ["std", "ecdsa"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
 # Windows: tokio-tungstenite uses native-tls (schannel) so wss://
@@ -961,8 +954,7 @@ voice = [
 # compile-time surface, `DomainSet` gates it at runtime.
 # `k256` and `coins-bip39` are gone from this list: nothing in the shipped
 # binary derives a key or signs with secp256k1 any more — the wallet module
-# does both. `k256` remains under [dev-dependencies], where a test fixture
-# checks a signature against a fixed vector; `coins-bip39` is gone entirely
+# does both. `k256` is gone entirely; `coins-bip39` is gone entirely
 # (the fixtures derive through `tinywallet`'s own copy).
 #
 # `curve25519-dalek` is gone from this list: the Solana off-curve check that
@@ -1190,8 +1182,6 @@ crash-reporting = ["dep:sentry"]
 # measured note above before claiming otherwise.
 channels = ["dep:tinychannels", "tinychannels/email", "tinychannels/lark"]
 sandbox-landlock = ["tinybox-jail/landlock"]
-# Retained so the feature name still forwards through embed/cli/tinyhumans/app;
-# the legacy bwrap `Command` wrapper it gated was removed (unused).
 # The WhatsApp Web provider now lives in tinychannels; forward to its feature.
 # It is a refinement INSIDE the `channels` gate — enabling it pulls in the whole
 # channels domain (the provider re-exports live under `channels/providers/`).
