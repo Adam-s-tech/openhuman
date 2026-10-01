@@ -1,9 +1,7 @@
-use std::ffi::OsString;
 
 use serde_json::json;
 
 use super::*;
-use crate::config::test_env::EnvVarGuard;
 use crate::memory::api::types::NamespaceDocumentInput;
 
 fn ensure_memory_client() {

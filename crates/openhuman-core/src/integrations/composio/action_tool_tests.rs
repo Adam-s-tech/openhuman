@@ -1,7 +1,6 @@
 use super::*;
 use crate::agent::harness::with_current_sandbox_mode;
 use crate::config::test_env::EnvVarGuard;
-use std::path::Path;
 
 /// Build a minimal `Arc<Config>` with `composio.mode = "backend"`
 /// (the default). The sandbox gate runs *before* any HTTP call or

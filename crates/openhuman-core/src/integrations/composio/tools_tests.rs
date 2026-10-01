@@ -1,5 +1,4 @@
 use super::*;
-use std::path::Path;
 use std::sync::Arc;
 
 use crate::config::test_env::EnvVarGuard;

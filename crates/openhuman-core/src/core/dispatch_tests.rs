@@ -1,7 +1,6 @@
 use super::*;
 use crate::config::test_env::EnvVarGuard;
 use serde_json::json;
-use std::ffi::OsString;
 
 fn test_state() -> AppState {
     AppState {

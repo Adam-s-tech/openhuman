@@ -1,5 +1,4 @@
 use super::*;
-use crate::config::test_env::EnvVarGuard;
 use serde_json::json;
 
 const ALL_FUNCTIONS: &[&str] = &[

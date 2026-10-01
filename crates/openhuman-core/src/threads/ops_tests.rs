@@ -10,8 +10,6 @@ use crate::memory::conversations as conversations_store;
 use crate::threads::turn_state::{ClearTurnStateRequest, GetTurnStateRequest};
 use crate::threads::ThreadsError;
 use serde_json::{json, Value};
-use std::ffi::OsString;
-use std::path::Path;
 use tinyagents_harness::title::{build_title_prompt, THREAD_TITLE_SYSTEM_PROMPT};
 use tinyagents_session::turn_state::TurnState;
 

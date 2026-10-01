@@ -9,7 +9,6 @@
 //!   so every chain's signer derives a deterministic address.
 //! - Sample addresses corresponding to that mnemonic (one per chain).
 
-use std::path::Path;
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -18,7 +17,6 @@ use tempfile::TempDir;
 use super::ops::{setup, WalletAccount, WalletChain, WalletSetupParams, WalletSetupSource};
 use crate::config::rpc as config_rpc;
 use crate::config::test_env::EnvVarGuard;
-use crate::config::TEST_ENV_LOCK;
 
 pub(crate) static TEST_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
