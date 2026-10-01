@@ -234,8 +234,18 @@ pub async fn remove_rpc(req: RemoveRequest) -> Result<Outcome<RemoveResponse>, S
     if removed {
         // A removed source is never synced again, so the host's record of
         // what it sent goes with it. Its memory stays, as on the local engine.
-        let config = config_rpc::load_config_with_timeout().await?;
-        crate::memory::sources::hosted_sync::forget_state(&config, &req.id);
+        //
+        // The source is already gone from the registry, so a config that
+        // cannot be read now must not turn the removal into an error: the
+        // caller would retry a removal that already happened. The record is
+        // left behind instead — inert, since nothing syncs the source again.
+        match config_rpc::load_config_with_timeout().await {
+            Ok(config) => crate::memory::sources::hosted_sync::forget_state(&config, &req.id),
+            Err(error) => tracing::warn!(
+                id = %req.id,
+                "[memory_sources] remove_rpc: removed, but could not clear the hosted sync record: {error}"
+            ),
+        }
     }
     Ok(Outcome::new(RemoveResponse { removed }, vec![]))
 }

@@ -5366,6 +5366,20 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'Copiando suas memórias…',
   'memoryEngine.dialog.progress': '{copied} de {total} copiadas',
   'memoryEngine.dialog.progressUnknown': '{copied} memórias copiadas até agora',
+  'memoryEngine.dialog.copies':
+    'Copia suas memórias, os títulos e tags dos documentos, seus objetivos, seu perfil aprendido e seu histórico de conversas.',
+  'memoryEngine.dialog.replayContent':
+    'Reenviar também o conteúdo sincronizado para que o novo mecanismo reconstrua seus resumos',
+  'memoryEngine.dialog.replayContentHint': 'Reler o conteúdo consome créditos do OpenHuman.',
+  'memoryEngine.dialog.stepProgress': 'Copiando {step}… {count} até agora',
+  'memoryEngine.step.records': 'memórias',
+  'memoryEngine.step.documents': 'títulos e tags dos documentos',
+  'memoryEngine.step.goals': 'objetivos',
+  'memoryEngine.step.profile': 'perfil aprendido',
+  'memoryEngine.step.episodic': 'histórico de conversas',
+  'memoryEngine.step.content': 'conteúdo sincronizado',
+  'memoryEngine.notCopied':
+    'Troca concluída. O novo mecanismo não oferece suporte a estes itens, então eles não foram copiados: {items}.',
   'memoryEngine.dialog.lacking':
     'O novo mecanismo não oferece suporte a estes recursos do seu mecanismo atual:',
   'memoryEngine.error.insufficientCredits':

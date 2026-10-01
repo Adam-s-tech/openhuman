@@ -5183,6 +5183,19 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'جارٍ نسخ ذكرياتك…',
   'memoryEngine.dialog.progress': 'تم نسخ {copied} من {total}',
   'memoryEngine.dialog.progressUnknown': 'تم نسخ {copied} ذكرى حتى الآن',
+  'memoryEngine.dialog.copies':
+    'ينسخ ذكرياتك وعناوين المستندات ووسومها وأهدافك وملفك الشخصي المُتعلَّم وسجل محادثاتك.',
+  'memoryEngine.dialog.replayContent':
+    'أعد أيضًا إرسال المحتوى المُزامَن ليعيد المحرك الجديد بناء ملخصاته',
+  'memoryEngine.dialog.replayContentHint': 'إعادة قراءة المحتوى تستهلك رصيد OpenHuman.',
+  'memoryEngine.dialog.stepProgress': 'جارٍ نسخ {step}… {count} حتى الآن',
+  'memoryEngine.step.records': 'الذكريات',
+  'memoryEngine.step.documents': 'عناوين المستندات ووسومها',
+  'memoryEngine.step.goals': 'الأهداف',
+  'memoryEngine.step.profile': 'الملف الشخصي المُتعلَّم',
+  'memoryEngine.step.episodic': 'سجل المحادثات',
+  'memoryEngine.step.content': 'المحتوى المُزامَن',
+  'memoryEngine.notCopied': 'تم التبديل. لا يدعم المحرك الجديد ما يلي، لذلك لم يُنسخ: {items}.',
   'memoryEngine.dialog.lacking': 'لا يدعم المحرك الجديد هذه الميزات الموجودة في محركك الحالي:',
   'memoryEngine.error.insufficientCredits':
     'نفد رصيد OpenHuman لديك. أضف رصيدًا لاستخدام هذا المحرك.',

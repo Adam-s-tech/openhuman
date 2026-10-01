@@ -80,6 +80,18 @@ pub const BUDGET_CHANNEL: usize = 1;
 /// Cross-class overflow pool for Provisional rows that didn't make a class budget.
 pub const BUDGET_OVERFLOW: usize = 5;
 
+/// How far a facet's confidence or stability may drift before a rebuild
+/// writes the row again.
+///
+/// Every rebuild recomputes every facet, and decay alone moves its scores a
+/// little each time. Writing each one back cost a write per facet per cycle —
+/// several billed requests each on hosted memory — to record a change no
+/// reader would act on. Skipping it loses nothing: decay is exponential in the
+/// time since `last_seen_at`, so the next cycle, computing from the older row,
+/// arrives at the score a write-every-cycle would have reached. The tolerance
+/// only bounds how stale the stored scores may read in between.
+pub const REWRITE_TOLERANCE: f64 = 0.01;
+
 /// Per-class top-N budget for Active rows.
 pub fn class_budget(class: FacetClass) -> usize {
     match class {
@@ -359,6 +371,7 @@ impl StabilityDetector {
         let mut kept = 0usize;
         let mut evicted = 0usize;
 
+        let mut rewritten = 0usize;
         for cf in &all_final {
             if cf.facet.state == FacetState::Dropped {
                 evicted += 1;
@@ -367,8 +380,17 @@ impl StabilityDetector {
             } else {
                 kept += 1;
             }
+            let held = existing_by_key.get(&cf.facet.key);
+            if held.is_some_and(|held| !worth_rewriting(held, &cf.facet)) {
+                continue;
+            }
+            rewritten += 1;
             self.cache.upsert(&cf.facet).await?;
         }
+        tracing::debug!(
+            "[learning::stability] wrote {rewritten} of {} facets; the rest moved less than the rewrite tolerance",
+            all_final.len()
+        );
 
         // (Existing keys not in the rebuild output are legacy/non-class rows — skip.)
 
@@ -447,6 +469,25 @@ fn select_winning_value(
         .into_iter()
         .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
         .map(|(v, _)| v.to_string())
+}
+
+/// Whether a recomputed facet says something its stored row does not: any
+/// field other than the two scores, or a score that moved by at least
+/// [`REWRITE_TOLERANCE`]. `last_seen_at` is left out on purpose — see the
+/// constant's docs.
+pub(crate) fn worth_rewriting(held: &ProfileFacet, computed: &ProfileFacet) -> bool {
+    held.value != computed.value
+        || held.state != computed.state
+        || held.user_state != computed.user_state
+        || held.facet_type != computed.facet_type
+        || held.evidence_count != computed.evidence_count
+        || held.evidence_refs != computed.evidence_refs
+        || held.source_segment_ids != computed.source_segment_ids
+        || held.class != computed.class
+        || held.cue_families != computed.cue_families
+        || held.first_seen_at != computed.first_seen_at
+        || (held.confidence - computed.confidence).abs() >= REWRITE_TOLERANCE
+        || (held.stability - computed.stability).abs() >= REWRITE_TOLERANCE
 }
 
 /// Aggregate stability contribution from all candidates (not per-value).

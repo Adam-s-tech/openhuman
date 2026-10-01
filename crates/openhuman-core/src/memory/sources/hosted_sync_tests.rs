@@ -15,12 +15,17 @@ use crate::memory::api::provider::types::IngestOutcome;
 type Batch = (String, String, Vec<SinkItem>, MemoryTaint);
 
 /// A sink that records every batch and writes each item it is handed, or
-/// refuses the call numbered `refuse_call` (1-based).
+/// refuses the call numbered `refuse_call` (1-based). It answers each item's
+/// id as `stored:<item id>` unless `no_ids` is set, and records the chunk ids
+/// it is asked to forget, refusing them while `refuse_forget` is set.
 #[derive(Default)]
 struct RecordingSink {
     batches: Mutex<Vec<Batch>>,
     calls: AtomicUsize,
     refuse_call: Option<usize>,
+    no_ids: bool,
+    refuse_forget: std::sync::atomic::AtomicBool,
+    forgotten: Mutex<Vec<String>>,
 }
 
 impl RecordingSink {
@@ -61,6 +66,14 @@ impl MemorySourceSink for RecordingSink {
             return Err(MemoryError::Unavailable("memory API unavailable".into()));
         }
         let written = items.len() as u32;
+        let ids = if self.no_ids {
+            Vec::new()
+        } else {
+            items
+                .iter()
+                .map(|item| format!("stored:{}", item.item_id))
+                .collect()
+        };
         self.batches.lock().expect("batches").push((
             source_id.to_string(),
             source_kind.to_string(),
@@ -69,12 +82,33 @@ impl MemorySourceSink for RecordingSink {
         ));
         Ok(IngestOutcome {
             written,
+            ids,
             ..IngestOutcome::default()
         })
     }
 
     async fn forget_source(&self, _source_id: &str) -> Result<u64, MemoryError> {
         Ok(0)
+    }
+
+    async fn forget_matching(
+        &self,
+        selector: &ForgetSelector,
+    ) -> Result<crate::memory::api::provider::types::ForgetOutcome, MemoryError> {
+        if self.refuse_forget.load(Ordering::SeqCst) {
+            return Err(MemoryError::Unavailable("memory API unavailable".into()));
+        }
+        let ForgetSelector::Chunk { chunk_id } = selector else {
+            return Err(MemoryError::Invalid("only chunk forgets expected".into()));
+        };
+        self.forgotten
+            .lock()
+            .expect("forgotten")
+            .push(chunk_id.clone());
+        Ok(crate::memory::api::provider::types::ForgetOutcome {
+            chunks_removed: 1,
+            trees_cleaned: 0,
+        })
     }
 }
 
@@ -359,4 +393,94 @@ async fn a_missing_folder_or_unserved_kind_fails_the_run() {
         "{refused:?}"
     );
     assert!(sink.items().is_empty());
+}
+
+// ── Removed items ────────────────────────────────────────────────────────────
+
+fn forgotten(sink: &RecordingSink) -> Vec<String> {
+    sink.forgotten.lock().expect("forgotten").clone()
+}
+
+/// A file deleted from the folder is forgotten on the next sync, by the id the
+/// sink answered for it, and only once.
+#[tokio::test]
+async fn a_deleted_file_is_forgotten_by_the_id_the_sink_gave_it() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let folder = folder_of(dir.path(), &["a", "b"], 40);
+    let entry = folder_entry(&folder);
+    let config = config(dir.path());
+    let sink = RecordingSink::default();
+    run(&config, &entry, &sink).await.expect("first");
+
+    std::fs::remove_file(folder.join("b.md")).expect("delete b");
+    let outcome = run(&config, &entry, &sink).await.expect("after the delete");
+    assert_eq!(forgotten(&sink), ["stored:b.md"]);
+    assert!(
+        outcome
+            .note
+            .as_deref()
+            .unwrap_or_default()
+            .contains("1 removed item(s) forgotten"),
+        "{:?}",
+        outcome.note
+    );
+
+    run(&config, &entry, &sink).await.expect("again");
+    assert_eq!(
+        forgotten(&sink).len(),
+        1,
+        "a forgotten item is not forgotten twice"
+    );
+}
+
+/// A forget the sink refuses is tried again on the next run, and one the sink
+/// gave no id for is dropped from the record without one.
+#[tokio::test]
+async fn a_refused_forget_is_retried_and_an_unknown_id_is_dropped() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let folder = folder_of(dir.path(), &["a", "b"], 40);
+    let entry = folder_entry(&folder);
+    let cfg = config(dir.path());
+    let sink = RecordingSink::default();
+    run(&cfg, &entry, &sink).await.expect("first");
+
+    std::fs::remove_file(folder.join("b.md")).expect("delete b");
+    sink.refuse_forget.store(true, Ordering::SeqCst);
+    run(&cfg, &entry, &sink).await.expect("refused");
+    assert!(forgotten(&sink).is_empty());
+    sink.refuse_forget.store(false, Ordering::SeqCst);
+    run(&cfg, &entry, &sink).await.expect("retried");
+    assert_eq!(forgotten(&sink), ["stored:b.md"]);
+
+    let blind_dir = tempfile::tempdir().expect("tempdir");
+    let blind_folder = folder_of(blind_dir.path(), &["a", "b"], 40);
+    let blind_entry = folder_entry(&blind_folder);
+    let blind_config = config(blind_dir.path());
+    let blind = RecordingSink {
+        no_ids: true,
+        ..RecordingSink::default()
+    };
+    run(&blind_config, &blind_entry, &blind)
+        .await
+        .expect("first");
+    std::fs::remove_file(blind_folder.join("b.md")).expect("delete b");
+    run(&blind_config, &blind_entry, &blind)
+        .await
+        .expect("second");
+    assert!(forgotten(&blind).is_empty(), "no id, nothing to forget by");
+}
+
+/// An empty walk is far likelier a folder that could not be read than one
+/// whose every file was deleted, so it forgets nothing.
+#[tokio::test]
+async fn an_empty_listing_forgets_nothing() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let folder = folder_of(dir.path(), &["a"], 40);
+    let entry = folder_entry(&folder);
+    let config = config(dir.path());
+    let sink = RecordingSink::default();
+    run(&config, &entry, &sink).await.expect("first");
+    std::fs::remove_file(folder.join("a.md")).expect("delete a");
+    run(&config, &entry, &sink).await.expect("empty");
+    assert!(forgotten(&sink).is_empty());
 }

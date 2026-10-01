@@ -390,3 +390,126 @@ fn merge_evidence_refs_is_idempotent_across_rebuilds() {
     assert_eq!(first, second);
     assert_eq!(first.len(), 2);
 }
+
+// ── rewrite tolerance ───────────────────────────────────────────────────────
+
+async fn seeded_detector(now: f64) -> StabilityDetector {
+    let detector = make_detector();
+    for i in 0..5 {
+        detector.buffer.push(make_candidate(
+            FacetClass::Style,
+            "verbosity",
+            "terse",
+            CueFamily::Explicit,
+            now - i as f64 * 10.0,
+        ));
+    }
+    detector.rebuild(now).await.unwrap();
+    detector
+}
+
+async fn verbosity(detector: &StabilityDetector) -> ProfileFacet {
+    detector
+        .cache
+        .list_all()
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|f| f.key == "style/verbosity")
+        .expect("the facet exists")
+}
+
+/// Once a facet has settled, a cycle that brings no evidence moves its scores
+/// by a hair, and the row is not written again for it.
+///
+/// The first cycle after the evidence does change it — that cycle's explicit
+/// cues are gone, so its stability and state move — and is written.
+#[tokio::test]
+async fn a_rebuild_with_nothing_new_leaves_a_settled_row_alone() {
+    let now = 1_000_000.0;
+    let half_hour = 30.0 * 60.0;
+    let detector = seeded_detector(now).await;
+    detector.rebuild(now + half_hour).await.unwrap();
+    let settled = verbosity(&detector).await;
+    assert_eq!(
+        settled.last_seen_at,
+        now + half_hour,
+        "the first cycle writes"
+    );
+
+    let outcome = detector.rebuild(now + 2.0 * half_hour).await.unwrap();
+    assert_eq!(outcome.kept, 1, "the facet is still kept");
+    assert_eq!(
+        verbosity(&detector).await,
+        settled,
+        "nothing moved enough to be written"
+    );
+}
+
+/// Skipping writes does not change where decay lands: rebuilding every half
+/// hour for a week reaches the score one rebuild at the end of the week does,
+/// within the tolerance.
+#[tokio::test]
+async fn skipped_writes_decay_to_the_same_score() {
+    let start = 1_000_000.0;
+    let week = 7.0 * 86400.0;
+    let stepped = seeded_detector(start).await;
+    let mut at = start;
+    while at < start + week {
+        at += 30.0 * 60.0;
+        stepped.rebuild(at).await.unwrap();
+    }
+    let once = seeded_detector(start).await;
+    once.rebuild(at).await.unwrap();
+
+    let (stepped, once) = (verbosity(&stepped).await, verbosity(&once).await);
+    assert!(
+        (stepped.confidence - once.confidence).abs() < REWRITE_TOLERANCE * 2.0,
+        "stepped={} once={}",
+        stepped.confidence,
+        once.confidence
+    );
+}
+
+#[test]
+fn a_row_is_rewritten_for_what_a_reader_would_see() {
+    let held = ProfileFacet {
+        facet_id: "f".into(),
+        facet_type: FacetType::Preference,
+        key: "style/verbosity".into(),
+        value: "terse".into(),
+        confidence: 0.8,
+        evidence_count: 5,
+        source_segment_ids: None,
+        first_seen_at: 1.0,
+        last_seen_at: 2.0,
+        state: FacetState::Active,
+        stability: 1.6,
+        user_state: UserState::Auto,
+        evidence_refs: Vec::new(),
+        class: Some("style".into()),
+        cue_families: None,
+    };
+    let drifted = ProfileFacet {
+        confidence: 0.8 - REWRITE_TOLERANCE / 2.0,
+        stability: 1.6 - REWRITE_TOLERANCE / 2.0,
+        last_seen_at: 99.0,
+        ..held.clone()
+    };
+    assert!(!worth_rewriting(&held, &drifted), "a hair of decay");
+    let decayed = ProfileFacet {
+        confidence: 0.8 - REWRITE_TOLERANCE,
+        ..held.clone()
+    };
+    assert!(worth_rewriting(&held, &decayed));
+    let demoted = ProfileFacet {
+        state: FacetState::Provisional,
+        ..held.clone()
+    };
+    assert!(worth_rewriting(&held, &demoted));
+    let reinforced = ProfileFacet {
+        evidence_count: 6,
+        ..held
+    };
+    assert!(worth_rewriting(&drifted, &reinforced));
+}

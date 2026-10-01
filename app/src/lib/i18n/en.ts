@@ -5590,6 +5590,20 @@ const en: TranslationMap = {
   'memoryEngine.dialog.copying': 'Copying your memories…',
   'memoryEngine.dialog.progress': 'Copied {copied} of {total}',
   'memoryEngine.dialog.progressUnknown': 'Copied {copied} memories so far',
+  'memoryEngine.dialog.copies':
+    'Copies your memories, document titles and tags, goals, learned profile and conversation history.',
+  'memoryEngine.dialog.replayContent':
+    'Also re-send synced content so the new engine rebuilds its summaries',
+  'memoryEngine.dialog.replayContentHint': 'Re-reading content uses OpenHuman credits.',
+  'memoryEngine.dialog.stepProgress': 'Copying {step}… {count} so far',
+  'memoryEngine.step.records': 'memories',
+  'memoryEngine.step.documents': 'document titles and tags',
+  'memoryEngine.step.goals': 'goals',
+  'memoryEngine.step.profile': 'learned profile',
+  'memoryEngine.step.episodic': 'conversation history',
+  'memoryEngine.step.content': 'synced content',
+  'memoryEngine.notCopied':
+    'Switched. The new engine does not support these, so they were not copied: {items}.',
   'memoryEngine.dialog.lacking':
     'The new engine does not support these features of your current engine:',
   'memoryEngine.error.insufficientCredits':

@@ -27,13 +27,19 @@
 //! work: a missing or unreadable one is a full pass, which the sink makes
 //! cheap by skipping what it already holds unchanged.
 //!
-//! # What it does not do
+//! # Removed items
 //!
-//! An item removed from the source stays in memory: the sink forgets a whole
-//! source, never one item by its id. Removing a source from the registry stops
-//! its syncs and keeps what it synced, as on the local engine; deleting the
-//! source's memory (`memory_tree.delete_source`) forgets all of it and clears
-//! this record, so a later sync starts over.
+//! A file deleted from a synced folder is forgotten on the folder's next sync:
+//! the record keeps the id the sink answered for each item, and an item the
+//! walk no longer finds is forgotten by that id (`ForgetSelector::Chunk`). Only
+//! a folder's listing is the whole source; an item missing from a feed or a
+//! repository listing may simply be past its window, so those stay. An empty
+//! listing is never read as "everything was deleted".
+//!
+//! Removing a source from the registry stops its syncs and keeps what it
+//! synced, as on the local engine; deleting the source's memory
+//! (`memory_tree.delete_source`) forgets all of it and clears this record, so a
+//! later sync starts over.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -47,6 +53,7 @@ use crate::config::Config;
 use crate::memory::api::error::MemoryError;
 use crate::memory::api::provider::sync::SyncRunOutcome;
 use crate::memory::api::provider::types::SourceItem as SinkItem;
+use crate::memory::api::provider::types::{ForgetSelector, IngestOutcome};
 use crate::memory::api::provider::{MemoryProvider, MemorySourceSink};
 use crate::memory::api::types::MemoryTaint;
 use crate::memory::sources::readers::{folder, github, rss, web_page, SourceReader};
@@ -127,6 +134,17 @@ struct Seen {
     at: Option<i64>,
     /// A digest of what was sent: its title, text and URL.
     digest: String,
+    /// The id the sink answered for the item, when its answer lined up with
+    /// the batch: what forgets the item once its source no longer lists it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    stored_as: Option<String>,
+}
+
+/// Whether a source's listing is the whole source, so an item missing from it
+/// was removed rather than merely not fetched. A folder walk lists every file;
+/// a feed or a repository listing is a window onto something larger.
+fn removes_vanished(kind: &SourceKind) -> bool {
+    *kind == SourceKind::Folder
 }
 
 /// What a source's earlier runs handed the sink, by item id.
@@ -250,9 +268,15 @@ impl Progress {
         if self.batch.is_empty() {
             return Ok(());
         }
-        let written = send(entry, sink, std::mem::take(&mut self.batch)).await?;
-        self.outcome.records_ingested += written;
-        for (id, seen) in self.seen.drain(..) {
+        let accepted = send(entry, sink, std::mem::take(&mut self.batch)).await?;
+        self.outcome.records_ingested += accepted.written;
+        // The sink answers one id per item, in order, when it can; a short or
+        // long answer cannot be matched to items and is not guessed at.
+        let aligned = accepted.ids.len() == self.seen.len();
+        for (index, (id, mut seen)) in self.seen.drain(..).enumerate() {
+            if aligned {
+                seen.stored_as = accepted.ids.get(index).cloned();
+            }
             self.state.items.insert(id, seen);
         }
         save_state(&self.path, &self.state);
@@ -291,8 +315,22 @@ pub(in crate::memory::sources) async fn run(
     let items = chosen(entry, listed, chrono::Utc::now().timestamp_millis());
     let path = state_path(config, &entry.id);
     let mut state = load_state(&path);
-    // An item the source no longer lists has nothing left to compare.
+    // An item the source no longer lists has nothing left to compare. When
+    // the listing is the whole source, it was removed, and its memory goes
+    // too. An empty listing is not taken as "every file was deleted": that is
+    // far likelier a folder that could not be walked.
+    let vanished: Vec<(String, Seen)> = if removes_vanished(&entry.kind) && !listed_ids.is_empty() {
+        state
+            .items
+            .iter()
+            .filter(|(id, _)| !listed_ids.contains(*id))
+            .map(|(id, seen)| (id.clone(), seen.clone()))
+            .collect()
+    } else {
+        Vec::new()
+    };
     state.items.retain(|id, _| listed_ids.contains(id));
+    let forgotten = forget_vanished(entry, sink, vanished, &mut state).await;
     tracing::debug!(
         source_id = %entry.id,
         kind = entry.kind.as_str(),
@@ -355,6 +393,13 @@ pub(in crate::memory::sources) async fn run(
         let seen = Seen {
             at: item.updated_at_ms,
             digest: digest_of(&title, &content, url.as_deref()),
+            // Kept until the sink answers for the new text, so an item that is
+            // not sent again can still be forgotten.
+            stored_as: progress
+                .state
+                .items
+                .get(&item.id)
+                .and_then(|held| held.stored_as.clone()),
         };
         let same_text = progress
             .state
@@ -398,14 +443,22 @@ pub(in crate::memory::sources) async fn run(
     save_state(&progress.path, &progress.state);
     let mut outcome = progress.outcome;
     outcome.more_pending = more_pending;
+    let mut notes = Vec::new();
     if unreadable > 0 {
-        outcome.note = Some(format!("{unreadable} item(s) could not be read"));
+        notes.push(format!("{unreadable} item(s) could not be read"));
+    }
+    if forgotten > 0 {
+        notes.push(format!("{forgotten} removed item(s) forgotten"));
+    }
+    if !notes.is_empty() {
+        outcome.note = Some(notes.join("; "));
     }
     tracing::debug!(
         source_id = %entry.id,
         written = outcome.records_ingested,
         unchanged,
         unreadable,
+        forgotten,
         more_pending,
         "[memory_sources:hosted_sync] run finished"
     );
@@ -421,16 +474,60 @@ fn failed(progress: Progress, error: MemoryError, more_pending: bool) -> Partial
     PartialFailure { error, done }
 }
 
-/// One batch into the sink; answers how many items it wrote.
+/// One batch into the sink.
 async fn send(
     entry: &MemorySourceEntry,
     sink: &dyn MemorySourceSink,
     batch: Vec<SinkItem>,
-) -> Result<u32, MemoryError> {
-    let accepted = sink
-        .accept_source_items(&entry.id, entry.kind.as_str(), batch, taint_of(&entry.kind))
-        .await?;
-    Ok(accepted.written)
+) -> Result<IngestOutcome, MemoryError> {
+    sink.accept_source_items(&entry.id, entry.kind.as_str(), batch, taint_of(&entry.kind))
+        .await
+}
+
+/// Forgets each vanished item the sink answered an id for, and answers how
+/// many the sink removed. One it could not forget goes back into `state`, so
+/// the next run, finding it still unlisted, tries again; one with no id is
+/// beyond reach and is only dropped from the record.
+async fn forget_vanished(
+    entry: &MemorySourceEntry,
+    sink: &dyn MemorySourceSink,
+    vanished: Vec<(String, Seen)>,
+    state: &mut SyncState,
+) -> u64 {
+    let mut forgotten = 0u64;
+    for (item_id, seen) in vanished {
+        let Some(stored_as) = seen.stored_as.clone() else {
+            tracing::debug!(
+                source_id = %entry.id,
+                item_id = %item_id,
+                "[memory_sources:hosted_sync] removed item has no stored id to forget by"
+            );
+            continue;
+        };
+        let selector = ForgetSelector::Chunk {
+            chunk_id: stored_as,
+        };
+        match sink.forget_matching(&selector).await {
+            Ok(outcome) => {
+                forgotten += outcome.chunks_removed;
+                tracing::debug!(
+                    source_id = %entry.id,
+                    item_id = %item_id,
+                    removed = outcome.chunks_removed,
+                    "[memory_sources:hosted_sync] removed item forgotten"
+                );
+            }
+            Err(error) => {
+                tracing::warn!(
+                    source_id = %entry.id,
+                    item_id = %item_id,
+                    "[memory_sources:hosted_sync] could not forget a removed item; will retry: {error}"
+                );
+                state.items.insert(item_id, seen);
+            }
+        }
+    }
+    forgotten
 }
 
 #[cfg(test)]

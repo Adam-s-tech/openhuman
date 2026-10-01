@@ -84,3 +84,78 @@ fn the_recap_deadline_leaves_room_for_the_drivers_retry() {
          default, which is the bound it exists to replace"
     );
 }
+
+// ── Host-side fold, for a driver with no model ──────────────────────────────
+
+fn turn(role: &str, content: &str) -> EpisodicTurn {
+    EpisodicTurn {
+        id: None,
+        session_id: "s1".into(),
+        timestamp: 1.0,
+        role: role.into(),
+        content: content.into(),
+        lesson: None,
+        tool_calls_json: None,
+        cost_microdollars: 0,
+    }
+}
+
+/// The transcript keeps the newest turns that fit, in order, and skips blank
+/// ones.
+#[test]
+fn a_transcript_keeps_the_newest_turns_that_fit() {
+    let turns = [
+        turn("user", "first question"),
+        turn("assistant", "   "),
+        turn("user", "second question"),
+        turn("assistant", "the answer"),
+    ];
+    let refs: Vec<&EpisodicTurn> = turns.iter().collect();
+    assert_eq!(
+        transcript(&refs, 10_000),
+        "user: first question\n\nuser: second question\n\nassistant: the answer"
+    );
+    // Two paragraphs of 21 characters, each with its separator, need 46.
+    let tight = transcript(&refs, 46);
+    assert_eq!(tight, "user: second question\n\nassistant: the answer");
+    assert_eq!(
+        transcript(&refs[..1], 5),
+        "user: first question",
+        "one turn always fits, whatever the budget"
+    );
+}
+
+struct ScriptedRecap;
+
+#[async_trait::async_trait]
+impl tinyinference_llm::model::ChatModel<()> for ScriptedRecap {
+    async fn invoke(
+        &self,
+        _state: &(),
+        request: tinyinference_llm::model::ModelRequest,
+    ) -> tinyinference_llm::Result<tinyinference_llm::model::ModelResponse> {
+        let seen = format!("{request:?}");
+        assert!(seen.contains("user: book the flights"), "{seen}");
+        Ok(tinyinference_llm::model::ModelResponse::assistant(
+            "  They booked the flights.  ",
+        ))
+    }
+}
+
+/// When the driver has no model, the host's own folds the segment, and the
+/// recap comes back trimmed.
+#[tokio::test]
+async fn the_host_model_folds_a_segment_the_driver_cannot() {
+    let _model = crate::inference::provider::factory::test_provider_override::install_model(
+        std::sync::Arc::new(ScriptedRecap),
+    );
+    let config = crate::config::Config::default();
+    let turns = [turn("user", "book the flights"), turn("assistant", "done")];
+    let refs: Vec<&EpisodicTurn> = turns.iter().collect();
+    let recap = fold_with_host_model(&config, &refs)
+        .await
+        .expect("the host folds");
+    assert_eq!(recap, "They booked the flights.");
+    let none = fold_with_host_model(&config, &[]).await.expect("no turns");
+    assert!(none.is_empty(), "no turns, no model call, no recap");
+}
