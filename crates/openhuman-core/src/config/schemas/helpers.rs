@@ -285,7 +285,6 @@ pub fn optional_json(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-#[allow(dead_code)]
 pub fn required_string(name: &'static str, comment: &'static str) -> FieldSchema {
     FieldSchema {
         name,

@@ -56,17 +56,6 @@ fn sanitize_basename_replaces_windows_illegal_characters() {
     assert_eq!(sanitize_basename("safe-name.md"), "safe-name.md");
 }
 
-#[test]
-fn parse_source_kind_str_accepts_known_values_only() {
-    assert_eq!(parse_source_kind_str("chat"), Some(SourceKind::Chat));
-    assert_eq!(parse_source_kind_str("email"), Some(SourceKind::Email));
-    assert_eq!(
-        parse_source_kind_str("document"),
-        Some(SourceKind::Document)
-    );
-    assert_eq!(parse_source_kind_str("unknown"), None);
-}
-
 #[tokio::test]
 async fn obsidian_status_registered_when_override_config_lists_content_root() {
     let (_tmp, cfg) = test_config();

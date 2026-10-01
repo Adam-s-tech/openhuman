@@ -41,11 +41,6 @@ pub use types::{
 };
 pub use vault::{obsidian_vault_status_rpc, vault_health_check_rpc};
 
-#[allow(dead_code)]
-pub(crate) fn parse_source_kind_str(s: &str) -> Option<tinymemory_api::chunks::SourceKind> {
-    tinymemory_api::chunks::SourceKind::parse(s).ok()
-}
-
 // Re-exports for `read_rpc_tests.rs`, which drives this module with
 // `use super::*;`.
 //
