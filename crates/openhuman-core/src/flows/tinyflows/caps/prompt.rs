@@ -45,8 +45,8 @@ pub(crate) fn usage_to_json(usage: &Option<BilledUsage>) -> Value {
         Some(u) => json!({
             "input_tokens": u.input_tokens,
             "output_tokens": u.output_tokens,
-            "context_window": u.context_window,
-            "cached_input_tokens": u.cached_input_tokens,
+            "context_window": u.context_window(),
+            "cached_input_tokens": u.cached_input_tokens(),
             "cache_creation_tokens": u.cache_creation_tokens,
             "reasoning_tokens": u.reasoning_tokens,
             "charged_amount_usd": u.charged_amount_usd,

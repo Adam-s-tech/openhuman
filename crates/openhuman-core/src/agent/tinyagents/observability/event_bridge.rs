@@ -378,7 +378,7 @@ impl OpenhumanEventBridge {
         // back to the catalogue window and the crate token counts when absent.
         let context_window = carried
             .as_ref()
-            .map(|u| u.context_window)
+            .map(|u| u.context_window())
             .filter(|w| *w > 0)
             .unwrap_or_else(|| {
                 crate::platform::cost::catalog::lookup(&self.model)

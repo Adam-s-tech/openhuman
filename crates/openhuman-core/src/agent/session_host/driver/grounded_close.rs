@@ -39,7 +39,7 @@ impl RepairUsage {
         if let Some(usage) = usage {
             self.input_tokens += usage.input_tokens;
             self.output_tokens += usage.output_tokens;
-            self.cached_input_tokens += usage.cached_input_tokens;
+            self.cached_input_tokens += usage.cached_input_tokens();
             self.charged_amount_usd += usage.charged_amount_usd;
         }
     }

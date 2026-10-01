@@ -174,7 +174,7 @@ pub(super) fn build_token_usage(model: &str, usage: &BilledUsage) -> Option<Toke
         input_tokens: usage.input_tokens,
         output_tokens: usage.output_tokens,
         total_tokens,
-        cached_input_tokens: usage.cached_input_tokens.min(usage.input_tokens),
+        cached_input_tokens: usage.cached_input_tokens().min(usage.input_tokens),
         cache_creation_tokens: usage.cache_creation_tokens,
         reasoning_tokens: usage.reasoning_tokens,
         cost_usd: if usage.charged_amount_usd.is_finite() && usage.charged_amount_usd >= 0.0 {

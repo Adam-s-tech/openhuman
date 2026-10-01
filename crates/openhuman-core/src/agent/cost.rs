@@ -103,7 +103,7 @@ pub(crate) fn lookup_pricing(model: &str) -> ModelPricing {
 /// usage. Used as a fallback when `charged_amount_usd` is missing.
 pub fn estimate_call_cost_usd(model: &str, usage: &BilledUsage) -> f64 {
     let pricing = lookup_pricing(model);
-    let cached = usage.cached_input_tokens;
+    let cached = usage.cached_input_tokens();
     let standard_input = usage.input_tokens.saturating_sub(cached);
     let m = 1_000_000.0_f64;
     (standard_input as f64) / m * pricing.input_per_mtok_usd
@@ -151,7 +151,7 @@ impl TurnCost {
         self.output_tokens = self.output_tokens.saturating_add(usage.output_tokens);
         self.cached_input_tokens = self
             .cached_input_tokens
-            .saturating_add(usage.cached_input_tokens);
+            .saturating_add(usage.cached_input_tokens());
         if usage.charged_amount_usd > 0.0 {
             self.charged_usd += usage.charged_amount_usd;
         } else {

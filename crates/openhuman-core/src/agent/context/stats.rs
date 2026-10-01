@@ -39,8 +39,8 @@ impl ContextStatsState {
     pub(crate) fn record_usage(&mut self, usage: &BilledUsage) {
         self.last_input_tokens = usage.input_tokens;
         self.last_output_tokens = usage.output_tokens;
-        if usage.context_window > 0 {
-            self.context_window = usage.context_window;
+        if usage.context_window() > 0 {
+            self.context_window = usage.context_window();
         }
         let total = usage.input_tokens + usage.output_tokens;
         if let Ok(mut sm) = self.session_memory.lock() {
