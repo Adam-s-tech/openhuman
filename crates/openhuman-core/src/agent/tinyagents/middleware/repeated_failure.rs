@@ -234,6 +234,46 @@ pub(super) fn recovery_policy(
     error: &str,
     body_level_failure: bool,
 ) -> Option<(&'static str, usize)> {
+    let (class, budget) = classified_recovery_policy(tool, error, body_level_failure)?;
+    // A path the model mistyped is a wrong call it can correct, not a missing
+    // program: the classifier files `No such file or directory (os error 2)`
+    // under `MissingApp`, which is right for a shell command and fatal for
+    // `file_read`. One bad relative path ended a whole turn after two calls.
+    if class == "unsupported"
+        && is_path_tool(tool)
+        && error
+            .to_ascii_lowercase()
+            .contains("no such file or directory")
+    {
+        return Some(("not_found", 1));
+    }
+    // A site refusing one URL (401/403/forbidden) is that site's answer, not a
+    // broken credential the run cannot work around. The scope key is per URL,
+    // so one retry on the same URL and free choice of every other source.
+    if matches!(class, "authentication" | "permission") && is_remote_fetch_tool(tool) {
+        return Some(("permission", 1));
+    }
+    Some((class, budget))
+}
+
+/// Tools whose first argument is a filesystem path the model typed.
+fn is_path_tool(tool: &str) -> bool {
+    matches!(
+        tool,
+        "file_read" | "file_write" | "apply_patch" | "list_files" | "list" | "grep" | "glob"
+    )
+}
+
+/// Tools that fetch an arbitrary third-party URL on the model's behalf.
+fn is_remote_fetch_tool(tool: &str) -> bool {
+    matches!(tool, "http_request" | "web_fetch")
+}
+
+fn classified_recovery_policy(
+    tool: &str,
+    error: &str,
+    body_level_failure: bool,
+) -> Option<(&'static str, usize)> {
     use crate::tools::status::ToolFailureClass as Class;
     if body_level_failure {
         return Some(("validation", 1));
