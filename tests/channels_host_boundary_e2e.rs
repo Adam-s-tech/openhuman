@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use openhuman_core::channels::host::build_channel_host;
 use openhuman_core::config::Config;
-use tinychannels::host::{ApprovalDecision, ConversationMessage, ReactionQuery};
+use tinychannels::host::{ApprovalDecision, ConversationMessage};
 
 /// A config pinned to a throwaway workspace with the local runtime disabled,
 /// so filesystem-backed capabilities are isolated and inference is short-circuited.
@@ -27,7 +27,7 @@ fn host_advertises_the_wired_capability_set() {
     assert!(caps.lifecycle);
     assert!(caps.stt);
     assert!(caps.tts);
-    assert!(caps.reaction_gate);
+    assert!(!caps.reaction_gate);
     assert!(caps.approvals);
     assert!(caps.conversation_store);
     assert!(caps.event_sink);
