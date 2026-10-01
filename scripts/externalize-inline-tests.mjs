@@ -12,6 +12,10 @@
 // the core crate or any vendored submodule checkout:
 //
 //     node scripts/externalize-inline-tests.mjs <root>... [--write] [--no-fmt]
+//     node scripts/externalize-inline-tests.mjs <root>... --rename-legacy [--write]
+//
+// `--rename-legacy` renames `test.rs` and `<name>_test.rs` to `*_tests.rs` and
+// points each module declaration at the new file with `#[path]`.
 //
 // Without `--write` it only reports. It exits 1 while any inline test module
 // remains, including the ones it refuses to move and lists as "manual".
@@ -393,13 +397,157 @@ function run(roots, { write, fmt }) {
   return write ? manual : manual + movedTotal;
 }
 
+const LEGACY_FILE = /(^|\/)(test|[A-Za-z0-9_]+_test)\.rs$/;
+const ROOT_STEMS = new Set(["mod", "lib", "main", "build"]);
+const MOD_DECL = /^([ \t]*)(?:pub(?:\([^)]*\))?[ \t]+)?mod[ \t]+(\w+)[ \t]*;/gm;
+const PATH_ATTR = /^[ \t]*#\[path[ \t]*=[ \t]*"([^"]+)"[ \t]*\]/;
+
+/** A `mod.rs`, crate root or `src/bin/*.rs` looks for child modules beside itself, not in `<stem>/`. */
+function ownsDir(rel) {
+  const stem = path.posix.basename(rel, ".rs");
+  return ROOT_STEMS.has(stem) || /(^|\/)src\/bin$/.test(path.posix.dirname(rel));
+}
+
+/**
+ * Plan the rename of legacy test files (`test.rs`, `<name>_test.rs`) to
+ * `*_tests.rs`. `sources` maps repo-relative posix paths to file contents.
+ *
+ * The module keeps its identifier, so references to it keep resolving; its
+ * declaration gains (or retargets) a `#[path]` to the new file. `test.rs`
+ * becomes `<declaring file>_tests.rs` (`mod_tests.rs` beside a `mod.rs`).
+ * Returns `renames` (`{ from, to }`), `edits` (path -> rewritten source) and
+ * `manual` files the plan refuses to touch.
+ */
+export function planLegacyRenames(sources) {
+  const legacy = new Set([...sources.keys()].filter((f) => LEGACY_FILE.test(f)));
+  const found = new Map();
+  const manual = [];
+  for (const [file, src] of sources) {
+    if (!/\bmod\s+\w+\s*;/.test(src)) continue;
+    const skel = skeleton(src, codeMask(src));
+    const lines = src.split("\n");
+    for (const m of skel.matchAll(MOD_DECL)) {
+      const line = (skel.slice(0, m.index).match(/\n/g) ?? []).length;
+      let pathLine = -1;
+      let pathValue = null;
+      for (let k = line - 1; k >= 0; k -= 1) {
+        const text = lines[k].trim();
+        if (text.startsWith("#[")) {
+          const hit = PATH_ATTR.exec(lines[k]);
+          if (hit) {
+            pathLine = k;
+            pathValue = hit[1];
+          }
+        } else if (!text.startsWith("//")) {
+          break;
+        }
+      }
+      const dir = path.posix.dirname(file);
+      const base = ownsDir(file) ? dir : path.posix.join(dir, path.posix.basename(file, ".rs"));
+      const targets = pathValue
+        ? [path.posix.join(dir, pathValue)]
+        : [path.posix.join(base, `${m[2]}.rs`), path.posix.join(base, m[2], "mod.rs")];
+      const target = targets.find((t) => legacy.has(t));
+      if (legacy.has(file) && !pathValue && !ownsDir(file)) {
+        manual.push({ file, reason: `declares \`mod ${m[2]};\` whose location depends on this file's own name` });
+      }
+      if (!target) continue;
+      found.set(target, [...(found.get(target) ?? []), { file, indent: m[1], line, pathLine }]);
+    }
+  }
+
+  const planned = new Map();
+  const taken = new Set(sources.keys());
+  for (const file of legacy) {
+    const decls = found.get(file);
+    if (!decls) {
+      manual.push({ file, reason: "no `mod` declaration found (include!, a Cargo target, or a macro?)" });
+      continue;
+    }
+    if (decls.some((d) => d.indent !== "")) {
+      manual.push({ file, reason: "declared inside an inline module; move it by hand" });
+      continue;
+    }
+    const name = path.posix.basename(file);
+    const declStem = path.posix.basename(decls[0].file, ".rs");
+    const newName = name === "test.rs" ? `${declStem}_tests.rs` : name.replace(/_test\.rs$/, "_tests.rs");
+    const to = path.posix.join(path.posix.dirname(file), newName);
+    if (taken.has(to)) {
+      manual.push({ file, reason: `${to} already exists` });
+      continue;
+    }
+    taken.add(to);
+    planned.set(file, { to, decls });
+  }
+  if (manual.some((x) => planned.has(x.file))) {
+    for (const x of manual) planned.delete(x.file);
+  }
+
+  const edits = new Map();
+  const perFile = new Map();
+  for (const [from, { to, decls }] of planned) {
+    for (const d of decls) {
+      const rel = path.posix.relative(path.posix.dirname(d.file), to);
+      perFile.set(d.file, [...(perFile.get(d.file) ?? []), { ...d, rel }]);
+    }
+    void from;
+  }
+  for (const [file, list] of perFile) {
+    const lines = sources.get(file).split("\n");
+    for (const d of list.sort((a, b) => b.line - a.line)) {
+      const attr = `#[path = "${d.rel}"]`;
+      if (d.pathLine >= 0) lines[d.pathLine] = attr;
+      else lines.splice(d.line, 0, attr);
+    }
+    edits.set(file, lines.join("\n"));
+  }
+  return {
+    renames: [...planned].map(([from, { to }]) => ({ from, to })),
+    edits,
+    manual,
+  };
+}
+
+function renameLegacy(roots, { write }) {
+  let manualTotal = 0;
+  let renameTotal = 0;
+  for (const rootArg of roots) {
+    const root = path.resolve(rootArg);
+    const sources = new Map();
+    for (const rel of trackedRustFiles(root)) {
+      if (fs.existsSync(path.join(root, rel))) sources.set(rel, fs.readFileSync(path.join(root, rel), "utf8"));
+    }
+    const plan = planLegacyRenames(sources);
+    for (const x of plan.manual) console.log(`manual ${path.relative(process.cwd(), path.join(root, x.file))}: ${x.reason}`);
+    if (write) {
+      for (const [file, text] of plan.edits) fs.writeFileSync(path.join(root, file), text);
+      for (const r of plan.renames) {
+        try {
+          execFileSync("git", ["-C", root, "mv", r.from, r.to], { stdio: "pipe" });
+        } catch {
+          fs.renameSync(path.join(root, r.from), path.join(root, r.to));
+        }
+      }
+    } else {
+      for (const r of plan.renames) console.log(`rename ${r.from} -> ${path.posix.basename(r.to)}`);
+    }
+    console.log(`${root}: ${plan.renames.length} legacy test file(s) ${write ? "renamed" : "renamable"}, ${plan.manual.length} manual`);
+    manualTotal += plan.manual.length;
+    renameTotal += plan.renames.length;
+  }
+  return write ? manualTotal : manualTotal + renameTotal;
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const roots = args.filter((a) => !a.startsWith("--"));
   if (roots.length === 0) {
-    console.error("usage: externalize-inline-tests.mjs <root>... [--write] [--no-fmt]");
+    console.error("usage: externalize-inline-tests.mjs <root>... [--write] [--no-fmt] [--rename-legacy]");
     process.exit(2);
   }
-  const remaining = run(roots, { write: args.includes("--write"), fmt: !args.includes("--no-fmt") });
+  const write = args.includes("--write");
+  const remaining = args.includes("--rename-legacy")
+    ? renameLegacy(roots, { write })
+    : run(roots, { write, fmt: !args.includes("--no-fmt") });
   process.exit(remaining > 0 ? 1 : 0);
 }
