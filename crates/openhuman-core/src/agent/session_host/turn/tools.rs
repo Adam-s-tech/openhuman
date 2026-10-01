@@ -111,66 +111,6 @@ impl OpenHumanSessionHost {
         }
     }
 
-    /// Drain pending `ComposioIntegrationsChanged` events.
-    ///
-    /// Returns `true` when we observed at least one relevant event (or lag) and
-    /// should re-check cached integrations before the next provider call.
-    pub(in super::super) fn drain_composio_integrations_changed_events(&mut self) -> bool {
-        self.ensure_composio_integrations_listener();
-        let Some(rx) = self.composio_integrations_rx.as_mut() else {
-            return false;
-        };
-        use tinybus::TryRecvError;
-
-        let mut saw_signal = false;
-        let mut closed = false;
-        loop {
-            match rx.try_recv() {
-                Ok(crate::core::events::DomainEvent::ComposioIntegrationsChanged { toolkits }) => {
-                    saw_signal = true;
-                    log::info!(
-                        "[agent_loop] received composio integrations changed event (active_toolkits={:?})",
-                        toolkits
-                    );
-                }
-                Ok(_) => {}
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Lagged(skipped)) => {
-                    saw_signal = true;
-                    log::warn!(
-                        "[agent_loop] composio integrations listener lagged by {} event(s); forcing cache re-check",
-                        skipped
-                    );
-                }
-                Err(TryRecvError::Closed) => {
-                    closed = true;
-                    break;
-                }
-            }
-        }
-        if closed {
-            self.composio_integrations_rx = None;
-        }
-        saw_signal
-    }
-
-    /// Lazily attach this session to the global event bus so it can observe
-    /// [`crate::core::events::DomainEvent::WorkflowsChanged`] (skill
-    /// install / uninstall / create). Mirror of
-    /// [`Self::ensure_composio_integrations_listener`].
-    pub(super) fn ensure_skill_events_listener(&mut self) {
-        if self.skill_events_rx.is_some() {
-            return;
-        }
-        if let Some(bus) = crate::core::bus::BUS.get() {
-            self.skill_events_rx = Some(bus.receiver());
-            log::debug!(
-                "[agent_loop] armed installed-skills listener for session='{}'",
-                self.event_session_id
-            );
-        }
-    }
-
     /// Reconcile the session's delegation schema against the latest cached
     /// integrations snapshot. Returns `true` only when a refresh applied.
     pub(super) fn refresh_delegation_tools_from_cached_integrations(
