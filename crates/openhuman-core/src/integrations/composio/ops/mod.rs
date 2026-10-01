@@ -75,7 +75,7 @@ pub use triggers::{
 // it was `tinymemory_core::sync::composio::providers::user_scopes` reached
 // through the in-process engine handle until openhuman#5560; see the module.
 pub(crate) use user_scopes::{
-    as load_user_scope_pref, save as save_user_scope_pref,
+    load_or_default as load_user_scope_pref, save as save_user_scope_pref,
 };
 
 // ── Re-export connected_integrations public items ──────────────────────────
