@@ -5284,7 +5284,7 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.replayContent':
     'সিঙ্ক করা কনটেন্টও আবার পাঠান, যাতে নতুন ইঞ্জিন তার সারাংশ নতুন করে তৈরি করে',
   'memoryEngine.dialog.replayContentHint': 'কনটেন্ট আবার পড়তে OpenHuman ক্রেডিট খরচ হয়।',
-  'memoryEngine.dialog.stepProgress': '{step} কপি হচ্ছে… এখন পর্যন্ত {count}',
+  'memoryEngine.dialog.stepProgress': '{step} কপি হচ্ছে… এখন পর্যন্ত কপি হয়েছে: {count}',
   'memoryEngine.step.records': 'স্মৃতি',
   'memoryEngine.step.documents': 'ডকুমেন্টের শিরোনাম ও ট্যাগ',
   'memoryEngine.step.goals': 'লক্ষ্য',
@@ -5293,6 +5293,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'সিঙ্ক করা কনটেন্ট',
   'memoryEngine.notCopied':
     'পরিবর্তন হয়েছে। নতুন ইঞ্জিন এগুলো সমর্থন করে না, তাই কপি করা হয়নি: {items}।',
+  'memoryEngine.contentRefused':
+    'নতুন ইঞ্জিন কিছু সিঙ্ক করা কনটেন্ট নেয়নি ({count})। আপনার আগের ইঞ্জিনে সেগুলো এখনও আছে, আর পরের সিঙ্কে সেগুলো আবার আসতে পারে।',
   'memoryEngine.dialog.lacking':
     'নতুন ইঞ্জিন আপনার বর্তমান ইঞ্জিনের এই বৈশিষ্ট্যগুলো সমর্থন করে না:',
   'memoryEngine.error.insufficientCredits':

@@ -5286,7 +5286,7 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.replayContent':
     'सिंक की गई सामग्री भी दोबारा भेजें ताकि नया इंजन अपने सारांश फिर से बनाए',
   'memoryEngine.dialog.replayContentHint': 'सामग्री दोबारा पढ़ने में OpenHuman क्रेडिट लगते हैं।',
-  'memoryEngine.dialog.stepProgress': '{step} कॉपी हो रहा है… अब तक {count}',
+  'memoryEngine.dialog.stepProgress': '{step} कॉपी हो रहा है… अब तक कॉपी हुए: {count}',
   'memoryEngine.step.records': 'यादें',
   'memoryEngine.step.documents': 'दस्तावेज़ों के शीर्षक और टैग',
   'memoryEngine.step.goals': 'लक्ष्य',
@@ -5295,6 +5295,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'सिंक की गई सामग्री',
   'memoryEngine.notCopied':
     'स्विच हो गया। नया इंजन इनका समर्थन नहीं करता, इसलिए ये कॉपी नहीं हुए: {items}।',
+  'memoryEngine.contentRefused':
+    'नए इंजन ने कुछ सिंक की गई सामग्री स्वीकार नहीं की ({count})। आपका पिछला इंजन उसे अभी भी रखता है, और अगला सिंक उसे फिर से ला सकता है।',
   'memoryEngine.dialog.lacking': 'नया इंजन आपके मौजूदा इंजन की इन सुविधाओं का समर्थन नहीं करता:',
   'memoryEngine.error.insufficientCredits':
     'आपके OpenHuman क्रेडिट खत्म हो गए हैं। इस इंजन का उपयोग करने के लिए क्रेडिट जोड़ें।',

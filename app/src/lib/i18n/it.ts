@@ -5383,7 +5383,7 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.replayContent':
     'Invia di nuovo anche i contenuti sincronizzati, così il nuovo motore ricostruisce i suoi riassunti',
   'memoryEngine.dialog.replayContentHint': 'Rileggere i contenuti consuma crediti OpenHuman.',
-  'memoryEngine.dialog.stepProgress': 'Copia di {step}… finora {count}',
+  'memoryEngine.dialog.stepProgress': 'Copia di {step}… elementi copiati finora: {count}',
   'memoryEngine.step.records': 'ricordi',
   'memoryEngine.step.documents': 'titoli e tag dei documenti',
   'memoryEngine.step.goals': 'obiettivi',
@@ -5392,6 +5392,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'contenuti sincronizzati',
   'memoryEngine.notCopied':
     'Passaggio completato. Il nuovo motore non supporta questi elementi, quindi non sono stati copiati: {items}.',
+  'memoryEngine.contentRefused':
+    'Il nuovo motore ha rifiutato parte dei contenuti sincronizzati ({count}). Il motore precedente li conserva ancora e la prossima sincronizzazione può riportarli.',
   'memoryEngine.dialog.lacking':
     'Il nuovo motore non supporta queste funzioni del tuo motore attuale:',
   'memoryEngine.error.insufficientCredits':

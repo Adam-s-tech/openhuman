@@ -5344,7 +5344,7 @@ const messages: TranslationMap = {
     'Также заново отправить синхронизированные материалы, чтобы новый движок пересобрал свои сводки',
   'memoryEngine.dialog.replayContentHint':
     'Повторное чтение материалов расходует кредиты OpenHuman.',
-  'memoryEngine.dialog.stepProgress': 'Копирование: {step}… пока {count}',
+  'memoryEngine.dialog.stepProgress': 'Копирование: {step}… скопировано: {count}',
   'memoryEngine.step.records': 'воспоминания',
   'memoryEngine.step.documents': 'названия и теги документов',
   'memoryEngine.step.goals': 'цели',
@@ -5353,6 +5353,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'синхронизированные материалы',
   'memoryEngine.notCopied':
     'Переключено. Новый движок не поддерживает следующее, поэтому это не скопировано: {items}.',
+  'memoryEngine.contentRefused':
+    'Новый движок отклонил часть синхронизированных материалов ({count}). Предыдущий движок по-прежнему их хранит, и следующая синхронизация может доставить их снова.',
   'memoryEngine.dialog.lacking': 'Новый движок не поддерживает эти функции вашего текущего движка:',
   'memoryEngine.error.insufficientCredits':
     'Кредиты OpenHuman закончились. Пополните кредиты, чтобы использовать этот движок.',

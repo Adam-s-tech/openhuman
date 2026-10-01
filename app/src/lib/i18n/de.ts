@@ -5439,7 +5439,7 @@ const messages: TranslationMap = {
     'Synchronisierte Inhalte erneut senden, damit die neue Engine ihre Zusammenfassungen neu aufbaut',
   'memoryEngine.dialog.replayContentHint':
     'Das erneute Lesen von Inhalten verbraucht OpenHuman-Credits.',
-  'memoryEngine.dialog.stepProgress': '{step} wird kopiert … bisher {count}',
+  'memoryEngine.dialog.stepProgress': '{step} wird kopiert … bisher kopiert: {count}',
   'memoryEngine.step.records': 'Erinnerungen',
   'memoryEngine.step.documents': 'Dokumenttitel und Tags',
   'memoryEngine.step.goals': 'Ziele',
@@ -5448,6 +5448,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'synchronisierte Inhalte',
   'memoryEngine.notCopied':
     'Gewechselt. Die neue Engine unterstützt Folgendes nicht, daher wurde es nicht kopiert: {items}.',
+  'memoryEngine.contentRefused':
+    'Die neue Engine hat einige synchronisierte Inhalte abgelehnt ({count}). Deine vorherige Engine behält sie, und die nächste Synchronisierung kann sie erneut bringen.',
   'memoryEngine.dialog.lacking':
     'Die neue Engine unterstützt diese Funktionen deiner aktuellen Engine nicht:',
   'memoryEngine.error.insufficientCredits':
