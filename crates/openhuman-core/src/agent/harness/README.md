@@ -48,7 +48,6 @@ used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
 | `tool_result_artifacts/` | Wiring only: `new_tool_result_store` hands `tinyagents_harness::artifacts::tool_results` OpenHuman's redactor (`SanitizingRedactor`), `file_read`/`use_skill` names and `FileReadTool::MAX_FILE_SIZE_BYTES`. The store, `[tool_result_preview]` envelope, budgets and paged reads live in the crate. |
 | `memory_context.rs`, `memory_context_safety.rs` | Working-memory and `[Cross-chat context]` lines surfaced into the prompt (capped by `WORKING_MEMORY_LIMIT`); trust-tier wrapping of recalled entries that came from connectors (`wrap_untrusted_for_agent`). The read-index, dedupe, write, update-index enforcement state machine for memory-mutating tools (issue #4116) now lives in `tinyagents_harness::middleware` (`MemoryProtocolTracker`). |
 | `required_output.rs` | Pure validate/repair/synthesize primitives (issue #4117) that guarantee a required structured-output block (for example a `thoughts` JSON block) on every accepted turn. The orchestration that calls these lives on the session in `../session_host/turn/`. |
-| `parse_wire_tests.rs` | Test-only fixtures for OpenHuman's own wire vocabulary (`inference::provider::ToolCall`, native-history JSON, OpenAI function-calling payloads). The actual `<tool_call>` parsing (tags, fenced blocks, bare JSON, `<invoke>` XML, GLM grammar, p-format) moved to the vendored `tinytools_agent` crate; nothing about recovering a tool call from model text stayed here. |
 | `credentials.rs` | `scrub_credentials`: regex scrubbing of credential-shaped text (key/value secrets, AWS access-key IDs, `sk-...` keys). Applied to every tool result by `CredentialScrubMiddleware` in `agent/tinyagents/middleware/credential_scrub.rs`, installed as the innermost tool wrap so nothing downstream sees the raw secret. |
 
 ## Public surface
@@ -112,9 +111,7 @@ turn lifecycle are in `../session_host/`; `run_subagent`,
 
 ## Tests
 
-- Unit: `harness_tests.rs`, `harness_gap_tests.rs`,
-  `harness_tool_call_parsing_tests.rs`,
-  `harness_tool_call_parsing_edge_case_tests.rs`, plus `*_tests.rs` files
+- Unit: `harness_tool_call_parsing_edge_case_tests.rs`, plus `*_tests.rs` files
   beside each sub-module (`tool_result_artifacts/mod_tests.rs`,
   `artifact_offload/artifact_offload_tests.rs`,
   `archivist/{lifecycle,recap,resummarise}_tests.rs`).
