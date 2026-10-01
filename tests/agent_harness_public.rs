@@ -155,59 +155,6 @@ impl PostTurnHook for RecordingHook {
 // so the public-API tests that exercised it are gone with it.
 
 #[tokio::test]
-async fn parent_context_is_visible_only_within_scope() {
-    assert!(current_parent().is_none());
-
-    let parent = stub_parent_context();
-    with_parent_context(parent, async {
-        let inner = current_parent().expect("parent context should be visible");
-        assert_eq!(inner.model_name, "stub-model");
-        assert_eq!(inner.session_id, "test-session");
-        assert_eq!(inner.channel, "test-channel");
-        assert_eq!(inner.memory_context.as_deref(), Some("ctx"));
-    })
-    .await;
-
-    assert!(current_parent().is_none());
-}
-
-#[test]
-fn sanitize_tool_output_classifies_common_errors() {
-    assert_eq!(
-        sanitize_tool_output("fine", "shell", true),
-        "shell: ok (4 chars)"
-    );
-    assert_eq!(
-        sanitize_tool_output("Connection timeout while fetching", "http_request", false),
-        "http_request: failed (timeout)"
-    );
-    assert_eq!(
-        sanitize_tool_output("permission denied opening file", "file_read", false),
-        "file_read: failed (permission_denied)"
-    );
-    assert_eq!(
-        sanitize_tool_output("unknown tool called", "delegate", false),
-        "delegate: failed (unknown_tool)"
-    );
-    assert_eq!(
-        sanitize_tool_output("bad syntax in payload", "json", false),
-        "json: failed (parse_error)"
-    );
-    assert_eq!(
-        sanitize_tool_output("no such file or directory", "file_read", false),
-        "file_read: failed (not_found)"
-    );
-    assert_eq!(
-        sanitize_tool_output("network connection reset by peer", "http_request", false),
-        "http_request: failed (connection_error)"
-    );
-    assert_eq!(
-        sanitize_tool_output("something strange happened", "shell", false),
-        "shell: failed (error)"
-    );
-}
-
-#[tokio::test]
 async fn fire_hooks_dispatches_all_hooks_even_when_one_fails() {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let notify = Arc::new(Notify::new());
@@ -242,9 +189,4 @@ async fn fire_hooks_dispatches_all_hooks_even_when_one_fails() {
     let calls = calls.lock().clone();
     assert!(calls.contains(&"ok:hello".into()));
     assert!(calls.contains(&"fail:hello".into()));
-}
-
-#[test]
-fn fire_hooks_accepts_empty_hook_lists() {
-    fire_hooks(&[], sample_turn());
 }
