@@ -361,13 +361,13 @@ fn publish_chat_done(
 /// one. Delivery used to await the reaction unbounded, and a reaction parked
 /// on a paused scheduler gate left every reply undelivered: no `chat_done`, no
 /// stored row, and a "Thinking..." indicator that never cleared.
-pub(super) const REACTION_BUDGET: std::time::Duration = std::time::Duration::from_secs(2);
+const REACTION_BUDGET: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Await the spawned reaction for at most `budget`, aborting it on expiry.
 ///
 /// Returns the emoji when the reaction finished in time, `None` when it
 /// declined, failed, panicked or ran out of time.
-pub(super) async fn bounded_reaction(
+async fn bounded_reaction(
     mut handle: tokio::task::JoinHandle<Option<String>>,
     budget: std::time::Duration,
     request_id: &str,
