@@ -13,6 +13,9 @@
 
 #[path = "support/env_guard.rs"]
 mod env_guard;
+#[path = "support/scripted_stack.rs"]
+mod scripted_stack;
+use scripted_stack::{assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion};
 use env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -101,31 +104,12 @@ fn reset_script(responses: Vec<Value>) {
     with_captured(|c| c.clear());
 }
 
-fn text_completion(content: &str) -> Value {
-    json!({ "content": content })
-}
-
 fn tool_call_completion(name: &str, arguments: Value) -> Value {
     json!({ "content": "", "toolCalls": [{
         "id": format!("call_{name}"),
         "name": name,
         "arguments": arguments.to_string(),
     }]})
-}
-
-/// A completion carrying several tool calls in ONE assistant message.
-///
-/// Fan-out is now several `spawn_async_subagent` calls "issued together"
-/// (orchestrator `prompt.md`), which on the wire is one message with several
-/// entries in `toolCalls` — not several messages. [`tool_call_completion`]
-/// cannot express that, and scripting them as separate completions would test
-/// the serial shape the fan-out guidance exists to prevent.
-fn tool_calls_completion(calls: &[(&str, Value)]) -> Value {
-    json!({ "content": "", "toolCalls": calls.iter().map(|(name, arguments)| json!({
-        "id": format!("call_{name}_{}", arguments.to_string().len()),
-        "name": name,
-        "arguments": arguments.to_string(),
-    })).collect::<Vec<_>>() })
 }
 
 fn error_completion(status: u16, message: &str) -> Value {
@@ -229,13 +213,6 @@ fn canary_barrier() -> &'static Mutex<Vec<String>> {
 
 fn canary_in_flight() -> &'static Mutex<std::collections::HashSet<String>> {
     CANARY_IN_FLIGHT.get_or_init(|| Mutex::new(std::collections::HashSet::new()))
-}
-
-fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    match m.lock() {
-        Ok(g) => g,
-        Err(p) => p.into_inner(),
-    }
 }
 
 /// Arms the barrier for `canaries` and clears any previous state.
@@ -431,10 +408,6 @@ fn completion_response(streaming: bool, message: Value) -> axum::response::Respo
         .into_response()
 }
 
-async fn current_user(_headers: HeaderMap) -> Json<Value> {
-    Json(json!({ "success": true, "data": { "_id": "e2e-user-1", "username": "e2e" } }))
-}
-
 fn scripted_upstream_router() -> Router {
     Router::new()
         .route("/settings", get(current_user))
@@ -494,14 +467,6 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     resp.json::<Value>()
         .await
         .unwrap_or_else(|e| panic!("json for {method}: {e}"))
-}
-
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
 /// `extra_config` is appended verbatim (whole TOML tables, e.g. `[autonomy]`).

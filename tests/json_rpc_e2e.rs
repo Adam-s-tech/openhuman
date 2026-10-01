@@ -10,6 +10,9 @@ mod tinyhumans_boot;
 
 #[path = "support/env_guard.rs"]
 mod env_guard;
+#[path = "support/scripted_stack.rs"]
+mod scripted_stack;
+use scripted_stack::{assert_no_jsonrpc_error};
 use env_guard::EnvVarGuard;
 use std::collections::VecDeque;
 use std::net::SocketAddr;
@@ -1089,14 +1092,6 @@ async fn encrypt_test_mnemonic() -> String {
     .await
     .expect("encrypt test mnemonic")
     .value
-}
-
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
 fn assert_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {

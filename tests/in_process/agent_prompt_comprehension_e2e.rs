@@ -16,6 +16,7 @@
 //! `env_lock()` across `.await` on purpose, as there.
 #![allow(clippy::await_holding_lock)]
 
+use crate::scripted_stack::{assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion};
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use crate::env_guard::env_lock_with_file_keyring as env_lock;
@@ -44,13 +45,6 @@ static AGENT_DEF_REGISTRY_INIT: OnceLock<()> = OnceLock::new();
 static SCRIPTED: OnceLock<Mutex<std::collections::VecDeque<Value>>> = OnceLock::new();
 static CAPTURED: OnceLock<Mutex<Vec<Value>>> = OnceLock::new();
 
-fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    match m.lock() {
-        Ok(g) => g,
-        Err(p) => p.into_inner(),
-    }
-}
-
 fn scripted() -> std::sync::MutexGuard<'static, std::collections::VecDeque<Value>> {
     lock_or_recover(SCRIPTED.get_or_init(Default::default))
 }
@@ -64,20 +58,6 @@ fn reset_script(responses: Vec<Value>) {
     q.clear();
     q.extend(responses);
     captured().clear();
-}
-
-fn text_completion(content: &str) -> Value {
-    json!({ "content": content })
-}
-
-/// One tool call, id'd `call_<name>_<arglen>` so repeats of the same tool with
-/// different arguments stay distinguishable (from `agent_harness_e2e.rs`).
-fn tool_calls_completion(calls: &[(&str, Value)]) -> Value {
-    json!({ "content": "", "toolCalls": calls.iter().map(|(name, arguments)| json!({
-        "id": format!("call_{name}_{}", arguments.to_string().len()),
-        "name": name,
-        "arguments": arguments.to_string(),
-    })).collect::<Vec<_>>() })
 }
 
 fn call(name: &str, arguments: Value) -> Value {
@@ -268,10 +248,6 @@ fn completion_response(streaming: bool, message: Value) -> axum::response::Respo
         .into_response()
 }
 
-async fn current_user(_headers: HeaderMap) -> Json<Value> {
-    Json(json!({ "success": true, "data": { "_id": "e2e-user-1", "username": "e2e" } }))
-}
-
 /// One connected Gmail toolkit, so the orchestrator gets its actions as a
 /// searchable catalogue and the integrations agent has a toolkit to bind to.
 /// Shapes from `tools_approval_channels_raw_coverage_e2e.rs`.
@@ -357,14 +333,6 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     resp.json::<Value>()
         .await
         .unwrap_or_else(|e| panic!("json for {method}: {e}"))
-}
-
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
 /// `extra` is appended verbatim, for per-case `[context]` knobs.
