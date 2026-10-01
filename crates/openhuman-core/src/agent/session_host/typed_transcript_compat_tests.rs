@@ -17,7 +17,7 @@
 //! `OH_REGEN_SESSION_COMPAT=1 cargo test -p openhuman --lib regenerate_typed_session_compat -- --ignored`.
 
 use serde_json::{json, Value};
-use tinyagents_session::transcript::{read_transcript, write_transcript};
+use tinyagents_session::transcript::{append_tools_record, read_transcript, write_transcript};
 use tinyinference_llm::message::ContentBlock;
 use tinyinference_llm::model::ModelResponse;
 
@@ -180,6 +180,16 @@ fn regenerate_typed_session_compat() {
         let dir = tempfile::tempdir().expect("tempdir");
         let path = dir.path().join("typed.jsonl");
         write_transcript(&path, &transcript.messages, &transcript.meta, None).expect("write typed");
+        // The rows' sibling record: the tool list the session was sent with.
+        let legacy = std::fs::read_to_string(fixture(&format!("{name}.jsonl"))).expect("raw");
+        let tools = legacy
+            .lines()
+            .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+            .filter(|value| value.get("kind").and_then(Value::as_str) == Some("tools"))
+            .next_back()
+            .map(|value| value["tools"].clone())
+            .expect("legacy fixture records its tools");
+        append_tools_record(&path, &tools).expect("tools record");
         std::fs::copy(&path, fixture(&format!("{name}.typed.jsonl"))).expect("store typed");
     }
 }
