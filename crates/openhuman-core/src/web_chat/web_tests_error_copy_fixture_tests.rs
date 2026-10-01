@@ -303,3 +303,11 @@ fn loop_guard_halt_summaries_are_byte_identical() {
         terminal_inference_halt_summary(TerminalInferenceFailure::BudgetExhausted, "t", &long);
     assert!(summary.ends_with(&format!("{}\n\u{2026} [truncated]", "x".repeat(600))));
 }
+
+#[test]
+fn zz_dump_copy() {
+    for (case, input, ..) in EXPECTED {
+        let got = classify_inference_error(input);
+        println!("ROW {case}|{}|{}", got.copy_key, got.copy_params.map(|v| v.to_string()).unwrap_or_else(|| "null".into()));
+    }
+}
