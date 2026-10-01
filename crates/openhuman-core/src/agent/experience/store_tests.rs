@@ -126,7 +126,10 @@ async fn timestamps_survive_the_host_scrubber_in_the_stored_json() {
     let stored = memory
         .entries
         .lock()
-        .get(&(AGENT_EXPERIENCE_NAMESPACE.into(), "experience/exp_ts".into()))
+        .get(&(
+            AGENT_EXPERIENCE_NAMESPACE.into(),
+            "experience/exp_ts".into(),
+        ))
         .map(|entry| entry.content.clone())
         .expect("stored");
     assert!(stored.starts_with('{'), "stored as plain JSON: {stored}");
