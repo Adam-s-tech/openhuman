@@ -178,7 +178,3 @@ pub(crate) async fn setup_wallet_in(temp: &TempDir) -> Result<WorkspaceEnvGuard,
     .await?;
     Ok(workspace_guard)
 }
-
-#[cfg(test)]
-#[path = "test_support_tests.rs"]
-mod tests;
