@@ -20,11 +20,15 @@ use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;
 
 use super::loop_guards::{
-    is_recoverable_tool_failure, is_repeat_call_exempt, recoverable_identical_halt_summary,
-    recoverable_no_progress_halt_summary, terminal_inference_failure_kind,
-    terminal_inference_halt_summary, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
+    is_repeat_call_exempt, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
     RECOVERABLE_REPEAT_FAILURE_THRESHOLD,
 };
+use crate::inference::failure_copy::{
+    recoverable_identical_halt_summary, recoverable_no_progress_halt_summary,
+    terminal_inference_failure_kind, terminal_inference_halt_summary,
+};
+pub(crate) use crate::inference::failure_copy::user_actionable_escalation;
+use tinyinference_llm::failure::is_recoverable_failure_text as is_recoverable_tool_failure;
 
 /// `after_tool`: stop (or nudge) the run when tool calls keep failing with no
 /// progress (issue #4249). The legacy tool loop's progress guard surfaced a

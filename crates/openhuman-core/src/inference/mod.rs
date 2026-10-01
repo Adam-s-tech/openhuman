@@ -22,6 +22,7 @@ pub const INFERENCE_COMPILED_IN: bool = cfg!(feature = "inference");
 
 pub mod auth_error_registry;
 pub mod embedding_host;
+pub(crate) mod failure_copy;
 pub mod host_runtime;
 pub mod http;
 pub mod model_context;

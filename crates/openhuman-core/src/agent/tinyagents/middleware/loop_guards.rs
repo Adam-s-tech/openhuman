@@ -1,6 +1,9 @@
-//! Loop-guard thresholds, classifiers, and halt-summary wording shared by the
+//! Loop-guard thresholds and the repeat-call exemption shared by the
 //! repeated-failure and repeat-progress breakers (issue #4463), ported verbatim
-//! from the deleted `agent/harness/tool_loop.rs`.
+//! from the deleted `agent/harness/tool_loop.rs`. The halt-summary wording and
+//! the terminal-inference recogniser live in the host copy table
+//! (`inference::failure_copy`); the recoverable-failure marker list in
+//! `tinyinference_llm::failure`.
 
 // ── Loop-guard restorations (issue #4463) ────────────────────────────────────
 //
