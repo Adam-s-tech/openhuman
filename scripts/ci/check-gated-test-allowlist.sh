@@ -51,7 +51,6 @@ tools/ops_tests_default_registry_tests.rs
 tools/ops_tests_domain_family_tests.rs
 tools/registry/ops_tests.rs
 tools/registry/schemas_tests.rs
-voice/compile_status_tests.rs
 web3/stub.rs
 web3/wallet/stub.rs
 web3/x402/stub.rs
