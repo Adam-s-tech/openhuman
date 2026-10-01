@@ -52,7 +52,6 @@ fn write_thread_transcript(workspace_dir: &Path, stem: &str, thread_id: &str, ro
                 TranscriptMessage::assistant(*text)
             }
         })
-        .map(|message| crate::agent::messages::transcript_message_from_chat(&message))
         .collect();
     let meta = TranscriptMeta {
         session_id: None,

@@ -9,7 +9,6 @@ fn durable_messages(
 ) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
     messages
         .into_iter()
-        .map(|message| crate::agent::messages::transcript_message_from_chat(&message))
         .collect()
 }
 
@@ -164,8 +163,8 @@ fn sanitize_only_touches_first_system_message() {
     let mut session = read_transcript(&path).unwrap();
     session
         .messages
-        .push(crate::agent::messages::transcript_message_from_chat(
-            &TranscriptMessage::user("Could you show me what was in ### PROFILE.md earlier?"),
+        .push(TranscriptMessage::user(
+            "Could you show me what was in ### PROFILE.md earlier?",
         ));
     write_transcript(&path, &session.messages, &session.meta, None).unwrap();
 

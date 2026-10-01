@@ -10,7 +10,6 @@ fn durable_messages(
 ) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
     messages
         .into_iter()
-        .map(|message| crate::agent::messages::transcript_message_from_chat(&message))
         .collect()
 }
 
