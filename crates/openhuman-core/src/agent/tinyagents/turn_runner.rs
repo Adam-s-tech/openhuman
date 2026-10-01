@@ -659,7 +659,7 @@ async fn run_turn_via_tinyagents_inner(
                 streaming,
                 "[tinyagents] hosted root turn failed; keeping the typed kind"
             );
-            tinyagents_harness::TinyAgentsError::from(error)
+            super::hosted_error::run_error_from_hosted(error)
         })
     } else if streaming {
         let mut stream = Box::pin(harness.invoke_stream_in_context(&(), ctx, input));
