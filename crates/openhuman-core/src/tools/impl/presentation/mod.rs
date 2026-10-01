@@ -68,7 +68,7 @@ pub const TOOL_NAME: &str = "generate_presentation";
 pub struct PresentationTool {
     workspace_dir: PathBuf,
     /// Visible folder the generated deck is written into (#5505).
-    files_dir: PathBuf,
+    files_dir: crate::agent::artifacts::FileRoots,
     /// Existing host config when the caller already owns the authoritative
     /// runtime snapshot. Keeping this optional preserves the ordinary agent
     /// constructor while avoiding a process-global config reload during
@@ -86,10 +86,14 @@ impl PresentationTool {
     /// resolution, venv setup, or cache directory needed. Pass the
     /// workspace directory the artifact pipeline writes into, plus the
     /// active [`SecurityPolicy`] for validating `File`-source image paths.
-    pub fn new(workspace_dir: PathBuf, files_dir: PathBuf, security: Arc<SecurityPolicy>) -> Self {
+    pub fn new(
+        workspace_dir: PathBuf,
+        files_dir: impl Into<crate::agent::artifacts::FileRoots>,
+        security: Arc<SecurityPolicy>,
+    ) -> Self {
         Self {
             workspace_dir,
-            files_dir,
+            files_dir: files_dir.into(),
             config: None,
             security,
         }
@@ -100,7 +104,7 @@ impl PresentationTool {
     pub fn for_config(config: &crate::config::Config, security: Arc<SecurityPolicy>) -> Self {
         Self::new(
             config.workspace_dir.clone(),
-            crate::config::default_files_dir(),
+            crate::agent::artifacts::FileRoots::from_config(config),
             security,
         )
     }
@@ -108,13 +112,13 @@ impl PresentationTool {
     /// Construct the tool with an authoritative host config snapshot.
     pub(crate) fn with_config(
         workspace_dir: PathBuf,
-        files_dir: PathBuf,
+        files_dir: impl Into<crate::agent::artifacts::FileRoots>,
         security: Arc<SecurityPolicy>,
         config: crate::config::Config,
     ) -> Self {
         Self {
             workspace_dir,
-            files_dir,
+            files_dir: files_dir.into(),
             config: Some(config),
             security,
         }

@@ -5382,6 +5382,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'OPENHUMAN_TOOL_TIMEOUT_SECS 환경 변수가 이 설정을 재정의하고 있으므로, 해당 변수를 해제하기 전까지 여기서의 변경 사항은 적용되지 않습니다.',
   'settings.agentAccess.grantedFolders': '허용된 폴더',
+  'settings.agentAccess.filesFolder.label': '파일 폴더',
+  'settings.agentAccess.filesFolder.desc':
+    '에이전트가 만드는 프레젠테이션, 문서, 이미지, 동영상 같은 파일이 저장되는 위치입니다. 변경 사항은 새 파일에 적용되며, 기존 파일은 그대로 유지됩니다.',
+  'settings.agentAccess.filesFolder.save': '저장',
+  'settings.agentAccess.filesFolder.reset': '기본값 사용',
+  'settings.agentAccess.filesFolder.saved': '파일 폴더가 업데이트되었습니다',
+  'settings.agentAccess.filesFolder.loadError': '파일 폴더를 불러올 수 없습니다.',
   'settings.agentAccess.alwaysAllow': '항상 허용된 도구',
   'settings.agentAccess.alwaysAllowDesc':
     '채팅에서 "항상 허용"으로 표시한 도구는 확인 없이 실행됩니다. 다시 확인을 받으려면 항목을 제거하세요.',

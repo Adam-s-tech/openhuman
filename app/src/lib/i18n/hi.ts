@@ -5442,6 +5442,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'OPENHUMAN_TOOL_TIMEOUT_SECS एनवायरनमेंट वेरिएबल इस सेटिंग को ओवरराइड कर रहा है, इसलिए जब तक इसे अनसेट नहीं किया जाता, यहाँ किए गए बदलावों का कोई असर नहीं होगा।',
   'settings.agentAccess.grantedFolders': 'स्वीकृत फ़ोल्डर',
+  'settings.agentAccess.filesFolder.label': 'फ़ाइल फ़ोल्डर',
+  'settings.agentAccess.filesFolder.desc':
+    'एजेंट जो फ़ाइलें बनाता है, जैसे प्रेज़ेंटेशन, दस्तावेज़, चित्र और वीडियो, वे यहाँ सहेजी जाती हैं। बदलाव नई फ़ाइलों पर लागू होता है; मौजूदा फ़ाइलें जहाँ हैं वहीं रहती हैं।',
+  'settings.agentAccess.filesFolder.save': 'सहेजें',
+  'settings.agentAccess.filesFolder.reset': 'डिफ़ॉल्ट उपयोग करें',
+  'settings.agentAccess.filesFolder.saved': 'फ़ाइल फ़ोल्डर अपडेट हो गया',
+  'settings.agentAccess.filesFolder.loadError': 'फ़ाइल फ़ोल्डर लोड नहीं हो सका।',
   'settings.agentAccess.alwaysAllow': 'हमेशा की अनुमति उपकरण',
   'settings.agentAccess.alwaysAllowDesc':
     'उपकरण जिन्हें आपने बिना पूछे चैट रन में "अलवे अनुमति" चिह्नित किया। एक बार फिर से शुरू करने के लिए।',

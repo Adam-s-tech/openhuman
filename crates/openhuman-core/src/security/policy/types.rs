@@ -194,6 +194,9 @@ pub(super) const WORKSPACE_INTERNAL_DIRS: &[&str] = &[
 /// internal state (see `is_workspace_internal_path`); only
 /// [`ARTIFACT_TOOL_RESULTS_DIR`] inside it stays agent-readable.
 pub(super) const ARTIFACTS_DIR: &str = "artifacts";
+/// The account config file, stored beside `workspace_dir` (see
+/// `is_workspace_internal_path`).
+pub(super) const ACCOUNT_CONFIG_FILE: &str = "config.toml";
 /// Where oversized tool outputs are persisted for the agent to read back.
 pub(super) const ARTIFACT_TOOL_RESULTS_DIR: &str = "tool-results";
 

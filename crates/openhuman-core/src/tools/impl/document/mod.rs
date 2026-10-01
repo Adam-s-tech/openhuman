@@ -72,7 +72,7 @@ pub const TOOL_NAME: &str = "generate_document";
 pub struct DocumentTool {
     workspace_dir: PathBuf,
     /// Visible folder the generated document is written into (#5505).
-    files_dir: PathBuf,
+    files_dir: crate::agent::artifacts::FileRoots,
     /// Retained for constructor parity with [`PresentationTool`] (both are
     /// registered identically in `tools::ops`) and for future features
     /// (e.g. embedding a `File`-source image) that will need the same
@@ -86,10 +86,14 @@ impl DocumentTool {
     /// directory the artifact pipeline writes into, plus the active
     /// [`SecurityPolicy`] (same signature as [`PresentationTool::new`] so
     /// both tools register with an identical call).
-    pub fn new(workspace_dir: PathBuf, files_dir: PathBuf, security: Arc<SecurityPolicy>) -> Self {
+    pub fn new(
+        workspace_dir: PathBuf,
+        files_dir: impl Into<crate::agent::artifacts::FileRoots>,
+        security: Arc<SecurityPolicy>,
+    ) -> Self {
         Self {
             workspace_dir,
-            files_dir,
+            files_dir: files_dir.into(),
             security,
         }
     }
@@ -99,7 +103,7 @@ impl DocumentTool {
     pub fn for_config(config: &crate::config::Config, security: Arc<SecurityPolicy>) -> Self {
         Self::new(
             config.workspace_dir.clone(),
-            crate::config::default_files_dir(),
+            crate::agent::artifacts::FileRoots::from_config(config),
             security,
         )
     }

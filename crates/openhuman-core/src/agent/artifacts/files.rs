@@ -62,9 +62,14 @@ impl FileRoots {
         self
     }
 
-    /// The folders for this host config.
-    pub fn from_config(_config: &crate::config::Config) -> Self {
-        Self::new(crate::config::default_files_dir())
+    /// The folders for this host config: new files go to the configured
+    /// folder, and records made in the default folder or any folder used
+    /// before (`files_dir_history`) keep resolving.
+    pub fn from_config(config: &crate::config::Config) -> Self {
+        Self::new(config.files_dir()).with_trusted(
+            std::iter::once(crate::config::default_files_dir())
+                .chain(config.files_dir_history.iter().cloned()),
+        )
     }
 
     /// Where new files are written.

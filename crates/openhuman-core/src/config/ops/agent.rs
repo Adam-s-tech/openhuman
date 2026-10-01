@@ -59,13 +59,16 @@ pub struct AgentSettingsPatch {
 
 /// Partial update for the agent's editable filesystem roots.
 ///
-/// Only `action_dir` is editable today (issue #3240). `workspace_dir` and
-/// `projects_dir` are intentionally read-only and not part of this patch.
+/// `action_dir` (issue #3240) and the files folder (#5505) are editable.
+/// `workspace_dir` and `projects_dir` are intentionally read-only.
 #[derive(Debug, Clone, Default)]
 pub struct AgentPathsPatch {
     /// New action sandbox root. `Some("")`/whitespace clears the override and
     /// reverts to the default; `Some(path)` sets it; `None` leaves it unchanged.
     pub action_dir: Option<String>,
+    /// New folder for agent deliverables. Same `Some("")` / `Some(path)` /
+    /// `None` semantics as `action_dir`. Affects new artifacts only.
+    pub files_dir: Option<String>,
 }
 
 /// Patch for the global memory-sync cadence (#3302).
@@ -405,7 +408,7 @@ pub async fn ensure_agent_dirs(config: &mut Config) {
     // Agent deliverables are written to the visible files folder (#5505).
     // Create it up front, and move this account's pre-#5505 artifact files out
     // of the hidden workspace (idempotent; a no-op once migrated).
-    let files_dir = crate::config::default_files_dir();
+    let files_dir = config.files_dir();
     if let Err(e) = tokio::fs::create_dir_all(&files_dir).await {
         tracing::warn!(
             dir = %redact_home(&files_dir),
@@ -468,7 +471,73 @@ fn agent_paths_payload(config: &Config) -> serde_json::Value {
         "workspace_dir": config.workspace_dir.display().to_string(),
         "projects_dir": projects_dir.display().to_string(),
         "action_dir_source": action_dir_source(config),
+        "files_dir": config.files_dir().display().to_string(),
+        "default_files_dir": crate::config::default_files_dir().display().to_string(),
+        "files_dir_source": if config.files_dir_override.is_some() { "override" } else { "default" },
     })
+}
+
+/// Validate a user-chosen files folder (#5505) and create it. Fail-closed:
+/// the path must be absolute, not an existing file, not a protected location
+/// (credential stores, OS directories), and not inside the OpenHuman data
+/// directory — the point of the folder is that the user can see it, and the
+/// data dir holds internal state.
+async fn validate_files_dir(raw: &str, config: &Config) -> Result<PathBuf, String> {
+    let expanded = expand_tilde(raw);
+    let candidate = PathBuf::from(&expanded);
+    if !candidate.is_absolute() {
+        return Err(format!(
+            "files_dir must be an absolute path (got '{expanded}')"
+        ));
+    }
+    if candidate.is_file() {
+        return Err(format!(
+            "files_dir must be a folder, not a file: {expanded}"
+        ));
+    }
+    if crate::security::SecurityPolicy::is_always_forbidden(&candidate) {
+        return Err(format!(
+            "files_dir cannot be a protected system or credential folder: {expanded}"
+        ));
+    }
+    let mut internal = vec![config.workspace_dir.clone()];
+    if let Ok(root) = crate::config::default_root_openhuman_dir() {
+        internal.push(root);
+    }
+    if internal.iter().any(|dir| path_within(&candidate, dir)) {
+        return Err(format!(
+            "files_dir must not be inside the OpenHuman data folder: {expanded}"
+        ));
+    }
+    tokio::fs::create_dir_all(&candidate)
+        .await
+        .map_err(|e| format!("failed to create files_dir {expanded}: {e}"))?;
+    Ok(candidate)
+}
+
+/// `path` equals or sits under `dir`, comparing canonical forms so a
+/// symlinked spelling (e.g. macOS `/var` → `/private/var`) cannot slip into
+/// the data dir. A path that does not exist yet is canonicalized through its
+/// nearest existing ancestor.
+fn path_within(path: &Path, dir: &Path) -> bool {
+    canonical_prefix(path).starts_with(canonical_prefix(dir))
+}
+
+fn canonical_prefix(path: &Path) -> PathBuf {
+    let mut rest = Vec::new();
+    let mut cursor = path;
+    loop {
+        if let Ok(canon) = cursor.canonicalize() {
+            return rest.iter().rev().fold(canon, |acc, part| acc.join(part));
+        }
+        match (cursor.parent(), cursor.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                cursor = parent;
+            }
+            _ => return path.to_path_buf(),
+        }
+    }
 }
 
 /// Applies an edit to the agent's `action_dir` sandbox root.
@@ -548,6 +617,34 @@ pub async fn apply_agent_paths_settings(
             "[config][agent_paths] action_dir now '{}' (source={})",
             config.action_dir.display(),
             action_dir_source(config)
+        );
+    }
+
+    if let Some(raw) = update.files_dir {
+        let trimmed = raw.trim();
+        log::debug!(
+            "[config][agent_paths] apply files_dir edit (input_len={})",
+            trimmed.len()
+        );
+        let previous = config.files_dir();
+        if trimmed.is_empty() {
+            config.files_dir_override = None;
+            notes.push("files_dir override cleared (reverted to default)".to_string());
+        } else {
+            let candidate = validate_files_dir(trimmed, config).await?;
+            notes.push(format!("files_dir set to {}", candidate.display()));
+            config.files_dir_override = Some(candidate);
+        }
+        // Existing artifacts stay where they are, so the folder they were
+        // made in must stay trusted by the artifact escape guard.
+        if previous != config.files_dir() && !config.files_dir_history.contains(&previous) {
+            config.files_dir_history.push(previous);
+        }
+        config.save().await.map_err(|e| e.to_string())?;
+        crate::core::bus::BUS.publish(crate::core::events::DomainEvent::AgentPathsChanged);
+        log::debug!(
+            "[config][agent_paths] files_dir now '{}'",
+            config.files_dir().display()
         );
     }
 

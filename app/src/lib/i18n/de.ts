@@ -5577,6 +5577,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'Die Umgebungsvariable OPENHUMAN_TOOL_TIMEOUT_SECS überschreibt diese Einstellung, daher haben Änderungen hier keine Wirkung, bis sie entfernt wird.',
   'settings.agentAccess.grantedFolders': 'Erteilte Ordner',
+  'settings.agentAccess.filesFolder.label': 'Dateiordner',
+  'settings.agentAccess.filesFolder.desc':
+    'Hier speichert der Agent die Dateien, die er erstellt, etwa Präsentationen, Dokumente, Bilder und Videos. Eine Änderung gilt für neue Dateien; vorhandene Dateien bleiben, wo sie sind.',
+  'settings.agentAccess.filesFolder.save': 'Speichern',
+  'settings.agentAccess.filesFolder.reset': 'Standard verwenden',
+  'settings.agentAccess.filesFolder.saved': 'Dateiordner aktualisiert',
+  'settings.agentAccess.filesFolder.loadError': 'Der Dateiordner konnte nicht geladen werden.',
   'settings.agentAccess.alwaysAllow': 'Immer erlaubte Werkzeuge',
   'settings.agentAccess.alwaysAllowDesc':
     'Tools, die Sie im Chatlauf ohne zu fragen als "Immer zulassen" markiert haben. Entfernen Sie eine, um erneut aufgefordert zu werden.',

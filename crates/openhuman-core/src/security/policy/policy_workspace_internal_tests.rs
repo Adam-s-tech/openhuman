@@ -242,3 +242,40 @@ async fn the_turn_root_grant_never_reaches_a_credential_store() {
         "unexpected error: {err}"
     );
 }
+
+/// #5505: the account config beside the workspace holds the autonomy policy
+/// and the files folders the artifact escape guard trusts, so a trusted root
+/// over the account dir must not make it readable or writable, while other
+/// files there stay reachable.
+#[tokio::test]
+async fn the_account_config_beside_the_workspace_is_internal() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let account = tmp.path().join("users").join("u1");
+    let ws = account.join("workspace");
+    std::fs::create_dir_all(&ws).expect("create workspace");
+    let config = account.join("config.toml");
+    std::fs::write(&config, "files_dir_history = []").expect("write config");
+    let notes = account.join("notes.txt");
+    std::fs::write(&notes, "hello").expect("write notes");
+    let policy = SecurityPolicy {
+        workspace_dir: ws.clone(),
+        action_dir: ws.clone(),
+        workspace_only: false,
+        trusted_roots: vec![TrustedRoot {
+            path: account.to_string_lossy().into_owned(),
+            access: TrustedAccess::ReadWrite,
+        }],
+        ..SecurityPolicy::default()
+    };
+
+    assert!(!policy.is_path_string_allowed(&config.to_string_lossy()));
+    assert!(policy
+        .validate_path(&config.to_string_lossy())
+        .await
+        .is_err());
+    assert!(policy
+        .validate_parent_path(&config.to_string_lossy())
+        .await
+        .is_err());
+    assert!(policy.validate_path(&notes.to_string_lossy()).await.is_ok());
+}
