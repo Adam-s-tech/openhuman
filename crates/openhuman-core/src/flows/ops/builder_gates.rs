@@ -227,7 +227,7 @@ pub(crate) async fn build_builder_proposal(
         ));
     }
 
-    let summary = crate::flows::tools::build_summary(graph);
+    let summary = tinyflows::summary::summarize(graph);
     let mut warnings = graph_trigger_warnings(graph);
     warnings.extend(graph_wiring_warnings(config, graph).await);
     // Connector onboarding (Phase 5, item 18): tell the proposal card which
