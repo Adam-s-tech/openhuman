@@ -163,7 +163,7 @@ test("names test.rs after a non-mod.rs declarer and refuses a taken name", () =>
   assert.match(nested.edits.get("src/foo.rs"), /#\[path = "foo\/foo_tests.rs"\]/);
 
   const taken = planLegacyRenames(new Map([
-    ["src/a.rs", "mod a_test;\n"],
+    ["src/lib.rs", "mod a_test;\n"],
     ["src/a_test.rs", "x\n"],
     ["src/a_tests.rs", "y\n"],
   ]));
@@ -173,7 +173,7 @@ test("names test.rs after a non-mod.rs declarer and refuses a taken name", () =>
 
 test("leaves a legacy file alone when its own child modules depend on its name", () => {
   const plan = planLegacyRenames(new Map([
-    ["src/a.rs", "mod a_test;\n"],
+    ["src/lib.rs", "mod a_test;\n"],
     ["src/a_test.rs", "mod helper;\n"],
     ["src/a_test/helper.rs", "x\n"],
   ]));
