@@ -17,7 +17,7 @@ pub mod types;
 
 #[allow(unused_imports)]
 pub use types::{
-    BilledUsage, ChatResponse, ProviderDelta, UsageInfo, AGENT_TURN_MAX_OUTPUT_TOKENS,
+    BilledUsage, ChatResponse, ProviderDelta, AGENT_TURN_MAX_OUTPUT_TOKENS,
 };
 
 pub use error_code::{
