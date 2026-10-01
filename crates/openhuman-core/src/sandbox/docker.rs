@@ -291,3 +291,7 @@ pub fn validate_docker_policy(policy: &SandboxPolicy) -> Result<(), Vec<String>>
 #[cfg(test)]
 #[path = "docker_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "docker_exec_tests.rs"]
+mod exec_tests;
