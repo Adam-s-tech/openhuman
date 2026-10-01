@@ -173,7 +173,6 @@ tokio::task_local! {
     /// tool invocation that happens outside an agent turn (e.g. CLI/RPC
     /// direct tool calls); `spawn_subagent` rejects in that case.
     pub static PARENT_CONTEXT: ParentExecutionContext;
-
 }
 
 /// Returns a clone of the current parent execution context, if one is set.
