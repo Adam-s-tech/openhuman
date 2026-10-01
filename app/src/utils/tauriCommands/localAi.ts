@@ -55,10 +55,11 @@ export interface SentimentResult {
   confidence: number;
 }
 
-export type RepairAction =
-  | { action: 'install_ollama' }
-  | { action: 'start_server'; binary_path: string | null }
-  | { action: 'pull_model'; model: string };
+/**
+ * Always empty: the core no longer installs or starts runtimes or pulls
+ * models, so remediation is text-only in `issues`.
+ */
+export type RepairAction = never;
 
 /**
  * Verdict for a model's native context window against the memory-layer
