@@ -16,6 +16,29 @@ pub(super) type TurnChatModel = Arc<dyn ChatModel<()>>;
 pub(super) type TierRoutes = Vec<(String, TurnChatModel)>;
 pub(super) type BuiltTurnModels = (TurnChatModel, TierRoutes, TurnChatModel);
 
+/// Build a [`PFormatRegistry`](tinytools_agent::PFormatRegistry)
+/// from the tool schemas advertised on a [`ModelRequest`] (issue #4465).
+///
+/// The text-mode fallback parse needs each tool's positional parameter layout
+/// to reconstruct named JSON arguments from a P-Format `name[a|b]` body. The
+/// harness populates `request.tools` when tools are available (schemas are
+/// rendered into the prompt for prompt-guided providers, or advertised natively
+/// otherwise), so the registry is available in both modes. Tool-less requests
+/// skip fallback parsing entirely; this empty registry is therefore consulted
+/// only alongside a non-empty advertised tool list.
+fn pformat_registry_from_request(request: &ModelRequest) -> tinytools_agent::PFormatRegistry {
+    request
+        .tools
+        .iter()
+        .map(|t| {
+            (
+                t.name.clone(),
+                tinytools_agent::PFormatToolParams::from_schema(&t.parameters),
+            )
+        })
+        .collect()
+}
+
 /// Translate an openhuman [`ChatResponse`] into a harness [`ModelResponse`]
 /// (visible text + tool calls + token usage).
 ///
@@ -169,6 +192,21 @@ struct OpenhumanUsageMeta {
     /// Model context window in tokens (`UsageInfo::context_window`).
     #[serde(default)]
     context_window: u64,
+}
+
+/// Build the `ModelResponse.raw` value carrying charged-USD + context-window
+/// metadata, or `None` when the provider reported neither (so responses from
+/// providers that don't surface billing stay `raw: None`).
+fn openhuman_usage_meta_raw(usage: Option<&UsageInfo>) -> Option<serde_json::Value> {
+    let u = usage?;
+    if u.charged_amount_usd <= 0.0 && u.context_window == 0 {
+        return None;
+    }
+    let meta = OpenhumanUsageMeta {
+        charged_amount_usd: u.charged_amount_usd,
+        context_window: u.context_window,
+    };
+    Some(serde_json::json!({ OPENHUMAN_USAGE_META_KEY: meta }))
 }
 
 /// Merge the host billing/context metadata the crate [`Usage`] cannot carry into

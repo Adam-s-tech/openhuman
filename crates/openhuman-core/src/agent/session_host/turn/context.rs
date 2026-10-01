@@ -9,6 +9,53 @@ use crate::tools::agent_policy::render_tool_policy_boundary;
 
 use anyhow::Result;
 
+async fn collect_tree_root_summaries(
+    per_namespace_cap: usize,
+    total_cap: usize,
+) -> Vec<crate::agent::prompts::NamespaceSummary> {
+    use crate::memory::api::provider::MemoryProvider;
+
+    let Ok(guard) = crate::memory::ops::guard::active_memory_guard().await else {
+        return Vec::new();
+    };
+    let Some(tree) = guard.as_tree() else {
+        return Vec::new();
+    };
+    match tree
+        .root_summaries_with_caps(per_namespace_cap, total_cap)
+        .await
+    {
+        Ok(rows) => rows
+            .into_iter()
+            .map(|row| crate::agent::prompts::NamespaceSummary {
+                namespace: row.namespace,
+                body: row.body,
+                updated_at: row.updated_at,
+            })
+            .collect(),
+        Err(error) => {
+            log::warn!("[session-runtime] tree root summaries unavailable: {error}");
+            Vec::new()
+        }
+    }
+}
+
+fn sanitize_learned_entry(content: &str) -> String {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let sanitized: String = trimmed.chars().take(200).collect();
+    if sanitized.contains("Bearer ")
+        || sanitized.contains("sk-")
+        || sanitized.contains("ghp_")
+        || sanitized.contains("-----BEGIN")
+    {
+        return "[redacted: potential secret]".to_string();
+    }
+    sanitized
+}
+
 impl OpenHumanSessionHost {
     /// Pre-fetches learned context data from memory (observations, patterns, user profile).
     ///
