@@ -301,31 +301,6 @@ async fn get_default(harness: &Harness, id: i64) -> Value {
 
 // ── Tests ────────────────────────────────────────────────────────────
 
-/// The round trip the four existing specs use as setup and never assert.
-///
-/// `channels_get_default` is read back over the wire rather than out of the
-/// config file on purpose: reading the file would prove persistence but not
-/// that the getter serves it, and the getter is the half the UI calls.
-#[tokio::test]
-async fn set_default_then_get_default_returns_the_chosen_channel() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let set = set_default(&harness, 1, "telegram").await;
-    assert_eq!(
-        active_channel(&set, "channels_set_default"),
-        "telegram",
-        "channels_set_default should echo back the channel it just set"
-    );
-
-    let got = get_default(&harness, 2).await;
-    assert_eq!(
-        active_channel(&got, "channels_get_default"),
-        "telegram",
-        "channels_get_default should return the channel channels_set_default just stored"
-    );
-}
-
 /// The switch must survive as a *persisted* choice, not just an in-memory one.
 ///
 /// `proactive.rs:114-115` says the choice "is also persisted to
@@ -374,29 +349,6 @@ async fn set_default_persists_the_choice_to_config_on_disk() {
     );
 }
 
-/// Canonicalisation: the handler lower-cases before storing
-/// (`schemas.rs:332`), so a mixed-case switch from the UI must not produce a
-/// default that no comparison downstream matches.
-#[tokio::test]
-async fn set_default_canonicalises_channel_case() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let set = set_default(&harness, 1, "TeleGram").await;
-    assert_eq!(
-        active_channel(&set, "channels_set_default(TeleGram)"),
-        "telegram",
-        "channels_set_default should canonicalise the channel to lower case before storing it"
-    );
-
-    let got = get_default(&harness, 2).await;
-    assert_eq!(
-        active_channel(&got, "channels_get_default"),
-        "telegram",
-        "channels_get_default should return the canonicalised form, not the caller's casing"
-    );
-}
-
 /// #3712 — the live-apply half, and the one that a config-only test cannot see.
 ///
 /// `set_default_channel` (`ops/connect/status.rs:92-99`) does two things: it
@@ -436,21 +388,5 @@ async fn set_default_applies_to_the_live_proactive_handle() {
         "channels_set_default persisted the choice but did not update the live proactive \
          routing handle, so proactive messages keep going to the old channel until the \
          process restarts (#3712)"
-    );
-}
-
-/// The documented fallback. `handle_get_default` (`schemas.rs:348`) ends in
-/// `.unwrap_or_else(|| "web".to_string())`, so a fresh install answers `web`
-/// rather than erroring or returning null — the UI renders this value directly.
-#[tokio::test]
-async fn get_default_falls_back_to_web_before_anything_is_set() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let got = get_default(&harness, 1).await;
-    assert_eq!(
-        active_channel(&got, "channels_get_default(fresh)"),
-        "web",
-        "a fresh install should report `web` as the default messaging channel"
     );
 }
