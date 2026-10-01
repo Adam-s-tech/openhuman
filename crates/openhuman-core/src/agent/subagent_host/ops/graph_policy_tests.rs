@@ -1,4 +1,5 @@
 use super::*;
+use tinytools_agent::dialect::TranscriptEntry;
 #[derive(Clone, Default)]
 struct WarnSink(Arc<std::sync::Mutex<Vec<String>>>);
 

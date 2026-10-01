@@ -218,6 +218,7 @@ fn extract_workflow_proposal_ignores_non_proposal_tool_results() {
     let history = vec![TranscriptEntry::ToolResults(vec![ToolResultEntry {
         tool_call_id: "call-1".to_string(),
         content: json!({ "type": "search_results", "items": [] }).to_string(),
+        trusted_verbatim: false,
     }])];
 
     assert!(extract_workflow_proposal(&history).is_none());
