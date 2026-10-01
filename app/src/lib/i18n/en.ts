@@ -711,7 +711,6 @@ const en: TranslationMap = {
   'memory.analyzeNow': 'Analyze Now',
   'namespaceOverview.entitiesShort': '{count} ent.',
 
-
   // Memory Tree status panel (#1856 Part 1)
   'memoryTree.status.title': 'Memory Tree',
   'memoryTree.status.autoSyncLabel': 'Auto-sync',
@@ -5595,7 +5594,7 @@ const en: TranslationMap = {
   'memoryEngine.dialog.replayContent':
     'Also re-send synced content so the new engine rebuilds its summaries',
   'memoryEngine.dialog.replayContentHint': 'Re-reading content uses OpenHuman credits.',
-  'memoryEngine.dialog.stepProgress': 'Copying {step}… {count} so far',
+  'memoryEngine.dialog.stepProgress': 'Copying {step}… {count} copied so far',
   'memoryEngine.step.records': 'memories',
   'memoryEngine.step.documents': 'document titles and tags',
   'memoryEngine.step.goals': 'goals',
@@ -5604,6 +5603,8 @@ const en: TranslationMap = {
   'memoryEngine.step.content': 'synced content',
   'memoryEngine.notCopied':
     'Switched. The new engine does not support these, so they were not copied: {items}.',
+  'memoryEngine.contentRefused':
+    'The new engine refused some synced content ({count}). Your previous engine still keeps it, and its next sync can bring it again.',
   'memoryEngine.dialog.lacking':
     'The new engine does not support these features of your current engine:',
   'memoryEngine.error.insufficientCredits':

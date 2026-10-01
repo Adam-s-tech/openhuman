@@ -5371,7 +5371,7 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.replayContent':
     'Reenviar também o conteúdo sincronizado para que o novo mecanismo reconstrua seus resumos',
   'memoryEngine.dialog.replayContentHint': 'Reler o conteúdo consome créditos do OpenHuman.',
-  'memoryEngine.dialog.stepProgress': 'Copiando {step}… {count} até agora',
+  'memoryEngine.dialog.stepProgress': 'Copiando {step}… itens copiados até agora: {count}',
   'memoryEngine.step.records': 'memórias',
   'memoryEngine.step.documents': 'títulos e tags dos documentos',
   'memoryEngine.step.goals': 'objetivos',
@@ -5380,6 +5380,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'conteúdo sincronizado',
   'memoryEngine.notCopied':
     'Troca concluída. O novo mecanismo não oferece suporte a estes itens, então eles não foram copiados: {items}.',
+  'memoryEngine.contentRefused':
+    'O novo mecanismo recusou parte do conteúdo sincronizado ({count}). Seu mecanismo anterior ainda o mantém, e a próxima sincronização pode trazê-lo de novo.',
   'memoryEngine.dialog.lacking':
     'O novo mecanismo não oferece suporte a estes recursos do seu mecanismo atual:',
   'memoryEngine.error.insufficientCredits':

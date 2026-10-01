@@ -5325,7 +5325,7 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.replayContent':
     'Kirim ulang juga konten yang disinkronkan agar mesin baru menyusun ulang ringkasannya',
   'memoryEngine.dialog.replayContentHint': 'Membaca ulang konten menggunakan kredit OpenHuman.',
-  'memoryEngine.dialog.stepProgress': 'Menyalin {step}… {count} sejauh ini',
+  'memoryEngine.dialog.stepProgress': 'Menyalin {step}… tersalin sejauh ini: {count}',
   'memoryEngine.step.records': 'memori',
   'memoryEngine.step.documents': 'judul dan tag dokumen',
   'memoryEngine.step.goals': 'tujuan',
@@ -5334,6 +5334,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'konten yang disinkronkan',
   'memoryEngine.notCopied':
     'Sudah beralih. Mesin baru tidak mendukung hal berikut, jadi tidak disalin: {items}.',
+  'memoryEngine.contentRefused':
+    'Mesin baru menolak sebagian konten yang disinkronkan ({count}). Mesin Anda sebelumnya masih menyimpannya, dan sinkronisasi berikutnya dapat membawanya lagi.',
   'memoryEngine.dialog.lacking': 'Mesin baru tidak mendukung fitur mesin Anda saat ini berikut:',
   'memoryEngine.error.insufficientCredits':
     'Kredit OpenHuman Anda habis. Tambahkan kredit untuk menggunakan mesin ini.',

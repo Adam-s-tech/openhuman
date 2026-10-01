@@ -120,9 +120,24 @@ fn a_transcript_keeps_the_newest_turns_that_fit() {
     assert_eq!(tight, "user: second question\n\nassistant: the answer");
     assert_eq!(
         transcript(&refs[..1], 5),
-        "user: first question",
-        "one turn always fits, whatever the budget"
+        "user:",
+        "a turn longer than the whole budget is cut to it, not sent whole"
     );
+}
+
+/// A cut never splits a character, however the budget falls.
+#[test]
+fn an_oversized_turn_is_cut_on_a_character_boundary() {
+    let turns = [turn("user", "café ☕ au lait")];
+    let refs: Vec<&EpisodicTurn> = turns.iter().collect();
+    for max in 0..40 {
+        let cut = transcript(&refs, max);
+        assert!(cut.len() <= max, "max={max} gave {} bytes", cut.len());
+        assert!(
+            "user: café ☕ au lait".starts_with(&cut),
+            "max={max}: {cut}"
+        );
+    }
 }
 
 struct ScriptedRecap;

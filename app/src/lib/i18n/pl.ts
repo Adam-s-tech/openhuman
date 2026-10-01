@@ -5363,7 +5363,7 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.replayContent':
     'Wyślij też ponownie zsynchronizowane treści, aby nowy silnik odbudował swoje podsumowania',
   'memoryEngine.dialog.replayContentHint': 'Ponowne odczytanie treści zużywa kredyty OpenHuman.',
-  'memoryEngine.dialog.stepProgress': 'Kopiowanie: {step}… dotąd {count}',
+  'memoryEngine.dialog.stepProgress': 'Kopiowanie: {step}… skopiowano dotąd: {count}',
   'memoryEngine.step.records': 'wspomnienia',
   'memoryEngine.step.documents': 'tytuły i tagi dokumentów',
   'memoryEngine.step.goals': 'cele',
@@ -5372,6 +5372,8 @@ const messages: TranslationMap = {
   'memoryEngine.step.content': 'zsynchronizowane treści',
   'memoryEngine.notCopied':
     'Przełączono. Nowy silnik nie obsługuje poniższych elementów, więc nie zostały skopiowane: {items}.',
+  'memoryEngine.contentRefused':
+    'Nowy silnik odrzucił część zsynchronizowanych treści ({count}). Poprzedni silnik nadal je przechowuje, a kolejna synchronizacja może je ponownie dostarczyć.',
   'memoryEngine.dialog.lacking': 'Nowy silnik nie obsługuje tych funkcji Twojego obecnego silnika:',
   'memoryEngine.error.insufficientCredits':
     'Skończyły Ci się kredyty OpenHuman. Dodaj kredyty, aby użyć tego silnika.',

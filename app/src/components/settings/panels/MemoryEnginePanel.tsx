@@ -47,41 +47,68 @@ import {
 const log = debug('settings:memory-engine');
 
 /**
- * The steps a finished copy skipped because the new engine (or the old one)
- * does not serve them. Content the user chose not to re-send is not "left
- * behind": they asked for that.
+ * What a finished copy could not carry: the steps it skipped because an engine
+ * does not serve them, and the content the new engine refused. Content the
+ * user chose not to re-send is not left behind: they asked for that.
  */
-export function stepsLeftBehind(
+export interface CopyCompletion {
+  leftBehind: MemoryEngineMigrateStep[];
+  refused: number;
+}
+
+export function copyCompletion(
   status: MemoryEngineMigrateStatus,
   replayContent: boolean
-): MemoryEngineMigrateStep[] {
-  return (status.steps ?? [])
-    .filter(step => step.skipped_because !== null)
-    .filter(step => replayContent || step.step !== 'content')
-    .map(step => step.step);
+): CopyCompletion {
+  const steps = status.steps ?? [];
+  return {
+    leftBehind: steps
+      .filter(step => step.skipped_because !== null)
+      .filter(step => replayContent || step.step !== 'content')
+      .map(step => step.step),
+    // Only re-sent content may fail without holding the switch back, so on a
+    // finished job this is the content the new engine refused.
+    refused: steps.reduce((sum, step) => sum + step.failed, 0),
+  };
 }
 
 /** How often a running migration is polled. */
 export const MIGRATE_POLL_INTERVAL_MS = 1000;
 
-/** userScopedStorage key of the running migration `{ jobId, driver }`. */
+/** userScopedStorage key of the running migration `{ jobId, driver, replayContent }`. */
 export const MIGRATE_JOB_STORAGE_KEY = 'memoryEngine.migrateJob';
 
-async function storeJob(jobId: string, driver: string): Promise<void> {
-  await userScopedStorage.setItem(MIGRATE_JOB_STORAGE_KEY, JSON.stringify({ jobId, driver }));
+interface StoredJob {
+  jobId: string;
+  driver: string;
+  /** The content re-send choice the job was started with. */
+  replayContent: boolean;
+}
+
+async function storeJob(job: StoredJob): Promise<void> {
+  await userScopedStorage.setItem(MIGRATE_JOB_STORAGE_KEY, JSON.stringify(job));
 }
 
 async function clearStoredJob(): Promise<void> {
   await userScopedStorage.removeItem(MIGRATE_JOB_STORAGE_KEY);
 }
 
-async function readStoredJob(): Promise<{ jobId: string; driver: string } | null> {
+async function readStoredJob(): Promise<StoredJob | null> {
   try {
     const raw = await userScopedStorage.getItem(MIGRATE_JOB_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { jobId?: unknown; driver?: unknown };
+    const parsed = JSON.parse(raw) as {
+      jobId?: unknown;
+      driver?: unknown;
+      replayContent?: unknown;
+    };
     return typeof parsed.jobId === 'string' && typeof parsed.driver === 'string'
-      ? { jobId: parsed.jobId, driver: parsed.driver }
+      ? {
+          jobId: parsed.jobId,
+          driver: parsed.driver,
+          // A job stored before the choice existed re-sent content.
+          replayContent: parsed.replayContent !== false,
+        }
       : null;
   } catch {
     return null;
@@ -129,7 +156,7 @@ export default function MemoryEnginePanel() {
   // Re-send synced content with the copy (the content step); on unless the user opts out.
   const [replayContent, setReplayContent] = useState(true);
   // What a finished copy could not carry, shown once the switch is done.
-  const [leftBehind, setLeftBehind] = useState<MemoryEngineMigrateStep[]>([]);
+  const [completion, setCompletion] = useState<CopyCompletion | null>(null);
   // The replay choice the running job was started with (polling outlives the toggle).
   const replayRequestedRef = useRef(true);
   const mounted = useRef(true);
@@ -166,8 +193,15 @@ export default function MemoryEnginePanel() {
         const status = await memoryEngineMigrateStatus(stored.jobId);
         if (cancelled || !mounted.current) return;
         if (status.state === 'running') {
-          log('resuming migration job=%s driver=%s', stored.jobId, stored.driver);
+          log(
+            'resuming migration job=%s driver=%s replay_content=%s',
+            stored.jobId,
+            stored.driver,
+            stored.replayContent
+          );
           targetDriverRef.current = stored.driver;
+          replayRequestedRef.current = stored.replayContent;
+          setReplayContent(stored.replayContent);
           setSelectedId(stored.driver);
           setMigration(status);
           setSaving(true);
@@ -272,7 +306,7 @@ export default function MemoryEnginePanel() {
     setError(null);
     try {
       targetDriverRef.current = target.driver;
-      setLeftBehind([]);
+      setCompletion(null);
       replayRequestedRef.current = replayContent;
       const { job_id } = await memoryEngineMigrate(target, { replayContent });
       log(
@@ -284,7 +318,7 @@ export default function MemoryEnginePanel() {
       if (!mounted.current) return;
       setMigration({ state: 'running', copied: 0, total: null, error: null });
       setJobId(job_id);
-      void storeJob(job_id, target.driver);
+      void storeJob({ jobId: job_id, driver: target.driver, replayContent });
     } catch (err) {
       log('migrate start failed: %o', err);
       if (mounted.current) {
@@ -314,7 +348,7 @@ export default function MemoryEnginePanel() {
           log('migrate done job=%s copied=%d', jobId, status.copied);
           invalidateMemoryEngine();
           await finishSwitch(targetDriverRef.current);
-          if (mounted.current) setLeftBehind(stepsLeftBehind(status, replayRequestedRef.current));
+          if (mounted.current) setCompletion(copyCompletion(status, replayRequestedRef.current));
         } else if (status.state === 'cancelled') {
           log('migrate cancelled job=%s', jobId);
           void clearStoredJob();
@@ -385,13 +419,22 @@ export default function MemoryEnginePanel() {
           </Alert>
         ) : null}
 
-        {leftBehind.length > 0 ? (
+        {completion && (completion.leftBehind.length > 0 || completion.refused > 0) ? (
           <Alert variant="info" data-testid="memory-engine-left-behind">
             <AlertDescription>
-              {t('memoryEngine.notCopied').replace(
-                '{items}',
-                leftBehind.map(step => t(`memoryEngine.step.${step}`)).join(', ')
-              )}
+              {completion.leftBehind.length > 0 ? (
+                <p>
+                  {t('memoryEngine.notCopied').replace(
+                    '{items}',
+                    completion.leftBehind.map(step => t(`memoryEngine.step.${step}`)).join(', ')
+                  )}
+                </p>
+              ) : null}
+              {completion.refused > 0 ? (
+                <p data-testid="memory-engine-content-refused">
+                  {t('memoryEngine.contentRefused').replace('{count}', String(completion.refused))}
+                </p>
+              ) : null}
             </AlertDescription>
           </Alert>
         ) : null}

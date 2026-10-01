@@ -5,7 +5,12 @@ fn make_detector() -> StabilityDetector {
     let cache = crate::agent::learning::test_profile::in_memory_cache();
     // Use a private buffer so tests don't interfere with the global singleton.
     let buffer: &'static Buffer = Box::leak(Box::new(Buffer::new(256)));
-    StabilityDetector { cache, buffer }
+    StabilityDetector {
+        cache,
+        buffer,
+        last_rebuild_at: std::sync::Mutex::new(None),
+        rewrite_tolerance: REWRITE_TOLERANCE,
+    }
 }
 
 fn make_candidate(
@@ -306,7 +311,7 @@ fn reinforcement_floor_scopes_to_facet_class() {
         FacetClass::Style,
         FacetClass::Channel,
     ] {
-        let floor = most_recent_reinforcement(&[], None, now, class);
+        let floor = most_recent_reinforcement(&[], None, None, now, class);
         assert_eq!(
             floor,
             now - half_life(class),
@@ -316,8 +321,51 @@ fn reinforcement_floor_scopes_to_facet_class() {
     // Guard against a regression to a single hardcoded class: a class with a
     // different half-life than Style must produce a different floor.
     assert_ne!(
-        most_recent_reinforcement(&[], None, now, FacetClass::Goal),
-        most_recent_reinforcement(&[], None, now, FacetClass::Style),
+        most_recent_reinforcement(&[], None, None, now, FacetClass::Goal),
+        most_recent_reinforcement(&[], None, None, now, FacetClass::Style),
+    );
+}
+
+#[test]
+fn a_row_counts_as_reinforced_at_the_previous_rebuild_at_the_latest() {
+    // A row a rebuild skipped still carries the write time of an earlier
+    // cycle; the previous rebuild would have refreshed it, so that is the
+    // reinforcement stability reads. A later write time wins.
+    let now = 10_000_000.0;
+    let row = ProfileFacet {
+        facet_id: "f".into(),
+        facet_type: FacetType::Preference,
+        key: "style/verbosity".into(),
+        value: "terse".into(),
+        confidence: 0.8,
+        evidence_count: 5,
+        source_segment_ids: None,
+        first_seen_at: 1.0,
+        last_seen_at: now - 7_200.0,
+        state: FacetState::Active,
+        stability: 1.6,
+        user_state: UserState::Auto,
+        evidence_refs: Vec::new(),
+        class: Some("style".into()),
+        cue_families: None,
+    };
+    let class = FacetClass::Style;
+    assert_eq!(
+        most_recent_reinforcement(&[], Some(&row), None, now, class),
+        now - 7_200.0
+    );
+    assert_eq!(
+        most_recent_reinforcement(&[], Some(&row), Some(now - 1_800.0), now, class),
+        now - 1_800.0
+    );
+    assert_eq!(
+        most_recent_reinforcement(&[], Some(&row), Some(now - 9_000.0), now, class),
+        now - 7_200.0
+    );
+    assert_eq!(
+        most_recent_reinforcement(&[], None, Some(now - 1_800.0), now, class),
+        now - half_life(class),
+        "a rebuild time says nothing about a row that did not exist"
     );
 }
 
@@ -394,7 +442,14 @@ fn merge_evidence_refs_is_idempotent_across_rebuilds() {
 // ── rewrite tolerance ───────────────────────────────────────────────────────
 
 async fn seeded_detector(now: f64) -> StabilityDetector {
-    let detector = make_detector();
+    seeded_detector_with(now, REWRITE_TOLERANCE).await
+}
+
+async fn seeded_detector_with(now: f64, rewrite_tolerance: f64) -> StabilityDetector {
+    let detector = StabilityDetector {
+        rewrite_tolerance,
+        ..make_detector()
+    };
     for i in 0..5 {
         detector.buffer.push(make_candidate(
             FacetClass::Style,
@@ -446,29 +501,38 @@ async fn a_rebuild_with_nothing_new_leaves_a_settled_row_alone() {
     );
 }
 
-/// Skipping writes does not change where decay lands: rebuilding every half
-/// hour for a week reaches the score one rebuild at the end of the week does,
-/// within the tolerance.
+/// Skipping writes changes nothing a reader acts on. Rebuilding every half
+/// hour for a week, a detector that skips rows that moved less than the
+/// tolerance keeps, at every step, the lifecycle state of one that writes
+/// every row every cycle, with scores within the tolerance — stability
+/// included, which counts time since reinforcement rather than decaying from
+/// the stored row.
 #[tokio::test]
-async fn skipped_writes_decay_to_the_same_score() {
+async fn skipped_writes_track_a_detector_that_writes_every_cycle() {
     let start = 1_000_000.0;
-    let week = 7.0 * 86400.0;
-    let stepped = seeded_detector(start).await;
+    let skipping = seeded_detector_with(start, REWRITE_TOLERANCE).await;
+    let writing = seeded_detector_with(start, 0.0).await;
     let mut at = start;
-    while at < start + week {
+    for _ in 0..(7 * 48) {
         at += 30.0 * 60.0;
-        stepped.rebuild(at).await.unwrap();
+        skipping.rebuild(at).await.unwrap();
+        writing.rebuild(at).await.unwrap();
+        let (skipped, written) = (verbosity(&skipping).await, verbosity(&writing).await);
+        let since = at - start;
+        assert_eq!(skipped.state, written.state, "state at t+{since}s");
+        assert!(
+            (skipped.confidence - written.confidence).abs() < REWRITE_TOLERANCE,
+            "confidence at t+{since}s: {} vs {}",
+            skipped.confidence,
+            written.confidence
+        );
+        assert!(
+            (skipped.stability - written.stability).abs() < REWRITE_TOLERANCE,
+            "stability at t+{since}s: {} vs {}",
+            skipped.stability,
+            written.stability
+        );
     }
-    let once = seeded_detector(start).await;
-    once.rebuild(at).await.unwrap();
-
-    let (stepped, once) = (verbosity(&stepped).await, verbosity(&once).await);
-    assert!(
-        (stepped.confidence - once.confidence).abs() < REWRITE_TOLERANCE * 2.0,
-        "stepped={} once={}",
-        stepped.confidence,
-        once.confidence
-    );
 }
 
 #[test]
@@ -496,20 +560,23 @@ fn a_row_is_rewritten_for_what_a_reader_would_see() {
         last_seen_at: 99.0,
         ..held.clone()
     };
-    assert!(!worth_rewriting(&held, &drifted), "a hair of decay");
+    assert!(
+        !worth_rewriting(&held, &drifted, REWRITE_TOLERANCE),
+        "a hair of decay"
+    );
     let decayed = ProfileFacet {
         confidence: 0.8 - REWRITE_TOLERANCE,
         ..held.clone()
     };
-    assert!(worth_rewriting(&held, &decayed));
+    assert!(worth_rewriting(&held, &decayed, REWRITE_TOLERANCE));
     let demoted = ProfileFacet {
         state: FacetState::Provisional,
         ..held.clone()
     };
-    assert!(worth_rewriting(&held, &demoted));
+    assert!(worth_rewriting(&held, &demoted, REWRITE_TOLERANCE));
     let reinforced = ProfileFacet {
         evidence_count: 6,
         ..held
     };
-    assert!(worth_rewriting(&drifted, &reinforced));
+    assert!(worth_rewriting(&drifted, &reinforced, REWRITE_TOLERANCE));
 }
