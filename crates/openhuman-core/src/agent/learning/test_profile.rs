@@ -18,7 +18,7 @@
 //!
 //! Integration tests under `tests/` link the library compiled *without*
 //! `cfg(test)`, so a test-gated helper is invisible to them — which is exactly
-//! how `tests/learning_phase4_integration_test.rs` was left uncompilable once
+//! how a root integration test was left uncompilable once
 //! before. `ProfileStore::for_tests` carries the same note and the same
 //! `#[doc(hidden)]` treatment for the same reason.
 //!

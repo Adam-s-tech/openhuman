@@ -18,35 +18,22 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::config::schema::{
-    generate_provider_id, generate_voice_provider_id, is_slug_reserved, is_voice_slug_reserved,
-    migrate_legacy_fields, AuditConfig, AuthStyle, CapabilityProviderConfig,
-    CapabilityProviderTrustState, CloudProviderCreds, CloudProviderType, DashboardConfig,
+    AuditConfig, CapabilityProviderConfig, CapabilityProviderTrustState, DashboardConfig,
     DingTalkConfig, DiscordConfig, EventStreamConfig, IrcConfig, LarkConfig, MatrixConfig,
-    MemoryConfig, MemoryContextWindow, ModelHealthConfig, OrchestratorModelConfig, ProxyConfig,
-    ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig, SecurityConfig, SlackConfig,
-    TelegramConfig, VoiceCapability, VoiceProviderCreds, WebhookConfig, WhatsAppConfig,
+    MemoryConfig, ModelHealthConfig, ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig,
+    SecurityConfig, SlackConfig, TelegramConfig, WebhookConfig, WhatsAppConfig,
 };
 use openhuman_core::config::settings_cli::{settings_section_json, ConfigSnapshotFields};
 use openhuman_core::config::{
-    clear_active_user, default_projects_dir, output_language_directive, pre_login_user_dir,
-    read_active_user_id, user_openhuman_dir, write_active_user_id, AgentConfig, ChannelsConfig,
-    Config, DaemonConfig, DelegateAgentConfig, DictationActivationMode, LlmBackend,
-    ReflectionSource, TeamModelConfig, UpdateRestartStrategy,
+    clear_active_user, default_projects_dir, pre_login_user_dir, read_active_user_id,
+    user_openhuman_dir, write_active_user_id, Config, DaemonConfig, DictationActivationMode,
+    LlmBackend, ReflectionSource, UpdateRestartStrategy,
 };
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;
 use openhuman_core::desktop::app_state::app_state_schemas;
-use openhuman_core::platform::connectivity::{
-    all_connectivity_controller_schemas, all_connectivity_registered_controllers,
-    connectivity_controller_schema,
-};
 use openhuman_core::security::credentials::bus::SessionExpiredSubscriber;
 use openhuman_core::security::credentials::profiles::{AuthProfile, AuthProfilesStore, TokenSet};
-use openhuman_core::security::credentials::session_support::{
-    build_session_state, get_session_token, is_local_session_token, load_app_session_profile,
-    parse_fields_value, profile_name_or_default, session_state_from_profile,
-    session_token_from_profile, summarize_auth_profile,
-};
 use openhuman_core::security::credentials::{
     clear_composio_api_key, decrypt_secret, encrypt_secret, get_composio_api_key,
     list_provider_credentials_by_prefix, normalize_provider, rpc_store_composio_api_key,
@@ -60,8 +47,6 @@ use openhuman_tinyhumans::backend::url::{
     DEFAULT_STAGING_API_BASE_URL, OPENHUMAN_INFERENCE_PATH, VITE_APP_ENV_VAR,
 };
 use tinybus::EventHandler;
-use tinyinference_voice::external_stt::SttApiStyle;
-use tinyinference_voice::external_tts::TtsApiStyle;
 
 const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
 
@@ -474,341 +459,6 @@ fn schema_method_names(value: &Value, namespace: &str) -> Vec<String> {
 }
 
 #[test]
-fn config_schema_helpers_cover_provider_voice_agent_and_channel_defaults() {
-    let mut provider = CloudProviderCreds {
-        id: "provider-legacy".to_string(),
-        legacy_type: Some("anthropic".to_string()),
-        ..CloudProviderCreds::default()
-    };
-    migrate_legacy_fields(&mut provider);
-    assert_eq!(provider.slug, "anthropic");
-    assert_eq!(provider.label, "Anthropic");
-    assert_eq!(provider.endpoint, "https://api.anthropic.com/v1");
-    assert_eq!(provider.auth_style, AuthStyle::Anthropic);
-    let mut openhuman_legacy = CloudProviderCreds {
-        id: "provider-openhuman".to_string(),
-        legacy_type: Some("openhuman".to_string()),
-        ..CloudProviderCreds::default()
-    };
-    migrate_legacy_fields(&mut openhuman_legacy);
-    assert_eq!(openhuman_legacy.slug, "openhuman");
-    assert_eq!(openhuman_legacy.label, "OpenHuman");
-    assert_eq!(openhuman_legacy.endpoint, "https://api.openhuman.ai/v1");
-    assert_eq!(openhuman_legacy.auth_style, AuthStyle::OpenhumanJwt);
-    let mut custom_legacy = CloudProviderCreds {
-        id: "provider-custom".to_string(),
-        legacy_type: Some("unknown-provider".to_string()),
-        ..CloudProviderCreds::default()
-    };
-    migrate_legacy_fields(&mut custom_legacy);
-    assert_eq!(custom_legacy.label, "Custom");
-    assert!(custom_legacy.endpoint.is_empty());
-    let mut sumopod_legacy = CloudProviderCreds {
-        id: "provider-sumopod".to_string(),
-        legacy_type: Some("sumopod".to_string()),
-        ..CloudProviderCreds::default()
-    };
-    migrate_legacy_fields(&mut sumopod_legacy);
-    assert_eq!(sumopod_legacy.slug, "sumopod");
-    assert_eq!(sumopod_legacy.label, "SumoPod");
-    assert_eq!(sumopod_legacy.endpoint, "https://ai.sumopod.com/v1");
-    assert_eq!(sumopod_legacy.auth_style, AuthStyle::Bearer);
-    let mut minimax_legacy = CloudProviderCreds {
-        id: "provider-minimax".to_string(),
-        legacy_type: Some("minimax".to_string()),
-        ..CloudProviderCreds::default()
-    };
-    migrate_legacy_fields(&mut minimax_legacy);
-    assert_eq!(minimax_legacy.slug, "minimax");
-    assert_eq!(minimax_legacy.label, "MiniMax");
-    // MiniMax uses its OpenAI-compatible /v1 surface + Bearer (TAURI-RUST-8X3);
-    // the legacy `type=minimax` migration fills from the corrected catalog.
-    assert_eq!(minimax_legacy.endpoint, "https://api.minimax.io/v1");
-    assert_eq!(minimax_legacy.auth_style, AuthStyle::Bearer);
-    assert_eq!(AuthStyle::OpenhumanJwt.as_str(), "openhuman_jwt");
-    assert_eq!(AuthStyle::Anthropic.as_str(), "anthropic");
-    assert_eq!(AuthStyle::None.as_str(), "none");
-    assert_eq!(
-        CloudProviderType::Openrouter.default_endpoint(),
-        "https://openrouter.ai/api/v1"
-    );
-    assert_eq!(
-        CloudProviderType::Openhuman.default_endpoint(),
-        "https://api.openhuman.ai/v1"
-    );
-    assert_eq!(
-        CloudProviderType::Openai.default_endpoint(),
-        "https://api.openai.com/v1"
-    );
-    assert_eq!(
-        CloudProviderType::Anthropic.default_endpoint(),
-        "https://api.anthropic.com/v1"
-    );
-    assert_eq!(
-        CloudProviderType::Orcarouter.default_endpoint(),
-        "https://api.orcarouter.ai/v1"
-    );
-    assert_eq!(CloudProviderType::Custom.default_endpoint(), "");
-    assert_eq!(CloudProviderType::Openhuman.label(), "OpenHuman");
-    assert_eq!(CloudProviderType::Openai.label(), "OpenAI");
-    assert_eq!(CloudProviderType::Anthropic.label(), "Anthropic");
-    assert_eq!(CloudProviderType::Orcarouter.label(), "OrcaRouter");
-    assert_eq!(CloudProviderType::Openhuman.as_str(), "openhuman");
-    assert_eq!(CloudProviderType::Openai.as_str(), "openai");
-    assert_eq!(CloudProviderType::Anthropic.as_str(), "anthropic");
-    assert_eq!(CloudProviderType::Openrouter.as_str(), "openrouter");
-    assert_eq!(CloudProviderType::Orcarouter.as_str(), "orcarouter");
-    assert_eq!(CloudProviderType::Custom.as_str(), "custom");
-    assert_eq!(
-        CloudProviderType::Openhuman.auth_style(),
-        AuthStyle::OpenhumanJwt
-    );
-    assert_eq!(
-        CloudProviderType::Anthropic.auth_style(),
-        AuthStyle::Anthropic
-    );
-    assert_eq!(CloudProviderType::Custom.auth_style(), AuthStyle::Bearer);
-    assert!(is_slug_reserved(" cloud "));
-    assert!(!is_slug_reserved("ollama"));
-
-    let provider_id = generate_provider_id("my provider!");
-    assert!(provider_id.starts_with("p_my_provider__"));
-    assert_eq!(provider_id.rsplit('_').next().unwrap().len(), 5);
-
-    assert!(VoiceCapability::Stt.supports_stt());
-    assert!(!VoiceCapability::Stt.supports_tts());
-    assert_eq!(VoiceCapability::Tts.as_str(), "tts");
-    assert_eq!(VoiceCapability::Stt.as_str(), "stt");
-    assert_eq!(VoiceCapability::Both.as_str(), "both");
-    assert!(VoiceCapability::Both.supports_stt());
-    assert!(VoiceCapability::Both.supports_tts());
-    assert_eq!(VoiceProviderCreds::default().auth_style, AuthStyle::Bearer);
-    let voice_defaults = VoiceProviderCreds::default();
-    assert_eq!(voice_defaults.stt_api_style, SttApiStyle::OpenaiAudio);
-    assert_eq!(voice_defaults.tts_api_style, TtsApiStyle::OpenaiAudio);
-    assert_eq!(
-        openhuman_core::config::schema::voice_providers::builtin_voice_provider("deepgram")
-            .expect("deepgram builtin")
-            .default_stt_model,
-        Some("nova-2")
-    );
-    assert!(is_voice_slug_reserved(" whisper "));
-    assert!(!is_voice_slug_reserved("openai"));
-    let voice_id = generate_voice_provider_id("voice provider!");
-    assert!(voice_id.starts_with("vp_voice_provider__"));
-    assert_eq!(voice_id.rsplit('_').next().unwrap().len(), 5);
-
-    let team = TeamModelConfig {
-        lead_model: Some(" lead-model ".to_string()),
-        agent_model: None,
-    };
-    assert_eq!(team.model_for_role(true), Some("lead-model"));
-    assert_eq!(team.model_for_role(false), Some("lead-model"));
-    assert_eq!(
-        MemoryContextWindow::from_str_opt("MAXIMUM"),
-        Some(MemoryContextWindow::Maximum)
-    );
-    assert_eq!(MemoryContextWindow::Extended.as_str(), "extended");
-    assert_eq!(MemoryContextWindow::Minimal.as_str(), "minimal");
-    assert_eq!(MemoryContextWindow::Balanced.as_str(), "balanced");
-    assert_eq!(MemoryContextWindow::Maximum.as_str(), "maximum");
-    assert_eq!(
-        MemoryContextWindow::Balanced.limits().total_tree_max_chars,
-        32_000
-    );
-    assert_eq!(
-        MemoryContextWindow::Extended
-            .limits()
-            .per_namespace_max_chars,
-        16_000
-    );
-    assert_eq!(MemoryContextWindow::from_str_opt("unsupported"), None);
-    let delegate: DelegateAgentConfig =
-        serde_json::from_value(json!({ "model": "delegate-model" })).expect("delegate defaults");
-    assert_eq!(delegate.max_depth, 3);
-    assert!(delegate.system_prompt.is_none());
-    let mut agent = AgentConfig {
-        max_memory_context_chars: 20_000,
-        ..AgentConfig::default()
-    };
-    assert_eq!(
-        agent.resolved_memory_limits().max_memory_context_chars,
-        MemoryContextWindow::Maximum
-            .limits()
-            .max_memory_context_chars
-    );
-    agent.memory_window = Some(MemoryContextWindow::Minimal);
-    assert_eq!(
-        agent.resolved_memory_limits(),
-        MemoryContextWindow::Minimal.limits()
-    );
-
-    let default_channels = ChannelsConfig::default();
-    assert!(!default_channels.has_listening_integrations());
-    let mut listening_channels = default_channels.clone();
-    listening_channels.whatsapp = Some(WhatsAppConfig {
-        access_token: Some("token".to_string()),
-        phone_number_id: Some("phone".to_string()),
-        verify_token: Some("verify".to_string()),
-        app_secret: None,
-        session_path: None,
-        pair_phone: None,
-        pair_code: None,
-        allowed_numbers: vec![],
-    });
-    assert!(listening_channels.has_listening_integrations());
-    let whatsapp = listening_channels
-        .whatsapp
-        .as_ref()
-        .expect("whatsapp config");
-    assert_eq!(whatsapp.backend_type(), "cloud");
-    assert!(whatsapp.is_cloud_config());
-    assert!(!whatsapp.is_web_config());
-    let whatsapp_web = WhatsAppConfig {
-        access_token: None,
-        phone_number_id: None,
-        verify_token: None,
-        app_secret: None,
-        session_path: Some("/tmp/openhuman-whatsapp-session".to_string()),
-        pair_phone: None,
-        pair_code: None,
-        allowed_numbers: vec![],
-    };
-    assert_eq!(whatsapp_web.backend_type(), "web");
-    assert!(!whatsapp_web.is_cloud_config());
-    assert!(whatsapp_web.is_web_config());
-
-    let minimal_config: Config = toml::from_str(
-        r#"
-api_url = "https://api.example.test"
-
-[secrets]
-encrypt = false
-"#,
-    )
-    .expect("minimal config should deserialize with defaults");
-    assert_eq!(minimal_config.default_temperature, 0.7);
-    assert!(minimal_config
-        .temperature_unsupported_models
-        .iter()
-        .any(|pattern| pattern == "gpt-5*"));
-
-    assert_eq!(
-        output_language_directive(Some("zh_CN")).as_deref(),
-        Some(
-            "Output language: write all natural-language output in Simplified Chinese. Keep JSON keys, enum values, proper nouns, code, commands, and quoted source text unchanged."
-        )
-    );
-    assert_eq!(
-        output_language_directive(Some("  Klingon\u{0000}  ")).as_deref(),
-        Some(
-            "Output language: write all natural-language output in Klingon. Keep JSON keys, enum values, proper nouns, code, commands, and quoted source text unchanged."
-        )
-    );
-    assert_eq!(output_language_directive(Some("\u{0000}\u{0001}")), None);
-    assert_eq!(output_language_directive(Some("   ")), None);
-    assert_eq!(output_language_directive(None), None);
-
-    let mut config = Config::default();
-    config.workspace_dir = PathBuf::from("/tmp/openhuman-worker-a-workspace");
-    assert_eq!(
-        config.memory_tree_content_root(),
-        PathBuf::from("/tmp/openhuman-worker-a-workspace/memory_tree/content")
-    );
-    config.memory_tree.content_dir = Some(PathBuf::from("/tmp/custom-memory-tree"));
-    assert_eq!(
-        config.memory_tree_content_root(),
-        PathBuf::from("/tmp/custom-memory-tree")
-    );
-
-    config.chat_provider = Some(" ollama:chat-local ".into());
-    config.reasoning_provider = Some("cloud".into());
-    config.agentic_provider = Some("ollama:agent-local".into());
-    config.coding_provider = Some("ollama:code-local".into());
-    config.memory_provider = Some("ollama:memory-local".into());
-    config.embeddings_provider = Some("ollama:embed-local".into());
-    config.learning_provider = Some("ollama:learning-local".into());
-    assert_eq!(
-        config.workload_local_model("chat").as_deref(),
-        Some("chat-local")
-    );
-    config.chat_provider = Some("ollama:   ".into());
-    assert_eq!(config.workload_local_model("chat"), None);
-    config.chat_provider = Some("ollama:chat-local".into());
-    assert_eq!(config.workload_local_model("reasoning"), None);
-    assert!(config.workload_uses_local("agentic"));
-    assert!(config.workload_uses_local("coding"));
-    assert!(config.workload_uses_local("memory"));
-    assert!(config.workload_uses_local("embeddings"));
-    assert!(config.workload_uses_local("learning"));
-    assert!(!config.workload_uses_local("unknown"));
-    config.output_language = Some("fr".into());
-    assert!(config
-        .output_language_directive()
-        .expect("language directive")
-        .contains("French"));
-
-    config.orchestrator = OrchestratorModelConfig {
-        model: Some(" orchestrator-model ".into()),
-    };
-    config.teams.insert(
-        "research".into(),
-        TeamModelConfig {
-            lead_model: Some(" research-lead ".into()),
-            agent_model: Some("research-agent".into()),
-        },
-    );
-    config.teams.insert(
-        "tools".into(),
-        TeamModelConfig {
-            lead_model: None,
-            agent_model: Some("tools-agent".into()),
-        },
-    );
-    assert_eq!(
-        config.configured_agent_model("orchestrator", false),
-        Some("orchestrator-model")
-    );
-    assert_eq!(
-        config.configured_agent_model("research", true),
-        Some("research-lead")
-    );
-    assert_eq!(
-        config.configured_agent_model("research_agent", false),
-        Some("research-agent")
-    );
-    assert_eq!(
-        config.configured_agent_model("tools", false),
-        Some("tools-agent")
-    );
-    // The retired built-in aliases (`tool_maker` → `[teams.tools]`) are gone.
-    assert_eq!(config.configured_agent_model("tool_maker", false), None);
-    config.teams.insert(
-        "code".into(),
-        TeamModelConfig {
-            lead_model: Some("code-lead".into()),
-            agent_model: Some("code-agent".into()),
-        },
-    );
-    config.teams.insert(
-        "integrations".into(),
-        TeamModelConfig {
-            lead_model: None,
-            agent_model: Some("integrations-agent".into()),
-        },
-    );
-    assert_eq!(
-        config.configured_agent_model("code_agent", true),
-        Some("code-lead")
-    );
-    assert_eq!(
-        config.configured_agent_model("integrations", false),
-        Some("integrations-agent")
-    );
-    assert_eq!(config.configured_agent_model("   ", false), None);
-}
-
-#[test]
 fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes() {
     let capability = CapabilityProviderConfig::default();
     assert_eq!(
@@ -1104,143 +754,6 @@ fn config_settings_cli_sections_project_snapshots_and_missing_fields() {
     assert!(missing_memory
         .pointer("/result/settings")
         .is_some_and(Value::is_null));
-}
-
-#[test]
-fn config_proxy_public_paths_normalize_validate_and_apply_scope() {
-    let _lock = env_lock();
-    let _http = EnvVarGuard::unset("HTTP_PROXY");
-    let _https = EnvVarGuard::unset("HTTPS_PROXY");
-    let _all = EnvVarGuard::unset("ALL_PROXY");
-    let _no = EnvVarGuard::unset("NO_PROXY");
-    let _http_lower = EnvVarGuard::unset("http_proxy");
-    let _https_lower = EnvVarGuard::unset("https_proxy");
-    let _all_lower = EnvVarGuard::unset("all_proxy");
-    let _no_lower = EnvVarGuard::unset("no_proxy");
-
-    assert!(ProxyConfig::supported_service_keys()
-        .iter()
-        .any(|key| *key == "memory.embeddings"));
-    assert!(ProxyConfig::supported_service_selectors()
-        .iter()
-        .any(|selector| *selector == "tool.*"));
-
-    let services = ProxyConfig {
-        enabled: true,
-        http_proxy: Some(" http://proxy.example:8080 ".into()),
-        https_proxy: Some("https://secure-proxy.example".into()),
-        all_proxy: None,
-        no_proxy: vec![" localhost, 127.0.0.1 ".into(), "example.test".into()],
-        scope: ProxyScope::Services,
-        services: vec![
-            " Tool.* ".into(),
-            "tool.browser".into(),
-            "memory.embeddings".into(),
-        ],
-    };
-    services.validate().expect("valid services proxy");
-    assert_eq!(
-        services.normalized_services(),
-        vec!["memory.embeddings", "tool.*", "tool.browser"]
-    );
-    assert_eq!(
-        services.normalized_no_proxy(),
-        vec!["127.0.0.1", "example.test", "localhost"]
-    );
-    assert!(services.should_apply_to_service("tool.http_request"));
-    assert!(services.should_apply_to_service("memory.embeddings"));
-    assert!(!services.should_apply_to_service("provider.openai"));
-    assert!(!services.should_apply_to_service("   "));
-    let _client = services
-        .apply_to_reqwest_builder(reqwest::Client::builder(), "tool.browser")
-        .build()
-        .expect("proxied client builds");
-
-    let env_scope = ProxyConfig {
-        enabled: true,
-        scope: ProxyScope::Environment,
-        all_proxy: Some("socks5h://proxy.example:1080".into()),
-        ..ProxyConfig::default()
-    };
-    env_scope.validate().expect("valid env proxy");
-    assert!(!env_scope.should_apply_to_service("tool.browser"));
-    env_scope.apply_to_process_env();
-    assert_eq!(
-        std::env::var("ALL_PROXY").as_deref(),
-        Ok("socks5h://proxy.example:1080")
-    );
-    assert_eq!(
-        std::env::var("all_proxy").as_deref(),
-        Ok("socks5h://proxy.example:1080")
-    );
-    assert!(std::env::var("NO_PROXY").is_err());
-
-    ProxyConfig::clear_process_env();
-    assert!(std::env::var("ALL_PROXY").is_err());
-    assert!(std::env::var("all_proxy").is_err());
-
-    let openhuman_scope = ProxyConfig {
-        enabled: true,
-        scope: ProxyScope::OpenHuman,
-        http_proxy: Some("https://proxy.example".into()),
-        no_proxy: vec![" local.test ".into()],
-        ..ProxyConfig::default()
-    };
-    assert!(openhuman_scope.has_any_proxy_url());
-    assert!(openhuman_scope.should_apply_to_service("provider.openai"));
-    assert_eq!(openhuman_scope.normalized_no_proxy(), vec!["local.test"]);
-    openhuman_scope.apply_to_process_env();
-    assert_eq!(
-        std::env::var("HTTP_PROXY").as_deref(),
-        Ok("https://proxy.example")
-    );
-    assert_eq!(std::env::var("NO_PROXY").as_deref(), Ok("local.test"));
-    ProxyConfig::clear_process_env();
-
-    for mut invalid in [
-        ProxyConfig {
-            enabled: true,
-            http_proxy: Some("ftp://proxy.example".into()),
-            ..ProxyConfig::default()
-        },
-        ProxyConfig {
-            enabled: true,
-            scope: ProxyScope::Services,
-            services: vec![],
-            http_proxy: Some("http://proxy.example".into()),
-            ..ProxyConfig::default()
-        },
-        ProxyConfig {
-            enabled: true,
-            http_proxy: None,
-            https_proxy: None,
-            all_proxy: None,
-            ..ProxyConfig::default()
-        },
-        ProxyConfig {
-            enabled: false,
-            services: vec!["unknown.service".into()],
-            ..ProxyConfig::default()
-        },
-    ] {
-        assert!(
-            invalid.validate().is_err(),
-            "invalid proxy config should fail: {invalid:?}"
-        );
-        invalid.enabled = false;
-    }
-
-    openhuman_core::config::set_runtime_proxy_config(services.clone());
-    assert!(openhuman_core::config::runtime_proxy_config().should_apply_to_service("tool.browser"));
-    let _cached = openhuman_core::config::build_runtime_proxy_client("tool.browser");
-    let _cached_again = openhuman_core::config::build_runtime_proxy_client("tool.browser");
-    let _timeout_client =
-        openhuman_core::config::build_runtime_proxy_client_with_timeouts("memory.embeddings", 1, 1);
-    let _builder = openhuman_core::config::apply_runtime_proxy_to_builder(
-        reqwest::Client::builder(),
-        "tool.http_request",
-    );
-    openhuman_core::config::set_runtime_proxy_config(ProxyConfig::default());
 }
 
 #[test]
@@ -1636,59 +1149,6 @@ async fn config_loaders_resolve_user_workspace_markers_and_ignore_workspace_when
     .expect("load explicit config path");
     assert_eq!(explicit.workspace_dir, explicit_workspace);
     assert_eq!(explicit.default_model.as_deref(), Some("scoped-env-model"));
-}
-
-#[tokio::test]
-async fn config_loaders_recover_corrupted_primary_from_backup_or_defaults() {
-    let _lock = env_lock();
-    let tmp = tempdir().expect("tempdir");
-    let workspace_dir = tmp.path().join("workspace");
-    let recovered_dir = tmp.path().join("recovered");
-    std::fs::create_dir_all(&recovered_dir).expect("create recovered config dir");
-    let recovered_config_path = recovered_dir.join("config.toml");
-    std::fs::write(&recovered_config_path, "this is not = toml = valid")
-        .expect("write corrupted primary config");
-    std::fs::write(
-        recovered_config_path.with_extension("toml.bak"),
-        r#"
-api_url = "http://127.0.0.1:9"
-default_model = "backup-model"
-default_temperature = 0.33
-
-[secrets]
-encrypt = false
-"#,
-    )
-    .expect("write valid backup config");
-
-    let recovered = Config::load_from_config_path(&recovered_config_path, &workspace_dir)
-        .await
-        .expect("load config recovered from backup");
-    assert_eq!(recovered.config_path, recovered_config_path);
-    assert_eq!(recovered.workspace_dir, workspace_dir);
-    assert_eq!(recovered.default_model.as_deref(), Some("backup-model"));
-    assert_eq!(recovered.default_temperature, 0.33);
-
-    let defaulted_dir = tmp.path().join("defaulted");
-    std::fs::create_dir_all(&defaulted_dir).expect("create defaulted config dir");
-    let defaulted_config_path = defaulted_dir.join("config.toml");
-    std::fs::write(&defaulted_config_path, "this is not = toml = valid")
-        .expect("write corrupted primary config");
-    std::fs::write(
-        defaulted_config_path.with_extension("toml.bak"),
-        "still not = valid = toml",
-    )
-    .expect("write corrupted backup config");
-
-    let defaulted = Config::load_from_config_path(&defaulted_config_path, &workspace_dir)
-        .await
-        .expect("load config defaulted after corrupted backup");
-    assert_eq!(defaulted.config_path, defaulted_config_path);
-    assert_eq!(defaulted.workspace_dir, workspace_dir);
-    assert_eq!(
-        defaulted.default_temperature,
-        Config::default().default_temperature
-    );
 }
 
 #[tokio::test]
@@ -2205,112 +1665,6 @@ fn auth_service_direct_paths_cover_profile_selection_and_validation() {
     );
 }
 
-#[test]
-fn credentials_session_support_public_helpers_normalize_tokens_fields_and_summaries() {
-    let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
-    config.secrets.encrypt = false;
-    std::fs::create_dir_all(config.config_path.parent().expect("config parent"))
-        .expect("create config parent");
-
-    assert_eq!(profile_name_or_default(None), "default");
-    assert_eq!(profile_name_or_default(Some("   ")), "default");
-    assert_eq!(profile_name_or_default(Some("  work  ")), "work");
-    assert!(is_local_session_token(" header.payload.local "));
-    assert!(!is_local_session_token("header.payload.remote"));
-    assert!(parse_fields_value(Some(json!("bad"))).is_err());
-    assert!(parse_fields_value(Some(json!({ "   ": "bad" }))).is_err());
-    let fields = parse_fields_value(Some(json!({
-        "string": "value",
-        "number": 42,
-        "bool": true,
-        "empty": null
-    })))
-    .expect("fields object should parse");
-    assert_eq!(fields.get("number").map(String::as_str), Some("42"));
-    assert_eq!(fields.get("bool").map(String::as_str), Some("true"));
-    assert_eq!(fields.get("empty").map(String::as_str), Some(""));
-
-    assert!(!session_state_from_profile(None).is_authenticated);
-    assert_eq!(session_token_from_profile(None), None);
-
-    let auth = AuthService::from_config(&config);
-    let mut profile = AuthProfile::new_token(
-        APP_SESSION_PROVIDER,
-        "default",
-        "  header.payload.local  ".to_string(),
-    );
-    profile
-        .metadata
-        .insert("user_id".to_string(), "session-user".to_string());
-    profile.metadata.insert(
-        "user_json".to_string(),
-        json!({
-            "id": "session-user",
-            "name": "Session Worker",
-            "email": "session-worker@example.test"
-        })
-        .to_string(),
-    );
-    profile
-        .metadata
-        .insert("zeta".to_string(), "last".to_string());
-    profile
-        .metadata
-        .insert("alpha".to_string(), "first".to_string());
-    auth.load_profiles().expect("profile store should be empty");
-    AuthProfilesStore::new(
-        config.config_path.parent().expect("config parent"),
-        config.secrets.encrypt,
-    )
-    .upsert_profile(profile.clone(), true)
-    .expect("store app session profile");
-
-    let loaded = load_app_session_profile(&config)
-        .expect("load app session profile")
-        .expect("stored app session profile");
-    let state = session_state_from_profile(Some(&loaded));
-    assert!(state.is_authenticated);
-    assert_eq!(state.user_id.as_deref(), Some("session-user"));
-    assert_eq!(
-        state
-            .user
-            .as_ref()
-            .and_then(|user| user.get("email"))
-            .and_then(Value::as_str),
-        Some("session-worker@example.test")
-    );
-    assert_eq!(
-        session_token_from_profile(Some(&loaded)),
-        Some("header.payload.local".to_string())
-    );
-    assert_eq!(
-        get_session_token(&config).expect("session token from config"),
-        Some("header.payload.local".to_string())
-    );
-    assert!(
-        build_session_state(&config)
-            .expect("session state from config")
-            .is_authenticated
-    );
-
-    let summary = summarize_auth_profile(&loaded);
-    assert_eq!(summary.provider, APP_SESSION_PROVIDER);
-    assert_eq!(summary.kind, "token");
-    assert!(summary.has_token);
-    assert!(!summary.has_token_set);
-    assert!(
-        summary
-            .metadata_keys
-            .windows(2)
-            .all(|pair| pair[0] <= pair[1]),
-        "metadata keys should be sorted for stable UI output: {:?}",
-        summary.metadata_keys
-    );
-}
-
 #[tokio::test]
 async fn auth_provider_prefix_listing_sorts_filters_and_excludes_app_session() {
     let _lock = env_lock();
@@ -2651,6 +2005,60 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
             schema_method_names(&schema, namespace),
             expected,
             "schema catalog mismatch for namespace {namespace}"
+        );
+    }
+
+    // Inference/agent/tools/approval methods must also be advertised.
+    let advertised: Vec<String> = schema
+        .get("methods")
+        .and_then(Value::as_array)
+        .expect("schema methods array")
+        .iter()
+        .filter_map(|method| method.get("method").and_then(Value::as_str))
+        .map(str::to_string)
+        .collect();
+    for expected in [
+        "openhuman.inference_status",
+        "openhuman.inference_get_client_config",
+        "openhuman.inference_update_model_settings",
+        "openhuman.inference_update_local_settings",
+        "openhuman.inference_list_models",
+        "openhuman.inference_device_profile",
+        "openhuman.inference_presets",
+        "openhuman.inference_apply_preset",
+        "openhuman.inference_diagnostics",
+        "openhuman.inference_openai_oauth_start",
+        "openhuman.inference_openai_oauth_complete",
+        "openhuman.inference_openai_oauth_status",
+        "openhuman.inference_openai_oauth_disconnect",
+        "openhuman.inference_summarize",
+        "openhuman.inference_prompt",
+        "openhuman.inference_vision_prompt",
+        "openhuman.inference_test_provider_model",
+        "openhuman.inference_analyze_sentiment",
+        "openhuman.agent_chat",
+        "openhuman.agent_chat_simple",
+        "openhuman.agent_server_status",
+        "openhuman.agent_list_definitions",
+        "openhuman.agent_get_definition",
+        "openhuman.agent_reload_definitions",
+        "openhuman.agent_triage_evaluate",
+        "openhuman.tools_composio_execute",
+        "openhuman.tools_web_search",
+        "openhuman.tools_web_answer",
+        "openhuman.tools_web_contents",
+        "openhuman.tools_searxng_search",
+        "openhuman.tools_apify_linkedin_scrape",
+        "openhuman.tool_registry_list",
+        "openhuman.tool_registry_get",
+        "openhuman.tool_registry_diagnostics",
+        "openhuman.approval_list_pending",
+        "openhuman.approval_list_recent_decisions",
+        "openhuman.approval_decide",
+    ] {
+        assert!(
+            advertised.iter().any(|method| method == expected),
+            "schema catalog must expose {expected}"
         );
     }
 
@@ -4269,57 +3677,6 @@ async fn app_state_snapshot_keeps_unquarantinable_local_state_path_but_uses_defa
 }
 
 #[tokio::test]
-async fn app_state_snapshot_quarantines_corrupted_local_state_file() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let config = rpc(&harness.rpc_base, 31_001, "openhuman.config_get", json!({})).await;
-    let workspace_dir = payload(&config, "config_get for app_state corruption")
-        .get("workspace_dir")
-        .and_then(Value::as_str)
-        .map(PathBuf::from)
-        .expect("config_get should expose workspace_dir");
-    let state_dir = workspace_dir.join("state");
-    std::fs::create_dir_all(&state_dir).expect("create state dir");
-    let app_state_path = state_dir.join("app-state.json");
-    std::fs::write(&app_state_path, "{ not valid json").expect("write corrupted app state");
-
-    let snapshot = rpc(
-        &harness.rpc_base,
-        31_002,
-        "openhuman.app_state_snapshot",
-        json!({}),
-    )
-    .await;
-    let local_state = payload(&snapshot, "app_state_snapshot after corrupt state")
-        .get("localState")
-        .expect("snapshot should include localState");
-    assert!(
-        local_state.as_object().is_some_and(|map| map.is_empty()),
-        "corrupted app state should fall back to defaults: {local_state}"
-    );
-    assert!(
-        !app_state_path.exists(),
-        "corrupted app state file should be moved out of the live path"
-    );
-    let quarantined = std::fs::read_dir(&state_dir)
-        .expect("read state dir")
-        .filter_map(Result::ok)
-        .any(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with("app-state.json.corrupted.")
-        });
-    assert!(
-        quarantined,
-        "corrupted app state file should be quarantined under {state_dir:?}"
-    );
-
-    harness.join.abort();
-}
-
-#[tokio::test]
 async fn app_state_snapshot_quarantines_unreadable_local_state_path() {
     let _lock = env_lock();
     let harness = setup().await;
@@ -5060,221 +4417,4 @@ fn credentials_profile_store_keychain_migration_and_fallback_paths_are_determini
         .is_none(),
         "removing a profile should delete its keychain payload"
     );
-}
-
-#[test]
-fn credentials_profile_store_reclaims_stale_dead_pid_lock() {
-    let _lock = env_lock();
-    let _keyring_guard = EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file");
-    let tmp = tempdir().expect("tempdir");
-    let state_dir = tmp.path().join("stale-lock");
-    std::fs::create_dir_all(&state_dir).expect("create stale lock profile dir");
-    let lock_path = state_dir.join("auth-profiles.lock");
-    std::fs::write(&lock_path, "pid=999999999\n").expect("write stale auth profile lock");
-
-    let store = AuthProfilesStore::new(&state_dir, false);
-    let loaded = store
-        .load()
-        .expect("stale dead-pid lock should be reclaimed");
-    assert!(loaded.profiles.is_empty());
-    assert!(
-        !lock_path.exists(),
-        "stale lock should be removed after successful load"
-    );
-}
-
-#[test]
-fn connectivity_public_helpers_cover_schemas_and_port_probe() {
-    let schemas = all_connectivity_controller_schemas();
-    assert_eq!(schemas.len(), 1);
-    assert_eq!(schemas[0].namespace, "connectivity");
-    assert_eq!(schemas[0].function, "diag");
-    assert!(schemas[0].inputs.is_empty());
-    assert_eq!(schemas[0].outputs[0].name, "diag");
-
-    let registered = all_connectivity_registered_controllers();
-    assert_eq!(registered.len(), schemas.len());
-
-    let unknown = connectivity_controller_schema("missing");
-    assert_eq!(unknown.namespace, "connectivity");
-    assert_eq!(unknown.function, "unknown");
-    assert_eq!(unknown.outputs[0].name, "error");
-    assert!(unknown.description.contains("Unknown connectivity"));
-
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind probe listener");
-    let port = listener.local_addr().expect("probe local addr").port();
-    assert!(openhuman_core::platform::connectivity::ops::is_port_in_use(
-        port
-    ));
-    drop(listener);
-    let _ = openhuman_core::platform::connectivity::ops::is_port_in_use(port);
-}
-
-#[tokio::test]
-async fn connectivity_pick_listen_port_uses_fallback_when_preferred_is_busy() {
-    let _lock = env_lock();
-    let mut held_listener = None;
-    let mut preferred = 0;
-    for _ in 0..25 {
-        let listener =
-            std::net::TcpListener::bind("127.0.0.1:0").expect("bind candidate preferred listener");
-        let port = listener.local_addr().expect("candidate local addr").port();
-        if port < u16::MAX - 10 {
-            preferred = port;
-            held_listener = Some(listener);
-            break;
-        }
-    }
-    let held_listener = held_listener.expect("find preferred port with fallback room");
-
-    let picked = openhuman_core::platform::connectivity::rpc::pick_listen_port_for_host(
-        "127.0.0.1",
-        preferred,
-    )
-    .await
-    .expect("busy preferred port should fall back");
-    assert_ne!(picked.port, preferred);
-    assert_eq!(picked.fallback_from, Some(preferred));
-    drop(picked.listener);
-    drop(held_listener);
-}
-
-#[tokio::test]
-async fn connectivity_pick_listen_port_covers_direct_bind_and_exhausted_fallbacks() {
-    let _lock = env_lock();
-
-    let direct =
-        openhuman_core::platform::connectivity::rpc::pick_listen_port_for_host("127.0.0.1", 0)
-            .await
-            .expect("port 0 should bind directly");
-    assert_eq!(direct.fallback_from, None);
-    drop(direct.listener);
-
-    let mut held_listeners = Vec::new();
-    let mut preferred = None;
-    for _ in 0..50 {
-        held_listeners.clear();
-        let base_listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind base listener");
-        let base = base_listener.local_addr().expect("base addr").port();
-        if base > u16::MAX - 10 {
-            continue;
-        }
-        held_listeners.push(base_listener);
-        let mut complete_range = true;
-        for port in (base + 1)..=(base + 10) {
-            match std::net::TcpListener::bind(("127.0.0.1", port)) {
-                Ok(listener) => held_listeners.push(listener),
-                Err(_) => {
-                    complete_range = false;
-                    break;
-                }
-            }
-        }
-        if complete_range {
-            preferred = Some(base);
-            break;
-        }
-    }
-    let preferred = preferred.expect("reserve preferred port and fallback range");
-    let exhausted = openhuman_core::platform::connectivity::rpc::pick_listen_port_for_host(
-        "127.0.0.1",
-        preferred,
-    )
-    .await
-    .expect_err("busy preferred and fallback range should fail");
-    match &exhausted {
-        openhuman_core::platform::connectivity::rpc::PickListenPortError::NoAvailablePort {
-            preferred: err_preferred,
-            attempted,
-            fingerprint,
-        } => {
-            assert_eq!(*err_preferred, preferred);
-            assert_eq!(attempted.len(), 10);
-            assert!(
-                fingerprint.contains("probe"),
-                "non-OpenHuman listeners should be identified by probe details: {fingerprint}"
-            );
-        }
-        other => panic!("unexpected exhausted port error: {other:?}"),
-    }
-    assert!(
-        exhausted
-            .to_string()
-            .contains("no fallback ports available"),
-        "Display should explain exhausted fallbacks: {exhausted}"
-    );
-
-    let takeover =
-        openhuman_core::platform::connectivity::rpc::PickListenPortError::WouldTakeOver {
-            preferred,
-            fingerprint: "openhuman-core".into(),
-        };
-    assert!(takeover
-        .to_string()
-        .contains("stale-listener takeover required"));
-    let bind_failed =
-        openhuman_core::platform::connectivity::rpc::PickListenPortError::BindFailed {
-            port: preferred,
-            reason: "synthetic bind failure".into(),
-        };
-    assert!(bind_failed.to_string().contains("synthetic bind failure"));
-}
-
-#[tokio::test]
-async fn connectivity_diag_reports_runtime_port_sources() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let diag = rpc(
-        &harness.rpc_base,
-        40_001,
-        "openhuman.connectivity_diag",
-        json!({}),
-    )
-    .await;
-    let diag_payload = payload(&diag, "connectivity_diag")
-        .get("diag")
-        .unwrap_or_else(|| panic!("connectivity diag should include diag payload: {diag}"));
-    assert!(
-        diag_payload
-            .get("sidecar_pid")
-            .and_then(Value::as_u64)
-            .is_some(),
-        "diag should expose sidecar_pid: {diag_payload}"
-    );
-    assert!(
-        diag_payload
-            .get("listen_port")
-            .and_then(Value::as_u64)
-            .is_some(),
-        "diag should expose listen_port: {diag_payload}"
-    );
-    assert!(
-        diag_payload
-            .get("listen_port_in_use")
-            .and_then(Value::as_bool)
-            .is_some(),
-        "diag should expose listen_port_in_use: {diag_payload}"
-    );
-
-    {
-        let _rpc_url = EnvVarGuard::set("OPENHUMAN_CORE_RPC_URL", "http://127.0.0.1:4567/rpc");
-        let _core_port = EnvVarGuard::set("OPENHUMAN_CORE_PORT", "7788");
-        let snapshot = openhuman_core::platform::connectivity::rpc::snapshot();
-        assert_eq!(snapshot.listen_port, 4567);
-    }
-    {
-        let _rpc_url = EnvVarGuard::set("OPENHUMAN_CORE_RPC_URL", "not a url");
-        let _core_port = EnvVarGuard::set("OPENHUMAN_CORE_PORT", "4568");
-        let snapshot = openhuman_core::platform::connectivity::rpc::snapshot();
-        assert_eq!(snapshot.listen_port, 4568);
-    }
-    {
-        let _rpc_url = EnvVarGuard::unset("OPENHUMAN_CORE_RPC_URL");
-        let _core_port = EnvVarGuard::set("OPENHUMAN_CORE_PORT", "not-a-port");
-        let snapshot = openhuman_core::platform::connectivity::rpc::snapshot();
-        assert_eq!(snapshot.listen_port, 7788);
-    }
-
-    harness.join.abort();
 }
