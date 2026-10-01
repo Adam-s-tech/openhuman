@@ -236,9 +236,8 @@ impl ComposioExecuteTool {
             iana = %iana,
             "[composio][dispatcher] applying calendar query defaults pre-dispatch"
         );
-        let arguments = tinyconnectors::execute::apply_calendar_query_defaults(
-            &tool, arguments, &iana,
-        );
+        let arguments =
+            tinyconnectors::execute::apply_calendar_query_defaults(&tool, arguments, &iana);
 
         // Task-recency window (morning briefing): when the calling agent
         // installed a window, inject best-effort server-side narrowing for
