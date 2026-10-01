@@ -9,12 +9,12 @@ use super::budget::{
 };
 use super::response_predicates::malformed_history_user_message;
 use super::retry::{is_non_retryable_rate_limit_text, retry_after_hint};
+use super::timeout::is_turn_timeout_error;
 use tinyinference_llm::failure::{
     extract_provider_name, is_connection_dropped_text, is_empty_provider_response_text,
     is_fallback_chain_exhausted, is_malformed_tool_history_text, is_provider_request_rejected_text,
     is_transient_unavailability_text, parse_retry_after_secs, with_provider_detail,
 };
-use super::timeout::is_turn_timeout_error;
 
 /// Structured chat-error envelope produced by [`classify_inference_error`].
 ///
