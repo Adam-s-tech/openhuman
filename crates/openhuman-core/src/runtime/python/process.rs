@@ -3,12 +3,8 @@
 //! Uses unbuffered stdio (`-u`) by default so line-oriented protocols such as
 //! MCP do not stall behind Python's output buffering.
 
-use anyhow::{Context, Result};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use std::process::Stdio;
-
-use super::bootstrap::ResolvedPython;
 
 /// Launch spec for a Python stdio subprocess.
 #[derive(Debug, Clone)]

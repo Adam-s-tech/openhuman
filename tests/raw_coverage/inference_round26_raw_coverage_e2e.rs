@@ -16,7 +16,7 @@ use axum::{Json, Router};
 use openhuman_core::config::Config;
 use openhuman_core::agent::messages::ChatMessage;
 use openhuman_core::inference::host_runtime::LocalAiService;
-use openhuman_core::inference::provider::types::{ChatRequest, ProviderDelta};
+use openhuman_core::inference::provider::types::ProviderDelta;
 use tinytools::ToolSpec;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
