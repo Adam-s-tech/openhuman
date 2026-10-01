@@ -29,6 +29,15 @@ fn output_language_directive_accepts_language_names() {
 }
 
 #[test]
+fn output_language_directive_strips_control_characters_and_blank_input() {
+    let directive = output_language_directive(Some("  Klingon\u{0000}  ")).expect("directive");
+    assert!(directive.contains("write all natural-language output in Klingon."));
+    assert_eq!(output_language_directive(Some("\u{0000}\u{0001}")), None);
+    assert_eq!(output_language_directive(Some("   ")), None);
+    assert_eq!(output_language_directive(None), None);
+}
+
+#[test]
 fn config_parses_orchestrator_and_team_model_pins() {
     let config: Config = toml::from_str(
         r#"
