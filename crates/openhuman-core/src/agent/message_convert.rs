@@ -474,6 +474,30 @@ pub(crate) fn message_to_native_chat_message(msg: &Message) -> Option<Transcript
     })
 }
 
+/// [`message_to_native_chat_message`] for a row that is about to become a
+/// **provider request** by the session driver: a user turn's image parts are
+/// flattened into the private `[OH_IMAGE:<url>]` text marker (text containing
+/// that marker is escaped to `[OH_IMAGE_LITERAL:`), exactly as the string row
+/// bridge always did, so the request bytes are unchanged.
+///
+/// This is a deliberate compatibility shim, not a feature: it means the model
+/// receives the marker as literal text instead of an image block (the
+/// #6872/#6881 corpus pins that request). Returning the typed row unflattened
+/// here is the one-line fix, and needs the `image_user` golden regenerated.
+pub(crate) fn message_to_provider_chat_message(msg: &Message) -> Option<TranscriptMessage> {
+    let mut row = message_to_native_chat_message(msg)?;
+    if let Some(parts) = row.parts.take() {
+        row.content = parts
+            .iter()
+            .map(|part| match part {
+                TranscriptPart::Text { text } => text.replace("[OH_IMAGE:", "[OH_IMAGE_LITERAL:"),
+                TranscriptPart::Image { url } => format!("[OH_IMAGE:{url}]"),
+            })
+            .collect();
+    }
+    Some(row)
+}
+
 /// The row of a user message: its text, plus ordered parts when it carries an
 /// image. Json / provider-extension blocks carry no user-visible text, so they
 /// are dropped, as [`Message::text`] drops them.

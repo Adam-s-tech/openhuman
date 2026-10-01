@@ -12,7 +12,7 @@ use tinyinference_llm::model::{ModelRequest, ModelStreamItem};
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
-    message_convert::{dialect_response_from_provider, message_to_native_chat_message},
+    message_convert::{dialect_response_from_provider, message_to_provider_chat_message},
     session_host::turn_checkpoint::{
         self, build_deterministic_checkpoint, build_deterministic_final_summary,
         close_repair_instruction, close_verification_prompt, final_answer_instruction,
@@ -91,7 +91,7 @@ pub(super) async fn repair_required_output(
 
     let mut prompt_history: Vec<TranscriptMessage> = history
         .iter()
-        .filter_map(message_to_native_chat_message)
+        .filter_map(message_to_provider_chat_message)
         .collect();
     prompt_history.push(TranscriptMessage::user(wrap_harness_instruction(
         &required::repair_instruction(contract),
@@ -180,7 +180,7 @@ pub(super) async fn close_if_needed(
     };
     let base: Vec<TranscriptMessage> = base_history
         .iter()
-        .filter_map(message_to_native_chat_message)
+        .filter_map(message_to_provider_chat_message)
         .collect();
     let stop_reason = outcome.breaker_halt.as_deref();
 
