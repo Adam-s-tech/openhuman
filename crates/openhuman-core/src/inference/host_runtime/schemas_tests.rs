@@ -6,8 +6,8 @@ fn catalog_counts_match_and_nonempty() {
     let h = all_registered_controllers();
     assert_eq!(s.len(), h.len());
     assert!(
-        s.len() >= 10,
-        "local inference should expose >=10 controller fns"
+        s.len() >= 6,
+        "local inference should expose >=6 controller fns"
     );
 }
 
@@ -35,17 +35,32 @@ fn every_registered_key_resolves_to_non_unknown_schema() {
         "transcribe",
         "transcribe_bytes",
         "tts",
-        "assets_status",
-        "downloads_progress",
-        "download_asset",
-        "install_piper",
-        "piper_install_status",
         "test_connection",
     ];
     for k in keys {
         let s = schemas(k);
         assert_eq!(s.namespace, "inference");
         assert_ne!(s.function, "unknown", "key `{k}` fell through");
+    }
+}
+
+/// Model download, asset, and Piper-install controllers were removed: the
+/// user runs their own local runtime and pulls models there.
+#[test]
+fn download_and_installer_controllers_are_not_registered() {
+    let functions: Vec<&str> = all_controller_schemas()
+        .into_iter()
+        .map(|schema| schema.function)
+        .collect();
+    for removed in [
+        "assets_status",
+        "downloads_progress",
+        "download_asset",
+        "install_piper",
+        "piper_install_status",
+    ] {
+        assert!(!functions.contains(&removed), "`{removed}` still registered");
+        assert_eq!(schemas(removed).function, "unknown");
     }
 }
 
