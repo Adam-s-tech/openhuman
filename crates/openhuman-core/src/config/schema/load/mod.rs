@@ -1,7 +1,7 @@
 //! Config load/save and environment variable overrides.
 
-mod branches;
 mod active_workspace;
+mod branches;
 mod dirs;
 mod env;
 mod env_overlay;

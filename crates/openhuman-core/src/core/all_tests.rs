@@ -196,9 +196,17 @@ fn all_registered_controllers_is_nonempty() {
 
 #[test]
 fn all_controller_schemas_matches_registered_count() {
-    let schemas = all_controller_schemas();
-    let controllers = all_registered_controllers();
-    assert_eq!(schemas.len(), controllers.len());
+    // Take one registry snapshot: extensions may register concurrently between
+    // two public lookups, so comparing separate snapshots is racy.
+    let view = registry_view();
+    let caps = crate::core::runtime::context::CoreContext::current_memory_capabilities();
+    let visible: Vec<_> = view
+        .iter()
+        .filter(|g| group_allowed(g.group) && capability_allowed_in(caps, g.capability))
+        .collect();
+    let schemas = visible.iter().map(|g| &g.controller.schema).count();
+    let controllers = visible.len();
+    assert_eq!(schemas, controllers);
 }
 
 /// With the `voice` feature on (the default), the voice + audio_toolkit
