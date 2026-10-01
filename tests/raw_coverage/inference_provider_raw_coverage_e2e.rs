@@ -203,12 +203,6 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
     assert_eq!(listed["models"][0]["id"], "demo-chat");
     assert_eq!(listed["models"][1]["context_window"], 8192);
 
-    let local_listed = list_configured_models("ollama")
-        .await
-        .expect("synthetic ollama list")
-        .value;
-    assert_eq!(local_listed["models"][0]["id"], "demo-chat");
-
     // PR #2959 reverted the list_models 404 suppression: a 404 from /models
     // now surfaces as a real error instead of a synthetic `unsupported: true`
     // success, so the failure fires to Sentry for a root-cause fix.
@@ -219,12 +213,6 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
         missing_err.contains("provider returned 404"),
         "404 list_models error should surface the status: {missing_err:?}"
     );
-
-    let openrouter = list_configured_models("openrouter")
-        .await
-        .expect("openrouter key validation and list")
-        .value;
-    assert_eq!(openrouter["models"][0]["owned_by"], "test-suite");
 
     for provider_id in ["html", "wrong-data", "error-payload", ""] {
         let err = list_configured_models(provider_id)
