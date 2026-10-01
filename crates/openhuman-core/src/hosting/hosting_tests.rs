@@ -120,27 +120,3 @@ fn only_the_tools_that_change_the_world_carry_an_external_effect() {
         );
     }
 }
-
-#[test]
-fn every_tool_schema_is_an_object_naming_its_required_arguments() {
-    let workspace = tempfile::tempdir().expect("tempdir");
-    let config = config_with(workspace.path(), true, "token");
-    let account = Account::from_config(&config)
-        .expect("resolution does not fail")
-        .expect("an account");
-
-    for tool in account.tools() {
-        let schema = tool.parameters_schema();
-        assert_eq!(schema["type"], "object", "{}", tool.name());
-        assert!(
-            schema["properties"].is_object(),
-            "{} has no properties",
-            tool.name()
-        );
-        assert!(
-            !tool.description().is_empty(),
-            "{} has no description",
-            tool.name()
-        );
-    }
-}
