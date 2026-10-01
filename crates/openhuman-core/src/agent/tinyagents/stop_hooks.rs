@@ -101,15 +101,7 @@ where
             if let Some(usage) = &response.usage {
                 cost.add_call(
                     &self.model,
-                    &BilledUsage {
-                        input_tokens: usage.input_tokens,
-                        output_tokens: usage.output_tokens,
-                        context_window: 0,
-                        cached_input_tokens: usage.cache_read_tokens,
-                        cache_creation_tokens: usage.cache_creation_tokens,
-                        reasoning_tokens: usage.reasoning_tokens,
-                        charged_amount_usd: 0.0,
-                    },
+                    &BilledUsage::from_counts(usage.input_tokens, usage.output_tokens).with_cached_input_tokens(usage.cache_read_tokens).with_cache_creation_tokens(usage.cache_creation_tokens).with_reasoning_tokens(usage.reasoning_tokens),
                 );
             }
             cost.clone()

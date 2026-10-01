@@ -13,15 +13,7 @@ fn usage_round_trips_charged_usd_and_all_token_breakdowns() {
     let chat = ChatResponse {
         text: Some("hi".to_string()),
         tool_calls: Vec::new(),
-        usage: Some(BilledUsage {
-            input_tokens: 100,
-            output_tokens: 20,
-            context_window: 128_000,
-            cached_input_tokens: 40,
-            cache_creation_tokens: 10,
-            reasoning_tokens: 7,
-            charged_amount_usd: 0.0123,
-        }),
+        usage: Some(BilledUsage::from_counts(100, 20).with_context_window(128_000).with_cached_input_tokens(40).with_cache_creation_tokens(10).with_reasoning_tokens(7).with_charged_usd(0.0123)),
         reasoning_content: None,
     };
     let model_response = response_to_model_response(&chat, &empty_registry(), false);
@@ -55,11 +47,7 @@ fn no_billing_metadata_leaves_raw_clean() {
     let chat = ChatResponse {
         text: Some("hi".to_string()),
         tool_calls: Vec::new(),
-        usage: Some(BilledUsage {
-            input_tokens: 5,
-            output_tokens: 3,
-            ..Default::default()
-        }),
+        usage: Some(BilledUsage::from_counts(5, 3)),
         reasoning_content: None,
     };
     let model_response = response_to_model_response(&chat, &empty_registry(), false);

@@ -4,15 +4,7 @@ use crate::platform::cost::types::CostRecord;
 use tempfile::TempDir;
 
 fn make_usage(input: u64, output: u64, charged: f64) -> BilledUsage {
-    BilledUsage {
-        input_tokens: input,
-        output_tokens: output,
-        context_window: 0,
-        cached_input_tokens: 0,
-        cache_creation_tokens: 0,
-        reasoning_tokens: 0,
-        charged_amount_usd: charged,
-    }
+    BilledUsage::from_counts(input, output).with_charged_usd(charged)
 }
 
 #[test]

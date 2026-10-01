@@ -21,12 +21,7 @@ fn default_manager() -> ContextManager {
 #[test]
 fn stats_reports_snapshot() {
     let mut manager = default_manager();
-    manager.record_usage(&BilledUsage {
-        input_tokens: 10_000,
-        output_tokens: 2_000,
-        context_window: 100_000,
-        ..Default::default()
-    });
+    manager.record_usage(&BilledUsage::from_counts(10_000, 2_000).with_context_window(100_000));
     manager.tick_turn();
     manager.record_tool_calls(3);
 
@@ -82,12 +77,7 @@ fn autocompact_enabled_requires_both_master_and_autocompact_flags() {
 #[test]
 fn session_memory_lifecycle_changes_should_extract_state() {
     let mut manager = default_manager();
-    manager.record_usage(&BilledUsage {
-        input_tokens: 20_000,
-        output_tokens: 0,
-        context_window: 100_000,
-        ..Default::default()
-    });
+    manager.record_usage(&BilledUsage::from_counts(20_000, 0).with_context_window(100_000));
     for _ in 0..5 {
         manager.tick_turn();
     }

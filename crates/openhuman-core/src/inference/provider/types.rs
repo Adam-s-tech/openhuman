@@ -53,6 +53,18 @@ impl BilledUsage {
         self
     }
 
+    /// Sets the cache-creation (write) token count.
+    pub fn with_cache_creation_tokens(mut self, tokens: u64) -> Self {
+        self.usage.cache_creation_tokens = tokens;
+        self
+    }
+
+    /// Sets the reasoning/thinking token count.
+    pub fn with_reasoning_tokens(mut self, tokens: u64) -> Self {
+        self.usage.reasoning_tokens = tokens;
+        self
+    }
+
     /// Sets the provider-charged USD amount.
     pub fn with_charged_usd(mut self, usd: f64) -> Self {
         self.charged_amount_usd = usd;
