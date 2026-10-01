@@ -26,7 +26,6 @@ use openhuman_core::config::schema::{
     ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig, SecurityConfig, SlackConfig,
     TelegramConfig, VoiceCapability, VoiceProviderCreds, WebhookConfig, WhatsAppConfig,
 };
-use openhuman_core::config::settings_cli::{settings_section_json, ConfigSnapshotFields};
 use openhuman_core::config::{
     clear_active_user, default_projects_dir, output_language_directive, pre_login_user_dir,
     read_active_user_id, user_openhuman_dir, write_active_user_id, AgentConfig, ChannelsConfig,
