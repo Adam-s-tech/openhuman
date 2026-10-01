@@ -8,7 +8,7 @@ use crate::tools::agent_policy::ToolPolicyEngine;
 use std::collections::HashSet;
 use std::sync::Arc;
 use tinytools::{Tool, ToolSpec};
-use tinytools_agent::dialect::{parse_replayed_results, TranscriptEntry};
+use tinytools_agent::dialect::TranscriptEntry;
 
 impl OpenHumanSessionHost {
     // ─────────────────────────────────────────────────────────────────
@@ -251,33 +251,9 @@ impl OpenHumanSessionHost {
     /// or mutable `TranscriptEntry` accumulator in the host would recreate
     /// the session state now owned by `tinyagents_runtime::Session`.
     pub fn history(&self) -> Vec<TranscriptEntry> {
-        // `messages_to_conversation` keeps the tool-call structure
-        // (`AssistantToolCalls`) and coalesces native tool messages into
-        // `ToolResults` batches. A text dialect (xml, pformat, code) has no
-        // native tool messages: the session records each round's results as one
-        // `[Tool results]` user row, so that replay frame is read back into a
-        // `ToolResults` entry too. Callers such as the flows builder
-        // (`extract_workflow_proposal`) and the trail-off backstop match the
-        // `ToolResults` variant, and flattening every message into
-        // `TranscriptEntry::Chat` made it unreachable.
         self.runtime_session
             .as_ref()
-            .map(|session| {
-                crate::agent::message_convert::messages_to_conversation(session.history())
-                    .into_iter()
-                    .map(|entry| match entry {
-                        TranscriptEntry::Chat(message)
-                            if message.role == tinytools_agent::dialect::DialectRole::User =>
-                        {
-                            match parse_replayed_results(&message.content) {
-                                Some(results) => TranscriptEntry::ToolResults(results),
-                                None => TranscriptEntry::Chat(message),
-                            }
-                        }
-                        other => other,
-                    })
-                    .collect()
-            })
+            .map(|session| crate::agent::message_convert::messages_to_history_projection(session.history()))
             .unwrap_or_default()
     }
 
