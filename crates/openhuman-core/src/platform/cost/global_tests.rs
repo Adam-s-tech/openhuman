@@ -3,8 +3,8 @@ use crate::platform::cost::tracker_test_lock;
 use crate::platform::cost::types::CostRecord;
 use tempfile::TempDir;
 
-fn make_usage(input: u64, output: u64, charged: f64) -> UsageInfo {
-    UsageInfo {
+fn make_usage(input: u64, output: u64, charged: f64) -> BilledUsage {
+    BilledUsage {
         input_tokens: input,
         output_tokens: output,
         context_window: 0,

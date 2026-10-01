@@ -517,7 +517,7 @@ fn driver_error_with_snapshot(
                 .unwrap_or(fallback_model);
             crate::agent::cost::estimate_call_cost_usd(
                 pricing_model,
-                &crate::inference::provider::UsageInfo {
+                &crate::inference::provider::BilledUsage {
                     input_tokens: guard.input_tokens,
                     output_tokens: guard.output_tokens,
                     context_window: 0,

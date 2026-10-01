@@ -8,7 +8,7 @@
 //! bookkeeping. These tests cover that surviving surface.
 
 use super::*;
-use crate::inference::provider::UsageInfo;
+use crate::inference::provider::BilledUsage;
 
 fn manager_with_config(config: &ContextConfig) -> ContextManager {
     ContextManager::new(config, SystemPromptBuilder::with_defaults())
@@ -21,7 +21,7 @@ fn default_manager() -> ContextManager {
 #[test]
 fn stats_reports_snapshot() {
     let mut manager = default_manager();
-    manager.record_usage(&UsageInfo {
+    manager.record_usage(&BilledUsage {
         input_tokens: 10_000,
         output_tokens: 2_000,
         context_window: 100_000,
@@ -82,7 +82,7 @@ fn autocompact_enabled_requires_both_master_and_autocompact_flags() {
 #[test]
 fn session_memory_lifecycle_changes_should_extract_state() {
     let mut manager = default_manager();
-    manager.record_usage(&UsageInfo {
+    manager.record_usage(&BilledUsage {
         input_tokens: 20_000,
         output_tokens: 0,
         context_window: 100_000,

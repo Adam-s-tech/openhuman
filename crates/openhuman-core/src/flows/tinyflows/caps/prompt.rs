@@ -19,7 +19,7 @@ use tinyflows::error::{EngineError, Result};
 use super::*;
 use crate::agent::messages::ChatMessage;
 use crate::config::Config;
-use crate::inference::provider::{is_raw_passthrough_model, UsageInfo};
+use crate::inference::provider::{is_raw_passthrough_model, BilledUsage};
 use tinyflows::nodes::integration::agent_prompt;
 
 /// [`agent_prompt::build_completion_messages`] mapped onto the host's
@@ -36,10 +36,10 @@ pub(crate) fn build_completion_messages(request: &Value) -> Vec<ChatMessage> {
         .collect()
 }
 
-/// Maps a `UsageInfo` (not `Serialize`) into a JSON value field-by-field, so
+/// Maps a `BilledUsage` (not `Serialize`) into a JSON value field-by-field, so
 /// [`OpenHumanLlm::complete`] can surface it in its response `Value` without
 /// requiring an upstream `Serialize` impl change.
-pub(crate) fn usage_to_json(usage: &Option<UsageInfo>) -> Value {
+pub(crate) fn usage_to_json(usage: &Option<BilledUsage>) -> Value {
     match usage {
         None => Value::Null,
         Some(u) => json!({

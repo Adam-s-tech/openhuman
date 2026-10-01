@@ -10,7 +10,7 @@ use tokio::sync::mpsc::Sender;
 use tinyinference_llm::usage::Usage;
 
 use crate::agent::progress::AgentProgress;
-use crate::inference::provider::UsageInfo;
+use crate::inference::provider::BilledUsage;
 use tinytools::humanize_tool_name;
 
 use super::cap_pauser::{
@@ -68,7 +68,7 @@ pub(crate) struct OpenhumanEventBridge {
     /// side-channel written by `ToolOutcomeCaptureMiddleware`; read when
     /// projecting `ToolCallCompleted`.
     pub(super) failure_map: ToolFailureMap,
-    /// Shared FIFO carry of the per-call provider `UsageInfo` the model adapter
+    /// Shared FIFO carry of the per-call provider `BilledUsage` the model adapter
     /// observed; drained in `record_usage` to restore backend-charged USD +
     /// context-window + cache-creation/reasoning tokens the crate `Usage` drops.
     pub(super) usage_carry: ProviderUsageCarry,
@@ -437,7 +437,7 @@ impl OpenhumanEventBridge {
 
         // Feed the authoritative global cost tracker (same call the legacy
         // observer made), so the wallet/cost surfaces stay accurate.
-        let usage_info = UsageInfo {
+        let usage_info = BilledUsage {
             input_tokens: usage.input_tokens,
             output_tokens: usage.output_tokens,
             context_window,
@@ -484,7 +484,7 @@ impl OpenhumanEventBridge {
     pub(super) fn estimate_call_cost(model: &str, usage: &Usage) -> f64 {
         crate::agent::cost::estimate_call_cost_usd(
             model,
-            &UsageInfo {
+            &BilledUsage {
                 input_tokens: usage.input_tokens,
                 output_tokens: usage.output_tokens,
                 context_window: 0,

@@ -68,7 +68,7 @@ pub async fn token_usage(
         |model: Option<&str>, input: u64, output: u64, cached: u64, fallback: f64| match model {
             Some(m) => crate::agent::cost::estimate_call_cost_usd(
                 m,
-                &crate::inference::provider::UsageInfo {
+                &crate::inference::provider::BilledUsage {
                     input_tokens: input,
                     output_tokens: output,
                     cached_input_tokens: cached,

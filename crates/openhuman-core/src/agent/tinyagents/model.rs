@@ -10,7 +10,7 @@ use tinyinference_llm::model::{
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinyinference_llm::usage::Usage;
 
-use crate::inference::provider::{ChatResponse, UsageInfo};
+use crate::inference::provider::{ChatResponse, BilledUsage};
 
 pub(super) type TurnChatModel = Arc<dyn ChatModel<()>>;
 pub(super) type TierRoutes = Vec<(String, TurnChatModel)>;
@@ -210,14 +210,14 @@ pub(crate) fn prompt_guided_text_response(text: String, request: &ModelRequest) 
 /// (gap G1). Consumed by [`usage_info_from_response`].
 const OPENHUMAN_USAGE_META_KEY: &str = "openhuman_usage_meta";
 
-/// The two host [`UsageInfo`] fields with no crate [`Usage`] home, ferried
+/// The two host [`BilledUsage`] fields with no crate [`Usage`] home, ferried
 /// through [`ModelResponse::raw`] so a standalone `invoke` stays usage-faithful.
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 struct OpenhumanUsageMeta {
-    /// Provider-charged amount in USD (`UsageInfo::charged_amount_usd`).
+    /// Provider-charged amount in USD (`BilledUsage::charged_amount_usd`).
     #[serde(default)]
     charged_amount_usd: f64,
-    /// Model context window in tokens (`UsageInfo::context_window`).
+    /// Model context window in tokens (`BilledUsage::context_window`).
     #[serde(default)]
     context_window: u64,
 }
@@ -225,7 +225,7 @@ struct OpenhumanUsageMeta {
 /// Build the `ModelResponse.raw` value carrying charged-USD + context-window
 /// metadata, or `None` when the provider reported neither (so responses from
 /// providers that don't surface billing stay `raw: None`).
-fn openhuman_usage_meta_raw(usage: Option<&UsageInfo>) -> Option<serde_json::Value> {
+fn openhuman_usage_meta_raw(usage: Option<&BilledUsage>) -> Option<serde_json::Value> {
     let u = usage?;
     if u.charged_amount_usd <= 0.0 && u.context_window == 0 {
         return None;
@@ -278,7 +278,7 @@ pub(crate) fn merge_openhuman_usage_meta(
     }
 }
 
-/// Reconstruct a host [`UsageInfo`] from a crate [`ModelResponse`], recovering
+/// Reconstruct a host [`BilledUsage`] from a crate [`ModelResponse`], recovering
 /// the provider-charged USD + context window the adapter stashed in
 /// [`ModelResponse::raw`] (gap G1). Returns `None` when the response carried no
 /// usage at all.
@@ -287,7 +287,7 @@ pub(crate) fn merge_openhuman_usage_meta(
 /// the legacy chat response onto `Arc<dyn ChatModel>`
 /// (`invoke` → `ModelResponse`): the full host usage record — real token
 /// counts *and* backend-charged USD — survives the crossing.
-pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<UsageInfo> {
+pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<BilledUsage> {
     let usage = response.usage.as_ref()?;
     let mut meta = response
         .raw
@@ -303,7 +303,7 @@ pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<Usage
             .and_then(serde_json::Value::as_f64)
             .unwrap_or_default();
     }
-    Some(UsageInfo {
+    Some(BilledUsage {
         input_tokens: usage.input_tokens,
         output_tokens: usage.output_tokens,
         context_window: meta.context_window,

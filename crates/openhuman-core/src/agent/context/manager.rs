@@ -30,7 +30,7 @@ use super::session_memory::SessionMemoryConfig;
 use super::stats::{ContextStatsState, SessionMemoryHandle};
 use crate::agent::prompts::{PromptContext, SystemPromptBuilder};
 use crate::config::ContextConfig;
-use crate::inference::provider::UsageInfo;
+use crate::inference::provider::BilledUsage;
 use anyhow::Result;
 
 /// Read-only snapshot of per-session context state. Returned by
@@ -159,9 +159,9 @@ impl ContextManager {
 
     // ─── Budget tracking ──────────────────────────────────────────
 
-    /// Feed the latest provider [`UsageInfo`] into utilisation stats and the
+    /// Feed the latest provider [`BilledUsage`] into utilisation stats and the
     /// session-memory state.
-    pub fn record_usage(&mut self, usage: &UsageInfo) {
+    pub fn record_usage(&mut self, usage: &BilledUsage) {
         self.stats_state.record_usage(usage);
     }
 

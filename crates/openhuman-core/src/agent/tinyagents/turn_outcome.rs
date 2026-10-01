@@ -134,7 +134,7 @@ pub(crate) fn record_unobserved_turn_usage(
     );
     crate::platform::cost::record_provider_usage(
         model,
-        &crate::inference::provider::UsageInfo {
+        &crate::inference::provider::BilledUsage {
             input_tokens,
             output_tokens,
             context_window: 0,

@@ -411,7 +411,7 @@ pub(in super::super) async fn run_subagent_via_graph(
                     usage.charged_amount_usd += call_cost;
                     crate::platform::cost::record_provider_usage(
                         model,
-                        &crate::inference::provider::UsageInfo {
+                        &crate::inference::provider::BilledUsage {
                             input_tokens: u.input_tokens,
                             output_tokens: u.output_tokens,
                             context_window: u.context_window,

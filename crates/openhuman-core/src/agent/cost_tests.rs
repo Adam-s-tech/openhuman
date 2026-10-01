@@ -1,7 +1,7 @@
 use super::*;
 
-fn usage(input: u64, output: u64, cached: u64, charged: f64) -> UsageInfo {
-    UsageInfo {
+fn usage(input: u64, output: u64, cached: u64, charged: f64) -> BilledUsage {
+    BilledUsage {
         input_tokens: input,
         output_tokens: output,
         cached_input_tokens: cached,

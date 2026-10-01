@@ -492,7 +492,7 @@ fn observation_to_progress(obs: &AgentObservation, state: &mut ReplayState) -> V
             // The token counts are exact; `cost_usd` is an estimate.
             state.cost_usd += crate::agent::cost::estimate_call_cost_usd(
                 &state.model,
-                &crate::inference::provider::UsageInfo {
+                &crate::inference::provider::BilledUsage {
                     input_tokens: usage.input_tokens,
                     output_tokens: usage.output_tokens,
                     context_window: 0,

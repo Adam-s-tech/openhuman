@@ -50,7 +50,7 @@ fn resolve_model_normalizes_blank_and_trims_non_empty_values() {
 }
 
 /// The managed `openhuman.{billing,usage}` envelope on `raw` must re-project
-/// into the host `UsageInfo` the cost bridge reads — charged USD, cached
+/// into the host `BilledUsage` the cost bridge reads — charged USD, cached
 /// tokens, and context window — exactly as the legacy legacy model-adapter path did.
 #[test]
 fn project_managed_usage_recovers_charged_and_cached() {

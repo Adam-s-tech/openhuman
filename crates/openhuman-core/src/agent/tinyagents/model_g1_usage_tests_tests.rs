@@ -13,7 +13,7 @@ fn usage_round_trips_charged_usd_and_all_token_breakdowns() {
     let chat = ChatResponse {
         text: Some("hi".to_string()),
         tool_calls: Vec::new(),
-        usage: Some(UsageInfo {
+        usage: Some(BilledUsage {
             input_tokens: 100,
             output_tokens: 20,
             context_window: 128_000,
@@ -55,7 +55,7 @@ fn no_billing_metadata_leaves_raw_clean() {
     let chat = ChatResponse {
         text: Some("hi".to_string()),
         tool_calls: Vec::new(),
-        usage: Some(UsageInfo {
+        usage: Some(BilledUsage {
             input_tokens: 5,
             output_tokens: 3,
             ..Default::default()
