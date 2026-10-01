@@ -338,21 +338,3 @@ fn a_mistyped_file_path_is_a_correctable_call_not_a_missing_program() {
         Some(("unsupported", 0))
     );
 }
-
-#[test]
-fn a_site_refusing_one_url_does_not_halt_the_run() {
-    for tool in ["http_request", "web_fetch"] {
-        for error in ["HTTP 403 Forbidden", "status=401 Unauthorized"] {
-            assert_eq!(
-                super::super::repeated_failure::recovery_policy(tool, error, false),
-                Some(("permission", 1)),
-                "{tool}: {error}"
-            );
-        }
-    }
-    // The same status from a connector action is still a credential problem.
-    assert_eq!(
-        super::super::repeated_failure::recovery_policy("gmail_send", "HTTP 403 Forbidden", false),
-        Some(("authentication", 0))
-    );
-}

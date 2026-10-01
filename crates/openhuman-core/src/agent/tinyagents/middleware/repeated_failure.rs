@@ -247,12 +247,6 @@ pub(super) fn recovery_policy(
     {
         return Some(("not_found", 1));
     }
-    // A site refusing one URL (401/403/forbidden) is that site's answer, not a
-    // broken credential the run cannot work around. The scope key is per URL,
-    // so one retry on the same URL and free choice of every other source.
-    if matches!(class, "authentication" | "permission") && is_remote_fetch_tool(tool) {
-        return Some(("permission", 1));
-    }
     Some((class, budget))
 }
 
@@ -262,11 +256,6 @@ fn is_path_tool(tool: &str) -> bool {
         tool,
         "file_read" | "file_write" | "apply_patch" | "list_files" | "list" | "grep" | "glob"
     )
-}
-
-/// Tools that fetch an arbitrary third-party URL on the model's behalf.
-fn is_remote_fetch_tool(tool: &str) -> bool {
-    matches!(tool, "http_request" | "web_fetch")
 }
 
 fn classified_recovery_policy(
