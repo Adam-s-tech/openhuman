@@ -317,7 +317,7 @@ fn composio_list_tools_via_subagent_runs_on_production_worker_stack() {
     // real production budget and trips if the tower outgrows it.
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
-        .thread_stack_size(AGENT_WORKER_STACK_BYTES)
+        .thread_stack_size(std::env::var("STACK_KB").ok().and_then(|v| v.parse::<usize>().ok()).map(|k| k*1024).unwrap_or(AGENT_WORKER_STACK_BYTES))
         .enable_all()
         .build()
         .expect("build runtime");
