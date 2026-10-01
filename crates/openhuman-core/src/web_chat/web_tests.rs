@@ -119,6 +119,8 @@ async fn wait_for_parallel<F: Fn(&[(String, String)]) -> bool>(pred: F) -> Vec<(
     .expect("parallel in-flight condition not met before timeout")
 }
 
+#[path = "web_tests_error_copy_fixture_tests.rs"]
+mod error_copy_fixture_tests;
 #[path = "web_tests_error_code_classification_tests.rs"]
 mod error_code_classification_tests;
 #[path = "web_tests_queue_acceptance_tests.rs"]
