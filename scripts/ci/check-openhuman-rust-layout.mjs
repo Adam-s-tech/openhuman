@@ -31,12 +31,11 @@ const LEGACY_LIMIT_ENTRIES = [
   // change in `subagent_sessions`.
   [
     "crates/openhuman-core/src/agent/orchestration/tools/spawn_async_subagent_execute.rs",
-    800,
+    799,
   ],
   // `spawn_subagent_tool_impl.rs` had its entry DELETED, not lowered: the
   // parameter schema moved to `spawn_subagent_parameters.rs` and the file is
   // under the general 750 limit, so it needs no exception at all.
-  ["crates/openhuman-core/src/agent/multimodal.rs", 656],
   // The session-todo integration added transcript metadata construction to
   // this already-exempt composition seam. Keep its allowance exact.
   ["crates/openhuman-core/src/agent/session_host/runtime_session.rs", 1990],
