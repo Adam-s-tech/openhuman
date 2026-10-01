@@ -7,7 +7,6 @@
 //! issuing row.
 
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{attach_chat_tool_failure_metadata, transcript_message_from_chat};
 use tempfile::TempDir;
 use tinyagents_session::transcript::view::{
     project_records, project_thread, DisplayItem, ToolCallStatus,
@@ -346,27 +345,15 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
         task_id: None,
     };
 
-    let mut tool_msg = TranscriptMessage {
-        id: Some("call-1".into()),
-        role: "tool".into(),
-        content: r#"{"tool_call_id":"call-1","content":"boom"}"#.into(),
-        extra_metadata: None,
-        cache_breakpoints: Vec::new(),
-    };
-    attach_chat_tool_failure_metadata(&mut tool_msg, Some("boom: exit 1"));
+    let mut tool_msg =
+        TranscriptMessage::tool(r#"{"tool_call_id":"call-1","content":"boom"}"#).with_id("call-1");
+    tool_msg.tool_failure = Some(transcript::ToolFailure {
+        failed: true,
+        detail: Some("boom: exit 1".into()),
+    });
 
-    let messages = vec![
-        TranscriptMessage {
-            id: None,
-            role: "user".into(),
-            content: "do it".into(),
-            extra_metadata: None,
-            cache_breakpoints: Vec::new(),
-        },
-        tool_msg,
-    ];
+    let messages = vec![TranscriptMessage::user("do it"), tool_msg];
     let path = transcript::resolve_keyed_transcript_path(dir.path(), "700_orchestrator").unwrap();
-    let messages: Vec<_> = messages.iter().map(transcript_message_from_chat).collect();
     transcript::write_transcript(&path, &messages, &meta, None).unwrap();
 
     let display = read_transcript_display(&path).unwrap();
