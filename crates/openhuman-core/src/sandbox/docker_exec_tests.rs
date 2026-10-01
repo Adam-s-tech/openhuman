@@ -286,7 +286,10 @@ fn availability_probe_argv_and_status() {
     let tmp = tempfile::tempdir().unwrap();
     let (bin, out) = fake_docker(tmp.path(), "exit 0");
     assert!(with_fake_path(&bin, || block_on(is_docker_available())));
-    assert_eq!(recorded(&out), s(&["info", "--format", "{{.ServerVersion}}"]));
+    assert_eq!(
+        recorded(&out),
+        s(&["info", "--format", "{{.ServerVersion}}"])
+    );
 
     let tmp = tempfile::tempdir().unwrap();
     let (bin, _) = fake_docker(tmp.path(), "exit 1");
