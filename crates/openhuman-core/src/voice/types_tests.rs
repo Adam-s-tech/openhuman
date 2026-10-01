@@ -70,4 +70,3 @@ fn from_local_ai_tts_result() {
     assert_eq!(voice.output_path, "/out.wav");
     assert_eq!(voice.voice_id, "voice1");
 }
-

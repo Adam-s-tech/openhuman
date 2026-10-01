@@ -18,4 +18,3 @@ fn file_write_schema_requires_filename_and_contents() {
     assert!(input_names.contains(&"filename"));
     assert!(input_names.contains(&"contents"));
 }
-

@@ -67,4 +67,3 @@ fn prepare_transfer_schema_marks_asset_symbol_optional() {
         .expect("assetSymbol input present");
     assert!(!asset.required);
 }
-

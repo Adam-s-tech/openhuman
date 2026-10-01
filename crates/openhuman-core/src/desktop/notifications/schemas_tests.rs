@@ -136,4 +136,3 @@ fn schemas_and_registered_controllers_have_bidirectional_parity() {
 
     assert_eq!(schema_functions, handler_functions);
 }
-

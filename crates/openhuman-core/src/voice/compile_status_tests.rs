@@ -7,4 +7,3 @@ use super::VOICE_COMPILED_IN;
 fn reports_the_compiled_gate_state() {
     assert_eq!(VOICE_COMPILED_IN, cfg!(feature = "voice"));
 }
-

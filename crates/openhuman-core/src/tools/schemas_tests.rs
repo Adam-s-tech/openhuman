@@ -78,4 +78,3 @@ fn web_search_schema_shape() {
     // callers can attribute a managed search (#5136).
     assert!(s.outputs.iter().any(|f| f.name == "provider"));
 }
-
