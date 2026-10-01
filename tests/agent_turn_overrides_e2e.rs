@@ -125,6 +125,21 @@ impl ScriptedModel {
         })
     }
 
+    /// A model that declares native tool calling. The default profile does not,
+    /// and the hosted harness then renders the toolbelt into the prompt text and
+    /// sends an empty `request.tools`, so a test that asserts on the provider's
+    /// tool schema must use this constructor.
+    fn native_tools(responses: Vec<ModelResponse>) -> Arc<Self> {
+        Arc::new(Self {
+            responses: Mutex::new(responses.into_iter().collect()),
+            requests: Mutex::new(Vec::new()),
+            profile: ModelProfile {
+                tool_calling: true,
+                ..ModelProfile::default()
+            },
+        })
+    }
+
     fn requests(&self) -> Vec<CapturedRequest> {
         self.requests.lock().unwrap().clone()
     }
@@ -401,17 +416,6 @@ async fn suppress_active_goal_keeps_the_thread_goal_out_of_the_prompt_inner() {
 /// previous thread's conversation back underneath it and answers grounded in the
 /// wrong one, with no error anywhere (#1725).
 #[test]
-#[ignore = "TODO(#6377): transcript autoload does not fire for a hosted root session"]
-// The hosted root authority this fixture now brings (`turn_overrides_definition`)
-// was necessary but is NOT sufficient here: with it, two of this file's four
-// quarantined tests pass and this one still fails, and it fails in its own
-// CONTROL (:466) rather than in the assertion under test. The control says a
-// fresh agent must auto-load the prior transcript by agent name; under the
-// hosted path it does not, so the test cannot prove that
-// `suppress_transcript_autoload` prevents anything. Not yet isolated: whether
-// `auto_save` no longer writes where `latest_for_agent` looks, or the lookup
-// key changed with the stamped session id. Do not lift this by relaxing the
-// control — the control is what makes the test non-vacuous.
 fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript() {
     run_on_agent_stack(
         "turn-overrides-suppress-transcript-autoload",
@@ -515,17 +519,6 @@ async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript
 /// suppression that leaked forward would silently strip a real task turn of its
 /// toolbelt.
 #[test]
-#[ignore = "TODO(#6377): a hosted root turn carries no tool schema upstream"]
-// As above: the hosted root authority is necessary and not sufficient. Turn 2
-// sets no overrides and must therefore carry the session's belt, but
-// `requests[1].tool_names` comes back empty (:549). Tried and ruled out: the
-// definition's `ToolScope` is not the cause — `Named(["turn_overrides_echo"])`
-// and `Wildcard` both produce an empty schema. Note turn 1's assertion cannot
-// distinguish the two explanations, since a suppressed belt and a belt that
-// never arrives are both empty. The open question is whether
-// `suppress_tools` leaks past its one turn or the belt never reaches the
-// model on this path at all; the cheap next step is a variant with no
-// overrides set at all.
 fn turn_overrides_apply_to_exactly_one_turn_and_then_reset() {
     run_on_agent_stack(
         "turn-overrides-reset",
@@ -538,7 +531,7 @@ async fn turn_overrides_apply_to_exactly_one_turn_and_then_reset_inner() {
     let (_temp, workspace_path) = workspace("overrides-reset");
     let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
 
-    let model = ScriptedModel::new(vec![text("suppressed reply"), text("restored reply")]);
+    let model = ScriptedModel::native_tools(vec![text("suppressed reply"), text("restored reply")]);
     let mut agent = agent_with(
         model.clone(),
         vec![Box::new(EchoTool)],
