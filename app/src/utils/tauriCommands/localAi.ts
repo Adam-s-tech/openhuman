@@ -9,6 +9,11 @@ import { callCoreRpc } from '../../services/coreRpcClient';
 import { CommandResponse, tauriErrorMessage } from './common';
 
 export interface LocalAiStatus {
+  /**
+   * Runtime state of the user-run local endpoint: `ready`, `degraded`,
+   * `unreachable`, `disabled` or `idle`. The app never downloads or installs
+   * models or runtimes, so there is no download/install state.
+   */
   state: string;
   model_id: string;
   chat_model_id: string;
