@@ -28,9 +28,7 @@
 use std::io;
 use std::sync::{Arc, Mutex};
 
-use openhuman_core::core::observability::{
-    expected_error_kind, report_error_or_expected, ExpectedErrorKind,
-};
+use openhuman_core::core::observability::report_error_or_expected;
 use openhuman_core::web3::wallet::WALLET_NOT_CONFIGURED_MESSAGE;
 
 /// The exact wrapper `hosted/orchestration/schemas.rs` applies, reproduced from
