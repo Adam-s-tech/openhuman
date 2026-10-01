@@ -252,40 +252,6 @@ fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {
         .unwrap_or_else(|| panic!("{context}: error missing message: {value}"))
 }
 
-fn provider(
-    id: &str,
-    display_name: &str,
-    trust_state: CapabilityProviderTrustState,
-    enabled: bool,
-) -> CapabilityProviderConfig {
-    CapabilityProviderConfig {
-        id: id.to_string(),
-        display_name: display_name.to_string(),
-        source_uri: Some(format!(" https://example.com/providers/{id} ")),
-        source_digest: Some(" sha256:feedface ".to_string()),
-        trust_state,
-        enabled,
-    }
-}
-
-fn approval_db_path(config: &Config) -> PathBuf {
-    config.workspace_dir.join("approval").join("approval.db")
-}
-
-fn pending(
-    request_id: &str,
-    _session_id: &str,
-    expires_at: Option<chrono::DateTime<chrono::Utc>>,
-) -> PendingApproval {
-    PendingApproval::new(
-        request_id,
-        "tools.composio_execute",
-        "tools.composio_execute(action=execute, 42 bytes)",
-        json!({ "action": "execute", "tool_slug": "GMAIL_SEND_EMAIL" }),
-        expires_at,
-    )
-}
-
 fn test_mcp_server() -> InstalledServer {
     InstalledServer {
         server_id: format!("tool-registry-test-{}", uuid::Uuid::new_v4()),

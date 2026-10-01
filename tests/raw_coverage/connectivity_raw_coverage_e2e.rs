@@ -203,53 +203,6 @@ fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("{context} should include result.payload: {value}"))
 }
 
-fn reserve_port() -> StdTcpListener {
-    StdTcpListener::bind("127.0.0.1:0").expect("reserve ephemeral port")
-}
-
-fn reserve_contiguous_ports(count: usize) -> Option<Vec<StdTcpListener>> {
-    const FIRST_CANDIDATE_PORT: u16 = 20_000;
-    const LAST_CANDIDATE_PORT: u16 = 60_000;
-
-    for first in FIRST_CANDIDATE_PORT..=LAST_CANDIDATE_PORT {
-        let Some(last) = first.checked_add(count.saturating_sub(1) as u16) else {
-            break;
-        };
-        if last > LAST_CANDIDATE_PORT {
-            break;
-        }
-
-        let mut listeners = Vec::with_capacity(count);
-        let mut reserved = true;
-        for port in first..=last {
-            match StdTcpListener::bind(("127.0.0.1", port)) {
-                Ok(listener) => listeners.push(listener),
-                Err(_) => {
-                    reserved = false;
-                    break;
-                }
-            }
-        }
-
-        if reserved {
-            return Some(listeners);
-        }
-    }
-
-    None
-}
-
-async fn spawn_probe_listener(status: &str, body: &'static str) -> ProbeListener {
-    spawn_probe_listener_on("127.0.0.1", status, body).await
-}
-
-async fn spawn_probe_listener_on(host: &str, status: &str, body: &'static str) -> ProbeListener {
-    let listener = tokio::net::TcpListener::bind((host, 0))
-        .await
-        .expect("bind probe listener");
-    spawn_probe_listener_from(listener, status, body)
-}
-
 async fn try_spawn_probe_listener_on(
     host: &str,
     status: &str,

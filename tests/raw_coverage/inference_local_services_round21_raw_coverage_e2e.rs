@@ -381,29 +381,6 @@ fn remember(state: &MockState, path: &str, _headers: &HeaderMap, body: Value) {
         .push((path.to_string(), body));
 }
 
-fn remember_path(state: &MockState, path: &str) {
-    state
-        .requests
-        .lock()
-        .expect("requests")
-        .push((path.to_string(), Value::Null));
-}
-
-fn controller<'a>(
-    controllers: &'a [RegisteredController],
-    function: &str,
-) -> &'a RegisteredController {
-    controllers
-        .iter()
-        .find(|controller| controller.schema.function == function)
-        .unwrap_or_else(|| panic!("controller {function} registered"))
-}
-
-async fn call(controller: &RegisteredController, params: Value) -> Result<Value, String> {
-    let params = params.as_object().cloned().unwrap_or_default();
-    (controller.handler)(params).await
-}
-
 fn temp_config(tmp: &TempDir) -> Config {
     let root = tmp.path().join(".openhuman");
     std::fs::create_dir_all(root.join("workspace")).expect("workspace dir");

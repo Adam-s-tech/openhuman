@@ -401,15 +401,3 @@ fn store_app_session(config: &Config) {
         .expect("store app session");
 }
 
-fn write_stub_script(dir: &Path, name: &str, body: &str) -> PathBuf {
-    let path = dir.join(name);
-    std::fs::write(&path, body).expect("write stub");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&path).expect("metadata").permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(&path, perms).expect("chmod");
-    }
-    path
-}

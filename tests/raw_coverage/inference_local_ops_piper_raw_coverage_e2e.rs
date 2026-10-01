@@ -186,10 +186,6 @@ fn bytes_response(bytes: Vec<u8>) -> Response<Body> {
         .expect("response")
 }
 
-fn set_mode(state: &PiperMockState, mode: PiperMockMode) {
-    *state.mode.lock().expect("mode") = mode;
-}
-
 fn valid_tar_gz_archive() -> Vec<u8> {
     let encoder = GzEncoder::new(Vec::new(), Compression::none());
     let mut archive = tar::Builder::new(encoder);
@@ -233,10 +229,6 @@ fn synthetic_voice_json() -> Vec<u8> {
 
 async fn wait_for_piper_state(status: &RegisteredController, wanted: &str) -> Value {
     wait_for_piper(status, |value| value["state"] == wanted).await
-}
-
-async fn wait_for_piper_stage(status: &RegisteredController, wanted: &str) -> Value {
-    wait_for_piper(status, |value| value["stage"] == wanted).await
 }
 
 async fn wait_for_piper(status: &RegisteredController, done: impl Fn(&Value) -> bool) -> Value {
