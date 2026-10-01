@@ -2,9 +2,9 @@
 
 use std::time::Duration;
 
-use tinyruntime_bus::{ExecResponse, Language};
+use tinyruntime_bus::ExecResponse;
 
-use super::{PoolExecOutcome, PoolLang, PoolSettings};
+use super::{PoolExecOutcome, PoolSettings};
 use crate::config::RuntimePoolLangConfig;
 
 fn outcome(exit_code: Option<i32>) -> PoolExecOutcome {
