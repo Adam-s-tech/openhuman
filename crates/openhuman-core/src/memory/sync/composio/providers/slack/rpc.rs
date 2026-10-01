@@ -80,7 +80,7 @@ async fn list_slack_connections(config: &Config) -> Result<ComposioConnectionsRe
                 .await
                 .map_err(|e| format!("[slack_ingest] list_connections (backend) failed: {e}"))
         }
-        ComposioRoute::Direct(direct) => direct_list_connections(&direct)
+        ComposioRoute::Direct(direct) => direct_list_connections(config, &direct)
             .await
             .map_err(|e| format!("[slack_ingest] list_connections (direct) failed: {e:#}")),
     }
