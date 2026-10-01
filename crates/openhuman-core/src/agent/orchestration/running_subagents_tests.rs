@@ -5,7 +5,6 @@ use crate::agent::orchestration::running_subagents::registry::DETACHED_LEDGER_TI
 use crate::agent::orchestration::running_subagents::resolve::resume_ref_for_task;
 use crate::agent::orchestration::running_subagents::resolve::task_id_for_session;
 use crate::agent::orchestration::running_subagents::roster::snapshot_for_parent;
-use crate::agent::orchestration::running_subagents::steering::steer_directive;
 use crate::agent::orchestration::running_subagents::steering::SteerDirectiveError;
 use crate::agent::orchestration::running_subagents::steering::SteeringDirective;
 use crate::agent::orchestration::running_subagents::wait::wait;
