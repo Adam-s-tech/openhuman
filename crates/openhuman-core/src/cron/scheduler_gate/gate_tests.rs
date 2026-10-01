@@ -279,3 +279,32 @@ async fn resume_transitions_fire_the_notify() {
         .expect("sign-in (signed_out true->false) must wake the resume waiter")
         .expect("waiter task must not panic");
 }
+
+/// A best-effort interactive caller must not queue behind a paused gate. The
+/// web channel's emoji reaction used `wait_for_capacity` here and, with
+/// background AI switched off, held back every reply's `chat_done` forever.
+#[test]
+fn try_capacity_skips_at_once_while_paused() {
+    let _g = lock();
+    for reason in [PauseReason::UserDisabled, PauseReason::SignedOut] {
+        assert!(
+            try_capacity_for(Policy::Paused { reason }).is_none(),
+            "a paused gate must answer `no capacity`, not wait"
+        );
+    }
+    assert!(try_capacity_for(Policy::Throttled).is_none());
+    assert_eq!(available_llm_permits(), 1, "a skip must not take the slot");
+}
+
+#[test]
+fn try_capacity_takes_the_free_slot_when_admitting() {
+    let _g = lock();
+    let permit = try_capacity_for(Policy::Normal).expect("free slot under Normal");
+    assert_eq!(available_llm_permits(), 0, "permit must occupy the slot");
+    assert!(
+        try_capacity_for(Policy::Aggressive).is_none(),
+        "a held slot must be skipped, not waited on"
+    );
+    drop(permit);
+    assert_eq!(available_llm_permits(), 1, "drop must release the slot");
+}
