@@ -201,8 +201,7 @@ impl WaitSubagentTool {
                 }
                 Err(WaitError::RegistryPoisoned) => {
                     return Ok(ToolResult::error(
-                        "wait_subagent: the sub-agent registry is unavailable; try again."
-                            .to_string(),
+                        "wait_subagent: the sub-agent registry is unavailable; try again.".to_string(),
                     ));
                 }
             }
