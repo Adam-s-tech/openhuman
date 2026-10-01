@@ -229,6 +229,7 @@ pub struct SubagentCheckpointData {
     pub task_id: String,
     pub agent_id: String,
     pub worker_thread_id: Option<String>,
+    #[serde(with = "crate::agent::messages::history_wire")]
     pub history: Vec<TranscriptMessage>,
     pub question: String,
     pub options: Option<Vec<String>>,

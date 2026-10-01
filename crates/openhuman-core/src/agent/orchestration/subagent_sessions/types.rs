@@ -62,6 +62,7 @@ pub struct DurableSubagentSession {
     pub current_task_id: Option<String>,
     pub status: DurableSubagentStatus,
     pub reusable: bool,
+    #[serde(default, with = "crate::agent::messages::history_wire::option")]
     pub latest_history: Option<Vec<TranscriptMessage>>,
     pub latest_error: Option<String>,
     pub created_at: String,
