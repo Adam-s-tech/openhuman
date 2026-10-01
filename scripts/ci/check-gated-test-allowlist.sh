@@ -44,7 +44,7 @@ platform/socket/event_handlers.rs
 skills/bundled/mod.rs
 skills/mod.rs
 skills/search.rs
-tools/impl/network/http_request.rs
+tools/impl/network/host.rs
 tools/ops.rs
 tools/ops_tests.rs
 tools/ops_tests_capability_gating_tests.rs
