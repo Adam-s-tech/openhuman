@@ -65,7 +65,9 @@ pub(crate) fn classify_for_engine(external: bool, message: String) -> String {
 pub(crate) fn classify_rpc_error(message: String) -> String {
     let external = crate::core::runtime::context::CoreContext::current()
         .and_then(|ctx| ctx.memory().ok())
-        .is_none_or(|guard| guard.policy().class() == crate::core::subsystem::DriverClass::External);
+        .is_none_or(|guard| {
+            guard.policy().class() == crate::core::subsystem::DriverClass::External
+        });
     classify_for_engine(external, message)
 }
 
