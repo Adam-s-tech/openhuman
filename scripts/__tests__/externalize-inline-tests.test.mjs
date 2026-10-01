@@ -54,6 +54,21 @@ test("keeps sibling attributes and names extra modules after the module", () => 
   assert.match(out.source, /#\[path = "lib_fixtures_tests.rs"\]\nmod fixtures;/);
 });
 
+test("reads a multi-line attribute, and leaves a non-test module behind one alone", () => {
+  const lint = "#[allow(\n    missing_docs,\n    reason = \"generated\"\n)]\npub(crate) mod exports {\n    fn a() {}\n}\n";
+  const plain = externalizeSource(lint, "lib");
+  assert.equal(plain.moves.length, 0);
+  assert.deepEqual(plain.skipped, []);
+
+  const gated = "#[cfg(test)]\n#[allow(\n    missing_docs,\n    reason = \"fixture\"\n)]\nmod tests {\n    fn a() {}\n}\n";
+  const out = externalizeSource(gated, "lib");
+  assert.equal(out.moves.length, 1);
+  assert.equal(
+    out.source,
+    '#[cfg(test)]\n#[allow(\n    missing_docs,\n    reason = "fixture"\n)]\n#[path = "lib_tests.rs"]\nmod tests;\n',
+  );
+});
+
 test("leaves cfg(not(test)) and plain inline modules alone", () => {
   const src = "#[cfg(not(test))]\nmod real {\n    fn a() {}\n}\nmod plain {\n    fn b() {}\n}\n";
   const out = externalizeSource(src, "lib");
