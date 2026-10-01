@@ -16,12 +16,18 @@
 //! `env_lock()` across `.await` on purpose, as there.
 #![allow(clippy::await_holding_lock)]
 
+use crate::env_guard::env_lock_with_file_keyring as env_lock;
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
+use crate::scripted_stack::{
+    assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion,
+};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
-use axum::http::{header::AUTHORIZATION, HeaderMap};
+use axum::http::header::AUTHORIZATION;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::StreamExt;
@@ -29,70 +35,16 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
-
-const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 
 // ─── Env serialization ──────────────────────────────────────────────────────
 
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-static KEYRING_INIT: OnceLock<()> = OnceLock::new();
 static AGENT_DEF_REGISTRY_INIT: OnceLock<()> = OnceLock::new();
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    KEYRING_INIT.get_or_init(|| unsafe {
-        std::env::set_var("OPENHUMAN_KEYRING_BACKEND", "file");
-    });
-    match ENV_LOCK.get_or_init(|| Mutex::new(())).lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe {
-            std::env::set_var(key, path.as_os_str());
-        }
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe {
-            std::env::remove_var(key);
-        }
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 // ─── Scripted upstream ──────────────────────────────────────────────────────
 
 static SCRIPTED: OnceLock<Mutex<std::collections::VecDeque<Value>>> = OnceLock::new();
 static CAPTURED: OnceLock<Mutex<Vec<Value>>> = OnceLock::new();
-
-fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    match m.lock() {
-        Ok(g) => g,
-        Err(p) => p.into_inner(),
-    }
-}
 
 fn scripted() -> std::sync::MutexGuard<'static, std::collections::VecDeque<Value>> {
     lock_or_recover(SCRIPTED.get_or_init(Default::default))
@@ -107,20 +59,6 @@ fn reset_script(responses: Vec<Value>) {
     q.clear();
     q.extend(responses);
     captured().clear();
-}
-
-fn text_completion(content: &str) -> Value {
-    json!({ "content": content })
-}
-
-/// One tool call, id'd `call_<name>_<arglen>` so repeats of the same tool with
-/// different arguments stay distinguishable (from `agent_harness_e2e.rs`).
-fn tool_calls_completion(calls: &[(&str, Value)]) -> Value {
-    json!({ "content": "", "toolCalls": calls.iter().map(|(name, arguments)| json!({
-        "id": format!("call_{name}_{}", arguments.to_string().len()),
-        "name": name,
-        "arguments": arguments.to_string(),
-    })).collect::<Vec<_>>() })
 }
 
 fn call(name: &str, arguments: Value) -> Value {
@@ -311,10 +249,6 @@ fn completion_response(streaming: bool, message: Value) -> axum::response::Respo
         .into_response()
 }
 
-async fn current_user(_headers: HeaderMap) -> Json<Value> {
-    Json(json!({ "success": true, "data": { "_id": "e2e-user-1", "username": "e2e" } }))
-}
-
 /// One connected Gmail toolkit, so the orchestrator gets its actions as a
 /// searchable catalogue and the integrations agent has a toolkit to bind to.
 /// Shapes from `tools_approval_channels_raw_coverage_e2e.rs`.
@@ -369,13 +303,7 @@ async fn serve_on_ephemeral(
     SocketAddr,
     tokio::task::JoinHandle<Result<(), std::io::Error>>,
 ) {
-    static AUTH_INIT: OnceLock<()> = OnceLock::new();
-    AUTH_INIT.get_or_init(|| {
-        // SAFETY: runs exactly once via OnceLock before concurrent env reads occur.
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-prompt-comprehension-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token");
-    });
+    ensure_rpc_auth();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind");
@@ -393,7 +321,7 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
     let resp = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
         .json(&body)
         .send()
         .await
@@ -406,14 +334,6 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     resp.json::<Value>()
         .await
         .unwrap_or_else(|e| panic!("json for {method}: {e}"))
-}
-
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
 /// `extra` is appended verbatim, for per-case `[context]` knobs.
@@ -464,7 +384,7 @@ fn spawn_sse_collector(
             .expect("client");
         let resp = client
             .get(&events_url)
-            .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+            .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
             .send()
             .await
             .unwrap_or_else(|e| panic!("GET {events_url}: {e}"));

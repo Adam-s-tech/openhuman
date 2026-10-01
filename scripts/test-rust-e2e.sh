@@ -30,7 +30,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # serially so CI does not link several large integration binaries at once.
 # Tests guarded by `#[ignore]` stay skipped unless the caller passes
 # `-- --ignored`.
-# The suite list is DERIVED from `tests/*_e2e.rs`, not hand-maintained.
+# The suite list is DERIVED from `tests/*_e2e.rs` plus the `in_process_all`
+# aggregate (the former in-process router suites now live under
+# `tests/in_process/`), not hand-maintained.
 #
 # It used to be a literal list of 20 names while 29 `tests/*_e2e.rs` targets
 # existed, so nine were silently absent from this runner — including
@@ -58,7 +60,7 @@ _discover_e2e_suites() {
     done
     [ $skip -eq 0 ] && printf '%s\n' "$name"
   done < <(
-    find "$REPO_ROOT/tests" -maxdepth 1 -type f -name '*_e2e.rs' -print |
+    find "$REPO_ROOT/tests" -maxdepth 1 -type f \( -name '*_e2e.rs' -o -name 'in_process_all.rs' \) -print |
       sed -e 's#.*/##' -e 's#\.rs$##' |
       sort
   )
@@ -225,9 +227,31 @@ run_json_rpc_e2e_suite() {
   done <<<"$test_names"
 }
 
+run_in_process_modules() {
+  # `in_process_all` folds ~20 former `tests/*.rs` targets into one binary. Run
+  # each module in its own process, as those targets did, so process globals
+  # (the transport install, the RPC bearer, module singletons) stay per suite.
+  local module
+  while IFS= read -r module; do
+    [ -n "$module" ] || continue
+    echo "[rust-e2e]   in_process module: ${module}"
+    bash "$SCRIPT_DIR/ci-cancel-aware.sh" "$CARGO_BIN" test \
+      --manifest-path Cargo.toml --features "$PRODUCT_FEATURES" \
+      --test in_process_all -- "${module}::" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
+  done < <(
+    find "$REPO_ROOT/tests/in_process" -maxdepth 1 -type f -name '*.rs' -print |
+      sed -e 's#.*/##' -e 's#\.rs$##' |
+      sort
+  )
+}
+
 for suite in "${SUITES[@]}"; do
   if [ "$suite" = "json_rpc_e2e" ]; then
     run_json_rpc_e2e_suite
+    continue
+  fi
+  if [ "$suite" = "in_process_all" ]; then
+    run_in_process_modules
     continue
   fi
 

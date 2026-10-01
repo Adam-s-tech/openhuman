@@ -389,5 +389,5 @@ named = [
     # generation policy (grounding, citations, image verification) belongs to
     # `presentation_agent`, which the orchestrator reaches via
     # `delegate_make_presentation`. Listing it directly is asserted against in
-    # tests/orchestrator_presentation_wiring.rs.
+    # tests/in_process/orchestrator_presentation_wiring.rs.
 ]

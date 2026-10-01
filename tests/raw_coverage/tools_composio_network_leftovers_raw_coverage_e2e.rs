@@ -1,8 +1,8 @@
 //! Round20 raw/E2E coverage for Composio tool leftovers and adjacent
 //! network-tool branches. All HTTP traffic stays on loopback mocks.
 
+use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
-use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::body::to_bytes;
@@ -14,15 +14,15 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::{Builder, TempDir};
 
-use openhuman_core::integrations::composio::ops::{composio_authorize, composio_list_tools};
 use openhuman_core::config::Config;
+use openhuman_core::integrations::composio::ops::{composio_authorize, composio_list_tools};
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use tinytools::{Tool, ToolCallOptions};
 use openhuman_core::tools::{
-    ComposioListConnectionsTool, ComposioListToolkitsTool,
-    ComposioListToolsTool};
+    ComposioListConnectionsTool, ComposioListToolkitsTool, ComposioListToolsTool,
+};
+use tinytools::{Tool, ToolCallOptions};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
@@ -41,38 +41,10 @@ struct MockState {
     connections_fail: Arc<Mutex<bool>>,
 }
 
-struct EnvGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvGuard {
-    fn set_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
-
 struct Harness {
     _tmp: TempDir,
     config: Config,
-    _guards: Vec<EnvGuard>,
+    _guards: Vec<EnvVarGuard>,
 }
 
 fn env_lock() -> std::sync::MutexGuard<'static, ()> {
@@ -91,7 +63,6 @@ fn tempdir() -> TempDir {
 }
 
 async fn setup_config() -> Harness {
-
     crate::tinyhumans_boot::boot();
     let tmp = tempdir();
     let root = tmp.path().join("openhuman");
@@ -99,14 +70,14 @@ async fn setup_config() -> Harness {
     std::fs::create_dir_all(&workspace).expect("workspace dir");
 
     let guards = vec![
-        EnvGuard::set_path("OPENHUMAN_WORKSPACE", &root),
-        EnvGuard::set_path("HOME", tmp.path()),
-        EnvGuard::unset("BACKEND_URL"),
-        EnvGuard::unset("VITE_BACKEND_URL"),
-        EnvGuard::unset("OPENHUMAN_API_URL"),
-        EnvGuard::unset("OPENHUMAN_CORE_RPC_URL"),
-        EnvGuard::unset("OPENHUMAN_CORE_PORT"),
-        EnvGuard::unset("OPENHUMAN_LSP_ENABLED"),
+        EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &root),
+        EnvVarGuard::set_path("HOME", tmp.path()),
+        EnvVarGuard::unset("BACKEND_URL"),
+        EnvVarGuard::unset("VITE_BACKEND_URL"),
+        EnvVarGuard::unset("OPENHUMAN_API_URL"),
+        EnvVarGuard::unset("OPENHUMAN_CORE_RPC_URL"),
+        EnvVarGuard::unset("OPENHUMAN_CORE_PORT"),
+        EnvVarGuard::unset("OPENHUMAN_LSP_ENABLED"),
     ];
 
     let mut config = Config {
@@ -423,4 +394,3 @@ fn fail(status: StatusCode, error: &str) -> Response {
     )
         .into_response()
 }
-

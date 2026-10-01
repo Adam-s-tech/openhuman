@@ -9,6 +9,9 @@
 //!
 //! No live LLM API calls are made.
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+use env_guard::EnvVarGuard;
 use std::sync::{Mutex, OnceLock};
 
 use axum::body::Body;
@@ -52,32 +55,6 @@ fn ensure_rpc_auth() {
 }
 
 // ── Helper: build an env-isolated Config pointing at tempdir ─────────────────
-
-/// Sets OPENHUMAN_WORKSPACE to `dir` and returns an `EnvVarGuard` that
-/// restores the previous value on drop.  Must be called under `env_lock()`.
-struct EnvGuard {
-    key: &'static str,
-    prev: Option<String>,
-}
-
-impl EnvGuard {
-    fn set(key: &'static str, val: &str) -> Self {
-        let prev = std::env::var(key).ok();
-        // SAFETY: caller holds env_lock().
-        unsafe { std::env::set_var(key, val) };
-        Self { key, prev }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match &self.prev {
-            // SAFETY: caller's env_lock guard is still alive during drop.
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 // ── Test 6: Streaming response returns ordered deltas ────────────────────────
 
@@ -128,7 +105,7 @@ async fn http_endpoint_models_with_bearer_returns_model_list() {
     ensure_rpc_auth();
 
     let tmp = tempdir().expect("tempdir");
-    let _workspace_guard = EnvGuard::set("OPENHUMAN_WORKSPACE", tmp.path().to_str().unwrap());
+    let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", tmp.path().to_str().unwrap());
 
     let req = Request::builder()
         .method(Method::GET)

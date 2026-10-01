@@ -5,6 +5,8 @@
 //! to drive implementation branches that the controller reachability tests only
 //! touch at validation boundaries.
 
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::{error_message, ok, payload};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -39,40 +41,6 @@ static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 #[derive(Clone, Default)]
 struct MockState {
     requests: Arc<Mutex<Vec<Value>>>,
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
 }
 
 struct TestHarness {
@@ -344,28 +312,6 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
 }
 
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
-}
-
-fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {
-    value
-        .get("error")
-        .and_then(|error| error.get("message"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("{context}: error missing message: {value}"))
-}
-
 async fn configure_mock_provider(rpc_base: &str, mock_base: &str) {
     let update = rpc(
         rpc_base,
@@ -512,7 +458,9 @@ async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() 
     .await;
     let settings = payload(&settings, "config_update_search_settings");
     assert_eq!(
-        settings.pointer("/effective_roles/answer/0").and_then(Value::as_str),
+        settings
+            .pointer("/effective_roles/answer/0")
+            .and_then(Value::as_str),
         Some("gemini"),
         "managed Gemini should serve the answer role: {settings}"
     );
@@ -525,7 +473,10 @@ async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() 
     )
     .await;
     let answer = payload(&answer, "tools_web_answer");
-    assert_eq!(answer.get("provider").and_then(Value::as_str), Some("Gemini"));
+    assert_eq!(
+        answer.get("provider").and_then(Value::as_str),
+        Some("Gemini")
+    );
     assert_eq!(answer.get("role").and_then(Value::as_str), Some("answer"));
     assert!(answer
         .get("answer")
@@ -586,7 +537,9 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
     .await;
     let settings = payload(&settings, "config_update_search_settings");
     assert_eq!(
-        settings.pointer("/effective_roles/search/0").and_then(Value::as_str),
+        settings
+            .pointer("/effective_roles/search/0")
+            .and_then(Value::as_str),
         Some("exa"),
         "managed Exa should serve the search role once signed in: {settings}"
     );
@@ -624,7 +577,10 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
         body.pointer("/searchQueries/0").and_then(Value::as_str),
         Some("worker b raw coverage")
     );
-    assert!(body.get("mode").is_none(), "backend Exa rejects `mode`: {body}");
+    assert!(
+        body.get("mode").is_none(),
+        "backend Exa rejects `mode`: {body}"
+    );
 
     harness.rpc_join.abort();
     mock.join.abort();

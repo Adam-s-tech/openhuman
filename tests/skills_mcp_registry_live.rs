@@ -16,6 +16,9 @@
 //!
 //! `OPENHUMAN_LIVE_MCP_QUERY` picks the MCP registry search (default `everything`).
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+use env_guard::EnvVarGuard;
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -41,28 +44,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, value) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
-
 /// A core RPC stack over a throwaway `HOME`, with no registry overrides.
 struct LiveStack {
     rpc_base: String,
@@ -80,7 +61,7 @@ impl Drop for LiveStack {
 async fn live_stack() -> LiveStack {
     let home = tempdir().expect("tempdir");
     let guards = vec![
-        EnvVarGuard::set("HOME", &home.path().to_string_lossy()),
+        EnvVarGuard::set_to_path("HOME", home.path()),
         EnvVarGuard::set(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN),
         EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file"),
     ];

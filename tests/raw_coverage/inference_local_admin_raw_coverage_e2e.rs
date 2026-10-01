@@ -4,6 +4,7 @@
 //! only. It must not call host Ollama, Piper, Whisper, Python, or MLX binaries,
 //! and asserts that OpenHuman itself never launches one either.
 
+use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
@@ -21,51 +22,15 @@ use openhuman_core::config::schema::cloud_providers::{
     AuthStyle as CloudAuthStyle, CloudProviderCreds,
 };
 use openhuman_core::config::Config;
-use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::auth_key_for_slug;
 use openhuman_core::inference::provider::list_configured_models;
+use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 
 #[derive(Clone, Default)]
 struct MockState {
     requests: Arc<Mutex<Vec<(String, Option<String>, Value)>>>,
     ollama_models: Arc<Mutex<Vec<String>>>,
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: tests that mutate environment variables hold env_lock().
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: tests that mutate environment variables hold env_lock().
-        unsafe { std::env::remove_var(key) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.previous {
-            Some(value) => {
-                // SAFETY: tests that mutate environment variables hold env_lock().
-                unsafe { std::env::set_var(self.key, value) }
-            }
-            None => {
-                // SAFETY: tests that mutate environment variables hold env_lock().
-                unsafe { std::env::remove_var(self.key) }
-            }
-        }
-    }
 }
 
 /// Process-wide lock serializing tests that mutate global environment
