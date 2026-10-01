@@ -227,7 +227,7 @@ struct OpenhumanUsageMeta {
 /// providers that don't surface billing stay `raw: None`).
 fn openhuman_usage_meta_raw(usage: Option<&BilledUsage>) -> Option<serde_json::Value> {
     let u = usage?;
-    if u.charged_amount_usd <= 0.0 && u.context_window == 0 {
+    if u.charged_amount_usd <= 0.0 && u.context_window() == 0 {
         return None;
     }
     let meta = OpenhumanUsageMeta {
