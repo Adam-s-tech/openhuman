@@ -1,8 +1,4 @@
 use tinyinference_llm::usage::Usage;
-/// Token usage returned by a provider. Defined in the contract crate because
-/// the extracted memory subsystem threads it out of summarisation runs; every
-/// existing `inference::provider::UsageInfo` path keeps naming this one type.
-pub use tinymemory_api::host::UsageInfo;
 use tinytools_agent::dialect::NativeToolCall;
 
 /// Token usage returned by a provider: the vendor [`Usage`] token counts plus
