@@ -95,7 +95,13 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: <clock>\n\nlook[OH_IMAGE:data:image/png;base64,iVBORw0KGgo=]please"
+            "text": "Current Date & Time: <clock>\n\nlook"
+          },
+          {
+            "text": "[image omitted: not supported by the target model]"
+          },
+          {
+            "text": "please"
           }
         ]
       }

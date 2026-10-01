@@ -128,7 +128,7 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             .iter()
             .rev()
             .find(|message| matches!(message, Message::User(_)))
-            .map(Message::text)
+            .map(crate::agent::message_convert::user_text_with_markers)
             .unwrap_or_default();
         let context_window = self
             .turn_model_source

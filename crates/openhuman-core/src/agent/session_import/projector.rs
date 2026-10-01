@@ -98,12 +98,22 @@ fn journal_extra_metadata(message: &TranscriptMessage) -> Option<serde_json::Val
     extra
 }
 
+/// The journal's established string form of a row: the native envelope for a
+/// tool round, `[IMAGE:<url>]` markers for image parts, plain text otherwise.
+fn journal_content(message: &TranscriptMessage) -> String {
+    if message.parts.is_some() {
+        message.display_content()
+    } else {
+        message.legacy_content()
+    }
+}
+
 /// The `JournalProjector` OpenHuman passes to the importer.
 pub fn journal_message_from_transcript(message: TranscriptMessage) -> JournalMessage {
     JournalMessage {
         id: message.id.clone(),
         role: message.role.clone(),
-        content: message.content.clone(),
+        content: journal_content(&message),
         extra_metadata: journal_extra_metadata(&message),
     }
 }
