@@ -70,17 +70,6 @@ const PRICING_TABLE: &[ModelPricing] = &[
 /// managed default's rate so an old cost record still estimates sanely.
 const LEGACY_TIER_ROWS: &[&str] = &crate::config::LEGACY_TIER_MODELS;
 
-/// Whether `model` is served by the managed OpenHuman backend: the managed
-/// default, an `openrouter/...` passthrough id, a `hint:*` role alias, or a
-/// retired tier slug. Anything else — BYOK vendor ids (`claude-*`, `gpt-*`) or
-/// local model names — is a custom/BYO-provider model. Used by trace exporters
-/// to stamp model provenance (`gen_ai.provider` = "managed" | "custom").
-pub(crate) fn is_managed_tier(model: &str) -> bool {
-    crate::platform::cost::route::route_for_model(model)
-        == crate::platform::cost::route::CostRoute::Managed
-        || model.trim().starts_with("hint:")
-}
-
 /// Look up pricing for a model name, falling back to [`FALLBACK_PRICING`].
 ///
 /// Resolution order:

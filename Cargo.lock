@@ -6483,6 +6483,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "tempfile",
+ "thiserror 2.0.20",
  "tinyagents-harness",
  "tinytools-agent 0.5.0",
  "tokio",
@@ -6966,7 +6967,7 @@ dependencies = [
 
 [[package]]
 name = "tinymemory"
-version = "1.18.0"
+version = "1.19.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7049,6 +7050,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
+ "log",
  "regex",
  "reqwest",
  "schemars",
@@ -7169,14 +7171,18 @@ version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "fs2",
+ "futures-util",
  "glob",
  "libc",
  "log",
  "parking_lot",
  "regex",
+ "reqwest",
  "rustix",
  "serde_json",
+ "sha2 0.10.9",
  "tinytools 0.5.0",
  "tokio",
  "tracing",

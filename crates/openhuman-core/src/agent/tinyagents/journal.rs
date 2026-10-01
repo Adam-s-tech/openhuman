@@ -37,8 +37,8 @@
 //!
 //! ## Follow-ups (not in this slice)
 //!
-//! - A replay RPC (`agent.run_events`?) that surfaces [`read_run_events`] /
-//!   [`read_run_status`] to the desktop for mid-run reconnect (05.x).
+//! - A replay RPC (`agent.run_events`?) that surfaces [`read_run_events`] to
+//!   the desktop for mid-run reconnect (05.x).
 //! - Full sub-agent / graph run lineage (`parent_run_id` / `root_run_id`
 //!   threading) — wired in 05.2/05.3. This slice threads `thread_id` (from the
 //!   sub-agent task scope) so [`FileStatusStore::list_by_thread`] answers.
@@ -274,14 +274,6 @@ pub(crate) struct TurnJournal {
 }
 
 impl TurnJournal {
-    /// The durable run id — the journal stream key + status key a future replay
-    /// RPC reads back via [`read_run_events`] / [`read_run_status`].
-    // Part of the replay seam surfaced to the (follow-up) replay RPC.
-    #[allow(dead_code)]
-    pub(crate) fn run_id(&self) -> String {
-        self.run_id.as_str().to_string()
-    }
-
     /// Best-effort terminal write: mark the run completed and persist. Non-fatal.
     pub(crate) async fn finish_completed(&self) {
         self.event_sink.flush();
@@ -405,9 +397,6 @@ pub(crate) async fn attach_turn_journal(
 /// reconnect mid-run and backfill the timeline from durable state instead of
 /// relying on transient `AgentProgress` buffering. Best-effort: a missing store
 /// or unknown run yields an empty `Vec`, not an error.
-// Replay-RPC seam (05.x): no in-tree caller yet — the persisted journal is
-// provably replayable through this reader.
-#[allow(dead_code)]
 pub(crate) async fn read_run_events(
     run_id: &str,
     from_offset: u64,
@@ -419,20 +408,6 @@ pub(crate) async fn read_run_events(
         .read_from(run_id, from_offset)
         .await
         .map_err(|e| anyhow::anyhow!("[journal] read_run_events failed run_id={run_id}: {e}"))
-}
-
-/// Late-attach replay reader: the latest durable [`HarnessRunStatus`] for
-/// `run_id`, or `None` if unknown. Companion to [`read_run_events`] for the
-/// future replay RPC.
-#[allow(dead_code)]
-pub(crate) async fn read_run_status(run_id: &str) -> anyhow::Result<Option<HarnessRunStatus>> {
-    let workspace = resolve_workspace().await?;
-    let stores = open_session_stores(&workspace);
-    let status = FileStatusStore::new(stores.kv);
-    status
-        .get_status(run_id)
-        .await
-        .map_err(|e| anyhow::anyhow!("[journal] read_run_status failed run_id={run_id}: {e}"))
 }
 
 #[cfg(test)]

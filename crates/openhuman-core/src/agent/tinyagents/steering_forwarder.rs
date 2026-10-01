@@ -54,11 +54,6 @@ pub(super) const COLLECT_PREFIX: &str = "[Additional context from user]: ";
 /// turn).
 static ACTIVE_FORWARDERS: AtomicUsize = AtomicUsize::new(0);
 
-/// Number of steering-forwarder poll tasks currently live process-wide.
-pub(crate) fn active_steering_forwarders() -> usize {
-    ACTIVE_FORWARDERS.load(Ordering::SeqCst)
-}
-
 /// Milliseconds since the Unix epoch (best-effort; `0` on a pre-epoch clock).
 fn now_ms() -> u64 {
     std::time::SystemTime::now()

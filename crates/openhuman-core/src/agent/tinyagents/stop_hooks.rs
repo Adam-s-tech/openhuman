@@ -15,9 +15,7 @@
 //!   partial transcript. This mirrors the [`CapPauser`](super::CapPauser)
 //!   model-call-cap mechanism.
 //!
-//! The hook list is captured by the caller via
-//! [`current_stop_hooks`](crate::agent::stop_hooks::current_stop_hooks)
-//! while the `CURRENT_STOP_HOOKS` task-local is in scope and handed to
+//! The hook list (the goal-budget hook) is handed to
 //! [`StopHookMiddleware::new`]; the middleware is only registered when the list
 //! is non-empty.
 

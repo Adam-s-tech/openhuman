@@ -435,24 +435,6 @@ impl TurnModelSource {
         )
     }
 
-    /// Whether the underlying provider is a local runtime (Ollama / LM Studio).
-    /// A passthrough so callers (e.g. the sub-agent summarization-route decision)
-    /// can branch on locality without naming the `Provider` trait.
-    pub(crate) fn is_local_provider(&self) -> bool {
-        if let Some(direct) = &self.direct_model {
-            return direct
-                .profile()
-                .and_then(|profile| profile.provider.as_deref())
-                .is_some_and(|provider| provider.eq_ignore_ascii_case("local"));
-        }
-        self.crate_native.as_ref().is_some_and(|source| {
-            let provider = source.primary_override.clone().unwrap_or_else(|| {
-                crate::inference::provider::provider_for_role(&source.role, &source.config)
-            });
-            tinyinference_local::profile::is_local_provider_string(&provider)
-        })
-    }
-
     /// Build this turn's [`TurnModels`] (primary + tier routes + summarizer),
     /// capturing provider telemetry id + capabilities onto the bundle.
     pub(crate) fn build(

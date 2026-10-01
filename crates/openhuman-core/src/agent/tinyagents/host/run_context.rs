@@ -486,11 +486,6 @@ impl OpenHumanRunContext {
         }
     }
 
-    /// Returns this context's file-state identity for explicit tool plumbing.
-    pub fn file_state_scope(&self) -> Option<&str> {
-        self.file_state_agent_id.as_deref()
-    }
-
     /// Records a child usage entry without relying on a task-local collector.
     pub fn append_subagent_usage(&self, entry: SubagentUsageEntry) {
         self.subagent_usage

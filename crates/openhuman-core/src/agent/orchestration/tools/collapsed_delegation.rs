@@ -130,11 +130,6 @@ impl CollapsedDelegationTool {
                 .collect(),
         )
     }
-
-    /// The routable names, for the prompt renderer and the tests.
-    pub fn target_names(&self) -> Vec<&str> {
-        self.agent_enum()
-    }
 }
 
 fn build_description(targets: &[DelegateTarget]) -> String {

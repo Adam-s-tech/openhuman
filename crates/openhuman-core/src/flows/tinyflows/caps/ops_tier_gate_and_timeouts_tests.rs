@@ -1,4 +1,5 @@
 use super::*;
+use tinyagents_harness::tool::response_fields_from_schema;
 
 /// The tier gate an `http_request` (Network-class) node calls: BLOCKED under
 /// a read-only tier, and passed through (to the ApprovalGate) under
