@@ -35,7 +35,6 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `hosting`* | Putting a workspace on the internet | [README](src/hosting/README.md) |
 | `inference` | Unified inference domain | [README](src/inference/README.md) |
 | `integrations` | Agent integration tools | [README](src/integrations/README.md) |
-| `json_schema` | Vendor-neutral JSON Schema and JSON value walking | |
 | `mcp` | Host half of Model Context Protocol support | [README](src/mcp/README.md) |
 | `media`* | Media generation and image tool contracts | [README](src/media/README.md) |
 | `memory` | Memory orchestration: the host layer over `tinymemory-core` | [README](src/memory/README.md) |

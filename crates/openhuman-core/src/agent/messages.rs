@@ -99,29 +99,6 @@ pub(crate) fn attach_chat_turn_usage_metadata(
     }
 }
 
-/// Marks a host runtime message as coming from a previous durable row, so the
-/// explicit adapter preserves its original correlation id on the next write.
-pub(crate) fn mark_chat_replayed_if_unmarked(message: &mut ChatMessage) {
-    if message
-        .extra_metadata
-        .as_ref()
-        .and_then(|meta| meta.get(REPLAYED_METADATA_KEY))
-        .is_some()
-    {
-        return;
-    }
-    let mut payload = serde_json::Map::new();
-    payload.insert("request_id".to_string(), serde_json::Value::Null);
-    if would_wrap(message) {
-        payload.insert(WRAPPED_FLAG.to_string(), serde_json::Value::Bool(true));
-    }
-    insert_host_metadata(
-        message,
-        REPLAYED_METADATA_KEY,
-        serde_json::Value::Object(payload),
-    );
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
     #[serde(default, skip_serializing)]
@@ -236,42 +213,6 @@ impl ChatMessage {
             content: content.into(),
             extra_metadata: None,
             cache_breakpoints: Vec::new(),
-        }
-    }
-
-    /// A system message carrying prompt-cache breakpoints.
-    ///
-    /// `breakpoints` are ends-of-tier from
-    /// [`crate::agent::prompts::SystemPromptBuilder::build_tiered`].
-    /// Out-of-range or non-ascending offsets are dropped rather than trusted:
-    /// a bad offset would split the prompt mid-sentence and the model would
-    /// read the damage, whereas a dropped one costs only a cache miss.
-    pub fn system_tiered(content: impl Into<String>, breakpoints: Vec<usize>) -> Self {
-        let content = content.into();
-        let mut previous = 0usize;
-        let breakpoints: Vec<usize> = breakpoints
-            .into_iter()
-            .filter(|&offset| {
-                let ok =
-                    offset > previous && offset < content.len() && content.is_char_boundary(offset);
-                if ok {
-                    previous = offset;
-                } else {
-                    tracing::warn!(
-                        offset,
-                        len = content.len(),
-                        "[prompts] dropping an invalid cache breakpoint"
-                    );
-                }
-                ok
-            })
-            .collect();
-        Self {
-            id: None,
-            role: "system".into(),
-            content,
-            extra_metadata: None,
-            cache_breakpoints: breakpoints,
         }
     }
 

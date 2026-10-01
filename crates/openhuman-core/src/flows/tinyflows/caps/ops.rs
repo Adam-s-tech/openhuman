@@ -33,13 +33,6 @@ use crate::security::{CommandClass, SecurityPolicy};
 #[cfg(test)]
 use crate::security::{GateDecision, POLICY_BLOCKED_MARKER};
 
-// The JSON Schema walkers moved to `openhuman::json_schema`, a domain owned by
-// neither this seam nor `composio` — see that module's docs for why neutral
-// ownership is load-bearing rather than tidiness.
-//
-// Re-exported so `crate::flows::tinyflows::caps::<fn>` keeps resolving for
-// the callers outside this module (`flows::ops`, `tinyflows::tests`) — the
-// relocation is an internal reorganization, not an API change.
 // The live Composio catalog and probe moved to `composio::catalog` -- the domain
 // that owns Composio's vocabulary. This import is the edge pointing the right
 // way round: the feature-gated seam depends on the always-compiled domain, not
@@ -57,9 +50,7 @@ pub(crate) use crate::integrations::composio::catalog::{
 
 use super::*;
 
-#[cfg(test)]
-pub(crate) use crate::json_schema::response_fields_from_schema;
-pub(crate) use crate::json_schema::{missing_required_args, unsupported_arg_names};
+use tinyagents_harness::tool::missing_required_args;
 
 /// Parses a `"composio:<toolkit>:<connection_id>"` `connection_ref` (see the
 /// node catalog, `my_docs/ohxtf/commons/12-node-catalog-0.2.md`) and returns

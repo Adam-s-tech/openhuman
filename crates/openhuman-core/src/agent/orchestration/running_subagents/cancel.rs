@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use tinyagents_harness::ids::TaskId;
 
 use super::registry::{registry, SubagentStatus};
-use super::resolve::{task_id_for_session, task_id_for_session_in_workspace};
+use super::resolve::task_id_for_session_in_workspace;
 use super::task_ledger::record_cancelled;
 
 /// Metadata captured when a sub-agent is cancelled, so the caller can surface
@@ -81,14 +81,6 @@ pub(crate) fn cancel_by_task(task_id: &str) -> Option<CancelledSubagent> {
         parent_thread_id: metadata.parent_thread_id,
         already_finished,
     })
-}
-
-pub(crate) fn cancel_by_session(
-    subagent_session_id: &str,
-    parent_session: &str,
-) -> Option<CancelledSubagent> {
-    let task_id = task_id_for_session(subagent_session_id, parent_session).ok()?;
-    cancel_by_task(&task_id)
 }
 
 pub(crate) fn cancel_by_session_in_workspace(

@@ -629,40 +629,6 @@ pub(crate) fn messages_since_request(messages: &[Message], base_len: usize) -> &
     &messages[start..]
 }
 
-/// Convert a harness transcript into openhuman [`ChatMessage`]s for a provider
-/// that does **not** support native tool calls (text/prompt-guided mode).
-///
-/// Consecutive `Tool` result messages are coalesced into a single
-/// `[Tool results]` user turn — the shape prompt-guided models are taught to
-/// read — instead of native `tool`-role messages they wouldn't understand.
-/// Other messages convert as usual (assistant tool calls already rode the
-/// visible text in this mode).
-pub(crate) fn messages_to_text_mode_chat(messages: &[Message]) -> Vec<ChatMessage> {
-    let mut out: Vec<ChatMessage> = Vec::new();
-    let mut pending: Vec<String> = Vec::new();
-
-    fn flush(out: &mut Vec<ChatMessage>, pending: &mut Vec<String>) {
-        if !pending.is_empty() {
-            out.push(ChatMessage::user(format!(
-                "[Tool results]\n{}",
-                std::mem::take(pending).join("\n")
-            )));
-        }
-    }
-
-    for msg in messages {
-        match msg {
-            Message::Tool(_) => pending.push(msg.text()),
-            _ => {
-                flush(&mut out, &mut pending);
-                out.extend(message_to_chat_message(msg));
-            }
-        }
-    }
-    flush(&mut out, &mut pending);
-    out
-}
-
 /// Convert a harness [`TaToolCall`] into an openhuman [`NativeToolCall`].
 ///
 /// The harness models arguments as parsed JSON; openhuman carries them as the

@@ -66,7 +66,7 @@ security model); this README covers only the host seam.
   `"flow"`, and `scope: "flow"` shares the `flow_namespace` the
   `flow_memory_*` agent tools use.
 - `observability.rs`: `tinyflows::observability::RunObserver` impls:
-  `TracingRunObserver` (log-only) and `FlowRunObserver`, which persists live
+  `FlowRunObserver`, which persists live
   steps via `flows::upsert_flow_run_step` and publishes
   `DomainEvent::FlowRunProgress` twice per non-trigger node so the frontend
   can render a run live.
