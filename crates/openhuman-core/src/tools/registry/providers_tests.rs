@@ -111,3 +111,37 @@ fn invalid_provider_ids_are_rejected() {
 
     assert!(err.to_string().contains("invalid provider id"));
 }
+
+#[test]
+fn blank_display_name_falls_back_to_normalized_id_and_lookups_normalize() {
+    let config = config_with(vec![CapabilityProviderConfig {
+        id: " Team Tools ".to_string(),
+        display_name: "  ".to_string(),
+        source_uri: None,
+        source_digest: None,
+        trust_state: CapabilityProviderTrustState::Trusted,
+        enabled: true,
+    }]);
+
+    assert_eq!(
+        normalize_capability_provider_id(" Team Tools "),
+        Ok("team-tools".to_string())
+    );
+    assert!(normalize_capability_provider_id("!!!").is_err());
+    assert!(normalize_capability_provider_id(&"x".repeat(120)).is_err());
+
+    let registry = CapabilityProviderRegistry::from_config(&config).expect("valid provider");
+    assert_eq!(registry.list()[0].display_name, "team-tools");
+    assert!(registry.get("TEAM TOOLS").is_some());
+    assert!(registry.get("!!!").is_none());
+
+    assert_eq!(list_capability_providers(&config).unwrap().len(), 1);
+    assert_eq!(
+        capability_provider_by_id(&config, "team tools")
+            .unwrap()
+            .expect("team provider")
+            .id,
+        "team-tools"
+    );
+    assert!(is_capability_provider_trusted_enabled(&config, "team tools"));
+}
