@@ -175,8 +175,7 @@ impl SteerSubagentTool {
                 }
                 Err(tinyagents_orchestration::subagent::WaitError::RegistryPoisoned) => {
                     return Ok(ToolResult::error(
-                        "steer_subagent: the sub-agent registry is unavailable; try again."
-                            .to_string(),
+                        "steer_subagent: the sub-agent registry is unavailable; try again.".to_string(),
                     ));
                 }
             }

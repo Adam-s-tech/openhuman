@@ -94,8 +94,8 @@ use turn_policy::{
 };
 
 #[cfg(test)]
-#[path = "prompt_cache_golden_tests.rs"]
-mod prompt_cache_golden_tests;
-#[cfg(test)]
 #[path = "tinyagents_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "prompt_cache_golden_tests.rs"]
+mod prompt_cache_golden_tests;
