@@ -248,8 +248,8 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     //     stable prefix into `provider_options`, and the provider adapters see
     //     `protect_prompt_prefix` and emit explicit `cache_control` breakpoints
     //     where the provider needs them (native Anthropic, OpenRouter relays).
-    // The stable prefix itself is declared per request by the host
-    // `PromptCacheSegmentMiddleware`.
+    // The stable prefix itself is declared per request by the vendor loop from
+    // the session's frozen system prefix (`RunContext::frozen_system_prefix_len`).
     policy.cache.protect_prompt_prefix = true;
     // Response caching is gated: it is enabled only for deterministic internal
     // runs (which additionally attach a `ResponseCache`). Interactive chat turns

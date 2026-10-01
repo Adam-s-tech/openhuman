@@ -15,7 +15,6 @@ use async_trait::async_trait;
 use tinyagents_harness::middleware::{AgentRun, BudgetTracker, Middleware, ToolInvocationIdentity};
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
 use tinyinference_llm::message::Message as TaMessage;
-use tinyinference_llm::model::SegmentRole;
 use tinyinference_llm::tool::{ToolCall as TaToolCall, ToolSchema};
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
@@ -396,8 +395,6 @@ mod approval_guard_tests;
 mod classified_failure_tests;
 #[path = "middleware_loop_guard_tests.rs"]
 mod loop_guard_tests;
-#[path = "middleware_prompt_cache_tests.rs"]
-mod prompt_cache_tests;
 
 #[path = "middleware_research_budget_tests.rs"]
 mod research_budget_tests;
