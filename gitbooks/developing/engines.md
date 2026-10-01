@@ -143,8 +143,11 @@ chunk store (reset, rebuild, vault, pipeline status) need `chunks`. Each shows
 runs no source pipeline of its own, so the host syncs local folder, GitHub, RSS
 and web-page sources itself: it reads them and sends the items through the
 engine's sink, from the Sync button, Apply all, and a daily schedule
-(`memory/sources/hosted_sync.rs`, `hosted_periodic.rs`). A file removed from a
-synced folder stays in memory until the source is removed.
+(`memory/sources/hosted_sync.rs`, `hosted_periodic.rs`). The host records what
+the sink accepted, so a run sends only new or changed items and one stopped by
+its budget carries on where it stopped. A file removed from a synced folder
+stays in memory, and removing the source keeps what it synced, as on the local
+engine; deleting the source's memory forgets all of it.
 
 Hosted CortexDB ranks its recall without scoring it: a hit carries its rank and
 no signal (no similarity, keyword, graph, episodic or freshness), with or
