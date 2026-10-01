@@ -200,21 +200,24 @@ impl ComposioCallbacks {
             .await
             .map_err(|e| method_error(format!("list_connections (backend): {e}")))?,
             ComposioRoute::Direct(direct) => {
-                direct_list_connections(&direct).await.map_err(|e| {
-                    // [#1166 / Sentry TAURI-RUST-X9] The v3 `/connected_accounts`
-                    // 401 shape has to reach the observability classifier, and it
-                    // only fires on a message carrying the `[composio-direct]`
-                    // anchor. Report it here rather than relying on the caller:
-                    // by the time this reaches the module it is wrapped in a
-                    // `MethodFailed` envelope, and the classifier that keys on
-                    // the anchor runs in this process, not that one.
-                    let rendered = format!("[composio-direct] list_connections (direct): {e:#}");
-                    crate::integrations::composio::ops::report_composio_op_error(
-                        "list_connections",
-                        &rendered,
-                    );
-                    method_error(rendered)
-                })?
+                direct_list_connections(&config, &direct)
+                    .await
+                    .map_err(|e| {
+                        // [#1166 / Sentry TAURI-RUST-X9] The v3 `/connected_accounts`
+                        // 401 shape has to reach the observability classifier, and it
+                        // only fires on a message carrying the `[composio-direct]`
+                        // anchor. Report it here rather than relying on the caller:
+                        // by the time this reaches the module it is wrapped in a
+                        // `MethodFailed` envelope, and the classifier that keys on
+                        // the anchor runs in this process, not that one.
+                        let rendered =
+                            format!("[composio-direct] list_connections (direct): {e:#}");
+                        crate::integrations::composio::ops::report_composio_op_error(
+                            "list_connections",
+                            &rendered,
+                        );
+                        method_error(rendered)
+                    })?
             }
         };
         Ok(response.connections)

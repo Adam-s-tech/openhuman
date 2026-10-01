@@ -205,6 +205,7 @@ run_raw_coverage_modules() {
     # path. These groups verify the host-to-module round trip, so inject the
     # pinned connector only for their processes.
     if { [ "$module" = "composio_credentials_state_raw_coverage_e2e" ] ||
+         [ "$module" = "composio_tools_direct_raw_coverage_e2e" ] ||
          [ "$module" = "tools_composio_large_round25_raw_coverage_e2e" ]; } &&
        [ -z "${TINYCONNECTORS_TEST_MODULE:-}" ]; then
       TINYCONNECTORS_TEST_MODULE="$connectors_module" \
