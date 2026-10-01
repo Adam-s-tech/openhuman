@@ -479,18 +479,15 @@ export function planLegacyRenames(sources) {
     taken.add(to);
     planned.set(file, { to, decls });
   }
-  if (manual.some((x) => planned.has(x.file))) {
-    for (const x of manual) planned.delete(x.file);
-  }
+  for (const x of manual) planned.delete(x.file);
 
   const edits = new Map();
   const perFile = new Map();
-  for (const [from, { to, decls }] of planned) {
+  for (const { to, decls } of planned.values()) {
     for (const d of decls) {
       const rel = path.posix.relative(path.posix.dirname(d.file), to);
       perFile.set(d.file, [...(perFile.get(d.file) ?? []), { ...d, rel }]);
     }
-    void from;
   }
   for (const [file, list] of perFile) {
     const lines = sources.get(file).split("\n");
