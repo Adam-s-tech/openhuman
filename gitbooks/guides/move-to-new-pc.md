@@ -86,7 +86,7 @@ Open the app and sign in with the **same account**. Signing in:
 
 ### 6. Re-check model / provider config
 
-Your `config.toml` came along, so model routing and provider choices should already match. If you used a [local model](local-model.md), remember that **Ollama/LM Studio is separate software**. Install it on the new machine too, and let OpenHuman re-pull the model weights (they aren't in the data folder).
+Your `config.toml` came along, so model routing and provider choices should already match. If you used a [local model](local-model.md), remember that **Ollama/LM Studio is separate software** and the model weights live in its own store, not in the OpenHuman data folder. Install the runtime on the new machine and pull the same models yourself (for example `ollama pull bge-m3`); OpenHuman does not download them.
 
 ---
 
@@ -98,7 +98,7 @@ The migration worked when:
 - [ ] The assistant replies in your configured style, and your display name/persona is intact.
 - [ ] Connected integrations show as connected under **Settings** (reconnect any that don't).
 - [ ] Your autonomy tier and settings match what you had (check **Settings → Agents → Agent access**).
-- [ ] If you use local AI: Ollama is installed on the new machine and Local AI reports `ready` after models re-pull.
+- [ ] If you use local AI: the runtime is installed and running on the new machine, you have pulled the models your workloads name, and a turn routed to the local provider answers.
 
 ## Common failures
 
@@ -106,7 +106,7 @@ The migration worked when:
 | ------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | New machine starts fresh, no memory         | Data folder wasn't in the right place, or app was running during the copy | Quit the app, place the folder at `~/.openhuman/` (or `%USERPROFILE%\.openhuman\`), relaunch |
 | Signed in but integrations are disconnected | Integration access is account/backend-scoped, not in the folder           | Reconnect each integration in Settings (one OAuth click each)                                |
-| Local model doesn't work on the new PC      | Ollama/LM Studio and the weights aren't on the new machine                | Install the runtime and let models re-pull; see [local model guide](local-model.md)          |
+| Local model doesn't work on the new PC      | Ollama/LM Studio and the weights aren't on the new machine                | Install the runtime and pull the models yourself; see [local model guide](local-model.md)    |
 | Assistant lost its personality              | `SOUL.md` / `IDENTITY.md` weren't copied                                  | Copy the **whole** data folder, not just the database                                        |
 | Sign-in stalls on the new machine           | An auth/handler issue unrelated to migration                              | See [Troubleshooting Sign-In](../overview/troubleshooting-sign-in.md)                        |
 
