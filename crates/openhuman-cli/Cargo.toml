@@ -194,6 +194,10 @@ name = "cli_sigpipe"
 path = "../../tests/cli_sigpipe.rs"
 
 [[test]]
+name = "composio_list_tools_stack_overflow_regression"
+path = "../../tests/composio_list_tools_stack_overflow_regression.rs"
+
+[[test]]
 name = "config_auth_app_state_connectivity_e2e"
 path = "../../tests/config_auth_app_state_connectivity_e2e.rs"
 

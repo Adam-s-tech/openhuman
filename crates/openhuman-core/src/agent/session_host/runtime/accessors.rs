@@ -254,16 +254,7 @@ impl OpenHumanSessionHost {
         self.runtime_session
             .as_ref()
             .map(|session| {
-                session
-                    .history()
-                    .iter()
-                    .filter_map(crate::agent::message_convert::message_to_native_chat_message)
-                    .map(|row| {
-                        TranscriptEntry::Chat(
-                            crate::agent::message_convert::row_to_dialect_message(row),
-                        )
-                    })
-                    .collect()
+                crate::agent::message_convert::messages_to_history_projection(session.history())
             })
             .unwrap_or_default()
     }
