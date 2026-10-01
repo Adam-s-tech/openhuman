@@ -1,4 +1,4 @@
-use super::branches::default_config_boxed;
+use super::super::Config;
 use super::branches::{default_config_boxed, pre_login_config_boxed};
 use super::dirs::{
     default_action_dir, default_config_and_workspace_dirs, resolve_action_dir,
