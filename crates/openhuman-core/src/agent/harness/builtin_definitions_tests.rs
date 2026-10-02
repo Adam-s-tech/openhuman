@@ -96,6 +96,11 @@ fn expected_builtin_ids_are_present() {
         "task_manager_agent",
         "critic",
         "summarizer",
+        // Gated with `flows` (#4797) — absent from a slim build.
+        #[cfg(feature = "flows")]
+        "workflow_builder",
+        #[cfg(feature = "flows")]
+        "flow_discovery",
     ] {
         assert!(ids.contains(&expected.to_string()), "missing {expected}");
     }
@@ -110,14 +115,5 @@ fn expected_builtin_ids_are_present() {
             !ids.contains(&removed.to_string()),
             "v1 memory agent {removed} must stay removed"
         );
-    }
-    for expected in [
-        // Gated with `flows` (#4797) — absent from a slim build.
-        #[cfg(feature = "flows")]
-        "workflow_builder",
-        #[cfg(feature = "flows")]
-        "flow_discovery",
-    ] {
-        assert!(ids.contains(&expected.to_string()), "missing {expected}");
     }
 }
