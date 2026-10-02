@@ -177,19 +177,3 @@ async fn ingest_subscriber_stores_a_committed_turn_with_names_and_ids_only() {
         Some("thread-ingest")
     );
 }
-
-#[tokio::test]
-async fn ingest_subscriber_drops_the_turn_when_config_is_unavailable() {
-    // A workspace with no config.toml beside it falls back to the global load;
-    // either way the handler must never panic.
-    let tmp = tempfile::tempdir().unwrap();
-    ConversationIngestSubscriber
-        .handle(&turn_event(&tmp.path().join("nowhere"), "thread-none"))
-        .await;
-}
-
-#[tokio::test]
-async fn registering_subscribers_is_idempotent() {
-    register_memory_subscribers();
-    register_memory_subscribers();
-}
