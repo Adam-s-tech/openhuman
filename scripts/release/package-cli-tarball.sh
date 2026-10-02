@@ -28,7 +28,7 @@ cp "$CORE_BIN_PATH" "$WORK/openhuman-core"
 cp "$TUI_BIN_PATH" "$WORK/openhuman-tui"
 chmod +x "$WORK/openhuman-core" "$WORK/openhuman-tui"
 # Pinned native modules, staged at build time and found by the core beside its
-# binary. Skipped (with a loud warning) only when the host has no published key.
+# binary; the target's host key comes from the runner, so build natively.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 node "$REPO_ROOT/scripts/release/stage-modules.mjs" --output "$WORK/bundled-modules"
 tar -czf "$TARBALL" -C "$WORK" openhuman-core openhuman-tui bundled-modules
