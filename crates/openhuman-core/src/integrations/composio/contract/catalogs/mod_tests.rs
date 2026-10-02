@@ -3,6 +3,42 @@
 
 use super::*;
 
+/// Every toolkit with a curated catalog, in display order.
+const CAPABILITY_TOOLKITS: &[&str] = &[
+    "gmail",
+    "notion",
+    "slack",
+    "clickup",
+    "github",
+    "discord",
+    "googlecalendar",
+    "googledrive",
+    "googledocs",
+    "googlesheets",
+    "outlook",
+    "microsoft_teams",
+    "linear",
+    "jira",
+    "trello",
+    "asana",
+    "dropbox",
+    "twitter",
+    "spotify",
+    "telegram",
+    "whatsapp",
+    "shopify",
+    "stripe",
+    "hubspot",
+    "salesforce",
+    "airtable",
+    "figma",
+    "youtube",
+    "one_drive",
+    "excel",
+    "todoist",
+];
+
+
 #[test]
 fn catalog_for_toolkit_resolves_every_capability_toolkit() {
     // Every toolkit the capability surface reports on must have a catalog —
@@ -44,71 +80,20 @@ fn catalog_for_toolkit_honours_slug_aliases() {
 }
 
 #[test]
-fn every_native_provider_has_a_catalog_and_a_positive_default_interval() {
-    for (slug, default_secs) in NATIVE_PROVIDERS {
+fn every_native_provider_has_a_catalog() {
+    for slug in NATIVE_PROVIDERS {
         assert!(
             catalog_for_toolkit(slug).is_some(),
             "native provider {slug} has no curated catalog"
         );
         assert!(has_native_provider(slug));
         assert!(
-            *default_secs >= 1,
-            "{slug} default interval must be positive"
-        );
-        assert!(
             CAPABILITY_TOOLKITS.contains(slug),
-            "native provider {slug} is missing from the capability surface"
+            "native provider {slug} is missing from the capability list"
         );
     }
     assert!(!has_native_provider("jira"));
     assert!(!has_native_provider("nonexistent-toolkit"));
-}
-
-#[test]
-fn sync_interval_env_var_upper_cases_the_toolkit() {
-    assert_eq!(
-        sync_interval_env_var("gmail"),
-        "OPENHUMAN_COMPOSIO_GMAIL_SYNC_INTERVAL_SECS"
-    );
-    assert_eq!(
-        sync_interval_env_var("microsoft_teams"),
-        "OPENHUMAN_COMPOSIO_MICROSOFT_TEAMS_SYNC_INTERVAL_SECS"
-    );
-}
-
-#[test]
-fn parse_sync_interval_override_rejects_zero_and_junk() {
-    // `0` would burn the scheduler in a tight loop, so it is never honoured.
-    assert_eq!(parse_sync_interval_override("0"), None);
-    assert_eq!(parse_sync_interval_override("-5"), None);
-    assert_eq!(parse_sync_interval_override("soon"), None);
-    assert_eq!(parse_sync_interval_override(""), None);
-    assert_eq!(parse_sync_interval_override("  900  "), Some(900));
-    assert_eq!(parse_sync_interval_override("1"), Some(1));
-}
-
-#[test]
-fn native_provider_sync_interval_is_none_for_catalog_only_toolkits() {
-    // Reads no env var, so it is safe beside the process-global env tests.
-    assert_eq!(native_provider_sync_interval_secs("jira"), None);
-    assert_eq!(
-        native_provider_sync_interval_secs("nonexistent-toolkit"),
-        None
-    );
-    assert!(native_provider_sync_interval_secs("gmail").is_some());
-}
-
-#[test]
-fn toolkit_has_scope_distinguishes_gated_from_ungated_scopes() {
-    // The gmail catalog includes destructive verbs (delete / trash /
-    // batch_delete), so admin-gating actually unlocks something.
-    assert!(toolkit_has_scope("gmail", ToolScope::Admin));
-    assert!(toolkit_has_scope("gmail", ToolScope::Read));
-    assert!(toolkit_has_scope("gmail", ToolScope::Write));
-    // Case-insensitive toolkit slug → still routes to the catalog.
-    assert!(toolkit_has_scope("GMAIL", ToolScope::Admin));
-    // Unknown toolkit → no catalog → no scope is "gating" anything.
-    assert!(!toolkit_has_scope("nonexistent-toolkit", ToolScope::Admin));
 }
 
 #[test]

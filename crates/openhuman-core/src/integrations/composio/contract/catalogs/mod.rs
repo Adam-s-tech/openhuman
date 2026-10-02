@@ -26,106 +26,16 @@ use super::scopes::{
     classify_unknown, find_curated, toolkit_from_slug, CuratedTool, ToolScope, UserScopePref,
 };
 
-pub use descriptions::{toolkit_description, toolkit_result_notes};
+pub use descriptions::toolkit_description;
 
-/// Every toolkit the capability surface reports on, in display order.
-pub const CAPABILITY_TOOLKITS: &[&str] = &[
-    "gmail",
-    "notion",
-    "slack",
-    "clickup",
-    "github",
-    "discord",
-    "googlecalendar",
-    "googledrive",
-    "googledocs",
-    "googlesheets",
-    "outlook",
-    "microsoft_teams",
-    "linear",
-    "jira",
-    "trello",
-    "asana",
-    "dropbox",
-    "twitter",
-    "spotify",
-    "telegram",
-    "whatsapp",
-    "shopify",
-    "stripe",
-    "hubspot",
-    "salesforce",
-    "airtable",
-    "figma",
-    "youtube",
-    "one_drive",
-    "excel",
-    "todoist",
-];
+/// Toolkits the connector module can sync into memory (`tinyconnectors-sync`'s
+/// provider tree).
+pub const NATIVE_PROVIDERS: &[&str] = &["gmail", "notion", "slack", "clickup", "github", "linear"];
 
-/// Toolkits with a native `ComposioProvider` in the engine, and the
-/// compile-time default periodic-sync interval each one ships.
-///
-/// The provider impls are the engine's, but *which* toolkits have one and how
-/// often they run are facts a host reports in its capability surface, so the
-/// table is contract data. Each provider still calls its own
-/// `resolve_sync_interval_secs` with the same default, and
-/// `native_provider_sync_interval_secs` below resolves the identical env
-/// override — so the two cannot disagree without this table being edited.
-pub const NATIVE_PROVIDERS: &[(&str, u64)] = &[
-    ("gmail", 15 * 60),
-    ("notion", 30 * 60),
-    ("slack", 15 * 60),
-    ("clickup", 30 * 60),
-    ("github", 30 * 60),
-    ("linear", 30 * 60),
-];
-
-/// Does `toolkit` have a native provider implementation?
+/// Does `toolkit` have a native sync provider?
 #[must_use]
 pub fn has_native_provider(toolkit: &str) -> bool {
-    NATIVE_PROVIDERS.iter().any(|(slug, _)| *slug == toolkit)
-}
-
-/// The env var read to override a toolkit's periodic sync interval.
-///
-/// Exposed so tests and `.env.example` stay in lockstep with the runtime
-/// lookup without re-implementing the casing.
-#[must_use]
-pub fn sync_interval_env_var(toolkit: &str) -> String {
-    format!(
-        "OPENHUMAN_COMPOSIO_{}_SYNC_INTERVAL_SECS",
-        toolkit.to_ascii_uppercase()
-    )
-}
-
-/// Apply a raw env-var override to a default interval.
-///
-/// Split out from the env read so both sides can share the rule and differ on
-/// what they do about a bad value: a provider warns once, an observability read
-/// stays silent. `0` is never honoured — it would burn the scheduler in a tight
-/// loop — so a non-positive or unparseable value yields `None` and the caller
-/// keeps its default.
-#[must_use]
-pub fn parse_sync_interval_override(raw: &str) -> Option<u64> {
-    raw.trim().parse::<u64>().ok().filter(|n| *n >= 1)
-}
-
-/// The effective periodic sync interval for a native provider, honouring the
-/// `OPENHUMAN_COMPOSIO_<TOOLKIT>_SYNC_INTERVAL_SECS` override.
-///
-/// `None` for a toolkit with no native provider.
-#[must_use]
-pub fn native_provider_sync_interval_secs(toolkit: &str) -> Option<u64> {
-    let default_secs = NATIVE_PROVIDERS
-        .iter()
-        .find(|(slug, _)| *slug == toolkit)
-        .map(|(_, secs)| *secs)?;
-    let resolved = std::env::var(sync_interval_env_var(toolkit))
-        .ok()
-        .and_then(|raw| parse_sync_interval_override(&raw))
-        .unwrap_or(default_secs);
-    Some(resolved)
+    NATIVE_PROVIDERS.contains(&toolkit)
 }
 
 /// Static toolkit → curated catalog map.
@@ -215,15 +125,6 @@ pub fn curated_scope_for(slug: &str) -> Option<ToolScope> {
     let toolkit = toolkit_from_slug(slug)?;
     let catalog = catalog_for_toolkit(&toolkit)?;
     find_curated(catalog, slug).map(|c| c.scope)
-}
-
-/// Does any curated action for `toolkit` require `scope`?
-///
-/// Useful whenever the question is "would flipping the {scope} bit unlock
-/// anything here?" — a UI hint that greys out a toggle with no effect.
-#[must_use]
-pub fn toolkit_has_scope(toolkit: &str, scope: ToolScope) -> bool {
-    catalog_for_toolkit(toolkit).is_some_and(|cat| cat.iter().any(|t| t.scope == scope))
 }
 
 #[cfg(test)]
