@@ -214,6 +214,11 @@ test("CI Full refreshes the E2E marker after restoring its content-keyed artifac
     /- name: Restore cached Playwright E2E artifact([\s\S]*?)(?=\n      - name: |\n    [a-zA-Z_-]+:|$)/,
   )?.[1];
   assert.ok(cacheStep, "CI Full must keep a Playwright artifact cache step");
+  assert.match(cacheStep, /crates\/\*\*/);
+  assert.match(cacheStep, /vendor\/\*\*/);
+  assert.match(cacheStep, /build\.rs/);
+  assert.match(cacheStep, /\.cargo\/\*\*/);
+  assert.match(cacheStep, /scripts\/ci\/product-features\.\*/);
   assert.match(cacheStep, /app\/tsconfig\*\.json/);
   assert.match(cacheStep, /packages\/\*\*/);
 });
