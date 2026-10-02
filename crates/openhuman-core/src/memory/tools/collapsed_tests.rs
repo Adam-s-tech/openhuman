@@ -29,7 +29,7 @@ fn the_schema_advertises_every_action() {
         .as_array()
         .expect("enum")
         .len();
-    assert_eq!(listed, 3);
+    assert_eq!(listed, 4);
 }
 
 #[test]
@@ -90,7 +90,7 @@ async fn an_unknown_action_is_an_error_result_naming_the_valid_ones() {
     assert!(result.is_error);
     let text = format!("{result:?}");
     assert!(text.contains("recal"));
-    assert!(text.contains("ask|keyword_search|learn"));
+    assert!(text.contains("ask|keyword_search|learn|forget"));
 }
 
 #[test]
@@ -136,4 +136,16 @@ fn each_action_maps_text_onto_its_members_arguments() {
 fn empty_text_is_refused() {
     assert!(member_args(ACTION_ASK, &serde_json::json!({"text": "  "})).is_err());
     assert!(member_args(ACTION_LEARN, &serde_json::json!({})).is_err());
+}
+
+#[test]
+fn forget_takes_the_key_as_text_and_defaults_the_namespace() {
+    let args = member_args(
+        ACTION_FORGET,
+        &serde_json::json!({"text": " ana_email_pref "}),
+    )
+    .unwrap();
+    assert_eq!(args["key"], "ana_email_pref");
+    assert!(args["namespace"].is_string(), "forget requires a namespace");
+    assert!(args.get("query").is_none() && args.get("content").is_none());
 }

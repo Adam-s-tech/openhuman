@@ -1,10 +1,11 @@
 //! `memory` — the whole agent-facing memory surface as one three-action tool:
-//! `memory(action: "ask" | "keyword_search" | "learn", text: "...")`.
+//! `memory(action: "ask" | "keyword_search" | "learn" | "forget", text: "...")`.
 //!
 //! * `ask` — a question in plain language; answered by the hybrid
 //!   (keyword + semantic) search over stored chunks.
 //! * `keyword_search` — keywords or a phrase; the lexical `memory_recall` search.
 //! * `learn` — one explicit learning to keep, saved as a durable fact.
+//! * `forget` — delete one stored memory by its key.
 //!
 //! The model sees one verb per intent and one text argument, instead of the
 //! eleven schemas (`memory_store`, `memory_recall`, `memory_hybrid_search`, …)
@@ -37,6 +38,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 
+use super::forget::MemoryForgetTool;
 use super::recall::MemoryRecallTool;
 use super::search::MemoryHybridSearchTool;
 use super::store::MemoryStoreTool;
@@ -59,18 +61,22 @@ pub const ACTION_ASK: &str = "ask";
 pub const ACTION_KEYWORD_SEARCH: &str = "keyword_search";
 /// Save one explicit learning as a durable fact.
 pub const ACTION_LEARN: &str = "learn";
+/// Delete one stored memory.
+pub const ACTION_FORGET: &str = "forget";
 
 pub struct MemoryTool {
     store: MemoryStoreTool,
     recall: MemoryRecallTool,
+    forget: MemoryForgetTool,
     hybrid_search: MemoryHybridSearchTool,
 }
 
 impl MemoryTool {
     pub fn new(_config: Arc<Config>, security: Arc<SecurityPolicy>) -> Self {
         Self {
-            store: MemoryStoreTool::new(security),
+            store: MemoryStoreTool::new(Arc::clone(&security)),
             recall: MemoryRecallTool::new(),
+            forget: MemoryForgetTool::new(security),
             hybrid_search: MemoryHybridSearchTool::default(),
         }
     }
@@ -104,6 +110,10 @@ impl MemoryTool {
             CollapsedAction {
                 action: ACTION_LEARN,
                 tool: &self.store,
+            },
+            CollapsedAction {
+                action: ACTION_FORGET,
+                tool: &self.forget,
             },
         ]
     }
@@ -139,6 +149,17 @@ fn member_args(action: &str, args: &Value) -> Result<Value, String> {
                 out.insert("namespace".into(), ns);
             }
         }
+        ACTION_FORGET => {
+            // `text` is the memory's key, as printed in every search result.
+            out.insert("key".into(), json!(text));
+            out.insert(
+                "namespace".into(),
+                namespace.unwrap_or_else(|| {
+                    json!(crate::agent::tinyagents::host::agent_memory::DEFAULT_AGENT_MEMORY_NAMESPACE)
+                }),
+            );
+            return Ok(Value::Object(out));
+        }
         ACTION_LEARN => {
             out.insert("content".into(), json!(text));
             if let Some(ns) = namespace {
@@ -165,7 +186,8 @@ impl Tool for MemoryTool {
         "The user's long-term memory. `ask`: a question in plain language \
          (start here). `keyword_search`: keywords or a phrase when you know \
          the words. `learn`: one explicit, durable thing worth remembering. \
-         `text` is the question, the keywords or the learning. For ingested \
+         `forget`: delete one memory; `text` is its key, as shown in a search \
+         result. Otherwise `text` is the question, the keywords or the learning. For ingested \
          email, chat and documents use the separate `memory_tree` tool."
     }
 
@@ -177,11 +199,11 @@ impl Tool for MemoryTool {
                 "action": {
                     "type": "string",
                     "enum": actions,
-                    "description": "`ask` a question, `keyword_search` by words, or `learn` a fact."
+                    "description": "`ask` a question, `keyword_search` by words, `learn` a fact, or `forget` one by key."
                 },
                 "text": {
                     "type": "string",
-                    "description": "The question, the keywords, or the learning to keep."
+                    "description": "The question, the keywords, the learning to keep, or (for `forget`) the memory key."
                 },
                 "limit": {
                     "type": "integer",
