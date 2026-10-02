@@ -10,10 +10,10 @@ use crate::core::all;
 
 use super::types::{
     McpToolSpec, FETCH_MODES, FILTER_FIELDS, FILTER_STRING_FIELDS, ITEM_KINDS, LEARNING_KINDS,
-    MEMORY_FETCH_ARGUMENTS, MEMORY_FORGET_ARGUMENTS, MEMORY_FORGET_MAX_IDS,
-    MEMORY_LEARN_ARGUMENTS, MEMORY_LIST_ARGUMENTS, MEMORY_MAX_LIMIT, MEMORY_RECALL_ARGUMENTS,
-    SEARCH_MAX_RESULTS, SEARXNG_SEARCH_ARGUMENTS, SOURCE_KINDS, SUBAGENT_RUN_ARGUMENTS,
-    WEB_ANSWER_ARGUMENTS, WEB_SEARCH_ARGUMENTS,
+    MEMORY_FETCH_ARGUMENTS, MEMORY_FORGET_ARGUMENTS, MEMORY_FORGET_MAX_IDS, MEMORY_LEARN_ARGUMENTS,
+    MEMORY_LIST_ARGUMENTS, MEMORY_MAX_LIMIT, MEMORY_RECALL_ARGUMENTS, SEARCH_MAX_RESULTS,
+    SEARXNG_SEARCH_ARGUMENTS, SOURCE_KINDS, SUBAGENT_RUN_ARGUMENTS, WEB_ANSWER_ARGUMENTS,
+    WEB_SEARCH_ARGUMENTS,
 };
 
 pub fn build_rpc_params(
@@ -244,7 +244,9 @@ fn validated_filter(value: &Value) -> Result<Value, ToolCallError> {
                     let tag = item.as_str().map(str::trim).filter(|s| !s.is_empty());
                     tags.push(Value::String(
                         tag.ok_or_else(|| {
-                            invalid("filter field `tags_any` entries must be non-empty strings".into())
+                            invalid(
+                                "filter field `tags_any` entries must be non-empty strings".into(),
+                            )
                         })?
                         .to_string(),
                     ));
@@ -254,10 +256,14 @@ fn validated_filter(value: &Value) -> Result<Value, ToolCallError> {
             // observed_after / observed_before: RFC 3339 timestamps.
             _ => {
                 let text = field.as_str().ok_or_else(|| {
-                    invalid(format!("filter field `{name}` must be an RFC 3339 timestamp string"))
+                    invalid(format!(
+                        "filter field `{name}` must be an RFC 3339 timestamp string"
+                    ))
                 })?;
                 chrono::DateTime::parse_from_rfc3339(text).map_err(|_| {
-                    invalid(format!("filter field `{name}` must be an RFC 3339 timestamp (got `{text}`)"))
+                    invalid(format!(
+                        "filter field `{name}` must be an RFC 3339 timestamp (got `{text}`)"
+                    ))
                 })?;
                 out.insert(key.clone(), Value::String(text.to_string()));
             }

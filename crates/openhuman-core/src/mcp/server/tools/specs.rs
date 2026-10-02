@@ -283,7 +283,8 @@ pub fn no_args_schema() -> Value {
 
 /// JSON Schema for the `MetaFilter` object of the memory-v2 spec.
 pub fn meta_filter_schema() -> Value {
-    let text = |description: &str| json!({"type": "string", "minLength": 1, "description": description});
+    let text =
+        |description: &str| json!({"type": "string", "minLength": 1, "description": description});
     json!({
         "type": "object",
         "description": "Metadata filter; every given field must match. An empty filter matches everything.",
