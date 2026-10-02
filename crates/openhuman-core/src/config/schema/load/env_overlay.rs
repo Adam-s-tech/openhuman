@@ -9,6 +9,7 @@ mod observability;
 mod proxy;
 mod runtime;
 mod search;
+mod update;
 
 use super::super::proxy::{set_runtime_proxy_config, ProxyScope};
 use super::super::Config;
