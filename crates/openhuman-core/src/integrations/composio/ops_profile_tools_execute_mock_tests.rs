@@ -8,7 +8,7 @@ async fn composio_get_user_profile_via_mock_returns_provider_profile() {
     // `Once`-guarded, so a test that omits it passes only while some
     // earlier test in the same binary happened to run first.
     use crate::config::TEST_ENV_LOCK;
-    let _cache_guard = cache_guard();
+    let _cache_guard = cache_guard_async().await;
     let _env_guard = TEST_ENV_LOCK.lock().await;
     // This test mutates BACKEND_URL below via EnvVarGuard, which races with
     // openhuman_tinyhumans::backend::url / core::cli_tests tests
