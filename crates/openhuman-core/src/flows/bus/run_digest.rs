@@ -152,7 +152,7 @@ pub(super) async fn enforce_retention_cap(
         return Ok(0);
     }
     // Oldest first, so the excess taken below is the stalest digests.
-    digests.sort_by(|a, b| a.meta.observed_at.cmp(&b.meta.observed_at));
+    digests.sort_by_key(|digest| digest.meta.observed_at);
     let excess = digests.len() - cap;
     let ids: Vec<String> = digests
         .into_iter()
