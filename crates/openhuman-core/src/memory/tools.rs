@@ -10,7 +10,8 @@
 //! - `tool_call` — this call's name and provider-assigned id;
 //! - `source.kind = agent`.
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock, Mutex};
 
 use async_trait::async_trait;
 use serde_json::{json, Value};
@@ -23,7 +24,44 @@ use crate::core::events::DomainEvent;
 
 use super::error::MemoryError;
 use super::ops;
-use super::types::{FetchParams, ForgetParams, LearnParams, RecallParams};
+use super::types::{FetchParams, ForgetParams, LearnParams, RecallParams, TurnCitation};
+
+/// Most citations kept per thread between two drains.
+const MAX_TURN_CITATIONS: usize = 20;
+
+/// Citations `recall` produced during a thread's in-flight turn, drained by
+/// the chat surface once the turn returns ([`take_turn_citations`]).
+static TURN_CITATIONS: LazyLock<Mutex<HashMap<String, Vec<TurnCitation>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn record_turn_citations(thread_id: &str, citations: &[tinymemory::Citation]) {
+    if citations.is_empty() {
+        return;
+    }
+    let mut all = TURN_CITATIONS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let entry = all.entry(thread_id.to_string()).or_default();
+    for citation in citations {
+        if entry.len() >= MAX_TURN_CITATIONS {
+            break;
+        }
+        if !entry.iter().any(|existing| existing.id == citation.id.0) {
+            entry.push(TurnCitation::from(citation));
+        }
+    }
+}
+
+/// Drains the citations `recall` produced for `thread_id` since the last
+/// drain.
+#[must_use]
+pub fn take_turn_citations(thread_id: &str) -> Vec<TurnCitation> {
+    TURN_CITATIONS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .remove(thread_id)
+        .unwrap_or_default()
+}
 
 /// The tool's name.
 pub const MEMORY_TOOL_NAME: &str = "memory";
@@ -116,13 +154,19 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
         "recall" => match parse::<RecallParams>(args) {
             Ok(params) => {
                 let question = params.question.clone();
-                ops::recall(config, params).await.map(|view| {
-                    BUS.publish(DomainEvent::MemoryRecalled {
-                        query: question,
-                        hit_count: view.citations.len(),
-                    });
-                    json!(view)
-                }).map_err(render_error)
+                ops::recall(config, params)
+                    .await
+                    .map(|view| {
+                        if let Some(thread_id) = facts.thread_id.as_deref() {
+                            record_turn_citations(thread_id, &view.citations);
+                        }
+                        BUS.publish(DomainEvent::MemoryRecalled {
+                            query: question,
+                            hit_count: view.citations.len(),
+                        });
+                        json!(view)
+                    })
+                    .map_err(render_error)
             }
             Err(error) => Err(error),
         },
