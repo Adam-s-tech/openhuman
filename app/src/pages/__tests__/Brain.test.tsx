@@ -104,7 +104,7 @@ describe('Brain page', () => {
   it('renders the graph once data is fetched', async () => {
     graphExportMock.mockResolvedValue(makeGraph(3));
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=graph'] });
     });
     await waitFor(() => {
       expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:3');
@@ -119,7 +119,7 @@ describe('Brain page', () => {
       })
     );
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=graph'] });
     });
     expect(screen.getByTestId('brain-graph-loading')).toHaveTextContent('workspace.loadingGraph');
     expect(screen.queryByTestId('memory-graph')).not.toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('Brain page', () => {
   it('renders empty-state graph when there are no nodes', async () => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=graph'] });
     });
     await waitFor(() => {
       expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:0');
@@ -149,7 +149,7 @@ describe('Brain page', () => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     let view!: ReturnType<typeof renderWithProviders>;
     await act(async () => {
-      view = renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+      view = renderWithProviders(<Brain />, { initialEntries: ['/?brain=graph'] });
     });
     await waitFor(() => expect(graphExportMock).toHaveBeenCalledTimes(1));
     expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:0');
@@ -170,14 +170,14 @@ describe('Brain page', () => {
   it('surfaces an error alert when the fetch fails', async () => {
     graphExportMock.mockRejectedValue(new Error('boom'));
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=graph'] });
     });
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
     });
   });
 
-  // All tabs share the standard scaffold. Drive each via the `?tab=` query
+  // All tabs share the standard scaffold. Drive each via the `?brain=` query
   // param so every per-tab branch is exercised.
   it.each([
     ['sources', 'brain-sources'],
@@ -185,7 +185,7 @@ describe('Brain page', () => {
   ])('renders the %s tab', async (tab, testId) => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: [`/?tab=${tab}`] });
+      renderWithProviders(<Brain />, { initialEntries: [`/?brain=${tab}`] });
     });
     await waitFor(() => {
       expect(screen.getByTestId(testId)).toBeInTheDocument();
@@ -198,7 +198,7 @@ describe('Brain page', () => {
   it('shows the live status and activity panels on the Sync status sub-view (default)', async () => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=sync'] });
     });
     await waitFor(() => {
       expect(screen.getByTestId('brain-sync')).toBeInTheDocument();
@@ -212,7 +212,7 @@ describe('Brain page', () => {
   it('shows the sync history panel on the Sync history sub-view', async () => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync&view=history'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=sync&view=history'] });
     });
     await waitFor(() => {
       expect(screen.getByTestId('brain-sync-history')).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe('Brain page', () => {
       ],
     });
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=sync'] });
     });
     await waitFor(() => {
       expect(screen.getAllByTestId('memory-family-unavailable').length).toBeGreaterThan(0);
@@ -269,7 +269,7 @@ describe('Brain page', () => {
     graphExportMock.mockResolvedValue(makeGraph(2));
     hostedWithTree();
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=graph'] });
     });
     await waitFor(() => {
       expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:2');
@@ -280,7 +280,7 @@ describe('Brain page', () => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     hostedWithTree();
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=sync'] });
     });
     await waitFor(() => {
       const gated = screen
@@ -308,7 +308,7 @@ describe('Brain page', () => {
       ],
     });
     await act(async () => {
-      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sources'] });
+      renderWithProviders(<Brain />, { initialEntries: ['/?brain=sources'] });
     });
     await waitFor(() => {
       const gated = screen
