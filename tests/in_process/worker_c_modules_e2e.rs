@@ -725,153 +725,19 @@ async fn threads_remaining_controller_paths_round_trip() {
 }
 
 #[tokio::test]
-async fn memory_tree_ingest_feeds_memory_sync_status() {
-    let _lock = env_lock();
-    let harness = setup().await;
-    // `memory_tree_ingest` writes through the bound memory driver, which under
-    // the `modules` gate is the loaded tinymemory artifact and resolves its
-    // config from the process-wide boot policy that boot publishes and this
-    // harness never did. Publish it from the config this harness wrote (HOME
-    // points at the harness tempdir, so this names its workspace and its
-    // registry file). The policy is first-call-wins and the module captures
-    // its workspace at load; this is the only case in the binary that reaches
-    // the driver, so nothing else contends for the slot.
-    #[cfg(feature = "modules")]
-    openhuman_core::modules::memory::set_modules_policy(std::sync::Arc::new(
-        openhuman_core::config::Config::load_or_init()
-            .await
-            .expect("load the harness config for the module policy"),
-    ));
-
-    let ingest = rpc(
-        &harness.rpc_base,
-        30,
-        "openhuman.memory_tree_ingest",
-        json!({
-            "source_kind": "chat",
-            "source_id": "slack:worker-c",
-            "owner": "worker-c@example.com",
-            "tags": ["worker-c", "memory-sync"],
-            "payload": {
-                "platform": "slack",
-                "channel_label": "worker-c",
-                "messages": [
-                    {
-                        "author": "alice@example.com",
-                        "text": "Worker C coverage confirms memory sync status after ingest.",
-                        "timestamp": 1780000000000_i64,
-                        "source_ref": "slack://worker-c/msg-1"
-                    }
-                ]
-            }
-        }),
-    )
-    .await;
-    let ingest_payload = payload(&ingest, "memory_tree_ingest");
-    assert_eq!(
-        ingest_payload.get("source_id").and_then(Value::as_str),
-        Some("slack:worker-c")
-    );
-    assert_eq!(
-        ingest_payload.get("chunks_written").and_then(Value::as_u64),
-        Some(1)
-    );
-
-    let statuses = rpc(
-        &harness.rpc_base,
-        31,
-        "openhuman.memory_sync_status_list",
-        json!({}),
-    )
-    .await;
-    let rows = payload(&statuses, "memory_sync_status_list")
-        .get("statuses")
-        .and_then(Value::as_array)
-        .expect("statuses array");
-    let slack = rows
-        .iter()
-        .find(|row| row.get("provider").and_then(Value::as_str) == Some("slack"))
-        .unwrap_or_else(|| panic!("expected slack status row after ingest: {rows:?}"));
-    assert_eq!(slack.get("chunks_synced").and_then(Value::as_u64), Some(1));
-    assert_eq!(
-        slack.get("chunks_pending").and_then(Value::as_u64),
-        Some(1),
-        "inert embeddings leave the fresh chunk pending until an embed sidecar exists"
-    );
-}
-
-#[tokio::test]
-async fn memory_memory_tree_and_sources_controller_surfaces_are_reachable() {
+async fn memory_v2_controller_surface_is_reachable() {
     let _lock = env_lock();
     let harness = setup().await;
 
     let methods = [
-        "openhuman.memory_init",
-        "openhuman.memory_sync_all",
-        "openhuman.memory_sync_channel",
-        "openhuman.memory_ingestion_status",
-        "openhuman.memory_list_files",
-        "openhuman.memory_read_file",
-        "openhuman.memory_write_file",
-        "openhuman.memory_list_namespaces",
-        "openhuman.memory_query_namespace",
-        "openhuman.memory_clear_namespace",
-        "openhuman.memory_recall_memories",
-        "openhuman.memory_recall_context",
-        "openhuman.memory_context_query",
-        "openhuman.memory_context_recall",
-        "openhuman.memory_doc_put",
-        "openhuman.memory_doc_ingest",
-        "openhuman.memory_doc_list",
-        "openhuman.memory_doc_delete",
-        "openhuman.memory_list_documents",
-        "openhuman.memory_delete_document",
-        "openhuman.memory_namespace_list",
-        "openhuman.memory_kv_set",
-        "openhuman.memory_kv_get",
-        "openhuman.memory_kv_delete",
-        "openhuman.memory_kv_list_namespace",
-        "openhuman.memory_graph_upsert",
-        "openhuman.memory_graph_query",
-        "openhuman.memory_tool_rule_put",
-        "openhuman.memory_tool_rule_get",
-        "openhuman.memory_tool_rule_delete",
-        "openhuman.memory_tool_rule_list",
-        "openhuman.memory_tool_rules_for_prompt",
-        "openhuman.memory_tool_rules_json",
-        "openhuman.memory_learn_all",
-        "openhuman.memory_tree_pipeline_status",
-        "openhuman.memory_tree_ingest",
-        "openhuman.memory_tree_search",
-        "openhuman.memory_tree_recall",
-        "openhuman.memory_tree_list_sources",
-        "openhuman.memory_tree_list_chunks",
-        "openhuman.memory_tree_get_chunk",
-        "openhuman.memory_tree_delete_chunk",
-        "openhuman.memory_tree_top_entities",
-        "openhuman.memory_tree_chunks_for_entity",
-        "openhuman.memory_tree_graph_export",
-        "openhuman.memory_tree_entity_index_for",
-        "openhuman.memory_tree_memory_backfill_status",
-        "openhuman.memory_tree_obsidian_vault_status",
-        "openhuman.memory_tree_flush_now",
-        "openhuman.memory_tree_reset_tree",
-        "openhuman.memory_tree_wipe_all",
-        "openhuman.memory_tree_set_enabled",
-        "openhuman.memory_tree_query_source",
-        "openhuman.memory_tree_search_entities",
-        "openhuman.memory_tree_drill_down",
-        "openhuman.memory_tree_fetch_leaves",
-        "openhuman.memory_tree_chunk_score",
+        "openhuman.memory_engines_list",
+        "openhuman.memory_engine_get",
+        "openhuman.memory_items_list",
+        "openhuman.memory_conversations_get",
         "openhuman.memory_sources_list",
-        "openhuman.memory_sources_add",
-        "openhuman.memory_sources_get",
-        "openhuman.memory_sources_update",
-        "openhuman.memory_sources_remove",
-        "openhuman.memory_sources_sync",
-        "openhuman.memory_sources_status_list",
-        "openhuman.memory_sources_list_items",
-        "openhuman.memory_sources_read_item",
+        "openhuman.memory_context_get",
+        "openhuman.memory_import_scan",
+        "openhuman.memory_import_status",
     ];
 
     for (offset, method) in methods.into_iter().enumerate() {

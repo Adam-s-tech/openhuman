@@ -104,9 +104,6 @@ embedding_provider = "none"
 embedding_model = "none"
 embedding_dimensions = 0
 
-[memory_tree]
-embedding_strict = false
-spacy_enabled = false
 "#;
 
 /// Prove the disable switches actually bound to the fields harness-init reads,
@@ -121,10 +118,6 @@ fn assert_provisioning_is_disabled() -> openhuman_core::config::Config {
     assert!(
         !parsed.runtime_python.enabled,
         "[runtime_python] enabled=false must bind — otherwise harness_init downloads CPython"
-    );
-    assert!(
-        !parsed.memory_tree.spacy_enabled,
-        "[memory_tree] spacy_enabled=false must bind — otherwise harness_init provisions spaCy"
     );
     parsed
 }
