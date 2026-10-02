@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { codeMask, externalizeSource } from "../externalize-inline-tests.mjs";
+import { codeMask, externalizeSource, planLegacyRenames } from "../externalize-inline-tests.mjs";
 
 const DECL = '#[cfg(test)]\n#[path = "lib_tests.rs"]\nmod tests;\n';
 
@@ -131,4 +131,58 @@ test("codeMask treats lifetimes as code and char literals as data", () => {
   const mask = codeMask(src);
   assert.equal(mask[src.indexOf("'a")], 1);
   assert.equal(mask[src.indexOf("'{'") + 1], 0);
+});
+
+test("renames legacy test files and repoints their declarations with #[path]", () => {
+  const sources = new Map([
+    ["src/config/mod.rs", "#[cfg(test)]\nmod test;\nmod types;\n"],
+    ["src/config/test.rs", "use super::*;\n"],
+    ["src/foo.rs", "pub fn f() {}\n\n#[cfg(test)]\nmod foo_test;\n"],
+    ["src/foo/foo_test.rs", "use super::*;\n"],
+    ["src/bar.rs", '#[cfg(test)]\n#[path = "bar/x_test.rs"]\nmod x;\n'],
+    ["src/bar/x_test.rs", "use super::*;\n"],
+    ["src/lib.rs", "mod config;\nmod foo;\nmod bar;\n"],
+  ]);
+  const plan = planLegacyRenames(sources);
+  assert.deepEqual(
+    plan.renames.map((r) => `${r.from}->${r.to}`).sort(),
+    ["src/bar/x_test.rs->src/bar/x_tests.rs", "src/config/test.rs->src/config/mod_tests.rs", "src/foo/foo_test.rs->src/foo/foo_tests.rs"],
+  );
+  assert.equal(plan.edits.get("src/config/mod.rs"), '#[cfg(test)]\n#[path = "mod_tests.rs"]\nmod test;\nmod types;\n');
+  assert.match(plan.edits.get("src/foo.rs"), /#\[path = "foo\/foo_tests.rs"\]\nmod foo_test;/);
+  assert.match(plan.edits.get("src/bar.rs"), /#\[path = "bar\/x_tests.rs"\]\nmod x;/);
+  assert.deepEqual(plan.manual, []);
+});
+
+test("names test.rs after a non-mod.rs declarer and refuses a taken name", () => {
+  const nested = planLegacyRenames(new Map([
+    ["src/foo.rs", "#[cfg(test)]\nmod test;\n"],
+    ["src/foo/test.rs", "use super::*;\n"],
+  ]));
+  assert.deepEqual(nested.renames, [{ from: "src/foo/test.rs", to: "src/foo/foo_tests.rs" }]);
+  assert.match(nested.edits.get("src/foo.rs"), /#\[path = "foo\/foo_tests.rs"\]/);
+
+  const taken = planLegacyRenames(new Map([
+    ["src/lib.rs", "mod a_test;\n"],
+    ["src/a_test.rs", "x\n"],
+    ["src/a_tests.rs", "y\n"],
+  ]));
+  assert.equal(taken.renames.length, 0);
+  assert.match(taken.manual[0].reason, /already exists/);
+});
+
+test("leaves a legacy file alone when its own child modules depend on its name", () => {
+  const plan = planLegacyRenames(new Map([
+    ["src/lib.rs", "mod a_test;\n"],
+    ["src/a_test.rs", "mod helper;\n"],
+    ["src/a_test/helper.rs", "x\n"],
+  ]));
+  assert.equal(plan.renames.length, 0);
+  assert.match(plan.manual[0].reason, /depends on this file's own name/);
+});
+
+test("reports a legacy file nothing declares", () => {
+  const plan = planLegacyRenames(new Map([["src/orphan_test.rs", "x\n"]]));
+  assert.equal(plan.renames.length, 0);
+  assert.match(plan.manual[0].reason, /no `mod` declaration/);
 });
