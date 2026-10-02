@@ -59,11 +59,10 @@ fn prompt_injects_workspace_files() {
         prompt.contains("Name: OpenHuman"),
         "missing IDENTITY content"
     );
-    assert!(prompt.contains("### PROFILE.md"), "missing PROFILE.md");
-    // MEMORY.md is optional — the archivist writes it over time. When present
-    // in the workspace it should be inlined.
-    assert!(prompt.contains("### MEMORY.md"), "missing MEMORY.md");
-    assert!(prompt.contains("User likes Rust"), "missing MEMORY content");
+    // v1 memory files are never inlined; memory v2 injects `context.md`.
+    assert!(!prompt.contains("### PROFILE.md"), "PROFILE.md must not be inlined");
+    assert!(!prompt.contains("### MEMORY.md"), "MEMORY.md must not be inlined");
+    assert!(!prompt.contains("User likes Rust"), "MEMORY content must not leak");
 }
 
 #[test]
@@ -89,27 +88,17 @@ fn prompt_missing_file_markers() {
 }
 
 #[test]
-fn prompt_memory_only_if_exists() {
+fn prompt_never_inlines_v1_memory_files() {
     let tmp = TempDir::new().unwrap();
-    // Seed the bundled identity files but leave MEMORY.md absent.
     std::fs::write(tmp.path().join("SOUL.md"), "# Soul").unwrap();
     std::fs::write(tmp.path().join("IDENTITY.md"), "# Identity").unwrap();
     std::fs::write(tmp.path().join("PROFILE.md"), "# User Profile").unwrap();
+    std::fs::write(tmp.path().join("MEMORY.md"), "# Memory\nLearned bits.").unwrap();
 
     let prompt = build_system_prompt(tmp.path(), "model", &[], &[], None, Some("Discord"));
-    assert!(
-        !prompt.contains("### MEMORY.md"),
-        "MEMORY.md should not appear when missing"
-    );
-
-    // Create MEMORY.md — should appear.
-    std::fs::write(tmp.path().join("MEMORY.md"), "# Memory\nLearned bits.").unwrap();
-    let prompt2 = build_system_prompt(tmp.path(), "model", &[], &[], None, Some("Discord"));
-    assert!(
-        prompt2.contains("### MEMORY.md"),
-        "MEMORY.md should appear when present"
-    );
-    assert!(prompt2.contains("Learned bits"));
+    assert!(!prompt.contains("### PROFILE.md"));
+    assert!(!prompt.contains("### MEMORY.md"));
+    assert!(!prompt.contains("Learned bits"));
 }
 
 #[test]
