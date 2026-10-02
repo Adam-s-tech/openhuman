@@ -30,22 +30,6 @@ const messages: TranslationMap = {
   'brain.header.goals': 'Ce vers quoi votre agent travaille, et pourquoi.',
   'brain.header.sources': 'Les données dont votre agent apprend.',
   'brain.header.sync': 'Gardez votre mémoire à jour et passez en revue ce qui a changé.',
-  'brain.welcome.eyebrow': 'Mémoire',
-  'brain.welcome.title': 'La mémoire de votre agent, cartographiée',
-  'brain.welcome.body':
-    'La Mémoire, c’est là où votre agent conserve ce qu’il sait: les personnes, conversations, sources et objectifs sur lesquels il s’appuie pour vous aider avec un vrai contexte plutôt que de repartir de zéro à chaque fois.',
-  'brain.welcome.ctaGraph': 'Ouvrir le graphe de mémoire',
-  'brain.welcome.ctaGoals': 'Définir des objectifs',
-  'brain.welcome.ctaSources': 'Connecter des sources',
-  'brain.welcome.featsLabel': 'Ce qui vit ici',
-  'brain.welcome.feat1Title': 'Graphe de mémoire',
-  'brain.welcome.feat1Body':
-    'Visualisez d’un coup d’œil comment personnes, sujets et messages se relient.',
-  'brain.welcome.feat2Title': 'Objectifs & priorités',
-  'brain.welcome.feat2Body':
-    'Indiquez à votre agent ce qui compte pour qu’il priorise le bon travail.',
-  'brain.welcome.feat3Title': 'Sources & synchronisation',
-  'brain.welcome.feat3Body': 'Connectez les données dont votre agent apprend et gardez-les à jour.',
   'feedback.header.desc': 'Partagez vos idées et votez pour ce que nous construirons ensuite.',
   'connections.header.composio':
     'Connectez les applications dans lesquelles votre agent peut agir.',

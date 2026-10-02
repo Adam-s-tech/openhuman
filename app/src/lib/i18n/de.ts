@@ -30,23 +30,6 @@ const messages: TranslationMap = {
   'brain.header.goals': 'Woran Ihr Agent arbeitet und warum.',
   'brain.header.sources': 'Die Daten, aus denen Ihr Agent lernt.',
   'brain.header.sync': 'Halten Sie Ihr Gedächtnis aktuell und prüfen Sie, was sich geändert hat.',
-  'brain.welcome.eyebrow': 'Gedächtnis',
-  'brain.welcome.title': 'Das Gedächtnis Ihres Agenten, kartiert',
-  'brain.welcome.body':
-    'Im Gedächtnis bewahrt Ihr Agent auf, was er weiß: die Menschen, Gespräche, Quellen und Ziele, auf die er zurückgreift, um Ihnen mit echtem Kontext zu helfen, statt jedes Mal bei null anzufangen.',
-  'brain.welcome.ctaGraph': 'Gedächtnisgraph öffnen',
-  'brain.welcome.ctaGoals': 'Ziele festlegen',
-  'brain.welcome.ctaSources': 'Quellen verbinden',
-  'brain.welcome.featsLabel': 'Was hier lebt',
-  'brain.welcome.feat1Title': 'Gedächtnisgraph',
-  'brain.welcome.feat1Body':
-    'Sehen Sie auf einen Blick, wie Menschen, Themen und Nachrichten zusammenhängen.',
-  'brain.welcome.feat2Title': 'Ziele & Fokus',
-  'brain.welcome.feat2Body':
-    'Sagen Sie Ihrem Agenten, was zählt, damit er die richtige Arbeit priorisiert.',
-  'brain.welcome.feat3Title': 'Quellen & Synchronisierung',
-  'brain.welcome.feat3Body':
-    'Verbinden Sie die Daten, aus denen Ihr Agent lernt, und halten Sie sie aktuell.',
   'feedback.header.desc':
     'Teilen Sie Ideen und stimmen Sie darüber ab, was wir als Nächstes bauen.',
   'connections.header.composio': 'Verbinden Sie die Apps, in denen Ihr Agent handeln kann.',

@@ -1,7 +1,7 @@
 /**
  * Brain — the centerpiece memory surface.
  *
- * Sub-tabs: Welcome, Graph, Goals, Sources, and Sync.
+ * Sub-tabs: Graph, Goals, Sources, and Sync.
  *
  * Rendered as the Brain sub-page of Connections → Integrations (it has no
  * route of its own). Connections owns `?tab=brain` and the sidebar; this page
@@ -21,7 +21,6 @@ import { MemoryTreeStatusPanel } from '../components/intelligence/MemoryTreeStat
 import { SyncActivityCard } from '../components/intelligence/SyncActivityCard';
 import { SyncAuditPanel } from '../components/intelligence/SyncAuditPanel';
 import { ToastContainer } from '../components/intelligence/Toast';
-import PageWelcome from '../components/layout/PageWelcome';
 import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage';
 import MemoryEngineErrorAlert from '../components/settings/panels/MemoryEngineErrorAlert';
 import { classifyMemoryEngineError } from '../components/settings/panels/memoryEngineUtils';
@@ -36,15 +35,15 @@ import {
   memoryTreeGraphExport,
 } from '../utils/tauriCommands';
 
-type BrainTab = 'welcome' | 'graph' | 'goals' | 'sources' | 'sync';
+type BrainTab = 'graph' | 'goals' | 'sources' | 'sync';
 
-const BRAIN_TABS: readonly BrainTab[] = ['welcome', 'graph', 'goals', 'sources', 'sync'];
+const BRAIN_TABS: readonly BrainTab[] = ['graph', 'goals', 'sources', 'sync'];
 
 /** Sub-tabs of Sync, reflected in `?view=`: live status, or the run history. */
 type SyncView = 'status' | 'history';
 
 /** Chip-tab ids: the functional tabs, with Sync's history view as its own chip. */
-type BrainChip = Exclude<BrainTab, 'welcome'> | 'history';
+type BrainChip = BrainTab | 'history';
 
 /**
  * Backoff ladder for automatically retrying a failed graph load.
@@ -59,7 +58,7 @@ const RETRY_DELAYS_MS: readonly number[] = [2_000, 4_000, 8_000];
 /**
  * Canonical text header (title + one-line description) per functional tab.
  */
-const BRAIN_HEADERS: Record<Exclude<BrainTab, 'welcome'>, { titleKey: string; descKey: string }> = {
+const BRAIN_HEADERS: Record<BrainTab, { titleKey: string; descKey: string }> = {
   graph: { titleKey: 'brain.tabs.graph', descKey: 'brain.header.graph' },
   goals: { titleKey: 'brain.tabs.goals', descKey: 'brain.header.goals' },
   sources: { titleKey: 'brain.tabs.sources', descKey: 'brain.header.sources' },
@@ -75,7 +74,7 @@ export default function Brain() {
   // right sub-page.
   const activeTab = useMemo<BrainTab>(() => {
     const raw = new URLSearchParams(location.search).get('brain');
-    return (BRAIN_TABS as readonly string[]).includes(raw ?? '') ? (raw as BrainTab) : 'welcome';
+    return (BRAIN_TABS as readonly string[]).includes(raw ?? '') ? (raw as BrainTab) : 'graph';
   }, [location.search]);
   const setActiveTab = useCallback(
     (tab: BrainTab) => {
@@ -101,7 +100,7 @@ export default function Brain() {
   const chipValue: BrainChip =
     activeTab === 'sync' && syncView === 'history'
       ? 'history'
-      : (activeTab as Exclude<BrainTab, 'welcome'>);
+      : activeTab;
   const [graph, setGraph] = useState<GraphExportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<GraphMode>('tree');
@@ -258,60 +257,15 @@ export default function Brain() {
         // body carries its own `mx-auto max-w-3xl`, which is what the old
         // `max-w-5xl` here was really constraining.
         <div className="h-full w-full">
-          {activeTab === 'welcome' ? (
-            <PageWelcome
-              testId="brain-welcome"
-              accent="sage"
-              icon="🧠"
-              eyebrow={t('brain.welcome.eyebrow')}
-              title={t('brain.welcome.title')}
-              description={t('brain.welcome.body')}
-              ctas={[
-                {
-                  label: t('brain.welcome.ctaGraph'),
-                  icon: '🕸️',
-                  onClick: () => setActiveTab('graph'),
-                  testId: 'brain-welcome-cta-graph',
-                },
-                {
-                  label: t('brain.welcome.ctaGoals'),
-                  icon: '🎯',
-                  onClick: () => setActiveTab('goals'),
-                },
-                {
-                  label: t('brain.welcome.ctaSources'),
-                  icon: '🔗',
-                  onClick: () => setActiveTab('sources'),
-                },
-              ]}
-              featuresHeading={t('brain.welcome.featsLabel')}
-              features={[
-                {
-                  icon: '🕸️',
-                  title: t('brain.welcome.feat1Title'),
-                  description: t('brain.welcome.feat1Body'),
-                },
-                {
-                  icon: '🎯',
-                  title: t('brain.welcome.feat2Title'),
-                  description: t('brain.welcome.feat2Body'),
-                },
-                {
-                  icon: '🔄',
-                  title: t('brain.welcome.feat3Title'),
-                  description: t('brain.welcome.feat3Body'),
-                },
-              ]}
-            />
-          ) : (
+          {
             /* All tabs share the standard scaffold: a single scrolling body,
             all custom controls live inside it. The title/description go through
             PanelPage so every page opens with the same flush header band, rather
             than a bordered card floating in the content column. */
             <div className="h-full">
               <SettingsTabbedPage<BrainChip>
-                title={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].titleKey)}
-                description={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].descKey)}
+                title={t(BRAIN_HEADERS[activeTab].titleKey)}
+                description={t(BRAIN_HEADERS[activeTab].descKey)}
                 tabs={[
                   { id: 'graph', label: t('brain.tabs.graph') },
                   { id: 'goals', label: t('brain.tabs.goals') },

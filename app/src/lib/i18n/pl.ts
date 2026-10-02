@@ -29,22 +29,6 @@ const messages: TranslationMap = {
   'brain.header.goals': 'Nad czym pracuje Twój agent i dlaczego.',
   'brain.header.sources': 'Dane, z których uczy się Twój agent.',
   'brain.header.sync': 'Utrzymuj pamięć w aktualności i sprawdzaj, co się zmieniło.',
-  'brain.welcome.eyebrow': 'Pamięć',
-  'brain.welcome.title': 'Pamięć Twojego agenta, zmapowana',
-  'brain.welcome.body':
-    'Pamięć to miejsce, w którym Twój agent przechowuje to, co wie: ludzi, rozmowy, źródła i cele, z których korzysta, by pomagać Ci z prawdziwym kontekstem, zamiast zaczynać od zera za każdym razem.',
-  'brain.welcome.ctaGraph': 'Otwórz graf pamięci',
-  'brain.welcome.ctaGoals': 'Ustaw cele',
-  'brain.welcome.ctaSources': 'Połącz źródła',
-  'brain.welcome.featsLabel': 'Co się tu znajduje',
-  'brain.welcome.feat1Title': 'Graf pamięci',
-  'brain.welcome.feat1Body':
-    'Zobacz na pierwszy rzut oka, jak łączą się ludzie, tematy i wiadomości.',
-  'brain.welcome.feat2Title': 'Cele i skupienie',
-  'brain.welcome.feat2Body': 'Powiedz agentowi, co jest ważne, aby priorytetyzował właściwą pracę.',
-  'brain.welcome.feat3Title': 'Źródła i synchronizacja',
-  'brain.welcome.feat3Body':
-    'Połącz dane, z których uczy się Twój agent, i utrzymuj je w aktualności.',
   'feedback.header.desc': 'Dziel się pomysłami i głosuj na to, co zbudujemy dalej.',
   'connections.header.composio': 'Połącz aplikacje, w których Twój agent może działać.',
   'connections.header.channels': 'Podłącz aplikacje czatowe, w których żyje Twoja społeczność.',
