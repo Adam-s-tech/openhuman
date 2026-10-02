@@ -32,7 +32,7 @@
 use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use axum::http::header::AUTHORIZATION;

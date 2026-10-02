@@ -52,7 +52,7 @@
 
 use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{OnceLock};
 
 use tempfile::TempDir;
 

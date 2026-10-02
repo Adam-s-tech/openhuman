@@ -47,7 +47,7 @@
 
 use crate::env_guard::EnvVarGuard;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{OnceLock};
 
 use openhuman_core::config::Config;
 use openhuman_core::core::all::RegisteredController;

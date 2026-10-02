@@ -7,7 +7,7 @@
 use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::body::Body;
 use axum::extract::State;

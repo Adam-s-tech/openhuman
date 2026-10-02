@@ -204,9 +204,9 @@ fn composio_client_factory_modes_are_deterministic_without_network() {
 #[tokio::test]
 async fn composio_controller_registry_and_scope_handlers_cover_validation_edges() {
     let _env_lock = ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
+        .get_or_init(|| tokio::sync::Mutex::new(()))
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+        .await;
     crate::tinyhumans_boot::boot();
     // The controller loads config through the process workspace resolver. Pin
     // this test to a null memory driver so its fail-closed assertion does not

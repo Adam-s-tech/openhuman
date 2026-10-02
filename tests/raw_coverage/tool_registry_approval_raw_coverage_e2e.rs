@@ -8,7 +8,7 @@
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_harness::{error_message, payload};
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use axum::http::header::AUTHORIZATION;

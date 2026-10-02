@@ -8,7 +8,7 @@
 use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{OnceLock};
 
 use reqwest::StatusCode;
 use serde_json::{json, Value};
