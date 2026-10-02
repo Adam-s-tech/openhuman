@@ -259,7 +259,6 @@ const KNOWN_UNCALLABLE: &[(&str, &str, &str)] = &[
         "an example of a payload's source tool",
     ),
     ("workflow_builder", "http_request", "a flow node kind"),
-    ("workflow_builder", "memory", "a flow node kind"),
     ("workflow_builder", "schedule", "a flow trigger field"),
     ("workflow_builder", "shell", "a flow node kind"),
     (

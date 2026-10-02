@@ -200,18 +200,22 @@ fn named_belt_without_tool_search_reaches_no_deferred_tool() {
 }
 
 /// A hand-written `[tools] named` belt is left exactly as written: exposure is
-/// only for the wildcard belt. `flow_memory_agent` names three read-only
-/// `memory_*` tools; swapping them for `memory` would hand it `store`/`forget`.
+/// only for the wildcard belt. `critic` names `file_read` among its tools; it
+/// must keep it and gain nothing a wildcard would add.
 #[test]
-fn named_belt_keeps_its_legacy_members() {
-    let visible = visible_names("flow_memory_agent");
+fn named_belt_keeps_its_listed_members() {
+    let visible = visible_names("critic");
     assert!(
-        visible.contains("memory_recall"),
+        visible.contains("file_read"),
         "named belt must keep the members it lists; got {visible:?}"
     );
     assert!(
+        !visible.contains("shell"),
+        "named belt must not gain unlisted tools; got {visible:?}"
+    );
+    assert!(
         !visible.contains(crate::memory::tools::MEMORY_TOOL_NAME),
-        "named belt must not gain the collapsed tool; got {visible:?}"
+        "named belt must not gain the memory tool; got {visible:?}"
     );
 }
 
