@@ -1448,23 +1448,23 @@ async fn json_rpc_tool_registry_lists_and_gets_entries() {
         .and_then(Value::as_array)
         .expect("tool registry list should return tools array");
 
-    let memory_search = tools
+    let memory_recall = tools
         .iter()
-        .find(|tool| tool.get("tool_id").and_then(Value::as_str) == Some("memory.search"))
-        .expect("registry should include memory.search");
+        .find(|tool| tool.get("tool_id").and_then(Value::as_str) == Some("memory.recall"))
+        .expect("registry should include memory.recall");
     assert_eq!(
-        memory_search.get("transport").and_then(Value::as_str),
+        memory_recall.get("transport").and_then(Value::as_str),
         Some("mcp_stdio")
     );
     assert_eq!(
-        memory_search
+        memory_recall
             .get("route")
             .and_then(|route| route.get("method"))
             .and_then(Value::as_str),
         Some("tools/call")
     );
-    assert!(memory_search.get("input_schema").is_some());
-    assert!(memory_search.get("output_schema").is_some());
+    assert!(memory_recall.get("input_schema").is_some());
+    assert!(memory_recall.get("output_schema").is_some());
 
     let controller_tool = tools
         .iter()
