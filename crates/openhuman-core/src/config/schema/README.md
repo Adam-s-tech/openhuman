@@ -43,7 +43,7 @@ is mounted as a submodule of `load/dirs.rs` via `#[path]`.
 | `[runtime_pool]` | `runtime_pool.rs` | `RuntimePoolConfig`, `RuntimePoolLangConfig` |
 | `[runtime_python]` | `runtime_python.rs` | `RuntimePythonConfig` |
 | `[scheduler_gate]` | `scheduler_gate.rs` | `SchedulerGateConfig`, `SchedulerGateMode` |
-| `[memory]`, `[memory_tree]`, `[storage]` | `storage_memory.rs` | `MemoryConfig`, `MemoryTreeConfig`, `StorageConfig`, `StorageProviderConfig`, `LlmBackend` |
+| `[memory]` (engine, `engines.<id>`, `conversations`, `context`, `sources`, embedding settings) | `memory.rs` | `MemoryConfig`, `MemoryEngineSettings`, `MemoryConversationsConfig`, `MemoryContextConfig`, `MemorySourceConfig` (see `docs/specs/memory-v2.md`) |
 | `[subsystems]` | `subsystems.rs` | `SubsystemsConfig`, `MemorySubsystemConfig` |
 | `[task_sources]` | `task_sources.rs` | `TaskSourcesConfig` |
 | `[tokenjuice]` | `tokenjuice.rs` | `TokenjuiceConfig` |

@@ -177,3 +177,27 @@ fn default_temperature_unsupported_models_suppress_reasoning_families_only() {
         );
     }
 }
+
+/// The v1 learning workload is gone, but configs written by older builds still
+/// carry its keys. They must keep loading (unknown keys are ignored, never an
+/// error) and the surviving workload routes must be unaffected.
+#[test]
+fn config_with_retired_learning_keys_still_parses() {
+    let config: Config = toml::from_str(
+        r#"
+learning_provider = "cloud"
+memory_provider = "ollama:summary-local"
+
+[local_ai]
+runtime_enabled = true
+
+[local_ai.usage]
+embeddings = true
+learning_reflection = true
+"#,
+    )
+    .expect("config with retired learning keys must still load");
+    assert_eq!(config.workload_local_model("memory").as_deref(), Some("summary-local"));
+    assert_eq!(config.workload_local_model("learning"), None);
+    assert!(config.local_ai.usage.embeddings);
+}
