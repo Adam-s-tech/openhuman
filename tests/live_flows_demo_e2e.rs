@@ -26,7 +26,7 @@ mod scripted_stack;
 use env_guard::EnvVarGuard;
 use scripted_stack::assert_no_jsonrpc_error;
 use std::path::Path;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use serde_json::{json, Value};

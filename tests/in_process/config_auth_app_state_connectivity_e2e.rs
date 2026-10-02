@@ -586,12 +586,8 @@ fn config_proxy_public_paths_normalize_validate_and_apply_scope() {
     let _all_lower = EnvVarGuard::unset("all_proxy");
     let _no_lower = EnvVarGuard::unset("no_proxy");
 
-    assert!(ProxyConfig::supported_service_keys()
-        .iter()
-        .any(|key| *key == "memory.embeddings"));
-    assert!(ProxyConfig::supported_service_selectors()
-        .iter()
-        .any(|selector| *selector == "tool.*"));
+    assert!(ProxyConfig::supported_service_keys().contains(&"memory.embeddings"));
+    assert!(ProxyConfig::supported_service_selectors().contains(&"tool.*"));
 
     let services = ProxyConfig {
         enabled: true,
@@ -1114,13 +1110,11 @@ async fn config_default_path_loader_ignores_workspace_override_and_projects_dir_
     let root = home.join(".openhuman");
     let user_dir = root.join("users").join("default-loader-user");
     let workspace_override = tmp.path().join("workspace-override");
-    let _guards = vec![
-        EnvVarGuard::set_to_path("HOME", &home),
+    let _guards = [EnvVarGuard::set_to_path("HOME", &home),
         EnvVarGuard::unset(APP_ENV_VAR),
         EnvVarGuard::unset(VITE_APP_ENV_VAR),
         EnvVarGuard::set_to_path("OPENHUMAN_WORKSPACE", &workspace_override),
-        EnvVarGuard::set("OPENHUMAN_MODEL", " default-loader-model "),
-    ];
+        EnvVarGuard::set("OPENHUMAN_MODEL", " default-loader-model ")];
 
     let missing = Config::load_from_default_paths()
         .await
@@ -1301,7 +1295,7 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
     assert!(!config.runtime_python.enabled);
     assert_eq!(config.runtime_python.minimum_version, "3.13.0");
     assert!(config.runtime_python.prefer_system);
-    assert_eq!(config.observability.analytics_enabled, false);
+    assert!(!config.observability.analytics_enabled);
     assert_eq!(
         config.observability.sentry_dsn.as_deref(),
         Some("https://dsn.example/1")
@@ -2729,12 +2723,10 @@ async fn config_auto_approve_public_helper_persists_once_and_is_idempotent() {
     let _lock = env_lock();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path().join("home");
-    let _guards = vec![
-        EnvVarGuard::set_to_path("HOME", &home),
+    let _guards = [EnvVarGuard::set_to_path("HOME", &home),
         EnvVarGuard::unset("OPENHUMAN_WORKSPACE"),
         EnvVarGuard::unset(APP_ENV_VAR),
-        EnvVarGuard::unset(VITE_APP_ENV_VAR),
-    ];
+        EnvVarGuard::unset(VITE_APP_ENV_VAR)];
 
     openhuman_core::config::add_auto_approve_tool("tool.config.round10")
         .await

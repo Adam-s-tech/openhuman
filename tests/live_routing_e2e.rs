@@ -18,7 +18,7 @@ mod scripted_stack;
 use env_guard::EnvVarGuard;
 use scripted_stack::assert_no_jsonrpc_error;
 use std::path::Path;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -132,7 +132,7 @@ async fn read_sse_event_by_types(events_url: &str, target_events: &[&str]) -> Va
                 let value: Value = serde_json::from_str(&payload)
                     .unwrap_or_else(|e| panic!("invalid sse data json: {e}"));
                 if let Some(event_type) = value.get("event").and_then(Value::as_str) {
-                    if target_events.iter().any(|t| *t == event_type) {
+                    if target_events.contains(&event_type) {
                         return value;
                     }
                 }

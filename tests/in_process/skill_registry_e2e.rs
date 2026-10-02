@@ -204,11 +204,11 @@ encrypt = false
     let fixture_base = format!("http://{fixture_addr}");
     let _catalog_guard = EnvVarGuard::set(
         "OPENHUMAN_SKILL_REGISTRY_CATALOG_URL",
-        &format!("{fixture_base}/skills.json"),
+        format!("{fixture_base}/skills.json"),
     );
     let _download_guard = EnvVarGuard::set(
         "OPENHUMAN_SKILL_REGISTRY_DOWNLOAD_BASE_URL",
-        &format!("{fixture_base}/skills"),
+        format!("{fixture_base}/skills"),
     );
     let _local_http_guard = EnvVarGuard::set("OPENHUMAN_SKILL_INSTALL_ALLOW_LOCAL_HTTP", "1");
 

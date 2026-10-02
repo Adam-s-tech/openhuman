@@ -46,13 +46,12 @@ async fn main() -> anyhow::Result<()> {
             })
             .unwrap_or(0);
         eprintln!("t+{}s pending={pending}", (i + 1) * 15);
-        if pending == 0 || pending == last {
-            if pending == 0 {
+        if (pending == 0 || pending == last)
+            && pending == 0 {
                 break;
             }
             // Two identical non-zero readings in a row: still draining or
             // stalled — keep waiting either way, the cap bounds us.
-        }
         last = pending;
     }
     Ok(())

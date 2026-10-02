@@ -3,7 +3,7 @@ mod env_guard;
 use env_guard::EnvVarGuard;
 use openhuman_core::config::schema::{Config, StreamMode, TelegramConfig};
 use openhuman_core::security::keyring;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();

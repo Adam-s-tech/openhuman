@@ -12,7 +12,7 @@
 #[path = "support/env_guard.rs"]
 mod env_guard;
 use env_guard::EnvVarGuard;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 use axum::body::Body;
 use axum::http::{header, Method, Request, StatusCode};

@@ -22,7 +22,7 @@ use env_guard::EnvVarGuard;
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use axum::http::header::AUTHORIZATION;

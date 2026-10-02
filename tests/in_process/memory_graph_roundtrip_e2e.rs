@@ -116,7 +116,7 @@ fn ensure_memory_seams(workspace: &Path) {
             .name("memory-graph-roundtrip-seams".to_string())
             .stack_size(8 * 1024 * 1024)
             .spawn(move || {
-                let config = Arc::new(openhuman_core::config::Config {
+                let _config = Arc::new(openhuman_core::config::Config {
                     workspace_dir: workspace.clone(),
                     action_dir: workspace.clone(),
                     config_path: workspace.join("config.toml"),
