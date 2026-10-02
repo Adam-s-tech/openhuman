@@ -23,8 +23,9 @@ pub const PACKS: &[ToolPack] = &[
         tools: &[
             "build_workflow",
             "discover_workflows",
-            "run_workflow",
-            "await_workflow",
+            // `run_workflow` / `await_workflow` are deliberately NOT packed: running an
+            // installed skill is a routine orchestrator action, and `await_workflow`
+            // re-attaches to a run mid-turn, the worst moment for a load round-trip.
             "describe_workflow",
             "list_workflows",
             "list_workflow_runs",
@@ -57,7 +58,10 @@ pub const PACKS: &[ToolPack] = &[
             "list_agent_definitions",
             "list_connectable_toolkits",
         ],
-        owners: &["orchestrator", "workflow_builder", "flow_discovery"],
+        // The orchestrator is NOT an owner: it builds and discovers through
+        // `spawn_async_subagent` (prompt.md) and reaches the rest via `use_skill`,
+        // so owning the pack put all of it on its wire for nothing.
+        owners: &["workflow_builder", "flow_discovery"],
         guide: "",
     },
     ToolPack {
