@@ -13,7 +13,7 @@ impl SessionHostBuilder {
     ///
     /// This method is responsible for wiring together the provided components,
     /// setting up the context manager, and initializing the conversation history.
-    /// It ensures that all required fields (provider, tools, memory, etc.) are present.
+    /// It ensures that all required fields (provider, tools, dispatcher, …) are present.
     pub fn build(self) -> Result<OpenHumanSessionHost> {
         let mut tools = self
             .tools
@@ -303,17 +303,13 @@ impl SessionHostBuilder {
         // Live history reduction moved to the tinyagents graph
         // (`ContextCompressionMiddleware` + `MessageTrimMiddleware`, issue
         // #4249), so the session no longer constructs an in-turn summarizer
-        // here. The archivist hook still drives durable segment recaps on its
-        // own post-turn path; it is no longer coupled to context compaction.
+        // here.
         let context = ContextManager::new(&context_config, prompt_builder);
 
         let workspace_dir = self
             .workspace_dir
             .unwrap_or_else(|| std::path::PathBuf::from("."));
         let action_dir = self.action_dir.unwrap_or_else(|| workspace_dir.clone());
-        let memory = self
-            .memory
-            .ok_or_else(|| anyhow::anyhow!("memory is required"))?;
 
         // Direct builder callers (notably unit fixtures) do not pass through
         // `build_session_agent_inner`, which normally creates the durable host
@@ -358,7 +354,6 @@ impl SessionHostBuilder {
                 )),
                 config: Arc::clone(&hosted_config),
                 definitions,
-                memory: Arc::clone(&memory),
                 post_turn_hooks: self.post_turn_hooks.clone(),
                 // Usually this path names a registry id, and carries no
                 // definition of its own. A caller that supplied one with
@@ -395,8 +390,6 @@ impl SessionHostBuilder {
             requested_deferred_tools: Arc::from(self.deferred_tools.clone()),
             subagent_tool_ceiling_names,
             tool_policy_session,
-            memory,
-            auto_recall: self.auto_recall,
             tool_dispatcher: std::sync::Arc::from(
                 self.tool_dispatcher
                     .ok_or_else(|| anyhow::anyhow!("tool_dispatcher is required"))?,
@@ -409,11 +402,8 @@ impl SessionHostBuilder {
             action_dir,
             workspace_descriptor: self.workspace_descriptor,
             workflows: self.workflows.unwrap_or_default(),
-            auto_save: self.auto_save.unwrap_or(false),
             last_memory_context: None,
             post_turn_hooks: self.post_turn_hooks,
-            learning_enabled: self.learning_enabled,
-            explicit_preferences_enabled: self.explicit_preferences_enabled,
             event_session_id,
             event_channel,
             thread_id: None,
@@ -453,13 +443,8 @@ impl SessionHostBuilder {
             runtime_config: None,
             hosted_base,
             definition: None,
-            // Default to `true` (omit) so legacy / custom agents built
-            // without a definition stay lean. Opt-in agents thread their
-            // `omit_profile = false` through the builder.
-            omit_profile: self.omit_profile.unwrap_or(true),
-            omit_memory_md: self.omit_memory_md.unwrap_or(true),
+            omit_memory_context: self.omit_memory_context.unwrap_or(false),
             payload_summarizer: self.payload_summarizer,
-            trigger_memory_agent: self.trigger_memory_agent.unwrap_or_default(),
             tokenjuice_compression: self.tokenjuice_compression,
             tool_policy: self
                 .tool_policy
@@ -474,7 +459,6 @@ impl SessionHostBuilder {
             announced_skills: std::collections::HashSet::new(),
             pending_skill_announcement: Vec::new(),
             pending_skill_retraction: Vec::new(),
-            archivist_hook: self.archivist_hook,
             synthesized_tool_names,
         })
     }
