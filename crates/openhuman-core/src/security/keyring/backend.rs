@@ -229,6 +229,7 @@ impl Default for MockBackend {
     }
 }
 
+#[cfg(test)]
 impl MockBackend {
     pub fn new() -> Self {
         Self {
