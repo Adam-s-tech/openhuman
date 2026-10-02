@@ -46,5 +46,4 @@ impl OpenHumanSessionHost {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .last_turn_hit_cap
     }
-
 }
