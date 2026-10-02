@@ -12,7 +12,6 @@ use crate::agent::prompts::ToolCallFormat;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::OpenHumanSessionHost;
 use crate::config::AgentConfig;
-use crate::memory::test_support::NoopMemory;
 use crate::memory::Memory;
 use async_trait::async_trait;
 use parking_lot::Mutex;
@@ -71,7 +70,6 @@ fn parent_context(max_parallel_tools: usize) -> ParentExecutionContext {
         model_name: "test-model".into(),
         temperature: 0.2,
         workspace_dir: std::env::temp_dir(),
-        memory: Arc::new(NoopMemory),
         agent_config,
         workflows: Arc::new(Vec::new()),
         memory_context: Arc::new(None),

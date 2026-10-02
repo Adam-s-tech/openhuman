@@ -3,7 +3,6 @@ use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::{with_parent_context, ParentExecutionContext};
 use crate::agent::prompts::{ConnectedIntegration, ToolCallFormat};
 use crate::threads::store as conversations;
-use crate::memory::test_support::NoopMemory;
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use serde_json::json;
@@ -427,7 +426,6 @@ fn parent_context(
         model_name: "test-model".into(),
         temperature: 0.2,
         workspace_dir: workspace_dir.to_path_buf(),
-        memory: Arc::new(NoopMemory),
         agent_config: Default::default(),
         workflows: Arc::new(Vec::new()),
         memory_context: Arc::new(None),
