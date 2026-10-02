@@ -5396,6 +5396,13 @@ const en: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Attach file',
   'composer.modelSelector': 'Model',
+  'composer.reasoning.label': 'Thinking level',
+  'composer.reasoning.default': 'Thinking: auto',
+  'composer.reasoning.none': 'Thinking: off',
+  'composer.reasoning.low': 'Thinking: low',
+  'composer.reasoning.medium': 'Thinking: medium',
+  'composer.reasoning.high': 'Thinking: high',
+  'composer.reasoning.xhigh': 'Thinking: max',
   'composer.settings.model': 'Model',
   'composer.settings.temperature': 'Temperature',
   'composer.settings.chooseModel': 'Choose another model…',

@@ -4688,6 +4688,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Прикрепить файл',
   'composer.modelSelector': 'Модель',
+  'composer.reasoning.label': 'Уровень рассуждения',
+  'composer.reasoning.default': 'Рассуждение: авто',
+  'composer.reasoning.none': 'Рассуждение: выкл.',
+  'composer.reasoning.low': 'Рассуждение: низкое',
+  'composer.reasoning.medium': 'Рассуждение: среднее',
+  'composer.reasoning.high': 'Рассуждение: высокое',
+  'composer.reasoning.xhigh': 'Рассуждение: максимум',
   'composer.settings.model': 'Модель',
   'composer.settings.temperature': 'Температура',
   'composer.settings.chooseModel': 'Выбрать другую модель…',

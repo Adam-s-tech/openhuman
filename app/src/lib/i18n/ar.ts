@@ -4555,6 +4555,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'إرفاق ملف',
   'composer.modelSelector': 'النموذج',
+  'composer.reasoning.label': 'مستوى التفكير',
+  'composer.reasoning.default': 'التفكير: تلقائي',
+  'composer.reasoning.none': 'التفكير: متوقف',
+  'composer.reasoning.low': 'التفكير: منخفض',
+  'composer.reasoning.medium': 'التفكير: متوسط',
+  'composer.reasoning.high': 'التفكير: مرتفع',
+  'composer.reasoning.xhigh': 'التفكير: أقصى',
   'composer.settings.model': 'النموذج',
   'composer.settings.temperature': 'درجة الحرارة',
   'composer.settings.chooseModel': 'اختر نموذجًا آخر…',

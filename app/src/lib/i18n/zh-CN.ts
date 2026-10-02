@@ -4387,6 +4387,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': '附加文件',
   'composer.modelSelector': '模型',
+  'composer.reasoning.label': '思考强度',
+  'composer.reasoning.default': '思考：自动',
+  'composer.reasoning.none': '思考：关闭',
+  'composer.reasoning.low': '思考：低',
+  'composer.reasoning.medium': '思考：中',
+  'composer.reasoning.high': '思考：高',
+  'composer.reasoning.xhigh': '思考：最高',
   'composer.settings.model': '模型',
   'composer.settings.temperature': '温度',
   'composer.settings.chooseModel': '选择其他模型…',

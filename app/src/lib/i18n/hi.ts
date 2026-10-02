@@ -4643,6 +4643,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'फ़ाइल संलग्न करें',
   'composer.modelSelector': 'मॉडल',
+  'composer.reasoning.label': 'सोचने का स्तर',
+  'composer.reasoning.default': 'सोच: स्वचालित',
+  'composer.reasoning.none': 'सोच: बंद',
+  'composer.reasoning.low': 'सोच: कम',
+  'composer.reasoning.medium': 'सोच: मध्यम',
+  'composer.reasoning.high': 'सोच: उच्च',
+  'composer.reasoning.xhigh': 'सोच: अधिकतम',
   'composer.settings.model': 'मॉडल',
   'composer.settings.temperature': 'टेम्परेचर',
   'composer.settings.chooseModel': 'दूसरा मॉडल चुनें…',

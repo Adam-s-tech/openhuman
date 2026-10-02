@@ -4671,6 +4671,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Lampirkan file',
   'composer.modelSelector': 'Model',
+  'composer.reasoning.label': 'Tingkat penalaran',
+  'composer.reasoning.default': 'Penalaran: otomatis',
+  'composer.reasoning.none': 'Penalaran: mati',
+  'composer.reasoning.low': 'Penalaran: rendah',
+  'composer.reasoning.medium': 'Penalaran: sedang',
+  'composer.reasoning.high': 'Penalaran: tinggi',
+  'composer.reasoning.xhigh': 'Penalaran: maksimum',
   'composer.settings.model': 'Model',
   'composer.settings.temperature': 'Suhu',
   'composer.settings.chooseModel': 'Pilih model lain…',
