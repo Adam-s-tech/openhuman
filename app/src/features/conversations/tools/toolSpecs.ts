@@ -194,7 +194,7 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   current_time: spec('checkTime', ClockIcon, 'system'),
   resolve_time: spec('resolveDate', ClockIcon, 'system', { chip: chip.text('expr') }),
   retrieve_tool_output: spec('retrieveOutput', ArchiveRestoreIcon, 'system'),
-  tinyjuice_retrieve: spec('retrieveOutput', ArchiveRestoreIcon, 'system'),
+  juice_retrieve: spec('retrieveOutput', ArchiveRestoreIcon, 'system'),
   // REPL tools over a stored (handle) tool result; they reuse existing phrases.
   juice_find: spec('searchCode', TextSearchIcon, 'system', { chip: chip.text('query') }),
   juice_extract: spec('extractDetails', LayersIcon, 'system'),
