@@ -180,7 +180,7 @@ pub fn base_tool_specs() -> Vec<McpToolSpec> {
 }
 
 /// Annotation preset for the read-only, closed-world tools that just read
-/// OpenHuman's local memory tree or agent registry. The MCP spec defaults are
+/// OpenHuman's local memory or agent registry. The MCP spec defaults are
 /// `readOnlyHint: false` / `openWorldHint: true`, so both fields must be set
 /// explicitly to communicate the actual shape to clients. Destructive and
 /// idempotent hints are deliberately omitted — per the spec they are
