@@ -118,7 +118,6 @@ fn registered_controller_rpc_method_name() {
 #[test]
 fn namespace_description_known_namespaces() {
     assert!(namespace_description("memory").is_some());
-    assert!(namespace_description("memory_tree").is_some());
     assert!(namespace_description("config").is_some());
     assert!(namespace_description("health").is_some());
     assert!(namespace_description("subsystems").is_some());
@@ -1294,7 +1293,7 @@ fn carved_out_families_report_their_own_group() {
         ("auth", DomainGroup::Security),
         ("devices", DomainGroup::Security),
         ("workspace", DomainGroup::Config),
-        ("people", DomainGroup::Memory),
+        ("memory", DomainGroup::Memory),
     ];
     for (ns, want) in cases {
         match group_for_namespace(ns) {
@@ -1340,7 +1339,7 @@ fn platform_holds_only_kernel_surfaces() {
                     | "auth"
                     | "devices"
                     | "workspace"
-                    | "people"
+                    | "memory"
             ),
             "namespace `{ns}` belongs to a named family but is still tagged Platform"
         );
@@ -1360,7 +1359,7 @@ fn harness_preset_registers_the_families_it_claims() {
         "auth",
         "devices",
         "workspace",
-        "people",
+        "memory",
     ] {
         let group =
             group_for_namespace(ns).unwrap_or_else(|| panic!("namespace `{ns}` is not registered"));
