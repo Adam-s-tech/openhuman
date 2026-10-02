@@ -1,7 +1,7 @@
 //! Agent-owned dialogue and control tools.
 //!
-//! These tools act on the agent loop, its todo list, or the user's stored
-//! preferences rather than on files, memory, or the network. Wire names are
+//! These tools act on the agent loop or its todo list rather than on files,
+//! memory, or the network. Wire names are
 //! given in parentheses where they differ from the type name:
 //!
 //! - `AskClarificationTool` (`ask_user_clarification`, from `tinyagents_harness::tools`) — returns the
@@ -12,10 +12,6 @@
 //! - [`PlanExitTool`] — ends a plan-mode pass by returning the plan plus
 //!   [`PLAN_EXIT_MARKER`]. The mode switch itself lives outside the tool;
 //!   nothing in this crate consumes the marker yet.
-//! - [`RememberPreferenceTool`] — pins an explicit `(class, key, value)`
-//!   preference into the `user_profile` memory namespace.
-//!   [`SavePreferenceTool`] stores a free-form preference in either the
-//!   `general` or `situational` lane.
 //! - `RunWorkflowTool` / `AwaitWorkflowTool` — spawn a
 //!   `crate::skills::runtime` workflow run and wait on its outcome. Compiled
 //!   in only with the `skills` feature, so builds without it omit both tools
