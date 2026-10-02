@@ -98,9 +98,7 @@ export default function Brain() {
     [location.pathname, location.search, navigate]
   );
   const chipValue: BrainChip =
-    activeTab === 'sync' && syncView === 'history'
-      ? 'history'
-      : activeTab;
+    activeTab === 'sync' && syncView === 'history' ? 'history' : activeTab;
   const [graph, setGraph] = useState<GraphExportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<GraphMode>('tree');
@@ -260,42 +258,42 @@ export default function Brain() {
           {/* All tabs share the standard scaffold: a single scrolling body,
             all custom controls live inside it. The title/description go through
             PanelPage so every page opens with the same flush header band, rather
-            than a bordered card floating in the content column. */
-            <div className="h-full">
-              <SettingsTabbedPage<BrainChip>
-                title={t(BRAIN_HEADERS[activeTab].titleKey)}
-                description={t(BRAIN_HEADERS[activeTab].descKey)}
-                tabs={[
-                  { id: 'graph', label: t('brain.tabs.graph') },
-                  { id: 'goals', label: t('brain.tabs.goals') },
-                  { id: 'sources', label: t('brain.tabs.sources') },
-                  { id: 'sync', label: t('brain.tabs.sync') },
-                  { id: 'history', label: t('brain.sync.viewHistory') },
-                ]}
-                value={chipValue}
-                onChange={setChip}
-                tabsAriaLabel={t('nav.brain')}
-                tabsTestIdPrefix="brain-tab"
-                // History is a full-height table: only its rows scroll.
-                scrollable={!(activeTab === 'sync' && syncView === 'history')}>
-                <div
-                  className={
-                    activeTab === 'sync' && syncView === 'history'
-                      ? 'flex h-full min-h-0 flex-col'
-                      : 'w-full space-y-5'
-                  }>
-                  {activeTab === 'graph' && (
-                    <MemoryFamilyGate family="tree">
-                      <div className="space-y-5 animate-fade-up">
-                        <MemoryControls
-                          mode={mode}
-                          onModeChange={setMode}
-                          onRefresh={refresh}
-                          onToast={addToast}
-                          contentRootAbs={graph?.content_root_abs}
-                        />
+            than a bordered card floating in the content column. */}
+          <div className="h-full">
+            <SettingsTabbedPage<BrainChip>
+              title={t(BRAIN_HEADERS[activeTab].titleKey)}
+              description={t(BRAIN_HEADERS[activeTab].descKey)}
+              tabs={[
+                { id: 'graph', label: t('brain.tabs.graph') },
+                { id: 'goals', label: t('brain.tabs.goals') },
+                { id: 'sources', label: t('brain.tabs.sources') },
+                { id: 'sync', label: t('brain.tabs.sync') },
+                { id: 'history', label: t('brain.sync.viewHistory') },
+              ]}
+              value={chipValue}
+              onChange={setChip}
+              tabsAriaLabel={t('nav.brain')}
+              tabsTestIdPrefix="brain-tab"
+              // History is a full-height table: only its rows scroll.
+              scrollable={!(activeTab === 'sync' && syncView === 'history')}>
+              <div
+                className={
+                  activeTab === 'sync' && syncView === 'history'
+                    ? 'flex h-full min-h-0 flex-col'
+                    : 'w-full space-y-5'
+                }>
+                {activeTab === 'graph' && (
+                  <MemoryFamilyGate family="tree">
+                    <div className="space-y-5 animate-fade-up">
+                      <MemoryControls
+                        mode={mode}
+                        onModeChange={setMode}
+                        onRefresh={refresh}
+                        onToast={addToast}
+                        contentRootAbs={graph?.content_root_abs}
+                      />
 
-                        {/*
+                      {/*
                         A failed refresh AFTER a good load keeps the graph on
                         screen and warns, rather than replacing it with an
                         error. The graph is expensive to rebuild and stays
@@ -312,100 +310,100 @@ export default function Brain() {
                         this one means "what you see is old", the one below
                         means "there is nothing to see".
                       */}
-                        {/*
+                      {/*
                         `error !== null`, not truthiness: `load()`'s catch does
                         `setError(err.message)`, and an Error carrying an empty
                         message yields `''`, which is falsy. Under a truthiness
                         test that failure suppresses BOTH alerts and is silent
                         again — the exact defect this PR exists to remove.
                       */}
-                        {error !== null && graph ? (
-                          classifyMemoryEngineError(error) !== 'other' ? (
-                            <MemoryEngineErrorAlert error={error} />
-                          ) : (
-                            <Alert variant="warning">
-                              <AlertDescription>{t('brain.refreshError')}</AlertDescription>
-                            </Alert>
-                          )
-                        ) : null}
-
-                        {graph ? (
-                          <MemoryGraph
-                            nodes={graph.nodes}
-                            edges={graph.edges}
-                            mode={mode}
-                            emptyHint={t('brain.empty')}
-                          />
-                        ) : error !== null ? (
-                          <MemoryEngineErrorAlert error={error} fallbackText={t('brain.error')} />
+                      {error !== null && graph ? (
+                        classifyMemoryEngineError(error) !== 'other' ? (
+                          <MemoryEngineErrorAlert error={error} />
                         ) : (
-                          // The first load can take seconds — a hosted engine
-                          // builds the graph from its derived layers — and an
-                          // empty canvas meanwhile reads as a broken page.
-                          <div role="status" data-testid="brain-graph-loading">
-                            <CenteredLoadingState
-                              label={t('workspace.loadingGraph')}
-                              className="h-[640px] rounded-lg border border-line-subtle bg-surface-muted/40"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </MemoryFamilyGate>
-                  )}
+                          <Alert variant="warning">
+                            <AlertDescription>{t('brain.refreshError')}</AlertDescription>
+                          </Alert>
+                        )
+                      ) : null}
 
-                  {activeTab === 'goals' && (
-                    <MemoryFamilyGate family="goals">
-                      <GoalsPanel />
-                    </MemoryFamilyGate>
-                  )}
+                      {graph ? (
+                        <MemoryGraph
+                          nodes={graph.nodes}
+                          edges={graph.edges}
+                          mode={mode}
+                          emptyHint={t('brain.empty')}
+                        />
+                      ) : error !== null ? (
+                        <MemoryEngineErrorAlert error={error} fallbackText={t('brain.error')} />
+                      ) : (
+                        // The first load can take seconds — a hosted engine
+                        // builds the graph from its derived layers — and an
+                        // empty canvas meanwhile reads as a broken page.
+                        <div role="status" data-testid="brain-graph-loading">
+                          <CenteredLoadingState
+                            label={t('workspace.loadingGraph')}
+                            className="h-[640px] rounded-lg border border-line-subtle bg-surface-muted/40"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </MemoryFamilyGate>
+                )}
 
-                  {activeTab === 'sources' && (
-                    <div className="space-y-5 animate-fade-up">
-                      <MemoryEngineRow />
-                      {/* Coding sessions are a family of their own: an engine
+                {activeTab === 'goals' && (
+                  <MemoryFamilyGate family="goals">
+                    <GoalsPanel />
+                  </MemoryFamilyGate>
+                )}
+
+                {activeTab === 'sources' && (
+                  <div className="space-y-5 animate-fade-up">
+                    <MemoryEngineRow />
+                    {/* Coding sessions are a family of their own: an engine
                       can accept synced items without reading local agent
                       transcripts (hosted memory does exactly that). */}
-                      <MemoryFamilyGate family="coding_sessions">
-                        <CodingSessionsCard onToast={addToast} />
-                      </MemoryFamilyGate>
-                      <MemoryFamilyGate family="sources">
-                        <MemorySourcesRegistry onToast={addToast} />
-                      </MemoryFamilyGate>
-                    </div>
-                  )}
+                    <MemoryFamilyGate family="coding_sessions">
+                      <CodingSessionsCard onToast={addToast} />
+                    </MemoryFamilyGate>
+                    <MemoryFamilyGate family="sources">
+                      <MemorySourcesRegistry onToast={addToast} />
+                    </MemoryFamilyGate>
+                  </div>
+                )}
 
-                  {activeTab === 'sync' && syncView === 'status' && (
-                    <div className="space-y-5 animate-fade-up">
-                      {/* The ingest pipeline's status is the local chunk store's:
+                {activeTab === 'sync' && syncView === 'status' && (
+                  <div className="space-y-5 animate-fade-up">
+                    {/* The ingest pipeline's status is the local chunk store's:
                       hosted memory draws a tree but keeps no such store. */}
-                      <MemoryFamilyGate family="tree">
-                        <MemoryFamilyGate family="chunks">
-                          <Card padded divided={false}>
-                            <MemoryTreeStatusPanel onToast={addToast} />
-                          </Card>
-                        </MemoryFamilyGate>
-                      </MemoryFamilyGate>
-                      {/* openhuman#6257: what is syncing right now, beside the
-                      history of what already ran. */}
-                      <MemoryFamilyGate family="sources">
-                        <Card padded divided={false} data-testid="brain-sync-activity">
-                          <SyncActivityCard />
+                    <MemoryFamilyGate family="tree">
+                      <MemoryFamilyGate family="chunks">
+                        <Card padded divided={false}>
+                          <MemoryTreeStatusPanel onToast={addToast} />
                         </Card>
                       </MemoryFamilyGate>
-                    </div>
-                  )}
+                    </MemoryFamilyGate>
+                    {/* openhuman#6257: what is syncing right now, beside the
+                      history of what already ran. */}
+                    <MemoryFamilyGate family="sources">
+                      <Card padded divided={false} data-testid="brain-sync-activity">
+                        <SyncActivityCard />
+                      </Card>
+                    </MemoryFamilyGate>
+                  </div>
+                )}
 
-                  {/* Sync → History: the run history as a full-height table. */}
-                  {activeTab === 'sync' && syncView === 'history' && (
-                    <div className="flex min-h-0 flex-1 flex-col" data-testid="brain-sync-history">
-                      <MemoryFamilyGate family="sources">
-                        <SyncAuditPanel fill />
-                      </MemoryFamilyGate>
-                    </div>
-                  )}
-                </div>
-              </SettingsTabbedPage>
-            </div>
+                {/* Sync → History: the run history as a full-height table. */}
+                {activeTab === 'sync' && syncView === 'history' && (
+                  <div className="flex min-h-0 flex-1 flex-col" data-testid="brain-sync-history">
+                    <MemoryFamilyGate family="sources">
+                      <SyncAuditPanel fill />
+                    </MemoryFamilyGate>
+                  </div>
+                )}
+              </div>
+            </SettingsTabbedPage>
+          </div>
         </div>
       }
 
