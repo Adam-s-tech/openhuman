@@ -209,8 +209,7 @@ fn derive_workload_providers(config: &mut Config, stats: &mut MigrationStats) {
         }
     };
 
-    // Memory summariser workload: the memory-tree backend switch it used to
-    // follow is gone with memory v1, so it defaults to cloud.
+    // Summarisation workload: defaults to cloud.
     set_field(&mut config.memory_provider, "cloud".to_string(), stats);
 
     // Embeddings — uses the embedding_model_id, not chat_model_id.

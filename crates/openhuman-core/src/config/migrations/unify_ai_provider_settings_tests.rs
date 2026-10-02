@@ -81,8 +81,8 @@ fn openhuman_inference_url_does_not_seed_custom() {
 fn embeddings_provider_derived_from_legacy_usage() {
     let mut c = make_legacy_config_local_on();
     let stats = run(&mut c).expect("migration must succeed");
-    // memory + embeddings + learning.
-    assert_eq!(stats.workload_fields_filled, 3);
+    // memory + embeddings.
+    assert_eq!(stats.workload_fields_filled, 2);
     assert_eq!(c.embeddings_provider.as_deref(), Some("ollama:bge-m3"));
 }
 
