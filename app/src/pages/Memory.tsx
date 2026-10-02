@@ -59,12 +59,12 @@ export default function Memory() {
   // so an identity change re-reads it.
   useEffect(() => {
     let cancelled = false;
-    setLoadError(null);
     Promise.allSettled([memoryEngineGet(), memoryEnginesList()]).then(([state, list]) => {
       if (cancelled) return;
       if (state.status === 'fulfilled') {
         log('engine: %s status=%s', state.value.engine ?? 'none', state.value.status);
         setEngine(state.value);
+        setLoadError(null);
       } else {
         log('engine_get failed: %o', state.reason);
         setLoadError(memoryErrorMessage(state.reason));

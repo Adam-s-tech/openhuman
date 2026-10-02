@@ -77,8 +77,23 @@ export default function MemoryLearningsTab() {
   }, [loadPage]);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    loadPage(null)
+      .then(page => {
+        if (cancelled) return;
+        setItems(page.items ?? []);
+        setCursor(page.next_cursor ?? null);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        log('list failed: %o', err);
+        setError(memoryErrorMessage(err));
+        setItems([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadPage]);
 
   const loadMore = async () => {
     if (!cursor) return;

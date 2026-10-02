@@ -54,9 +54,26 @@ export default function MemoryDocumentsTab() {
     }
   }, []);
 
+  // Initial load. `reload` re-reads on demand (polling); the effect awaits
+  // before touching state so the first render is never re-rendered in place.
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    memorySourcesList()
+      .then(res => {
+        if (cancelled) return;
+        log('sources: %d', res.sources?.length ?? 0);
+        setSources(res.sources ?? []);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        log('list failed: %o', err);
+        setError(memoryErrorMessage(err));
+        setSources([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // While anything is syncing, re-read the registry so status, item counts and
   // errors move on their own; idle registries are not polled.
