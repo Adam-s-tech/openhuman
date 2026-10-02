@@ -7,7 +7,6 @@
 
 use crate::env_guard::env_lock;
 use crate::env_guard::EnvVarGuard;
-use crate::memory_module;
 use crate::rpc_harness::serve_rpc;
 use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
 
@@ -425,8 +424,6 @@ async fn config_agent_tools_and_threads_mutation_paths_round_trip() {
 async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
     let _lock = env_lock();
     let harness = setup().await;
-    // The memory_* reads below reach the driver; wait out the module's load.
-    memory_module::settle().await;
 
     let calls = [
         ("openhuman.config_get_client_config", json!({})),
@@ -441,10 +438,7 @@ async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
             "openhuman.approval_list_recent_decisions",
             json!({ "limit": 5 }),
         ),
-        ("openhuman.memory_ingestion_status", json!({})),
-        ("openhuman.memory_tree_pipeline_status", json!({})),
-        ("openhuman.memory_sync_status_list", json!({})),
-        ("openhuman.memory_sources_list", json!({})),
+        ("openhuman.memory_engines_list", json!({})),
         ("openhuman.embeddings_get_settings", json!({})),
         ("openhuman.channels_list", json!({})),
         ("openhuman.composio_get_mode", json!({})),
