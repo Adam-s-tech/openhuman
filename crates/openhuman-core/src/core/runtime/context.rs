@@ -547,25 +547,15 @@ impl CoreContext {
     /// cross-module tests (e.g. `core::all`'s registry filter) can exercise the
     /// ambient DomainSet gate without going through the full [`CoreContext::init`]
     /// boot sequence.
-    ///
-    /// `memory_subsystem` is the seam the capability tests need: pass `None`
-    /// for the default (`driver = "tinycortex"`, no driver table), or an
-    /// explicit config to exercise the fallback / trust paths without a boot.
-    /// It takes the *config* rather than a `Capabilities` value on purpose —
-    /// injecting a capability set directly would let a test assert a set no
-    /// driver could have advertised, bypassing the very `admit` +
-    /// `capabilities()` path that has to be proven.
     #[cfg(test)]
     pub(crate) fn for_test(
         domains: crate::core::runtime::DomainSet,
         workspace_dir: Option<std::path::PathBuf>,
-        memory_subsystem: Option<crate::config::schema::MemorySubsystemConfig>,
     ) -> Arc<CoreContext> {
         Arc::new(CoreContext {
             host_kind: HostKind::Cli,
             workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir,
-                memory_subsystem: memory_subsystem.unwrap_or_default(),
             }))),
             domains,
             tool_groups: Default::default(),
@@ -594,7 +584,6 @@ impl CoreContext {
             host_kind: HostKind::Cli,
             workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir: Some(config.workspace_dir.clone()),
-                memory_subsystem: Default::default(),
             }))),
             domains,
             tool_groups: Default::default(),
@@ -605,26 +594,14 @@ impl CoreContext {
     }
 }
 
-/// Bind the memory driver for this workspace and initialize the other
-/// workspace-bound stores.
-///
-/// This no longer initializes an in-process `MemoryClient`: the memory
-/// subsystem is reached through [`crate::memory::binding`], which is
-/// a workspace-keyed cache rather than a process-global slot (#5560). The
-/// engine handle that `memory::global` still hands out is a lazy singleton, so
-/// the remaining holders construct it on first use.
+/// Initialize the workspace-bound stores and report the memory engine.
 ///
 /// A `Config::load_or_init` failure here is operator-visible and serious
 /// (corrupt toml, bad permissions, missing/unwritable `OPENHUMAN_WORKSPACE` —
 /// common on headless/containerised deploys with no writable `$HOME`).
-/// Previously the fallback to `Config::default()` initialised the memory
-/// store against the *wrong* workspace dir, silently causing
-/// chunk loss / cross-workspace bleed-over while the app looked healthy (Sentry
-/// OPENHUMAN-CORE-48). Instead: skip the workspace-bound init entirely so
-/// memory stays explicitly *uninitialised* — callers then get a clear "memory
-/// client not ready" error rather than reading/writing the wrong workspace. The
-/// server still comes up; the operator sees the loud error and fixes their
-/// config or sets `OPENHUMAN_WORKSPACE` to a writable path, then restarts.
+/// Instead of falling back to `Config::default()` against the *wrong*
+/// workspace (Sentry OPENHUMAN-CORE-48), the workspace-bound init is skipped
+/// entirely; the server still comes up and the operator sees the loud error.
 /// Per-`DomainGroup` gating decision for each workspace-bound store that
 /// [`init_stores`] initializes. Extracted as a pure value so the store-gating
 /// mapping (which store is owned by which `DomainGroup`) has a single source of
@@ -636,7 +613,7 @@ impl CoreContext {
 /// `DomainSet` needs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StoreInitPlan {
-    /// The memory driver binding (`memory::binding`) — gated on
+    /// Reporting the memory engine binding (`memory::engine`) — gated on
     /// [`DomainGroup::Memory`].
     pub memory: bool,
     /// `agent::multimodal` attachments sidecar dir — gated on [`DomainGroup::Agent`].
@@ -702,12 +679,6 @@ pub async fn init_stores(cfg: &crate::config::Config, domains: crate::core::runt
     // (The WhatsApp data store moved to the Tauri shell; the core no longer
     // initializes it here. The shell lazily opens it from its own workspace
     // dir when the first ingest / query arrives.)
-    // The people store is NOT seeded here any more. People is served by the
-    // bound memory driver (`MemoryPeople`), so the engine owns that database —
-    // and the module opens it. Seeding a host-side process-global as well meant
-    // two readers over one SQLite file, with nothing left reading the host's:
-    // `CoreContext::people()` is gone and no handler consults
-    // `people::store::get()`.
     // Prune legacy bundled skills (dev-workflow / github-issue-crusher
     // / pr-review-shepherd) that older builds seeded into
     // <workspace>/skills/. OpenHuman no longer ships bundled defaults;
