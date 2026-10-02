@@ -3402,7 +3402,7 @@ const messages: TranslationMap = {
     'Modelle, die während der direkten Benutzerinteraktion verwendet werden, Antworten, Argumentation, Agentenschleifen und Codierungshilfe.',
   'settings.ai.routing.backgroundTasks': 'Hintergrundaufgaben',
   'settings.ai.routing.bgTasksDesc':
-    'Modelle, die außerhalb des Hauptgesprächsflusses für Speicherzusammenfassung und Lernen verwendet werden.',
+    'Modelle, die außerhalb des Hauptgesprächsflusses für Zusammenfassungen verwendet werden.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Direkter dialogischer Austausch hin und her – „Schnell“-Modus in Unterhaltungen',
@@ -3428,7 +3428,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'Empfohlen: ein multimodales Modell, das Bildeingaben akzeptiert. Der verwaltete Standard (vision-v1) ist bildfähig; jeder hier zugewiesene Anbieter wird stets als vision-fähig behandelt.',
   'settings.ai.routing.workload.memory.label': 'Memory-Zusammenfassung',
-  'settings.ai.routing.workload.memory.description': 'Baum-Extraktionen und Konsolidierungen',
+  'settings.ai.routing.workload.memory.description': 'Zusammenfassungen von Gesprächen und Dokumenten',
   'settings.ai.routing.workload.memory.hint':
     'Empfohlen: ein günstigeres Zusammenfassungsmodell. Es sollte konsistent und kompakt sein, braucht aber keine erstklassige Frontier-Reasoning-Leistung.',
   'settings.ai.routing.addCustomProvider': 'Benutzerdefinierten Anbieter hinzufügen',

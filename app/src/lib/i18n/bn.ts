@@ -3315,7 +3315,7 @@ const messages: TranslationMap = {
     'সরাসরি ব্যবহারকারী যোগাযোগ, উত্তর, যুক্তি, এজেন্ট লুপ এবং কোড সাহায্য করার সময় ব্যবহার করা হয়েছে।',
   'settings.ai.routing.backgroundTasks': 'ব্যাকগ্রাউন্ড টাস্ক',
   'settings.ai.routing.bgTasksDesc':
-    'মূল কথোপকথনের বাইরে মেমরি সারসংক্ষেপ এবং শেখার জন্য ব্যবহৃত মডেল।',
+    'মূল কথোপকথনের বাইরে সারসংক্ষেপ তৈরির জন্য ব্যবহৃত মডেল।',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'প্রত্যক্ষ কথোপকথন সামনে এবং পিছনে: কথোপকথনে "দ্রুত" মোড',
@@ -3340,7 +3340,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'প্রস্তাবিত: একটি মাল্টিমোডাল মডেল যা ইমেজ ইনপুট গ্রহণ করে। পরিচালিত ডিফল্ট (ভিশন-v1) হল ইমেজ-সক্ষম; আপনি এখানে যে কোনো প্রদানকারীকে সর্বদা দৃষ্টি-সক্ষম হিসাবে বিবেচনা করা হয়।',
   'settings.ai.routing.workload.memory.label': 'মেমরি সারসংক্ষেপ',
-  'settings.ai.routing.workload.memory.description': 'গাছের নির্যাস এবং একত্রীকরণ',
+  'settings.ai.routing.workload.memory.description': 'কথোপকথন ও নথির সারসংক্ষেপ',
   'settings.ai.routing.workload.memory.hint':
     'প্রস্তাবিত: একটি সস্তা সংক্ষিপ্তকরণ মডেল। এটি সামঞ্জস্যপূর্ণ এবং কম্প্যাক্ট হওয়া উচিত, তবে এর জন্য প্রিমিয়াম ফ্রন্টিয়ার-লেভেল যুক্তির প্রয়োজন নেই।',
   'settings.ai.routing.addCustomProvider': 'কাস্টম প্রদানকারী যোগ করুন',

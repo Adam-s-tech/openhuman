@@ -3294,7 +3294,7 @@ const messages: TranslationMap = {
     '직접 사용자 상호작용, 답변, 추론, 에이전트 루프 및 코딩 도움에 사용되는 모델입니다.',
   'settings.ai.routing.backgroundTasks': '백그라운드 작업',
   'settings.ai.routing.bgTasksDesc':
-    '메모리 요약과 학습처럼 기본 대화 흐름 밖에서 사용되는 모델입니다.',
+    '기본 대화 흐름 밖에서 요약에 사용되는 모델입니다.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description': '직접 대화 앞뒤로: 대화의 "빠른" 모드',
   'settings.ai.routing.workload.chat.hint':
@@ -3318,7 +3318,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     '권장 사항: 이미지 입력을 허용하는 다중 모드 모델. 관리형 기본값(vision-v1)은 이미지를 사용할 수 있습니다. 여기로 연결하는 모든 제공자는 항상 비전 지원 제공자로 간주됩니다.',
   'settings.ai.routing.workload.memory.label': '메모리 요약',
-  'settings.ai.routing.workload.memory.description': '나무 추출물 및 통합',
+  'settings.ai.routing.workload.memory.description': '대화와 문서의 요약',
   'settings.ai.routing.workload.memory.hint':
     '권장사항: 더 저렴한 요약 모델. 일관되고 간결해야 하지만 프리미엄 프론티어 수준의 추론은 필요하지 않습니다.',
   'settings.ai.routing.addCustomProvider': '사용자 정의 공급자 추가',

@@ -3337,7 +3337,7 @@ const messages: TranslationMap = {
     'Model digunakan selama interaksi pengguna langsung, membalas, penalaran, loop agen, dan bantuan coding.',
   'settings.ai.routing.backgroundTasks': 'Tugas Latar Belakang',
   'settings.ai.routing.bgTasksDesc':
-    'Model yang digunakan di luar alur percakapan utama untuk ringkasan memori dan pembelajaran.',
+    'Model yang digunakan di luar alur percakapan utama untuk perangkuman.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Percakapan langsung bolak-balik: Mode “Cepat” dalam Percakapan',
@@ -3364,7 +3364,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'Direkomendasikan: model multimodal yang menerima masukan gambar. Default yang dikelola (vision-v1) berkemampuan gambar; penyedia mana pun yang Anda rutekan ke sini selalu dianggap mendukung visi.',
   'settings.ai.routing.workload.memory.label': 'Ringkasan memori',
-  'settings.ai.routing.workload.memory.description': 'Ekstraksi dan konsolidasi pohon',
+  'settings.ai.routing.workload.memory.description': 'Ringkasan percakapan dan dokumen',
   'settings.ai.routing.workload.memory.hint':
     'Direkomendasikan: model peringkasan yang lebih murah. Hal ini harus konsisten dan kompak, namun tidak memerlukan penalaran tingkat premium.',
   'settings.ai.routing.addCustomProvider': 'Tambahkan Penyedia Khusus',

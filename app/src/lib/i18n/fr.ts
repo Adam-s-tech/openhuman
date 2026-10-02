@@ -3384,7 +3384,7 @@ const messages: TranslationMap = {
     "Modèles utilisés lors de l'interaction directe avec l'utilisateur, des réponses, du raisonnement, des boucles d'agents et de l'aide à la programmation.",
   'settings.ai.routing.backgroundTasks': 'Tâches en arrière-plan',
   'settings.ai.routing.bgTasksDesc':
-    "Modèles utilisés en dehors du flux principal de conversation pour la synthèse de la mémoire et l'apprentissage.",
+    'Modèles utilisés en dehors du flux principal de conversation pour les résumés.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Aller-retour conversationnel direct : mode « Rapide » dans Conversations',
@@ -3411,7 +3411,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'Recommandé : un modèle multimodal qui accepte la saisie d’images. La valeur par défaut gérée (vision-v1) est compatible avec les images ; tout fournisseur que vous acheminez ici est toujours traité comme étant compatible avec la vision.',
   'settings.ai.routing.workload.memory.label': 'Résumé de la mémoire',
-  'settings.ai.routing.workload.memory.description': "Extractions et consolidations d'arbres",
+  'settings.ai.routing.workload.memory.description': 'Résumés de conversations et de documents',
   'settings.ai.routing.workload.memory.hint':
     'Recommandé : un modèle de synthèse moins cher. Il doit être cohérent et compact, mais il ne nécessite pas de raisonnement privilégié au niveau des frontières.',
   'settings.ai.routing.addCustomProvider': 'Ajouter un fournisseur personnalisé',

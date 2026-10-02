@@ -3316,7 +3316,7 @@ const messages: TranslationMap = {
     'मॉडल प्रत्यक्ष उपयोगकर्ता बातचीत, उत्तर, तर्क, एजेंट छोरों और कोडिंग मदद के दौरान इस्तेमाल किया।',
   'settings.ai.routing.backgroundTasks': 'पृष्ठभूमि कार्य',
   'settings.ai.routing.bgTasksDesc':
-    'मुख्य बातचीत प्रवाह के बाहर मेमोरी सारांश और सीखने के लिए उपयोग किए जाने वाले मॉडल।',
+    'मुख्य बातचीत प्रवाह के बाहर सारांश बनाने के लिए उपयोग किए जाने वाले मॉडल।',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description': 'आगे-पीछे सीधी बातचीत: बातचीत में "त्वरित" मोड',
   'settings.ai.routing.workload.chat.hint':
@@ -3340,7 +3340,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'अनुशंसित: एक मल्टीमॉडल मॉडल जो छवि इनपुट स्वीकार करता है। प्रबंधित डिफ़ॉल्ट (विज़न-v1) छवि-सक्षम है; आप यहां जिस भी प्रदाता को रूट करते हैं उसे हमेशा दृष्टि-सक्षम माना जाता है।',
   'settings.ai.routing.workload.memory.label': 'स्मृति सारांश',
-  'settings.ai.routing.workload.memory.description': 'वृक्ष-अर्क और समेकन',
+  'settings.ai.routing.workload.memory.description': 'बातचीत और दस्तावेज़ों के सारांश',
   'settings.ai.routing.workload.memory.hint':
     'अनुशंसित: एक सस्ता सारांशीकरण मॉडल। यह सुसंगत और संक्षिप्त होना चाहिए, लेकिन इसके लिए प्रीमियम सीमांत-स्तरीय तर्क की आवश्यकता नहीं है।',
   'settings.ai.routing.addCustomProvider': 'कस्टम प्रदाता जोड़ें',

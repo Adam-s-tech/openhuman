@@ -3255,7 +3255,7 @@ const messages: TranslationMap = {
     'النماذج المستخدمة أثناء التفاعل المباشر للمستعملين، والردود، والتفسير، وحلقات العملاء، والمساعدة في التدوين.',
   'settings.ai.routing.backgroundTasks': 'مهام الخلفية',
   'settings.ai.routing.bgTasksDesc':
-    'النماذج المستخدمة خارج التدفق الرئيسي للمحادثات لتلخيص الذاكرة والتعلم.',
+    'النماذج المستخدمة خارج التدفق الرئيسي للمحادثات للتلخيص.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'المحادثة المباشرة ذهابًا وإيابًا: الوضع "السريع" في المحادثات',
@@ -3281,7 +3281,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'موصى به: نموذج متعدد الوسائط يقبل إدخال الصور. الإعداد الافتراضي المُدار (vision-v1) قادر على التقاط الصور؛ يتم التعامل دائمًا مع أي مزود تقوم بتوجيهه إلى هنا على أنه ذو قدرة على الرؤية.',
   'settings.ai.routing.workload.memory.label': 'تلخيص الذاكرة',
-  'settings.ai.routing.workload.memory.description': 'مقتطفات شجرة والتوحيد',
+  'settings.ai.routing.workload.memory.description': 'ملخصات المحادثات والمستندات',
   'settings.ai.routing.workload.memory.hint':
     'موصى به: نموذج تلخيص أرخص. وينبغي أن تكون متسقة ومتماسكة، ولكنها لا تحتاج إلى تفكير عالي المستوى.',
   'settings.ai.routing.addCustomProvider': 'إضافة موفر مخصص',

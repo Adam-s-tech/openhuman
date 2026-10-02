@@ -3363,7 +3363,7 @@ const messages: TranslationMap = {
     "Modelli utilizzati durante l'interazione diretta con l'utente, risposte, ragionamento, cicli dell'agente e assistenza alla codifica.",
   'settings.ai.routing.backgroundTasks': 'Attività in background',
   'settings.ai.routing.bgTasksDesc':
-    "Modelli utilizzati al di fuori del flusso principale della conversazione per la sintesi della memoria e l'apprendimento.",
+    'Modelli utilizzati al di fuori del flusso principale della conversazione per i riassunti.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Conversazione diretta avanti e indietro: modalità "Rapida" in Conversazioni',
@@ -3390,7 +3390,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     "Consigliato: un modello multimodale che accetta input di immagini. L'impostazione predefinita gestita (vision-v1) supporta le immagini; qualsiasi fornitore che instrada qui viene sempre trattato come abilitato alla visione.",
   'settings.ai.routing.workload.memory.label': 'Riepilogo della memoria',
-  'settings.ai.routing.workload.memory.description': 'Estratti e consolidamenti di alberi',
+  'settings.ai.routing.workload.memory.description': 'Riassunti di conversazioni e documenti',
   'settings.ai.routing.workload.memory.hint':
     'Consigliato: un modello di riepilogo più economico. Dovrebbe essere coerente e compatto, ma non necessita di un ragionamento premium a livello di frontiera.',
   'settings.ai.routing.addCustomProvider': 'Aggiungi provider personalizzato',

@@ -3344,7 +3344,7 @@ const messages: TranslationMap = {
     'Модели, используемые во время прямого взаимодействия с пользователем, ответов, рассуждений, циклов агента и помощи в кодировании.',
   'settings.ai.routing.backgroundTasks': 'Фоновые задачи',
   'settings.ai.routing.bgTasksDesc':
-    'Модели, используемые вне основного потока разговора для обобщения памяти и обучения.',
+    'Модели, используемые вне основного потока разговора для создания сводок.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Прямой разговор вперед и назад: «Быстрый» режим в «Беседах».',
@@ -3370,7 +3370,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'Рекомендуется: мультимодальная модель, допускающая ввод изображений. Управляемое значение по умолчанию (vision-v1) поддерживает работу с изображениями; любой провайдер, которого вы направляете сюда, всегда рассматривается как поддерживающий зрение.',
   'settings.ai.routing.workload.memory.label': 'Обобщение памяти',
-  'settings.ai.routing.workload.memory.description': 'Древесные экстракты и консолидации',
+  'settings.ai.routing.workload.memory.description': 'Сводки разговоров и документов',
   'settings.ai.routing.workload.memory.hint':
     'Рекомендуется: более дешевая модель обобщения. Он должен быть последовательным и компактным, но не требует первоочередных рассуждений.',
   'settings.ai.routing.addCustomProvider': 'Добавить специального поставщика.',

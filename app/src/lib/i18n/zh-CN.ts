@@ -3123,7 +3123,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.chatAndConversations': '聊天和对话',
   'settings.ai.routing.chatDesc': '用于直接用户交互、回复、推理、智能体循环和编码帮助的模型。',
   'settings.ai.routing.backgroundTasks': '后台任务',
-  'settings.ai.routing.bgTasksDesc': '在主对话流程之外用于记忆总结和学习的模型。',
+  'settings.ai.routing.bgTasksDesc': '在主对话流程之外用于生成摘要的模型。',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description': '直接对话，也就是“对话”中的“快速”模式',
   'settings.ai.routing.workload.chat.hint':
@@ -3146,7 +3146,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     '推荐选择支持图像输入的多模态模型。托管默认模型 vision-v1 支持图像；路由到此处的任何提供商都会被视为已启用视觉能力。',
   'settings.ai.routing.workload.memory.label': '记忆总结',
-  'settings.ai.routing.workload.memory.description': '树状信息提取和整合',
+  'settings.ai.routing.workload.memory.description': '对话和文档的摘要',
   'settings.ai.routing.workload.memory.hint':
     '推荐选择价格较低的摘要模型。输出应稳定、简洁，但不需要前沿模型级别的推理能力。',
   'settings.ai.routing.addCustomProvider': '添加自定义提供商',

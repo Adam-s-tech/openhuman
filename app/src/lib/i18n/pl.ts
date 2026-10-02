@@ -3357,7 +3357,7 @@ const messages: TranslationMap = {
     'Modele używane podczas bezpośredniej interakcji z użytkownikiem, odpowiedzi, rozumowania, pętli agentów i pomocy w kodowaniu.',
   'settings.ai.routing.backgroundTasks': 'Zadania w tle',
   'settings.ai.routing.bgTasksDesc':
-    'Modele używane poza głównym przepływem rozmowy do podsumowywania pamięci i uczenia.',
+    'Modele używane poza głównym przepływem rozmowy do podsumowywania.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Bezpośrednia konwersacja tam i z powrotem: tryb „Szybki” w Rozmowach',
@@ -3384,7 +3384,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'Zalecane: model multimodalny, który akceptuje wprowadzanie obrazu. Zarządzana opcja domyślna (vision-v1) obsługuje obrazy; każdy dostawca, którego tu skierujesz, jest zawsze traktowany jako obsługujący wizję.',
   'settings.ai.routing.workload.memory.label': 'Podsumowanie pamięci',
-  'settings.ai.routing.workload.memory.description': 'Ekstrakty i konsolidacje z drzew',
+  'settings.ai.routing.workload.memory.description': 'Podsumowania rozmów i dokumentów',
   'settings.ai.routing.workload.memory.hint':
     'Zalecane: tańszy model podsumowujący. Powinien być spójny i zwarty, ale nie wymaga zaawansowanego rozumowania na poziomie pionierskim.',
   'settings.ai.routing.addCustomProvider': 'Dodaj własnego dostawcę',

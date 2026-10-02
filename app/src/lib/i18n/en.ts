@@ -3894,7 +3894,7 @@ const en: TranslationMap = {
     'Models used during direct user interaction, replies, reasoning, agent loops, and coding help.',
   'settings.ai.routing.backgroundTasks': 'Background Tasks',
   'settings.ai.routing.bgTasksDesc':
-    'Models used outside the main conversation flow for memory summarization and learning.',
+    'Models used outside the main conversation flow for summarization.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Direct conversational back-and-forth: “Quick” mode in Conversations',
@@ -3920,7 +3920,7 @@ const en: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'Recommended: a multimodal model that accepts image input. The managed default (vision-v1) is image-capable; any provider you route here is always treated as vision-enabled.',
   'settings.ai.routing.workload.memory.label': 'Memory summarization',
-  'settings.ai.routing.workload.memory.description': 'Tree-extracts and consolidations',
+  'settings.ai.routing.workload.memory.description': 'Summaries of conversations and documents',
   'settings.ai.routing.workload.memory.hint':
     'Recommended: a cheaper summarization model. It should be consistent and compact, but it does not need premium frontier-level reasoning.',
   'settings.ai.routing.addCustomProvider': 'Add Custom Provider',
