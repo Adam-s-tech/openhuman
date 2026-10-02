@@ -167,7 +167,7 @@ async fn safety_case_never_email_sarah_pins_into_prompt_block() {
     //    verbatim — the exact bytes the safety pipeline puts in
     //    front of the agent on every subsequent turn.
     let mut flat: Vec<_> = prompt.into_values().flatten().collect();
-    flat.sort_by(|a, b| b.priority.cmp(&a.priority));
+    flat.sort_by_key(|entry| std::cmp::Reverse(entry.priority));
     let rendered = crate::memory::tool_memory::prompt::ToolMemoryRulesSection::new(flat)
         .rendered()
         .to_string();

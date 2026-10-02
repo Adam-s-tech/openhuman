@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::channels::traits::{ChannelMessage, SendMessage};
+use std::path::Path;
 use std::sync::Mutex as StdMutex;
 use tempfile::tempdir;
 use tinychannels::remote::session_store::with_store_read;
@@ -44,7 +45,7 @@ fn received(
     channel: &str,
     reply_target: &str,
     thread_ts: Option<&str>,
-    ws: &PathBuf,
+    ws: &Path,
 ) -> DomainEvent {
     DomainEvent::ChannelMessageReceived {
         channel: channel.into(),
@@ -58,7 +59,7 @@ fn received(
     }
 }
 
-fn processed(channel: &str, reply_target: &str, ws: &PathBuf) -> DomainEvent {
+fn processed(channel: &str, reply_target: &str, ws: &Path) -> DomainEvent {
     DomainEvent::ChannelMessageProcessed {
         channel: channel.into(),
         message_id: "m1".into(),
