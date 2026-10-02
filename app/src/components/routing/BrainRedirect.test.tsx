@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
@@ -10,6 +10,8 @@ function Where() {
 }
 
 function renderAt(entry: string) {
+  // Several cases render more than once per test; start each from a clean DOM.
+  cleanup();
   render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
