@@ -479,9 +479,7 @@ fn apply_reasoning_hint(mut request: ModelRequest) -> ModelRequest {
 /// The OpenRouter `reasoning` object for a provider-neutral config: `none`
 /// disables reasoning, an explicit budget becomes `max_tokens`, and any other
 /// effort is sent by name. An empty config sends nothing.
-fn managed_reasoning_wire(
-    reasoning: &tinyinference_llm::model::ReasoningConfig,
-) -> Option<Value> {
+fn managed_reasoning_wire(reasoning: &tinyinference_llm::model::ReasoningConfig) -> Option<Value> {
     use tinyinference_llm::model::ReasoningEffort;
     if reasoning.effort == Some(ReasoningEffort::None) {
         return Some(serde_json::json!({ "enabled": false }));

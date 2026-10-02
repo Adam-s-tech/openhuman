@@ -6,7 +6,10 @@ fn parses_wire_tokens_and_aliases() {
     assert_eq!(parse_reasoning_effort(" Low "), Some(ReasoningEffort::Low));
     assert_eq!(parse_reasoning_effort("off"), Some(ReasoningEffort::None));
     assert_eq!(parse_reasoning_effort("max"), Some(ReasoningEffort::XHigh));
-    assert_eq!(parse_reasoning_effort("xhigh"), Some(ReasoningEffort::XHigh));
+    assert_eq!(
+        parse_reasoning_effort("xhigh"),
+        Some(ReasoningEffort::XHigh)
+    );
     assert_eq!(parse_reasoning_effort("turbo"), None);
 }
 

@@ -366,13 +366,13 @@ fn request_reasoning_none_disables_reasoning_on_the_managed_wire() {
 #[test]
 fn request_reasoning_budget_becomes_max_tokens() {
     use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
-    let request = apply_reasoning_hint(ModelRequest::new(vec![Message::user("hi")]).with_reasoning(
-        ReasoningConfig {
+    let request = apply_reasoning_hint(
+        ModelRequest::new(vec![Message::user("hi")]).with_reasoning(ReasoningConfig {
             effort: Some(ReasoningEffort::High),
             budget_tokens: Some(8_000),
             summary: None,
-        },
-    ));
+        }),
+    );
     assert_eq!(
         request.provider_options["reasoning"],
         serde_json::json!({ "max_tokens": 8000 })
