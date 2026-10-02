@@ -6,13 +6,13 @@ use crate::config::Config;
 use crate::core::runtime::context::CoreContext;
 use crate::threads::store as conversations;
 use crate::threads::store::{ConversationMessage, ConversationThread};
-use crate::memory::{ConversationMessageRecord, ConversationThreadSummary};
+use crate::threads::{ConversationMessageRecord, ConversationThreadSummary};
 use crate::threads::THREAD_TITLE_LOG_PREFIX;
 use std::path::PathBuf;
 use tinyagents_harness::title::{title_from_user_message, title_log_fingerprint};
 
 // One envelope/counts implementation for every ApiEnvelope-returning domain.
-pub(super) use crate::memory::ops::envelope::{envelope, memory_counts as counts};
+pub(super) use crate::core::envelope::{counts, envelope};
 
 pub(super) async fn workspace_dir() -> Result<PathBuf, String> {
     Config::load_or_init()
