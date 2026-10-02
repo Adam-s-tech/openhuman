@@ -2,10 +2,7 @@
 //! Scout").
 //!
 //! Assembles the discovery archetype (from the sibling `prompt.md`) plus the
-//! shared runtime sections (user files, the agent's tool list, and the
-//! workspace footer). PROFILE.md / MEMORY.md are injected by the harness per the
-//! agent's `omit_profile = false` / `omit_memory_md = false` TOML flags — the
-//! scout grounds its suggestions in who the user is, so it reads them directly.
+//! shared runtime sections (the agent's tool list and the workspace footer).
 //! No `## Safety` block: `omit_safety_preamble = true` because every tool in
 //! scope is read-only except the `suggest_workflows` emit sink (which has no
 //! external effect); the "read, then suggest — never act" invariant lives in

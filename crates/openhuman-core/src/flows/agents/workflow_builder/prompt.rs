@@ -1,7 +1,7 @@
 //! System prompt builder for the `workflow_builder` built-in agent (Phase 5a).
 //!
 //! Assembles the workflow-authoring archetype (`tinyflows_copilot::prompts::WORKFLOW_BUILDER`
-//! — it belongs to the engine, not to this host) plus the shared runtime sections (user files, the agent's tool list, and the
+//! — it belongs to the engine, not to this host) plus the shared runtime sections (the agent's tool list and the
 //! workspace footer). No `## Safety` block — the agent has `omit_safety_preamble
 //! = true` in its TOML because every tool in scope is propose-or-read and has no
 //! real external effect (the "propose, never persist" invariant lives in the
