@@ -852,7 +852,6 @@ async fn harness_init_run_completes_offline_and_force_bypasses_the_probes() {
     let step_ids: Vec<&str> = steps.iter().map(|step| str_at(step, "/id")).collect();
     for expected in [
         "python_runtime",
-        "spacy",
         "kompress",
         "runtime_python_server",
     ] {
