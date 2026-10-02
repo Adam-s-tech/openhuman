@@ -76,12 +76,14 @@ pub(crate) static RPC_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(())
 /// previous values are restored on drop.
 pub(crate) struct UnreachableRpcGuard {
     previous: Vec<(&'static str, Option<std::ffi::OsString>)>,
-    _env_lock: std::sync::MutexGuard<'static, ()>,
+    _env_lock: tokio::sync::MutexGuard<'static, ()>,
 }
 
 impl UnreachableRpcGuard {
     pub(crate) fn set() -> Self {
-        let env_lock = RPC_ENV_LOCK.blocking_lock();
+        let env_lock = RPC_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         // Bind then drop to learn a port that is free, hence refusing.
         let port = std::net::TcpListener::bind("127.0.0.1:0")
             .and_then(|listener| listener.local_addr())

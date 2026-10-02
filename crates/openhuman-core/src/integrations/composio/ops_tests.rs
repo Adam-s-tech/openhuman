@@ -17,7 +17,7 @@ fn test_config(tmp: &tempfile::TempDir) -> Config {
 /// Per-module alias so call sites don't need to spell out the path.
 /// The actual lock lives in `connected_integrations` so it is shared
 /// with `tools_tests` and any other test module that touches the cache.
-fn cache_guard() -> std::sync::MutexGuard<'static, ()> {
+fn cache_guard() -> tokio::sync::MutexGuard<'static, ()> {
     crate::integrations::composio::connected_integrations::composio_cache_test_lock()
 }
 

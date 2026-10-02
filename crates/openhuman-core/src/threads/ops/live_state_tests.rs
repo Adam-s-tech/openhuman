@@ -18,7 +18,7 @@ fn thread_live_state_request_parses_thread_id() {
 }
 
 struct WorkspaceGuard {
-    _lock: std::sync::MutexGuard<'static, ()>,
+    _lock: tokio::sync::MutexGuard<'static, ()>,
     _tmp: tempfile::TempDir,
 }
 

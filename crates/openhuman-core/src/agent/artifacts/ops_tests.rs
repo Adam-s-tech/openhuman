@@ -313,7 +313,7 @@ async fn regenerate_reruns_producer_and_reuses_id() {
 /// Points the default files folder (`OPENHUMAN_PROJECTS_DIR/Files`) at a temp
 /// dir for one test, holding the shared env lock, and restores it on drop.
 struct DefaultFilesDir {
-    _lock: std::sync::MutexGuard<'static, ()>,
+    _lock: tokio::sync::MutexGuard<'static, ()>,
     previous: Option<std::ffi::OsString>,
     files_dir: std::path::PathBuf,
 }

@@ -1,5 +1,5 @@
 use super::*;
-use std::sync::MutexGuard;
+use tokio::sync::MutexGuard;
 
 /// Serializes every test that touches the global [`QUEUE`]. We reuse the
 /// crate-wide `TEST_ENV_LOCK` because `clear_all` is also reachable from the

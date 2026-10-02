@@ -10,7 +10,7 @@ fn scratch_lock() -> tokio::sync::MutexGuard<'static, ()> {
 }
 
 async fn scratch_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
-    crate::agent::todos::ops::scratch_test_lock()
+    crate::agent::todos::ops::scratch_test_lock_async().await
 }
 
 /// A fresh on-disk workspace root for one test's `FileStore`-backed todo

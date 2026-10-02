@@ -80,7 +80,7 @@ async fn write_file(path: &std::path::Path, contents: &str) {
 
 const CORRUPTED_TOML: &str = "{{{ bad table header\n";
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK.blocking_lock()
 }
 
