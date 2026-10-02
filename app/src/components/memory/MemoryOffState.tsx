@@ -4,8 +4,8 @@
  */
 import { LuBrain } from 'react-icons/lu';
 
-import EmptyStateCard from '../EmptyStateCard';
 import { useT } from '../../lib/i18n/I18nContext';
+import EmptyStateCard from '../EmptyStateCard';
 
 interface MemoryOffStateProps {
   /** Engine-reported reason, when it gave one. */

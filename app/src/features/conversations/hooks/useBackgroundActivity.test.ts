@@ -35,15 +35,15 @@ function fixtures() {
   });
   mockSources.mockResolvedValue({
     sources: [
+      { id: 's1', kind: 'folder', target: '/notes', label: 'Inbox', status: 'syncing', items: 3 },
       {
-        id: 's1',
-        kind: 'folder',
-        target: '/notes',
-        label: 'Inbox',
-        status: 'syncing',
-        items: 3,
+        id: 's2',
+        kind: 'rss',
+        target: 'https://example.com/feed',
+        label: '',
+        status: 'idle',
+        items: 0,
       },
-      { id: 's2', kind: 'rss', target: 'https://example.com/feed', label: '', status: 'idle', items: 0 },
     ],
   });
 }

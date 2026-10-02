@@ -5,11 +5,7 @@ import type { EngineDescriptor, EngineState } from '../../services/api/memoryApi
 import { renderWithProviders } from '../../test/test-utils';
 import MemoryEngineTab from './MemoryEngineTab';
 
-const hoisted = vi.hoisted(() => ({
-  enginesList: vi.fn(),
-  engineSet: vi.fn(),
-  signedIn: true,
-}));
+const hoisted = vi.hoisted(() => ({ enginesList: vi.fn(), engineSet: vi.fn(), signedIn: true }));
 
 vi.mock('../../services/api/memoryApi', async importOriginal => ({
   ...(await importOriginal<typeof import('../../services/api/memoryApi')>()),
@@ -58,7 +54,9 @@ function renderTab(state: EngineState | null = OFF) {
 }
 
 beforeEach(() => {
-  hoisted.enginesList.mockReset().mockResolvedValue({ engines: [TINYHUMANS, CORTEXDB], active: null });
+  hoisted.enginesList
+    .mockReset()
+    .mockResolvedValue({ engines: [TINYHUMANS, CORTEXDB], active: null });
   hoisted.engineSet.mockReset();
   hoisted.signedIn = true;
 });

@@ -44,7 +44,9 @@ describe('MemoryImportBanner', () => {
   it('asks for consent naming the engine, and uploads nothing on cancel', async () => {
     renderWithProviders(<MemoryImportBanner engineLabel="TinyHumans" />);
     fireEvent.click(await screen.findByTestId('memory-import-open'));
-    expect(screen.getByTestId('memory-import-consent')).toHaveTextContent('uploads it to TinyHumans');
+    expect(screen.getByTestId('memory-import-consent')).toHaveTextContent(
+      'uploads it to TinyHumans'
+    );
     fireEvent.click(screen.getByTestId('memory-import-cancel'));
     expect(screen.queryByTestId('memory-import-consent')).not.toBeInTheDocument();
     expect(hoisted.start).not.toHaveBeenCalled();

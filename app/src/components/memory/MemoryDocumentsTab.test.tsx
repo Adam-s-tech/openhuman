@@ -5,12 +5,7 @@ import type { Source } from '../../services/api/memoryApi';
 import { renderWithProviders } from '../../test/test-utils';
 import MemoryDocumentsTab from './MemoryDocumentsTab';
 
-const hoisted = vi.hoisted(() => ({
-  list: vi.fn(),
-  add: vi.fn(),
-  remove: vi.fn(),
-  sync: vi.fn(),
-}));
+const hoisted = vi.hoisted(() => ({ list: vi.fn(), add: vi.fn(), remove: vi.fn(), sync: vi.fn() }));
 
 vi.mock('../../services/api/memoryApi', async importOriginal => ({
   ...(await importOriginal<typeof import('../../services/api/memoryApi')>()),
@@ -78,9 +73,7 @@ describe('MemoryDocumentsTab', () => {
       target: { value: '/docs' },
     });
     fireEvent.change(screen.getByTestId('memory-add-source-label'), { target: { value: 'Docs' } });
-    fireEvent.change(screen.getByTestId('memory-add-source-schedule'), {
-      target: { value: '30' },
-    });
+    fireEvent.change(screen.getByTestId('memory-add-source-schedule'), { target: { value: '30' } });
     fireEvent.click(screen.getByTestId('memory-add-source-submit'));
 
     await waitFor(() =>
@@ -108,7 +101,9 @@ describe('MemoryDocumentsTab', () => {
       target: { value: 'acme/missing' },
     });
     fireEvent.click(screen.getByTestId('memory-add-source-submit'));
-    expect(await screen.findByTestId('memory-add-source-error')).toHaveTextContent('repo not found');
+    expect(await screen.findByTestId('memory-add-source-error')).toHaveTextContent(
+      'repo not found'
+    );
     expect(hoisted.add).toHaveBeenCalledWith({ kind: 'github', target: 'acme/missing' });
   });
 

@@ -47,7 +47,9 @@ export default function MemoryHitRow({
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={KIND_VARIANT[kind] ?? 'neutral'}>{kindLabel(kind, t)}</Badge>
           {scoreText !== null && (
-            <span className="font-mono text-[11px] text-content-muted" data-testid="memory-hit-score">
+            <span
+              className="font-mono text-[11px] text-content-muted"
+              data-testid="memory-hit-score">
               {t('memoryPage.score')} {scoreText}
             </span>
           )}
@@ -56,7 +58,10 @@ export default function MemoryHitRow({
         {facts.length > 0 && (
           <dl className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-content-muted">
             {facts.map(fact => (
-              <div key={fact.key} className="flex min-w-0 gap-1" data-testid={`memory-meta-${fact.key}`}>
+              <div
+                key={fact.key}
+                className="flex min-w-0 gap-1"
+                data-testid={`memory-meta-${fact.key}`}>
                 <dt className="shrink-0 font-medium">{fact.label}</dt>
                 <dd className="truncate font-mono">{fact.value}</dd>
               </div>

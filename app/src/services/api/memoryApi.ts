@@ -353,7 +353,9 @@ export function memoryErrorCode(err: unknown): MemoryErrorCode | null {
   }
   const message = (err as { message?: unknown }).message;
   if (typeof message === 'string') {
-    const match = /^\s*(MEMORY_OFF|UNSUPPORTED|INVALID_REQUEST|UNAUTHORIZED|ENGINE)\b/.exec(message);
+    const match = /^\s*(MEMORY_OFF|UNSUPPORTED|INVALID_REQUEST|UNAUTHORIZED|ENGINE)\b/.exec(
+      message
+    );
     if (match) return match[1] as MemoryErrorCode;
   }
   return null;
@@ -413,7 +415,9 @@ export function memoryConversationsGet(): Promise<ConversationsSettings> {
   return call<ConversationsSettings>(CORE_RPC_METHODS.memoryConversationsGet);
 }
 
-export function memoryConversationsSet(update: ConversationsUpdate): Promise<ConversationsSettings> {
+export function memoryConversationsSet(
+  update: ConversationsUpdate
+): Promise<ConversationsSettings> {
   return call<ConversationsSettings>(CORE_RPC_METHODS.memoryConversationsSet, update);
 }
 

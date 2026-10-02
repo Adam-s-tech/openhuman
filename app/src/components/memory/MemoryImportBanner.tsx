@@ -127,7 +127,9 @@ export default function MemoryImportBanner({ engineLabel }: MemoryImportBannerPr
 
       {state && state.phase !== 'idle' && (
         <Alert
-          variant={state.phase === 'error' ? 'destructive' : state.phase === 'done' ? 'success' : 'info'}
+          variant={
+            state.phase === 'error' ? 'destructive' : state.phase === 'done' ? 'success' : 'info'
+          }
           data-testid={`memory-import-${state.phase}`}>
           <div className="w-full space-y-2">
             <AlertTitle>

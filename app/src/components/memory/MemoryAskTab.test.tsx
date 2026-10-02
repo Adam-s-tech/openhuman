@@ -50,14 +50,18 @@ describe('MemoryAskTab', () => {
     renderWithProviders(<MemoryAskTab fetchModes={['hybrid']} />);
     ask('When do we ship?');
 
-    await waitFor(() => expect(hoisted.recall).toHaveBeenCalledWith({ question: 'When do we ship?' }));
+    await waitFor(() =>
+      expect(hoisted.recall).toHaveBeenCalledWith({ question: 'When do we ship?' })
+    );
     const answer = await screen.findByTestId('memory-ask-answer');
     expect(answer).toHaveTextContent('We ship on Friday.');
     const c1 = screen.getByTestId('memory-citation-c1');
     expect(c1).toHaveTextContent('Document');
     expect(c1).toHaveTextContent('Launch moved to Friday');
     expect(within(c1).getByTestId('memory-meta-file')).toHaveTextContent('/notes/launch.md');
-    expect(within(c1).getByTestId('memory-meta-url')).toHaveTextContent('https://example.com/launch');
+    expect(within(c1).getByTestId('memory-meta-url')).toHaveTextContent(
+      'https://example.com/launch'
+    );
     // Citations do not show a score; raw results do.
     expect(within(c1).queryByTestId('memory-hit-score')).not.toBeInTheDocument();
     const c2 = screen.getByTestId('memory-citation-c2');
@@ -67,17 +71,24 @@ describe('MemoryAskTab', () => {
   it('runs a raw fetch with the chosen mode and lists scored hits', async () => {
     hoisted.fetch.mockResolvedValue({
       hits: [
-        { id: 'h1', kind: 'learning', text: 'Prefers tabs', meta: { folder: '/notes' }, score: 0.912 },
+        {
+          id: 'h1',
+          kind: 'learning',
+          text: 'Prefers tabs',
+          meta: { folder: '/notes' },
+          score: 0.912,
+        },
       ],
     });
     renderWithProviders(<MemoryAskTab fetchModes={['keyword', 'vector']} />);
     fireEvent.click(screen.getByTestId('memory-ask-raw-toggle'));
 
     const mode = screen.getByTestId('memory-ask-mode');
-    expect(within(mode).getAllByRole('option').map(o => o.textContent)).toEqual([
-      'Keyword',
-      'Semantic',
-    ]);
+    expect(
+      within(mode)
+        .getAllByRole('option')
+        .map(o => o.textContent)
+    ).toEqual(['Keyword', 'Semantic']);
     fireEvent.change(mode, { target: { value: 'vector' } });
     ask('tabs');
 

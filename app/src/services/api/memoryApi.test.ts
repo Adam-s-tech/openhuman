@@ -93,7 +93,12 @@ describe('memoryApi wire calls', () => {
       { id: 's1', forget_items: true },
     ],
     ['sources sync all', () => memorySourcesSync(), 'openhuman.memory_sources_sync', {}],
-    ['sources sync one', () => memorySourcesSync('s1'), 'openhuman.memory_sources_sync', { id: 's1' }],
+    [
+      'sources sync one',
+      () => memorySourcesSync('s1'),
+      'openhuman.memory_sources_sync',
+      { id: 's1' },
+    ],
     ['context get', () => memoryContextGet(), 'openhuman.memory_context_get', {}],
     ['context refresh', () => memoryContextRefresh(), 'openhuman.memory_context_refresh', {}],
     [

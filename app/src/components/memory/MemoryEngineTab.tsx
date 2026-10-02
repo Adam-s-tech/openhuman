@@ -100,7 +100,9 @@ export default function MemoryEngineTab({ state, onStateChange, embedded }: Memo
       return (
         <Alert variant="info" data-testid="memory-engine-status-off">
           <AlertTitle>{t('memoryPage.off.title')}</AlertTitle>
-          <AlertDescription>{state.reason || t('memoryPage.engine.offExplanation')}</AlertDescription>
+          <AlertDescription>
+            {state.reason || t('memoryPage.engine.offExplanation')}
+          </AlertDescription>
         </Alert>
       );
     }
@@ -137,7 +139,9 @@ export default function MemoryEngineTab({ state, onStateChange, embedded }: Memo
   };
 
   return (
-    <div className={embedded ? 'space-y-4' : 'space-y-4 animate-fade-up'} data-testid="memory-engine-tab">
+    <div
+      className={embedded ? 'space-y-4' : 'space-y-4 animate-fade-up'}
+      data-testid="memory-engine-tab">
       {statusBanner}
       {saveError !== null && (
         <Alert variant="destructive" data-testid="memory-engine-save-error">

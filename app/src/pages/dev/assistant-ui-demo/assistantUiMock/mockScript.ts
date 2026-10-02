@@ -13,8 +13,8 @@
  */
 import type { CoreCommand } from '../../../../features/conversations/aui/useSlashCommandSource';
 import type { ContextBreakdown } from '../../../../services/api/agentContextApi';
-import type { ChatSuggestionsEvent } from '../../../../services/chatService';
 import type { FetchPage } from '../../../../services/api/memoryApi';
+import type { ChatSuggestionsEvent } from '../../../../services/chatService';
 
 /**
  * JSON-safe argument payload. Tool-call parts require their `args` to be plain

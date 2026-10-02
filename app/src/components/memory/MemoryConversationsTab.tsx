@@ -152,9 +152,13 @@ export default function MemoryConversationsTab() {
         </div>
       </Card>
 
-      <Card title={t('memoryPage.conversations.recentTitle')} data-testid="memory-conversations-recent">
+      <Card
+        title={t('memoryPage.conversations.recentTitle')}
+        data-testid="memory-conversations-recent">
         {settings.recent.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-content-muted" data-testid="memory-conversations-empty">
+          <p
+            className="px-4 py-3 text-sm text-content-muted"
+            data-testid="memory-conversations-empty">
             {t('memoryPage.conversations.recentEmpty')}
           </p>
         ) : (

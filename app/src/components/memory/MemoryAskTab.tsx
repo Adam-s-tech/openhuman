@@ -19,7 +19,16 @@ import {
   memoryRecall,
   type RecallAnswer,
 } from '../../services/api/memoryApi';
-import { Alert, AlertDescription, Button, Card, Label, NativeSelect, Switch, TextArea } from '../ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Card,
+  Label,
+  NativeSelect,
+  Switch,
+  TextArea,
+} from '../ui';
 import { CenteredLoadingState } from '../ui/LoadingState';
 import MemoryHitRow from './MemoryHitRow';
 
@@ -64,11 +73,7 @@ export default function MemoryAskTab({ fetchModes }: MemoryAskTabProps) {
     try {
       if (raw) {
         log('fetch: mode=%s len=%d', mode || 'default', text.length);
-        const page = await memoryFetch({
-          query: text,
-          mode: mode || undefined,
-          limit: RAW_LIMIT,
-        });
+        const page = await memoryFetch({ query: text, mode: mode || undefined, limit: RAW_LIMIT });
         setHits(page.hits ?? []);
       } else {
         log('recall: len=%d', text.length);

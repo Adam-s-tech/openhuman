@@ -181,7 +181,9 @@ export default function MemoryLearningsTab() {
       ) : (
         <Card title={t('memoryPage.learnings.listTitle')} data-testid="memory-learnings-list">
           {items.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-content-muted" data-testid="memory-learnings-empty">
+            <p
+              className="px-4 py-3 text-sm text-content-muted"
+              data-testid="memory-learnings-empty">
               {t('memoryPage.learnings.empty')}
             </p>
           ) : (
