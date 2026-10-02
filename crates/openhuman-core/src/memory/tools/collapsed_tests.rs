@@ -151,18 +151,14 @@ fn forget_takes_the_key_as_text_and_defaults_the_namespace() {
 }
 
 #[test]
-fn advertised_actions_reads_the_schema_enum_and_ignores_other_tools() {
+fn advertised_actions_match_the_actions_the_tool_serves() {
     let memory = tool();
-    let listed = advertised_actions(&memory);
-    assert!(
-        listed.iter().any(|a| a == ACTION_LEARN)
-            == memory.actions().iter().any(|e| e.action == ACTION_LEARN)
-    );
-    assert!(
-        listed.len() <= 4 && !listed.is_empty() || memory.actions().is_empty(),
-        "{listed:?}"
-    );
-    // Any tool that is not the collapsed `memory` tool advertises no actions,
-    // so a name check elsewhere cannot mistake it for one.
+    let served: Vec<String> = memory.actions().iter().map(|e| e.action.to_string()).collect();
+    assert_eq!(advertised_actions(&memory), served);
+}
+
+#[test]
+fn a_tool_that_is_not_the_collapsed_memory_tool_advertises_no_actions() {
+    // So a name check elsewhere cannot mistake another tool for the collapsed one.
     assert!(advertised_actions(&MemoryRecallTool::new()).is_empty());
 }
