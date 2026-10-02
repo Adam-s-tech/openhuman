@@ -669,9 +669,9 @@ const SUPERVISED_AUTONOMY_CONFIG: &str = "[autonomy]\nenabled = true\nlevel = \"
 
 async fn boot_stack_with_config(extra_config: &str) -> Stack {
     // Ensure the global AgentDefinitionRegistry is populated with built-in
-    // archetypes (orchestrator, agent_memory, task_manager_agent, etc.) before
+    // archetypes (orchestrator, task_manager_agent, task_manager_agent, etc.) before
     // the RPC stack starts. Without this the session builder cannot synthesise
-    // delegation tools and every `retrieve_memory`/`spawn_subagent` call becomes
+    // delegation tools and every `manage_tasks`/`spawn_subagent` call becomes
     // "Unknown tool: …", making delegation tests vacuous.
     init_agent_def_registry();
 
@@ -919,20 +919,20 @@ async fn multi_turn_state_persistence_inner() {
 //
 // Tool surface (crates/openhuman-core/src/tools/orchestrator_tools.rs,
 //   crates/openhuman-core/src/memory/agent/agent/agent.toml):
-//   - agent_memory has `delegate_name = "retrieve_memory"`, so the
-//     orchestrator LLM sees a tool named "retrieve_memory" synthesised by collect_orchestrator_tools.
+//   - task_manager_agent has `delegate_name = "manage_tasks"`, so the
+//     orchestrator LLM sees a tool named "manage_tasks" synthesised by collect_orchestrator_tools.
 //   - The tool takes { "prompt": string, ... } per ArchetypeDelegationTool schema.
-//   - The orchestrator TOML lists "agent_memory" in its subagents.allowlist.
+//   - The orchestrator TOML lists "task_manager_agent" in its subagents.allowlist.
 //   - AgentDefinitionRegistry must be initialised (done in boot_stack) for the
-//     delegation tool to be synthesised; without it the call becomes "Unknown tool: retrieve_memory".
+//     delegation tool to be synthesised; without it the call becomes "Unknown tool: manage_tasks".
 //
 // Actual LLM request ordering (with registry init):
-//   request[0] = orchestrator → model returns { tool_calls: [retrieve_memory(...)] }
-//   request[1] = agent_memory subagent inner loop → model returns canary text
+//   request[0] = orchestrator → model returns { tool_calls: [manage_tasks(...)] }
+//   request[1] = task_manager_agent subagent inner loop → model returns canary text
 //   request[2] = orchestrator synthesis → model returns final text with canary
 
-/// Orchestrator delegates to agent_memory via the `retrieve_memory`
-/// tool (delegate_name on the agent_memory definition); the subagent runs
+/// Orchestrator delegates to task_manager_agent via the `manage_tasks`
+/// tool (delegate_name on the task_manager_agent definition); the subagent runs
 /// its own inner LLM call; the final orchestrator synthesis reply contains the
 /// subagent canary. Three upstream requests prove the full delegation path ran.
 #[test]
@@ -946,13 +946,13 @@ fn subagent_delegation_happy_path() {
 async fn subagent_delegation_happy_path_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator calls the `retrieve_memory` tool
-        // (agent_memory's delegate_name).
+        // request[0]: Orchestrator calls the `manage_tasks` tool
+        // (task_manager_agent's delegate_name).
         tool_call_completion(
-            "retrieve_memory",
+            "manage_tasks",
             json!({ "prompt": "Find the marker phrase", "blocking": true }),
         ),
-        // request[1]: agent_memory subagent inner LLM call returns its canary.
+        // request[1]: task_manager_agent subagent inner LLM call returns its canary.
         text_completion("MEMORY_CANARY_42 is the marker."),
         // request[2]: Orchestrator receives the subagent result and synthesizes.
         text_completion("Done. The result is: MEMORY_CANARY_42"),
@@ -990,8 +990,8 @@ async fn subagent_delegation_happy_path_inner() {
     );
 
     // Delegation evidenced by ≥3 captured upstream requests:
-    //   request[0] = orchestrator turn: retrieve_memory tool call returned
-    //   request[1] = agent_memory subagent inner LLM call: canary text returned
+    //   request[0] = orchestrator turn: manage_tasks tool call returned
+    //   request[1] = task_manager_agent subagent inner LLM call: canary text returned
     //   request[2] = orchestrator synthesis: canary forwarded in final reply
     //
     // NOTE: a completed turn's snapshot is now RETAINED (lifecycle `Completed`)
@@ -1002,7 +1002,7 @@ async fn subagent_delegation_happy_path_inner() {
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 3,
-        "expected ≥3 upstream requests (orchestrator + agent_memory + orchestrator synthesis), \
+        "expected ≥3 upstream requests (orchestrator + task_manager_agent + orchestrator synthesis), \
          got {};\nall requests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
@@ -1017,7 +1017,7 @@ async fn subagent_delegation_happy_path_inner() {
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // request[1] (agent_memory subagent) must have different system/message content
+    // request[1] (task_manager_agent subagent) must have different system/message content
     // from request[0] (orchestrator) — proves a genuinely different agent context
     // ran, not the same orchestrator re-called.
     let req0_sys = requests
@@ -1033,7 +1033,7 @@ async fn subagent_delegation_happy_path_inner() {
     assert_ne!(
         req0_sys, req1_sys,
         "request[0] and request[1] share identical first-message content — \
-         agent_memory subagent did not build its own context; \
+         task_manager_agent subagent did not build its own context; \
          content: {req0_sys:?}"
     );
 
@@ -1847,8 +1847,8 @@ async fn provider_error_retry_inner() {
 // parallel_subagent_fanout:
 //   spawn_parallel_agents is in the orchestrator's named tools (agent.toml:165)
 //   and is registered via ops.rs:163. Requires ≥2 tasks, each { agent_id, prompt }.
-//   The orchestrator's subagents.allowlist includes "agent_memory",
-//   so agent_id:"agent_memory" is valid. children run via join_all (spawn_parallel_agents.rs
+//   The orchestrator's subagents.allowlist includes "task_manager_agent",
+//   so agent_id:"task_manager_agent" is valid. children run via join_all (spawn_parallel_agents.rs
 //   ~line 322 — "let futures = prepared.into_iter().map(…)"). Both children
 //   consume from the same global FIFO scripted-response queue. Because
 //   join_all spawns futures concurrently but the queue pop is under a Mutex,
@@ -1856,13 +1856,13 @@ async fn provider_error_retry_inner() {
 //   carry distinct canaries; the synthesis quotes both.
 //   LLM request ordering (4 upstream calls):
 //     request[0]  = orchestrator → spawn_parallel_agents tool call
-//     request[1,2] = agent_memory child 1 & child 2 (order nondeterministic,
+//     request[1,2] = task_manager_agent child 1 & child 2 (order nondeterministic,
 //                    both return distinct canaries)
 //     request[3]  = orchestrator synthesis with both canaries
 //
 // multi_hop_delegation_chain:
-//   Depth-1 subagents (agent_memory, vision_agent, etc.) do NOT have spawn
-//   tools in their named lists. Verified: agent_memory's agent.toml
+//   Depth-1 subagents (task_manager_agent, vision_agent, etc.) do NOT have spawn
+//   tools in their named lists. Verified: task_manager_agent's agent.toml
 //   (memory/agent/agent/agent.toml) has only read-only memory tools plus
 //   ask_user_clarification. It contains no
 //   spawn_subagent, spawn_worker_thread, or spawn_parallel_agents. The only
@@ -1872,19 +1872,19 @@ async fn provider_error_retry_inner() {
 //   with the current built-in agent graph; the cap is a safety net for
 //   runtime-registered agents.
 //
-//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → agent_memory
-//   (via `retrieve_memory`) → agent_memory scripted to call file_write (not in
-//   agent_memory's read-only named tools → SubagentToolSource::execute returns
-//   a blocked response, tool loop continues) → agent_memory second LLM call
-//   returns DEPTH2_CANARY text → dispatch_subagent forwards as `retrieve_memory`
+//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → task_manager_agent
+//   (via `manage_tasks`) → task_manager_agent scripted to call file_write (not in
+//   task_manager_agent's read-only named tools → SubagentToolSource::execute returns
+//   a blocked response, tool loop continues) → task_manager_agent second LLM call
+//   returns DEPTH2_CANARY text → dispatch_subagent forwards as `manage_tasks`
 //   tool result → orchestrator synthesis. The three-level synthesis path (user
-//   turn → agent_memory subagent → tool-loop continuation → orchestrator
+//   turn → task_manager_agent subagent → tool-loop continuation → orchestrator
 //   synthesis) is the deepest path reachable with built-in agents without src/
 //   changes.
 //   LLM request ordering (4 upstream calls):
-//     request[0] = orchestrator → `retrieve_memory` delegation
-//     request[1] = agent_memory (inner loop) → file_write (blocked)
-//     request[2] = agent_memory (inner loop continuation) → DEPTH2_CANARY text
+//     request[0] = orchestrator → `manage_tasks` delegation
+//     request[1] = task_manager_agent (inner loop) → file_write (blocked)
+//     request[2] = task_manager_agent (inner loop continuation) → DEPTH2_CANARY text
 //     request[3] = orchestrator synthesis
 
 /// Two `spawn_async_subagent` calls issued together really do put two workers
@@ -1936,11 +1936,11 @@ async fn parallel_subagent_fanout_inner() {
         tool_calls_completion(&[
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "agent_memory", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
+                json!({ "agent_id": "task_manager_agent", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
             ),
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "agent_memory", "prompt": "Find PARALLEL_BETA_CANARY" }),
+                json!({ "agent_id": "task_manager_agent", "prompt": "Find PARALLEL_BETA_CANARY" }),
             ),
         ]),
         text_completion("Spawned two workers; results will arrive as they land."),
@@ -2032,21 +2032,21 @@ async fn parallel_subagent_fanout_inner() {
     );
 }
 
-/// Orchestrator delegates to agent_memory via `retrieve_memory`; it calls
+/// Orchestrator delegates to task_manager_agent via `manage_tasks`; it calls
 /// file_write (not in its read-only named tools, so SubagentToolSource
-/// returns error); agent_memory loops and returns DEPTH2_CANARY;
+/// returns error); task_manager_agent loops and returns DEPTH2_CANARY;
 /// dispatch_subagent forwards the result; orchestrator synthesizes.
 ///
-/// Depth behavior discovered: agent_memory's agent.toml has only read-only
+/// Depth behavior discovered: task_manager_agent's agent.toml has only read-only
 /// memory tools plus ask_user_clarification (no spawn_subagent,
 /// spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
 /// (spawn_depth_context.rs:16) is unreachable with built-in agents; it guards
 /// runtime/workspace agents. The three-level synthesis (user-turn root →
-/// agent_memory subagent → orchestrator synthesis) is the deepest path
+/// task_manager_agent subagent → orchestrator synthesis) is the deepest path
 /// available without src/ changes. Documented per plan Task 9 step 9.2 fallback.
 ///
 /// The out-of-scope call is `file_write`, not `ask_user_clarification`:
-/// agent_memory owns `ask_user_clarification`, so that call would park the
+/// task_manager_agent owns `ask_user_clarification`, so that call would park the
 /// child (the `delegated_clarification_flow` mechanic) instead of being
 /// refused and letting the inner loop continue.
 #[test]
@@ -2060,14 +2060,14 @@ fn multi_hop_delegation_chain() {
 async fn multi_hop_delegation_chain_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator delegates to agent_memory via
-        // `retrieve_memory` (its delegate_name, memory/agent/agent/agent.toml:3).
+        // request[0]: Orchestrator delegates to task_manager_agent via
+        // `manage_tasks` (its delegate_name, memory/agent/agent/agent.toml:3).
         tool_call_completion(
-            "retrieve_memory",
+            "manage_tasks",
             json!({ "prompt": "deep question", "blocking": true }),
         ),
-        // request[1]: agent_memory first inner LLM call → scripts file_write.
-        // file_write is NOT in agent_memory's read-only named tools
+        // request[1]: task_manager_agent first inner LLM call → scripts file_write.
+        // file_write is NOT in task_manager_agent's read-only named tools
         // (`[tools] named`), so SubagentToolSource returns a blocked/error
         // result (tool_source.rs:36). The subagent loop continues to a second
         // LLM call.
@@ -2075,10 +2075,10 @@ async fn multi_hop_delegation_chain_inner() {
             "file_write",
             json!({ "path": "depth-2.txt", "content": "depth-2 write?" }),
         ),
-        // request[2]: agent_memory second inner LLM call → text result.
-        // This becomes the `retrieve_memory` tool result forwarded by dispatch_subagent.
+        // request[2]: task_manager_agent second inner LLM call → text result.
+        // This becomes the `manage_tasks` tool result forwarded by dispatch_subagent.
         text_completion("DEPTH2_CANARY"),
-        // request[3]: Orchestrator receives the retrieve_memory result and synthesizes.
+        // request[3]: Orchestrator receives the manage_tasks result and synthesizes.
         text_completion("Final answer: DEPTH2_CANARY"),
     ]);
     let stack = boot_stack().await;
@@ -2114,26 +2114,26 @@ async fn multi_hop_delegation_chain_inner() {
 
     // ≥4 upstream requests prove the full delegation path ran (≥3 would
     // false-pass if the subagent inner loop early-exited):
-    //   request[0] = orchestrator (retrieve_memory call),
-    //   request[1] = agent_memory first iter (file_write → blocked),
-    //   request[2] = agent_memory second iter (DEPTH2_CANARY text),
+    //   request[0] = orchestrator (manage_tasks call),
+    //   request[1] = task_manager_agent first iter (file_write → blocked),
+    //   request[2] = task_manager_agent second iter (DEPTH2_CANARY text),
     //   request[3] = orchestrator synthesis.
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 4,
-        "expected ≥4 upstream requests (orchestrator + agent_memory x2 + synthesis), got {};\
+        "expected ≥4 upstream requests (orchestrator + task_manager_agent x2 + synthesis), got {};\
         \nrequests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // No unknown-tool result for `retrieve_memory` — delegation was synthesised correctly.
-    // Scoped to `retrieve_memory`: the subagent's `file_write` call IS
+    // No unknown-tool result for `manage_tasks` — delegation was synthesised correctly.
+    // Scoped to `manage_tasks`: the subagent's `file_write` call IS
     // rejected as unknown by design (see the ordering note above), so a blanket
     // check would fail on the very mechanic this test exercises.
     assert!(
-        !captured_requests_reject_tool_as_unknown(&requests, "retrieve_memory"),
-        "found an unknown-tool result — `retrieve_memory` delegation was not synthesised; requests: {}",
+        !captured_requests_reject_tool_as_unknown(&requests, "manage_tasks"),
+        "found an unknown-tool result — `manage_tasks` delegation was not synthesised; requests: {}",
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
@@ -4988,7 +4988,7 @@ async fn cancelling_a_running_background_subagent_settles_it_inner() {
     reset_script(vec![
         tool_calls_completion(&[(
             "spawn_async_subagent",
-            json!({ "agent_id": "agent_memory", "prompt": "Find CANCEL_E2E_CANARY" }),
+            json!({ "agent_id": "task_manager_agent", "prompt": "Find CANCEL_E2E_CANARY" }),
         )]),
         text_completion("Spawned a worker; its result will arrive later."),
         text_completion("worker would have finished here"),
