@@ -8,55 +8,6 @@ use tempfile::TempDir;
 use tinyagents_harness::context::RunConfig;
 use tinyagents_harness::tool::ToolDispatch;
 
-struct MockMemory;
-#[async_trait]
-impl crate::memory::Memory for MockMemory {
-    async fn store(
-        &self,
-        _: &str,
-        _: &str,
-        _: &str,
-        _: crate::memory::MemoryCategory,
-        _: Option<&str>,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-    async fn recall(
-        &self,
-        _: &str,
-        _: usize,
-        _: crate::memory::RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<crate::memory::MemoryEntry>> {
-        Ok(vec![])
-    }
-    async fn get(&self, _: &str, _: &str) -> anyhow::Result<Option<crate::memory::MemoryEntry>> {
-        Ok(None)
-    }
-    async fn list(
-        &self,
-        _: Option<&str>,
-        _: Option<&crate::memory::MemoryCategory>,
-        _: Option<&str>,
-    ) -> anyhow::Result<Vec<crate::memory::MemoryEntry>> {
-        Ok(vec![])
-    }
-    async fn forget(&self, _: &str, _: &str) -> anyhow::Result<bool> {
-        Ok(true)
-    }
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<crate::memory::NamespaceSummary>> {
-        Ok(vec![])
-    }
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(0)
-    }
-    async fn health_check(&self) -> bool {
-        true
-    }
-    fn name(&self) -> &str {
-        "mock"
-    }
-}
-
 fn test_parent_ctx(workspace_dir: PathBuf) -> ParentExecutionContext {
     let model: Arc<dyn tinyinference_llm::model::ChatModel<()>> =
         Arc::new(tinyagents_harness::testkit::ScriptedModel::replies(vec![
@@ -73,7 +24,6 @@ fn test_parent_ctx(workspace_dir: PathBuf) -> ParentExecutionContext {
         temperature: 0.4,
         workspace_dir,
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(model),
-        memory: Arc::new(MockMemory),
         channel: "test".into(),
         all_tools: Arc::new(vec![]),
         all_tool_specs: Arc::new(vec![]),
