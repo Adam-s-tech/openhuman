@@ -72,6 +72,16 @@ vi.mock('../../services/chatService', () => ({
   useRustChat: vi.fn(() => true),
 }));
 
+const { mockGetClientConfig, mockUpdateRuntimeSettings } = vi.hoisted(() => ({
+  mockGetClientConfig: vi.fn(),
+  mockUpdateRuntimeSettings: vi.fn(),
+}));
+vi.mock('../../utils/tauriCommands/config', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../utils/tauriCommands/config')>()),
+  openhumanGetClientConfig: mockGetClientConfig,
+  openhumanUpdateRuntimeSettings: mockUpdateRuntimeSettings,
+}));
+
 vi.mock('../../services/api/threadApi', () => ({
   threadApi: {
     createNewThread: vi.fn().mockResolvedValue({ id: 'new-thread', labels: [] }),
@@ -816,6 +826,27 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     // only the inline send-error (which clears as soon as the user keeps
     // typing). The contract we still care about: chatSend is suppressed.
     expect(chatSend).not.toHaveBeenCalled();
+  });
+
+  it('loads the thinking level from config, persists a new pick and sends it', async () => {
+    mockGetClientConfig.mockResolvedValue({ result: { reasoning_effort: 'low' } });
+    const { textarea, thread } = await renderSelectedConversation();
+
+    const picker = (await screen.findByTestId('composer-reasoning-effort')) as HTMLSelectElement;
+    await waitFor(() => expect(picker.value).toBe('low'));
+
+    fireEvent.change(picker, { target: { value: 'high' } });
+    expect(mockUpdateRuntimeSettings).toHaveBeenCalledWith({ reasoning_effort: 'high' });
+
+    await submitComposerText(textarea, 'think hard');
+    await waitFor(() => {
+      expect(chatSend).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: thread.id, reasoningEffort: 'high' })
+      );
+    });
+
+    fireEvent.change(picker, { target: { value: 'default' } });
+    expect(mockUpdateRuntimeSettings).toHaveBeenLastCalledWith({ reasoning_effort: '' });
   });
 
   it('persists a local user message and sends through chat service for valid input', async () => {
