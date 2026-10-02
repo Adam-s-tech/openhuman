@@ -110,7 +110,7 @@ fn test_is_write_tool_recognizes_write_tools() {
     assert!(!is_write_tool("memory.recall"));
     assert!(!is_write_tool("memory.fetch"));
     assert!(!is_write_tool("memory.list"));
-    assert!(!is_write_tool("memory.learn"));
+    assert!(!is_write_tool("memory.store"));
     assert!(!is_write_tool("core.list_tools"));
     assert!(!is_write_tool("unknown"));
 }
