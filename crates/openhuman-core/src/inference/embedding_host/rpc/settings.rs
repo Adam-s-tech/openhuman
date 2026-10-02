@@ -213,15 +213,15 @@ pub async fn get_settings(config: &Config) -> Result<Outcome<serde_json::Value>,
     ))
 }
 
-/// Updates embedding provider/model/dimensions. If the embedding signature
-/// changes, requires `confirm_wipe = true` and wipes memory.
+/// Updates embedding provider/model/dimensions. Nothing persisted depends on
+/// the embedding signature any more (memory v2 engines embed server-side), so a
+/// change applies directly.
 pub async fn update_settings(
     provider: Option<String>,
     model: Option<String>,
     dimensions: Option<usize>,
     custom_endpoint: Option<String>,
     rate_limit_per_min: Option<u32>,
-    confirm_wipe: bool,
 ) -> Result<Outcome<serde_json::Value>, String> {
     use crate::config::ops as config_rpc;
     use crate::inference::embedding_host::format_embedding_signature;
@@ -245,14 +245,12 @@ pub async fn update_settings(
     let new_model = model
         .clone()
         .unwrap_or_else(|| config.memory.embedding_model.clone());
-    // `new_dims`/`new_sig`/`dims_changed` are recomputed after the Custom
+    // `new_dims`/`new_sig` are recomputed after the Custom
     // verification probe auto-detects the endpoint's real vector length
     // (issue #4056), so they must be mutable.
     let mut new_dims = dimensions.unwrap_or(config.memory.embedding_dimensions);
     let mut new_sig = format_embedding_signature(&new_provider, &new_model, new_dims);
 
-    let old_dims = config.memory.embedding_dimensions;
-    let mut dims_changed = new_dims != old_dims;
     let mut sig_changed = new_sig != old_sig;
 
     // Setup-time verification gate (TAURI-RUST-5JR / 4P4): a Custom
@@ -387,7 +385,6 @@ pub async fn update_settings(
                     );
                 new_dims = detected_dims;
                 new_sig = format_embedding_signature(&new_provider, &new_model, new_dims);
-                dims_changed = new_dims != old_dims;
                 sig_changed = new_sig != old_sig;
             }
             tracing::debug!(
@@ -396,35 +393,6 @@ pub async fn update_settings(
                 "{LOG_PREFIX} update_settings test embed passed — accepting config"
             );
         }
-    }
-
-    // Only require a wipe when dimensions actually change — switching
-    // provider/model at the same dimensionality keeps vectors comparable.
-    if dims_changed && !confirm_wipe {
-        let payload = serde_json::json!({
-            "error": "EMBEDDINGS_DIMENSION_CHANGE_REQUIRES_WIPE",
-            "old_dimensions": old_dims,
-            "new_dimensions": new_dims,
-            "old_signature": old_sig,
-            "new_signature": new_sig,
-            "message": "Changing embedding dimensions invalidates all stored vectors. \
-                        Pass confirm_wipe=true to wipe memory and apply.",
-        });
-        return Ok(Outcome::new(
-            payload,
-            vec!["embedding dimension change requires wipe confirmation".into()],
-        ));
-    }
-
-    if dims_changed {
-        tracing::warn!(
-            old_dims,
-            new_dims,
-            "{LOG_PREFIX} embedding dimensions changing — wiping memory"
-        );
-        crate::memory::read_rpc::wipe_all_rpc(&config)
-            .await
-            .map_err(|e| format!("memory wipe failed: {e}"))?;
     }
 
     // Apply provider
@@ -462,45 +430,11 @@ pub async fn update_settings(
 
     config.save().await.map_err(|e| e.to_string())?;
 
-    if sig_changed {
-        crate::memory::ops::maintenance::reembed_best_effort(&config, "embedding settings").await;
-    }
-
-    // #5324: this is the exact screen the "embedding budget reached" alert
-    // deep-links to, so a provider/endpoint save here is the user completing
-    // the remediation. Un-park the jobs that failed under the old
-    // (budget-exhausted / misconfigured) provider so memory resumes growing
-    // without the user also having to find "Retry failed" in Memory Tree
-    // settings.
-    //
-    // Gated on an actual provider/endpoint/signature touch — NOT unconditional:
-    // a save that only nudges `rate_limit_per_min` does not remediate the
-    // embedder, so it must leave terminally-failed jobs parked. `provider`
-    // covers re-selecting the *same* provider after fixing the account behind
-    // it (a legitimate remediation even when the signature is unchanged).
-    let is_embedding_remediation = sig_changed || provider.is_some() || custom_endpoint.is_some();
-    // #5324: the settings save has already succeeded. A failed un-park must not
-    // fail the RPC, but it must be surfaced (not reported as `0`) so a queue
-    // that stayed parked isn't presented as remediated.
-    let requeue_result = if is_embedding_remediation {
-        crate::memory::ops::maintenance::retry_failed(&config).await
-    } else {
-        Ok(0)
-    };
-    let requeued_count = *requeue_result.as_ref().unwrap_or(&0);
-    let requeue_error = requeue_result.as_ref().err().cloned();
-    let requeued_note = match &requeue_error {
-        None => requeued_count.to_string(),
-        Some(e) => format!("error ({e})"),
-    };
-
     tracing::info!(
         provider = config.memory.embedding_provider.as_str(),
         model = config.memory.embedding_model.as_str(),
         dimensions = config.memory.embedding_dimensions,
         sig_changed,
-        requeued = requeued_count,
-        requeue_error = requeue_error.as_deref().unwrap_or(""),
         "{LOG_PREFIX} update_settings applied"
     );
 
@@ -510,14 +444,12 @@ pub async fn update_settings(
         "dimensions": config.memory.embedding_dimensions,
         "signature_changed": sig_changed,
         "new_signature": new_sig,
-        "requeued_failed_jobs": requeued_count,
-        "requeue_error": requeue_error,
     });
 
     Ok(Outcome::new(
         payload,
         vec![format!(
-            "embeddings settings updated (sig_changed={sig_changed} requeued_failed={requeued_note})"
+            "embeddings settings updated (sig_changed={sig_changed})"
         )],
     ))
 }
