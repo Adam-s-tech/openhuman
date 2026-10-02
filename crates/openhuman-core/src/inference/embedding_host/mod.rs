@@ -1,6 +1,7 @@
-//! Embedding providers for the OpenHuman memory system.
+//! Embedding providers.
 //!
-//! Converts text into numerical vectors for semantic search. Providers:
+//! Converts text into numerical vectors for semantic search (tool discovery,
+//! voice, the `embeddings` RPC). Providers:
 //!
 //! - **Managed** (default): Routes through the OpenHuman backend's
 //!   `POST /openai/v1/embeddings` (Voyage-backed). The recommended path —
@@ -14,6 +15,7 @@
 
 #[path = "cloud_adapter.rs"]
 pub mod cloud;
+mod embedding_trait;
 mod factory;
 mod provider_trait;
 mod rpc;

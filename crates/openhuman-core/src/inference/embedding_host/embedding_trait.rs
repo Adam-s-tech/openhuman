@@ -1,13 +1,8 @@
-//! [`EmbeddingProvider`] — text → vector, supplied by the host.
+//! [`EmbeddingProvider`] — text → vector.
 //!
-//! The memory subsystem embeds chunks, summaries and queries, but it does not
-//! decide *how*: which provider, which credentials, which rate limit and which
-//! fallback are host policy. So the core takes an `Arc<dyn EmbeddingProvider>`
-//! and never constructs one.
-//!
-//! This trait deliberately lives in the contract crate rather than in
-//! `tinymemory-core`, so that a host implementing it does not have to depend on
-//! the engine. It carries nothing heavier than `async-trait` and `anyhow`.
+//! Consumers (tool discovery ranking, voice, the embeddings RPC) take an
+//! `Arc<dyn EmbeddingProvider>` and never decide which provider, credentials,
+//! rate limit or fallback back it: that is the factory's policy.
 
 use async_trait::async_trait;
 
