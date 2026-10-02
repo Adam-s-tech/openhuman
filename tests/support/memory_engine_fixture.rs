@@ -607,7 +607,8 @@ impl Fixture {
 
     /// Poll a migration job to a terminal state.
     pub async fn wait_job(&self, job_id: &str) -> Value {
-        for _ in 0..200 {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(60);
+        loop {
             let v = self
                 .call(
                     "openhuman.memory_engine_migrate_status",
@@ -618,9 +619,12 @@ impl Fixture {
             if status["state"] != "running" {
                 return status;
             }
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "migration job {job_id} did not finish within 60 seconds"
+            );
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-        panic!("migration job {job_id} did not finish");
     }
 
     pub async fn put_doc(&self, key: &str, content: &str) {
