@@ -75,18 +75,15 @@ pub(crate) fn apply_requested_effort(thread_id: &str, raw: Option<&str>) -> Resu
 ///
 /// Only a root turn (spawn depth 0) follows the user's thinking level; a
 /// sub-agent runs at its provider default, since the user picked a level for
-/// the conversation, not for every delegated helper. The config comes from
-/// the session snapshot the root turn carries (`ParentExecutionContext`).
+/// the conversation, not for every delegated helper. `config` is the session
+/// config a hosted root turn carries (`OpenHumanHostBase::config`).
 pub(crate) fn turn_reasoning_for(
     ctx: &crate::agent::tinyagents::host::OpenHumanRunContext,
+    config: Option<&Config>,
 ) -> Option<ReasoningConfig> {
     if ctx.spawn_depth > 0 {
         return None;
     }
-    let config = ctx
-        .parent
-        .as_ref()
-        .and_then(|parent| parent.runtime_config.as_deref());
     let reasoning = turn_reasoning(ctx.thread_id.as_deref(), config);
     if let Some(reasoning) = reasoning.as_ref() {
         log::debug!(

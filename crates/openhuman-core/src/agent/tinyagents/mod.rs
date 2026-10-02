@@ -74,7 +74,7 @@ pub(crate) use middleware::{
 };
 pub(crate) use observability::SubagentScope;
 #[cfg(test)]
-pub(crate) use reasoning::{apply_requested_effort, parse_reasoning_effort, turn_reasoning};
+pub(crate) use reasoning::{apply_requested_effort, parse_reasoning_effort};
 pub(crate) use topology::all_graph_topologies;
 pub use turn_models::TurnModelSource;
 pub(crate) use turn_models::TurnModels;

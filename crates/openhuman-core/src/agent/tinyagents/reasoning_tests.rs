@@ -101,7 +101,7 @@ fn root_turn_follows_the_thread_choice() {
     let mut ctx = crate::agent::tinyagents::host::OpenHumanRunContext::new();
     ctx.thread_id = Some(thread.to_string());
     assert_eq!(
-        turn_reasoning_for(&ctx),
+        turn_reasoning_for(&ctx, None),
         Some(ReasoningConfig::effort(ReasoningEffort::High))
     );
     set_thread_effort(thread, None);
@@ -114,6 +114,17 @@ fn subagent_turn_keeps_the_provider_default() {
     let mut ctx = crate::agent::tinyagents::host::OpenHumanRunContext::new();
     ctx.thread_id = Some(thread.to_string());
     ctx.spawn_depth = 1;
-    assert_eq!(turn_reasoning_for(&ctx), None);
+    assert_eq!(turn_reasoning_for(&ctx, None), None);
     set_thread_effort(thread, None);
+}
+
+#[test]
+fn root_turn_without_a_thread_choice_uses_the_session_config() {
+    let mut config = Config::default();
+    config.runtime.reasoning_effort = Some("medium".into());
+    let ctx = crate::agent::tinyagents::host::OpenHumanRunContext::new();
+    assert_eq!(
+        turn_reasoning_for(&ctx, Some(&config)),
+        Some(ReasoningConfig::effort(ReasoningEffort::Medium))
+    );
 }
