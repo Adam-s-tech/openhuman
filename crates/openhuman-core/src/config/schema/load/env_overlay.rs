@@ -4,12 +4,11 @@
 //! config section's overrides live in a submodule below.
 
 mod dictation_context;
-mod learning_memory;
+mod embeddings;
 mod observability;
 mod proxy;
 mod runtime;
 mod search;
-mod subsystems_update;
 
 use super::super::proxy::{set_runtime_proxy_config, ProxyScope};
 use super::super::Config;
@@ -238,9 +237,7 @@ impl Config {
         self.apply_proxy_env(env);
         self.apply_runtime_env(env);
         self.apply_observability_env(env);
-        self.apply_learning_env(env);
-        self.apply_memory_tree_env(env);
-        self.apply_subsystems_env(env);
+        self.apply_embedding_env(env);
         self.apply_update_env(env);
         self.apply_dictation_env(env);
         self.apply_context_env(env);
