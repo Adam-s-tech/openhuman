@@ -2,7 +2,7 @@
 
 use super::support::{counts, envelope, workspace_dir};
 use crate::core::Outcome;
-use crate::memory::{ApiEnvelope, EmptyRequest};
+use crate::threads::{ApiEnvelope, EmptyRequest};
 use crate::threads::turn_state::{
     ClearTurnStateRequest, ClearTurnStateResponse, GetTurnStateForRequestRequest,
     GetTurnStateRequest, GetTurnStateResponse, ListTurnStatesResponse,

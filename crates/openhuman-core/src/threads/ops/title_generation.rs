@@ -6,7 +6,7 @@ use crate::config::Config;
 use crate::core::Outcome;
 use crate::inference::provider;
 use crate::threads::store as conversations;
-use crate::memory::{
+use crate::threads::{
     ApiEnvelope, ConversationThreadSummary, GenerateConversationThreadTitleRequest,
 };
 use crate::threads::ThreadsError;

@@ -4,7 +4,7 @@ use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
 use crate::core::all::ControllerFuture;
-use crate::memory::{
+use crate::threads::{
     AppendConversationMessageRequest, ConversationMessagesRequest, CreateConversationThreadRequest,
     DeleteConversationThreadRequest, EmptyRequest, GenerateConversationThreadTitleRequest,
     UpdateConversationMessageRequest, UpdateConversationThreadLabelsRequest,

@@ -39,7 +39,7 @@ use crate::threads::store::{
     ConversationMessage, ConversationThread, CreateConversationThread,
 };
 #[cfg(test)]
-use crate::memory::{
+use crate::threads::{
     AppendConversationMessageRequest, ConversationMessageRecord, DeleteConversationThreadRequest,
     EmptyRequest, GenerateConversationThreadTitleRequest,
 };

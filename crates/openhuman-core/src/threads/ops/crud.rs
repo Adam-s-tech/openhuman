@@ -8,7 +8,7 @@ use super::support::{
 use crate::core::Outcome;
 use crate::threads::store as conversations;
 use crate::threads::store::{ConversationMessagePatch, CrossThreadHit};
-use crate::memory::{
+use crate::threads::{
     ApiEnvelope, AppendConversationMessageRequest, ConversationMessageRecord,
     ConversationMessagesRequest, ConversationMessagesResponse, ConversationThreadSummary,
     ConversationThreadsListResponse, CreateConversationThreadRequest,
