@@ -11,7 +11,7 @@ pub use browser::{BrowserComputerUseConfig, BrowserConfig};
 pub use http::{CurlConfig, HttpRequestConfig};
 pub use integrations::{
     ComposioConfig, ComposioDirectBaseUrls, ComposioHostCredential, IntegrationToggle,
-    IntegrationsConfig, SecretsConfig, COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT,
+    IntegrationsConfig, SecretsConfig, COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT, COMPOSIO_MODE_DISABLED,
 };
 pub use mcp::{
     GitbooksConfig, HttpHeader, McpAuthConfig, McpClientConfig, McpClientIdentityConfig,

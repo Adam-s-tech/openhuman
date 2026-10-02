@@ -26,6 +26,7 @@ use crate::config::schema::{COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT};
 // without the "unreachable pattern" warning chain.
 const MODE_BACKEND_PAT: &str = COMPOSIO_MODE_BACKEND;
 const MODE_DIRECT_PAT: &str = COMPOSIO_MODE_DIRECT;
+const MODE_DISABLED_PAT: &str = crate::config::schema::COMPOSIO_MODE_DISABLED;
 
 /// The route [`resolve_composio_route`] selected.
 ///
@@ -99,6 +100,8 @@ fn direct_client(
 ///   stored key takes precedence so the encrypted keychain remains the
 ///   source of truth — `config.toml` is a fallback for power users.
 ///
+/// - `"disabled"` — Composio is off; always `Err`, so no tools register.
+///
 /// A host-pinned credential (`config.composio.host_credential`) takes
 /// precedence over both the mode and the credential store.
 ///
@@ -156,10 +159,14 @@ pub fn resolve_composio_route(config: &crate::config::Config) -> anyhow::Result<
             );
             Ok(ComposioRoute::Direct(client))
         }
+        MODE_DISABLED_PAT => {
+            tracing::debug!("[composio-factory] composio disabled by config");
+            Err(anyhow::anyhow!("composio is disabled (composio.mode = \"disabled\")"))
+        }
         unknown => {
             tracing::warn!(mode = %unknown, "[composio-factory] unknown composio mode");
             Err(anyhow::anyhow!(
-                "unknown composio mode: \"{unknown}\". Supported: \"backend\", \"direct\""
+                "unknown composio mode: \"{unknown}\". Supported: \"backend\", \"direct\", \"disabled\""
             ))
         }
     }
