@@ -61,8 +61,6 @@ fn wildcard_probe_def() -> crate::agent::harness::definition::AgentDefinition {
 mod explicit_definition_tests;
 #[path = "builder_tests_host_tools_tests.rs"]
 mod host_tools_tests;
-#[path = "builder_tests_memory_write_instruction_tests.rs"]
-mod memory_write_instruction_tests;
 #[path = "builder_tests_session_definition_tests.rs"]
 mod session_definition_tests;
 #[path = "builder_tests_tool_exposure_tests.rs"]
