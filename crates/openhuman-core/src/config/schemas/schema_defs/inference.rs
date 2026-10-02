@@ -95,7 +95,7 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_string("agentic_provider", "Provider string for sub-agent / tool-loop workloads."),
                 optional_string("coding_provider", "Provider string for code-generation workloads."),
                 optional_string("vision_provider", "Provider string for the vision / multimodal workload (managed default: the default model)."),
-                optional_string("memory_provider", "Provider string for memory-tree extract + summarise."),
+                optional_string("memory_provider", "Provider string for summarisation."),
                 optional_string("embeddings_provider", "Provider string for embedding generation."),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],

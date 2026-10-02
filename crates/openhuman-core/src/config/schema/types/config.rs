@@ -378,7 +378,7 @@ pub struct Config {
     #[serde(default)]
     pub vision_provider: Option<String>,
 
-    /// Provider string for memory-tree extract + summarise workloads.
+    /// Provider string for the summarisation workload.
     #[serde(default)]
     pub memory_provider: Option<String>,
 
@@ -390,10 +390,6 @@ pub struct Config {
     /// [`CustomEmbeddingsConfig`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_embeddings: Option<CustomEmbeddingsConfig>,
-
-    /// Provider string for learning / reflection passes.
-    #[serde(default)]
-    pub learning_provider: Option<String>,
 
     /// Node.js managed runtime configuration (skills that need `node`/`npm`).
     #[serde(default)]

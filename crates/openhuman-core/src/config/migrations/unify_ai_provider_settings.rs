@@ -9,7 +9,7 @@
 //! - `inference_url` + `model_routes`        — global cloud preset
 //! - `reasoning_provider` / `agentic_provider` / `coding_provider`
 //!                                          — per-role chat (#1710, partial)
-//! - `local_ai.usage.{embeddings,heartbeat,learning_reflection,subconscious}`
+//! - `local_ai.usage.{embeddings,heartbeat,subconscious}`
 //!                                          — local-vs-cloud booleans
 //!
 //! After this migration there is one grammar — provider strings parsed by
@@ -18,7 +18,7 @@
 //!
 //! ```text
 //! reasoning_provider, agentic_provider, coding_provider,
-//! memory_provider,    embeddings_provider, learning_provider
+//! memory_provider,    embeddings_provider
 //! ```
 //!
 //! The legacy `local_ai.usage.heartbeat` / `local_ai.usage.subconscious`
@@ -222,15 +222,6 @@ fn derive_workload_providers(config: &mut Config, stats: &mut MigrationStats) {
             "cloud".to_string()
         };
     set_field(&mut config.embeddings_provider, embeddings_value, stats);
-
-    // Learning uses the chat model when local.
-    let learning_value =
-        if config.local_ai.usage.learning_reflection && runtime_on && !chat_model.is_empty() {
-            format!("ollama:{}", chat_model)
-        } else {
-            "cloud".to_string()
-        };
-    set_field(&mut config.learning_provider, learning_value, stats);
 
     // The three chat workloads (reasoning/agentic/coding) intentionally
     // stay None — the factory treats unset as "cloud" which routes to

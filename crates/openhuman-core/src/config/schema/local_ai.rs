@@ -20,10 +20,6 @@ pub struct LocalAiUsage {
     #[serde(default)]
     pub heartbeat: bool,
     /// When true (and `runtime_enabled`), use the local model for
-    /// learning/reflection passes.
-    #[serde(default)]
-    pub learning_reflection: bool,
-    /// When true (and `runtime_enabled`), use the local model for
     /// subconscious evaluation and execution.
     #[serde(default)]
     pub subconscious: bool,
@@ -269,12 +265,6 @@ impl LocalAiConfig {
     #[deprecated(note = "Use Config::workload_uses_local(\"heartbeat\")")]
     pub fn use_local_for_heartbeat(&self) -> bool {
         self.runtime_enabled && self.usage.heartbeat
-    }
-
-    /// **Deprecated** — read from `Config::workload_uses_local("learning")`.
-    #[deprecated(note = "Use Config::workload_uses_local(\"learning\")")]
-    pub fn use_local_for_learning(&self) -> bool {
-        self.runtime_enabled && self.usage.learning_reflection
     }
 
     /// **Deprecated** — read from `Config::workload_uses_local("subconscious")`.

@@ -44,7 +44,6 @@ const CLOUD_FALLBACK_ROLES: &[&str] = &[
     "embeddings",
     "memory",
     "summarization",
-    "learning",
     "agentic",
     "burst",
 ];
