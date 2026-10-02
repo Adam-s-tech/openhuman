@@ -15,7 +15,7 @@ use tinytools_std::detect_tools::DetectToolsTool;
 use tinytools_std::filesystem::{
     ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,
     GlobTool, GrepTool, ImageInfoTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
-    UpdateMemoryMdTool, WorkspaceStateTool,
+    WorkspaceStateTool,
 };
 use tinytools_std::network::{CurlTool, PushoverTool};
 

@@ -14,14 +14,9 @@ static COMPOSIO_TRIGGER_HANDLE: OnceLock<SubscriptionHandle> = OnceLock::new();
 static COMPOSIO_CONNECTION_HANDLE: OnceLock<SubscriptionHandle> = OnceLock::new();
 static COMPOSIO_CONFIG_HANDLE: OnceLock<SubscriptionHandle> = OnceLock::new();
 
-/// Register both long-lived composio subscribers on the global event
-/// bus, and initialise the default provider registry. Idempotent.
+/// Register the three long-lived composio subscribers on the global event
+/// bus. Idempotent.
 pub fn register_composio_trigger_subscriber() {
-    // No host-side provider registry any more. It existed so this process
-    // could answer `get_provider`; the driver answers that question now, and
-    // the module initialises its own registry in its own process
-    // (tinymemory#105) — which a `cdylib`'s separate statics require anyway.
-
     if COMPOSIO_TRIGGER_HANDLE.get().is_none() {
         match BUS.subscribe(Arc::new(ComposioTriggerSubscriber::new())) {
             Some(handle) => {

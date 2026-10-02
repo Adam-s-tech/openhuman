@@ -271,7 +271,7 @@ async fn connection_subscriber_ignores_other_composio_event_variants() {
 }
 
 #[tokio::test]
-async fn connection_subscriber_skips_when_no_provider_registered() {
+async fn connection_subscriber_skips_when_not_signed_in() {
     // Pass a toolkit that has no native provider — the subscriber
     // must hit the `no provider registered` early-return branch.
     //
