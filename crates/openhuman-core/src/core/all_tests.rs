@@ -933,7 +933,7 @@ async fn harness_excludes_gated_namespaces() {
     #[cfg(feature = "channels")]
     assert!(full_ns.contains("channels"), "full() must expose channels");
 
-    let ctx = CoreContext::for_test(DomainSet::harness(), None, None);
+    let ctx = CoreContext::for_test(DomainSet::harness(), None);
     let harness_ns: BTreeSet<&'static str> =
         CoreContext::scope(ctx, async { all_controller_schemas() })
             .await
@@ -991,7 +991,7 @@ async fn dispatch_returns_none_for_gated_method() {
         .map(|c| c.rpc_method_name())
         .expect("a flows.* method exists in the full registry");
 
-    let ctx = CoreContext::for_test(DomainSet::harness(), None, None);
+    let ctx = CoreContext::for_test(DomainSet::harness(), None);
     let out = CoreContext::scope(ctx, try_invoke_registered_rpc(&gated_method, Map::new())).await;
     assert!(
         out.is_none(),
@@ -1000,7 +1000,7 @@ async fn dispatch_returns_none_for_gated_method() {
 
     // A harness-family method still routes (Some) — security.policy_info needs
     // no workspace, so it is a clean positive control.
-    let ctx = CoreContext::for_test(DomainSet::harness(), None, None);
+    let ctx = CoreContext::for_test(DomainSet::harness(), None);
     let out = CoreContext::scope(
         ctx,
         try_invoke_registered_rpc("openhuman.security_policy_info", Map::new()),
@@ -1036,7 +1036,7 @@ async fn schema_lookup_is_gated_in_lockstep_with_dispatch() {
         "under full() the schema for `{gated_method}` must resolve"
     );
 
-    let ctx = CoreContext::for_test(DomainSet::harness(), None, None);
+    let ctx = CoreContext::for_test(DomainSet::harness(), None);
     let gated_schema =
         CoreContext::scope(ctx, async { schema_for_rpc_method(&gated_method) }).await;
     assert!(
@@ -1044,7 +1044,7 @@ async fn schema_lookup_is_gated_in_lockstep_with_dispatch() {
         "schema lookup for gated `{gated_method}` must be None under harness() (no param validation, no surface leak)"
     );
 
-    let ctx = CoreContext::for_test(DomainSet::harness(), None, None);
+    let ctx = CoreContext::for_test(DomainSet::harness(), None);
     let kept_schema = CoreContext::scope(ctx, async {
         schema_for_rpc_method("openhuman.security_policy_info")
     })
@@ -1948,8 +1948,7 @@ async fn narrowed_capabilities_do_not_narrow_the_domain_set() {
 
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("axes")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("axes"))
     );
     let null_ns: BTreeSet<&'static str> =
         CoreContext::scope(ctx, async { all_controller_schemas() })
@@ -1981,7 +1980,7 @@ async fn visible_under(
     std::collections::BTreeSet<&'static str>,
     std::collections::BTreeSet<&'static str>,
 ) {
-    let ctx = CoreContext::for_test(DomainSet::full(), Some(caps_ws(ws)), cfg);
+    let ctx = CoreContext::for_test(DomainSet::full(), Some(caps_ws(ws)));
     let schemas = CoreContext::scope(ctx, async { all_controller_schemas() }).await;
     let namespaces = schemas.iter().map(|s| s.namespace).collect();
     let memory_fns = schemas
@@ -2124,8 +2123,7 @@ async fn memory_families_absent_when_capabilities_not_advertised() {
 async fn dispatch_returns_none_for_capability_gated_method() {
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("dispatch")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("dispatch"))
     );
     let out = CoreContext::scope(
         ctx,
@@ -2140,8 +2138,7 @@ async fn dispatch_returns_none_for_capability_gated_method() {
     // Positive control in the same driver configuration.
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("dispatch")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("dispatch"))
     );
     let out = CoreContext::scope(
         ctx,
@@ -2168,8 +2165,7 @@ async fn schema_lookup_is_gated_in_lockstep_with_capability_dispatch() {
 
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("schema")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("schema"))
     );
     let gated = CoreContext::scope(ctx, async { schema_for_rpc_method(method) }).await;
     assert!(
@@ -2179,8 +2175,7 @@ async fn schema_lookup_is_gated_in_lockstep_with_capability_dispatch() {
 
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("schema")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("schema"))
     );
     let kept = CoreContext::scope(ctx, async {
         schema_for_rpc_method("openhuman.memory_provider_status")
@@ -2199,8 +2194,7 @@ async fn rpc_method_from_parts_stays_unfiltered_by_capability() {
     // every lookup consistent" change has to be a deliberate decision.
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("parts")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("parts"))
     );
     let out = CoreContext::scope(ctx, async {
         rpc_method_from_parts("memory", "tool_rules_json")
@@ -2251,8 +2245,7 @@ async fn null_driver_makes_tree_methods_unknown_over_rpc() {
 
     let ctx = CoreContext::for_test(
         DomainSet::full(), // isolates the capability gate from the DomainSet gate
-        Some(caps_ws("m54-tree-dispatch")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("m54-tree-dispatch"))
     );
     let out = CoreContext::scope(ctx, try_invoke_registered_rpc(method, Map::new())).await;
     assert!(
@@ -2289,8 +2282,7 @@ async fn null_driver_removes_tree_namespace_from_schema() {
 
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("m54-tree-schema")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("m54-tree-schema"))
     );
     let null_ns: std::collections::BTreeSet<&str> =
         CoreContext::scope(ctx, async { all_controller_schemas() })
@@ -2320,8 +2312,7 @@ async fn null_driver_removes_tree_namespace_from_schema() {
     );
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("m54-tree-schema")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("m54-tree-schema"))
     );
     let gated = CoreContext::scope(ctx, async { schema_for_rpc_method(method) }).await;
     assert!(
@@ -2347,9 +2338,8 @@ async fn null_driver_keeps_memory_status_routable() {
     let schemas = CoreContext::scope(
         CoreContext::for_test(
             DomainSet::full(),
-            Some(caps_ws("m54-boot")),
-            Some(null_driver_cfg()),
-        ),
+            Some(caps_ws("m54-boot"))
+    ),
         async { all_controller_schemas() },
     )
     .await;
@@ -2368,9 +2358,8 @@ async fn null_driver_keeps_memory_status_routable() {
     let out = CoreContext::scope(
         CoreContext::for_test(
             DomainSet::full(),
-            Some(caps_ws("m54-boot")),
-            Some(null_driver_cfg()),
-        ),
+            Some(caps_ws("m54-boot"))
+    ),
         try_invoke_registered_rpc("openhuman.memory_provider_status", Map::new()),
     )
     .await;
@@ -2383,9 +2372,8 @@ async fn null_driver_keeps_memory_status_routable() {
     let out = CoreContext::scope(
         CoreContext::for_test(
             DomainSet::full(),
-            Some(caps_ws("m54-boot")),
-            Some(null_driver_cfg()),
-        ),
+            Some(caps_ws("m54-boot"))
+    ),
         try_invoke_registered_rpc("openhuman.memory_recall_memories", Map::new()),
     )
     .await;
@@ -2427,8 +2415,7 @@ fn capability_for_parts_reports_the_registered_family_unfiltered() {
 async fn capability_for_parts_is_not_narrowed_by_the_ambient_context() {
     let ctx = CoreContext::for_test(
         DomainSet::full(),
-        Some(caps_ws("cli-cap")),
-        Some(null_driver_cfg()),
+        Some(caps_ws("cli-cap"))
     );
     let (unfiltered, filtered) = CoreContext::scope(ctx, async {
         (

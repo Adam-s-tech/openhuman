@@ -304,7 +304,7 @@ async fn scoped_context_exposes_its_domain_set() {
     // The ambient `current().domains()` must reflect the scoped context's
     // DomainSet — this is the seam the registry filter reads (#4796).
     let harness = crate::core::runtime::DomainSet::harness();
-    let ctx = CoreContext::for_test(harness, Some(PathBuf::from("/tmp/ctx-domains")), None);
+    let ctx = CoreContext::for_test(harness, Some(PathBuf::from("/tmp/ctx-domains")));
     let seen = CoreContext::scope(ctx, async { CoreContext::current().map(|c| c.domains()) }).await;
     assert_eq!(seen, Some(harness));
     assert!(seen.unwrap().allows(crate::core::all::DomainGroup::Memory));
@@ -584,7 +584,7 @@ fn current_memory_capabilities_defaults_open_without_a_context() {
     );
     // And when a context *is* ambient, the call resolves through it rather
     // than erroring.
-    let ctx = CoreContext::for_test(crate::core::runtime::DomainSet::full(), None, None);
+    let ctx = CoreContext::for_test(crate::core::runtime::DomainSet::full(), None);
     assert_eq!(
         ctx.memory_capabilities(),
         tinymemory_api::capabilities::Capabilities::all()
@@ -595,7 +595,7 @@ fn current_memory_capabilities_defaults_open_without_a_context() {
 /// §3.7's three axes): a narrowed `DomainSet` must not narrow capabilities.
 #[test]
 fn capabilities_are_open_under_a_harness_domain_set() {
-    let ctx = CoreContext::for_test(crate::core::runtime::DomainSet::harness(), None, None);
+    let ctx = CoreContext::for_test(crate::core::runtime::DomainSet::harness(), None);
     assert_eq!(
         ctx.memory_capabilities(),
         tinymemory_api::capabilities::Capabilities::all()

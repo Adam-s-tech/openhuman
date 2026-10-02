@@ -147,8 +147,7 @@ async fn fired_hooks_observe_the_firing_dispatchs_core_context() {
 
     let tenant_ctx = CoreContext::for_test(
         crate::core::runtime::DomainSet::full(),
-        Some(std::path::PathBuf::from("/tmp/tenant-a")),
-        None,
+        Some(std::path::PathBuf::from("/tmp/tenant-a"))
     );
     let (tx, rx) = tokio::sync::oneshot::channel();
     let probe: std::sync::Arc<dyn PostTurnHook> = std::sync::Arc::new(ContextProbe {
