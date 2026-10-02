@@ -112,7 +112,7 @@ pub(super) fn add_memory_prompt_sections(
 ) -> SystemPromptBuilder {
     use crate::agent::learning::{
         any_tool_offered, MemoryAccessSection, MemoryWriteSection, MEMORY_READ_TOOLS,
-        MEMORY_STORE_TOOL, MEMORY_WRITE_DELEGATE_TOOL, SAVE_PREFERENCE_TOOL,
+        MEMORY_STORE_TOOL, MEMORY_TOOL, MEMORY_WRITE_DELEGATE_TOOL, SAVE_PREFERENCE_TOOL,
     };
     let mut prompt_builder = prompt_builder;
     // Gate on the set the model will actually see: packs are stripped from

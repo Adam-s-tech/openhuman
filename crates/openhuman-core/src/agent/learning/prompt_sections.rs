@@ -209,7 +209,9 @@ fn memory_write_instruction_via(
     fact_route: &str,
 ) -> String {
     let route = match (preferences, facts) {
-        (true, true) => format!("— `save_preference` for preferences, {fact_route} for everything else"),
+        (true, true) => {
+            format!("— `save_preference` for preferences, {fact_route} for everything else")
+        }
         (true, false) => "with `save_preference`".to_string(),
         (false, true) => format!("with {fact_route}"),
         // Only when neither direct tool is held, so an agent that has one
@@ -224,9 +226,11 @@ fn memory_write_instruction_via(
         // which is the #6048 bug arriving by a new route. The argument is
         // advertised on the tool's own schema, so this is a demand the model
         // can actually satisfy.
-        (false, false) if delegate => "with `manage_profile_memory` (pass `blocking: true` so the write \
+        (false, false) if delegate => {
+            "with `manage_profile_memory` (pass `blocking: true` so the write \
              gates your reply)"
-            .to_string(),
+                .to_string()
+        }
         (false, false) => return String::new(),
     };
     format!(
@@ -308,8 +312,9 @@ pub const MEMORY_WRITE_DELEGATE_TOOL: &str = "manage_profile_memory";
 /// section names the route it found, so it cannot treat them interchangeably —
 /// but a reader reaching for "what does the write section care about" should get
 /// the whole answer here (#6200 review).
-pub const MEMORY_WRITE_TOOLS: [&str; 3] = [
+pub const MEMORY_WRITE_TOOLS: [&str; 4] = [
     MEMORY_STORE_TOOL,
+    MEMORY_TOOL,
     SAVE_PREFERENCE_TOOL,
     MEMORY_WRITE_DELEGATE_TOOL,
 ];

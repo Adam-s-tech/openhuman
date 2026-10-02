@@ -110,15 +110,24 @@ fn the_memory_tree_tool_is_not_a_member() {
 fn each_action_maps_text_onto_its_members_arguments() {
     let ask = member_args(ACTION_ASK, &serde_json::json!({"text": " who is Ana? "})).unwrap();
     assert_eq!(ask["query"], "who is Ana?");
-    assert!(ask["namespace"].is_string(), "hybrid search needs a namespace");
+    assert!(
+        ask["namespace"].is_string(),
+        "hybrid search needs a namespace"
+    );
 
-    let keywords = member_args(ACTION_KEYWORD_SEARCH, &serde_json::json!({"text": "ana", "limit": 3}))
-        .unwrap();
+    let keywords = member_args(
+        ACTION_KEYWORD_SEARCH,
+        &serde_json::json!({"text": "ana", "limit": 3}),
+    )
+    .unwrap();
     assert_eq!(keywords["query"], "ana");
     assert_eq!(keywords["limit"], 3);
 
-    let learn = member_args(ACTION_LEARN, &serde_json::json!({"text": "Ana prefers email", "limit": 9}))
-        .unwrap();
+    let learn = member_args(
+        ACTION_LEARN,
+        &serde_json::json!({"text": "Ana prefers email", "limit": 9}),
+    )
+    .unwrap();
     assert_eq!(learn["content"], "Ana prefers email");
     assert!(learn.get("limit").is_none(), "a write takes no limit");
 }
