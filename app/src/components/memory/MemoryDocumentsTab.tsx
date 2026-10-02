@@ -28,6 +28,8 @@ import { SOURCE_STATUS_VARIANT, sourceKindLabel, sourceStatusLabel } from './mem
 
 const log = debug('openhuman:memory:documents');
 
+const SYNC_POLL_MS = 5_000;
+
 export default function MemoryDocumentsTab() {
   const { t } = useT();
   const [sources, setSources] = useState<Source[] | null>(null);
