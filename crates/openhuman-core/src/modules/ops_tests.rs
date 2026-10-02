@@ -357,7 +357,7 @@ fn bundled_dir_prefers_registered_then_env_then_exe_sibling() {
     std::fs::create_dir_all(exe_dir.join("bundled-modules")).unwrap();
 
     assert_eq!(
-        resolve_bundled_dir(
+        ops::resolve_bundled_dir(
             Some(registered.clone()),
             Some(from_env.clone()),
             Some(exe_dir.clone())
@@ -365,11 +365,11 @@ fn bundled_dir_prefers_registered_then_env_then_exe_sibling() {
         Some(registered)
     );
     assert_eq!(
-        resolve_bundled_dir(None, Some(from_env.clone()), Some(exe_dir.clone())),
+        ops::resolve_bundled_dir(None, Some(from_env.clone()), Some(exe_dir.clone())),
         Some(from_env)
     );
     assert_eq!(
-        resolve_bundled_dir(None, None, Some(exe_dir.clone())),
+        ops::resolve_bundled_dir(None, None, Some(exe_dir.clone())),
         Some(exe_dir.join("bundled-modules"))
     );
 }
@@ -378,8 +378,8 @@ fn bundled_dir_prefers_registered_then_env_then_exe_sibling() {
 fn bundled_dir_ignores_paths_that_do_not_exist() {
     let root = tempfile::tempdir().unwrap();
     assert_eq!(
-        resolve_bundled_dir(None, Some(root.path().join("missing")), None),
+        ops::resolve_bundled_dir(None, Some(root.path().join("missing")), None),
         None
     );
-    assert_eq!(resolve_bundled_dir(None, None, Some(root.path().into())), None);
+    assert_eq!(ops::resolve_bundled_dir(None, None, Some(root.path().into())), None);
 }

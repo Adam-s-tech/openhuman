@@ -74,7 +74,7 @@ fn bundled_releases_dir() -> Option<PathBuf> {
     )
 }
 
-fn resolve_bundled_dir(
+pub(crate) fn resolve_bundled_dir(
     registered: Option<PathBuf>,
     from_env: Option<PathBuf>,
     exe_dir: Option<PathBuf>,
