@@ -1990,8 +1990,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
             "agentic_provider": "worker-a-cloud:agent",
             "coding_provider": "worker-a-cloud:code",
             "memory_provider": "worker-a-cloud:memory",
-            "embeddings_provider": "worker-a-cloud:embeddings",
-            "learning_provider": "worker-a-cloud:learning"
+            "embeddings_provider": "worker-a-cloud:embeddings"
         }),
     )
     .await;
@@ -2112,8 +2111,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
                 "base_url": "http://127.0.0.1:11434",
                 "model_id": "llama3",
                 "chat_model_id": "llama3",
-                "usage_embeddings": false,
-                "usage_learning_reflection": false
+                "usage_embeddings": false
             }),
         ),
         (
