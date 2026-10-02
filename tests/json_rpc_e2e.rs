@@ -48,15 +48,6 @@ static JSON_RPC_E2E_MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static CHAT_COMPLETION_MODELS: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
 static CHAT_COMPLETION_REQUESTS: OnceLock<Mutex<Vec<Value>>> = OnceLock::new();
 
-fn json_rpc_e2e_env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    JSON_RPC_E2E_KEYRING_INIT.get_or_init(|| unsafe {
-        std::env::set_var("OPENHUMAN_KEYRING_BACKEND", "file");
-    });
-    let mutex = JSON_RPC_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    // A tokio mutex is never poisoned, so a panic in one test cannot cascade to the others.
-    mutex.blocking_lock()
-}
-
 async fn json_rpc_e2e_env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     JSON_RPC_E2E_KEYRING_INIT.get_or_init(|| unsafe {
         std::env::set_var("OPENHUMAN_KEYRING_BACKEND", "file");
