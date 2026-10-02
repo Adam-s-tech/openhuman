@@ -486,12 +486,6 @@ async fn agent_turn_runs_long_parallel_subagent_flow_with_many_nested_tool_calls
     let provider = ParallelHarnessProvider::default();
     let fixture_state = Arc::new(FixtureStepState::default());
 
-    let _memory_cfg = crate::config::MemoryConfig {
-        backend: "none".into(),
-        ..crate::config::MemoryConfig::default()
-    };
-    let mem: Arc<dyn Memory> = crate::memory::test_support::noop_memory();
-
     let tools: Vec<Box<dyn Tool>> = vec![
         Box::new(SpawnParallelAgentsTool::new()),
         Box::new(FixtureStepTool {
@@ -502,7 +496,6 @@ async fn agent_turn_runs_long_parallel_subagent_flow_with_many_nested_tool_calls
     let mut agent = OpenHumanSessionHost::builder()
         .chat_model(Arc::new(provider.clone()))
         .tools(tools)
-        .memory(mem)
         .tool_dispatcher(Box::new(NativeDialect))
         .workspace_dir(workspace_path)
         .build()
