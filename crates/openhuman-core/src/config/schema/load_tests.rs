@@ -108,5 +108,7 @@ mod backup_tests;
 mod corruption_recovery_tests;
 #[path = "load_env_overlay_tests.rs"]
 mod env_overlay_tests;
+#[path = "load_env_overlay_runtime_tests.rs"]
+mod env_overlay_runtime_tests;
 #[path = "load_migration_tests.rs"]
 mod migration_tests;
