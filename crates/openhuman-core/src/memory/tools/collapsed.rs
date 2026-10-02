@@ -119,6 +119,26 @@ impl MemoryTool {
     }
 }
 
+/// The actions a registered `memory` tool currently advertises, read from its
+/// schema enum. Capability filtering can drop one (a driver that searches but
+/// cannot store loses `learn`), so a prompt rule about an action must ask this
+/// rather than assume the tool's name implies every action.
+#[must_use]
+pub fn advertised_actions(tool: &dyn Tool) -> Vec<String> {
+    if tool.name() != MEMORY_TOOL_NAME {
+        return Vec::new();
+    }
+    tool.parameters_schema()["properties"]["action"]["enum"]
+        .as_array()
+        .map(|actions| {
+            actions
+                .iter()
+                .filter_map(|a| a.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// Translate the tool's `{action, text, namespace?, limit?}` call into the
 /// member tool's own argument shape.
 fn member_args(action: &str, args: &Value) -> Result<Value, String> {

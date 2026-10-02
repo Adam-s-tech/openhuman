@@ -149,3 +149,20 @@ fn forget_takes_the_key_as_text_and_defaults_the_namespace() {
     assert!(args["namespace"].is_string(), "forget requires a namespace");
     assert!(args.get("query").is_none() && args.get("content").is_none());
 }
+
+#[test]
+fn advertised_actions_reads_the_schema_enum_and_ignores_other_tools() {
+    let memory = tool();
+    let listed = advertised_actions(&memory);
+    assert!(
+        listed.iter().any(|a| a == ACTION_LEARN)
+            == memory.actions().iter().any(|e| e.action == ACTION_LEARN)
+    );
+    assert!(
+        listed.len() <= 4 && !listed.is_empty() || memory.actions().is_empty(),
+        "{listed:?}"
+    );
+    // Any tool that is not the collapsed `memory` tool advertises no actions,
+    // so a name check elsewhere cannot mistake it for one.
+    assert!(advertised_actions(&MemoryRecallTool::new()).is_empty());
+}

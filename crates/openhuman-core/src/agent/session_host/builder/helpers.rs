@@ -124,7 +124,26 @@ pub(super) fn add_memory_prompt_sections(
         crate::tools::toolpacks::strip_packed_from_visible(&mut after, agent_id);
         after
     };
-    if any_tool_offered(&MEMORY_READ_TOOLS, tools, delegation_tools, visible) {
+    // The collapsed `memory` tool counts only for the actions it still
+    // advertises: a driver that cannot store drops `learn`, and one that cannot
+    // search leaves only writes, so the tool's name alone proves neither.
+    let memory_actions: Vec<String> = tools
+        .iter()
+        .chain(delegation_tools)
+        .find(|tool| tool.name() == MEMORY_TOOL)
+        .filter(|_| any_tool_offered(&[MEMORY_TOOL], tools, delegation_tools, visible))
+        .map(|tool| crate::memory::tools::advertised_actions(tool.as_ref()))
+        .unwrap_or_default();
+    let memory_can_read = memory_actions
+        .iter()
+        .any(|a| a == "ask" || a == "keyword_search");
+    let memory_can_learn = memory_actions.iter().any(|a| a == "learn");
+    let legacy_read: Vec<&str> = MEMORY_READ_TOOLS
+        .iter()
+        .copied()
+        .filter(|name| *name != MEMORY_TOOL)
+        .collect();
+    if memory_can_read || any_tool_offered(&legacy_read, tools, delegation_tools, visible) {
         prompt_builder = prompt_builder.add_section(Box::new(MemoryAccessSection));
         log::debug!("[memory_access] prompt section registered");
     } else {
@@ -140,7 +159,7 @@ pub(super) fn add_memory_prompt_sections(
     let store_offered = any_tool_offered(&[MEMORY_STORE_TOOL], tools, delegation_tools, visible);
     // The collapsed `memory` tool writes through its `learn` action; the legacy
     // `memory_store` wins the wording only when both are held.
-    let memory_offered = any_tool_offered(&[MEMORY_TOOL], tools, delegation_tools, visible);
+    let memory_offered = memory_can_learn;
     let facts = store_offered || memory_offered;
     // #6200: asked for as well as the pair, not instead of it. An agent whose
     // only write path is the delegate held the tool and no rule about using it

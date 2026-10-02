@@ -267,15 +267,36 @@ fn run_workflow_route(ctx: &PromptContext<'_>) -> Option<String> {
     if ctx.visible_tool_names.is_empty() || ctx.visible_tool_names.contains(RUN_WORKFLOW) {
         return Some(format!("`{RUN_WORKFLOW}`"));
     }
-    // Packed: only a route if this session can call `use_skill` itself.
+    // Packed: only a route if this session can call `use_skill` itself, AND its
+    // belt actually lists `run_workflow`. `use_skill` may be on the wire for
+    // some other pack while the `workflows` pack has nothing callable here, in
+    // which case the policy gate would refuse the call this names.
     if !ctx
         .visible_tool_names
         .contains(tinyagents_harness::tool::packs::USE_SKILL)
+        || !belt_lists(ctx, RUN_WORKFLOW)
     {
         return None;
     }
     toolpacks::pack_for_tool(RUN_WORKFLOW)
         .map(|pack| format!("`{RUN_WORKFLOW}` (`use_skill` skill `{}`)", pack.id))
+}
+
+/// Whether this agent's own belt lists `tool`: a wildcard belt holds everything,
+/// a named one only what it names. The prompt has no policy session, and a pack
+/// is callable for an agent only when its belt mentions one of the pack's tools.
+fn belt_lists(ctx: &PromptContext<'_>, tool: &str) -> bool {
+    use crate::agent::harness::definition::ToolScope;
+    let Some(registry) = AgentDefinitionRegistry::global() else {
+        return false;
+    };
+    let Some(definition) = resolve_definition(registry, ctx.agent_id) else {
+        return false;
+    };
+    match &definition.tools {
+        ToolScope::Wildcard => true,
+        ToolScope::Named(names) => names.iter().any(|name| name == tool),
+    }
 }
 
 /// `prompt.md` with the route-tagged rows this build cannot honour removed.

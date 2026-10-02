@@ -117,8 +117,8 @@ Lossy compression would normally mean throwing data away. TokenJuice instead **o
 
 - **In-memory tier** (always on): a process-global store keyed by SHA-256 hash, bounded by entry count (`max_cache_entries`, default 256) and total bytes (`max_cache_bytes`, default 64 MiB), FIFO eviction.
 - **On-disk tier** (optional): `<workspace>/.tokenjuice/ccr/`, enabled with `ccr_disk_enabled`, survives memory eviction. Optional TTL via `ccr_ttl_secs`.
-- **The marker:** compacted output ends with a footer like `[compacted tool output — PARTIAL view; full original available via tokenjuice_retrieve with token "…"]` carrying the `⟦tj:<hash>⟧` token.
-- **Retrieval tool:** the agent calls the read-only **`tokenjuice_retrieve`** tool with that token (optionally a byte/line `range`) to pull back the full original or a slice. The token is an unguessable SHA-256 digest.
+- **The marker:** compacted output ends with a footer like `[compacted tool output — PARTIAL view; full original available via juice_retrieve with token "…"]` carrying the `⟦tj:<hash>⟧` token.
+- **Retrieval tool:** the agent calls the read-only **`juice_retrieve`** tool with that token (optionally a byte/line `range`) to pull back the full original or a slice. The token is an unguessable SHA-256 digest.
 
 So the agent gets the cheap compacted view by default, and can transparently "zoom in" on the full text only when it actually needs it.
 
