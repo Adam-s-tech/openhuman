@@ -308,7 +308,7 @@ export default function Brain() {
             all custom controls live inside it. The title/description go through
             PanelPage so every page opens with the same flush header band, rather
             than a bordered card floating in the content column. */
-            <div className="h-full p-4">
+            <div className="h-full">
               <SettingsTabbedPage<BrainChip>
                 title={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].titleKey)}
                 description={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].descKey)}
