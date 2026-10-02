@@ -408,6 +408,7 @@ async fn apply_runtime_settings_updates_kind_and_reasoning() {
     let patch = RuntimeSettingsPatch {
         kind: Some("desktop".into()),
         reasoning_enabled: Some(true),
+        reasoning_effort: Some("max".into()),
     };
     let _ = apply_runtime_settings(&mut cfg, patch)
         .await
