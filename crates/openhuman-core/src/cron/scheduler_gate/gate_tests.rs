@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::time::Instant;
 use tokio::time::{timeout, Duration as TokioDuration};
 
-static GATE_TEST_LOCK: Mutex<()> = tokio::sync::Mutex::const_new(());
+static GATE_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 fn lock() -> tokio::sync::MutexGuard<'static, ()> {
     // Tolerate poisoning so a panicking test doesn't block the rest.

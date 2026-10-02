@@ -67,7 +67,7 @@ async fn a_driver_that_cannot_answer_makes_a_toolkit_not_registrable() {
 // items these assert on (`TRIAGE_DISABLED_ENV`, the parser). They belong here,
 // against the module that actually defines them.
 
-static TRIAGE_ENV_GUARD: Mutex<()> = tokio::sync::Mutex::const_new(());
+static TRIAGE_ENV_GUARD: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[tokio::test]
 async fn ignores_non_composio_events() {

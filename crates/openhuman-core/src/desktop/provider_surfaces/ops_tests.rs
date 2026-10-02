@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 /// Serializes tests that mutate the process-global RESPOND_QUEUE so cargo's
 /// default parallel test runner cannot interleave clear/insert/assert cycles.
-static TEST_MUTEX: Mutex<()> = tokio::sync::Mutex::const_new(());
+static TEST_MUTEX: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 fn sample_event(entity_id: &str) -> ProviderEvent {
     ProviderEvent {
