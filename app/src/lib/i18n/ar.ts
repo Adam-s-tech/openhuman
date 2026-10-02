@@ -5077,6 +5077,17 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'الموافقة',
   'settings.agentAccess.group.fileSystem': 'نظام التمويل',
   'settings.agentAccess.group.limits': 'الحدود',
+  'settings.agentAccess.toolFormat.label': 'تنسيق استدعاء الأدوات',
+  'settings.agentAccess.toolFormat.desc':
+    'الطريقة التي يكتب بها الوكيل استدعاءات الأدوات للنموذج. JSON هو الأكثر موثوقية عبر النماذج؛ التنسيقات بنمط الشيفرة تجريبية وقد تسيء بعض النماذج قراءتها. ينطبق على المحادثات الجديدة.',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (موصى به)',
+  'settings.agentAccess.toolFormat.option.native': 'JSON أصلي (استدعاءات منظمة من المزوّد)',
+  'settings.agentAccess.toolFormat.option.xml': 'JSON داخل الوسوم',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (تجريبي)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (تجريبي)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (تجريبي)',
+  'settings.agentAccess.toolFormat.envOverride':
+    'متغير البيئة OPENHUMAN_TOOL_DISPATCHER يتجاوز هذا الإعداد، لذا لن يكون لأي تغيير هنا أثر ما دام معيّنًا.',
   'settings.sandbox.backendName.docker': 'Docker',
   'settings.sandbox.backendName.landlock': 'Landlock',
   'settings.sandbox.backendName.firejail': 'Firejail',

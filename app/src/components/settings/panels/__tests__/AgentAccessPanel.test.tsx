@@ -40,6 +40,8 @@ const agentSettings = (overrides: Partial<AgentSettings> = {}): AgentSettings =>
   env_override: false,
   min_timeout_secs: 1,
   max_timeout_secs: 3600,
+  tool_dispatcher: 'auto',
+  tool_dispatcher_env_override: false,
   ...overrides,
 });
 
@@ -231,6 +233,43 @@ describe('AgentAccessPanel (advanced)', () => {
     fireEvent.blur(input); // value still the loaded 120
     await waitFor(() => expect(mockGetAgent).toHaveBeenCalled());
     expect(mockUpdateAgent).not.toHaveBeenCalled();
+  });
+
+  it('defaults the tool call format to JSON (auto)', async () => {
+    renderWithProviders(<AgentAccessPanel />);
+    const select = (await screen.findByLabelText('Tool call format')) as HTMLSelectElement;
+    await waitFor(() => expect(mockGetAgent).toHaveBeenCalled());
+    expect(select.value).toBe('auto');
+  });
+
+  it('persists a changed tool call format', async () => {
+    renderWithProviders(<AgentAccessPanel />);
+    const select = await screen.findByLabelText('Tool call format');
+    fireEvent.change(select, { target: { value: 'python' } });
+    await waitFor(() =>
+      expect(mockUpdateAgent).toHaveBeenCalledWith({ tool_dispatcher: 'python' })
+    );
+  });
+
+  it('reverts the tool call format when saving fails', async () => {
+    mockUpdateAgent.mockRejectedValueOnce(new Error('nope'));
+    renderWithProviders(<AgentAccessPanel />);
+    const select = (await screen.findByLabelText('Tool call format')) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'xml' } });
+    expect(await screen.findByText('nope')).toBeInTheDocument();
+    expect(select.value).toBe('auto');
+  });
+
+  it('locks the tool call format when the env override is active', async () => {
+    mockGetAgent.mockResolvedValue({
+      result: agentSettings({ tool_dispatcher: 'native', tool_dispatcher_env_override: true }),
+      logs: [],
+    });
+    renderWithProviders(<AgentAccessPanel />);
+    const select = (await screen.findByLabelText('Tool call format')) as HTMLSelectElement;
+    await waitFor(() => expect(select.disabled).toBe(true));
+    expect(select.value).toBe('native');
+    expect(screen.getByText(/OPENHUMAN_TOOL_DISPATCHER/)).toBeInTheDocument();
   });
 
   it('disables the timeout input and warns when an env override is active', async () => {
