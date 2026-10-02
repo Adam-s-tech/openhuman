@@ -215,6 +215,15 @@ test("CI Full refreshes the E2E marker after restoring its content-keyed artifac
   )?.[1];
   assert.ok(cacheStep, "CI Full must keep a Playwright artifact cache step");
   assert.match(cacheStep, /\.github\/workflows\/ci-full\.yml/);
+  assert.match(
+    cacheStep,
+    /e2e-playwright-linux-c3c20d625bcc9f75e50c3c2c2b75c88d3e60a3f4352b0f19f5327b490438722d-/,
+  );
+  assert.equal(
+    (workflow.match(/image: ghcr\.io\/tinyhumansai\/openhuman_ci:latest@sha256:c3c20d625bcc9f75e50c3c2c2b75c88d3e60a3f4352b0f19f5327b490438722d/g) ?? []).length,
+    2,
+    "Playwright artifact producer and consumer must use the same pinned CI image",
+  );
   assert.match(cacheStep, /crates\/\*\*/);
   assert.match(cacheStep, /vendor\/\*\*/);
   assert.match(cacheStep, /build\.rs/);
