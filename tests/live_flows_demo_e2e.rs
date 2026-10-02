@@ -39,11 +39,6 @@ static LIVE_E2E_ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 static LIVE_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
 const TEST_RPC_TOKEN: &str = "live-flows-demo-e2e-local-token";
 
-fn live_e2e_env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    let mutex = LIVE_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    mutex.blocking_lock()
-}
-
 async fn live_e2e_env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     let mutex = LIVE_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
     mutex.lock().await

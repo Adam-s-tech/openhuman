@@ -25,7 +25,7 @@
 //! positive here.
 #![allow(clippy::await_holding_lock)]
 
-use crate::env_guard::{env_lock, env_lock_async};
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::noop_memory;
 use async_trait::async_trait;

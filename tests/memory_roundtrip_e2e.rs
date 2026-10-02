@@ -57,10 +57,6 @@ static ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_ROOT: OnceLock<tempfile::TempDir> = OnceLock::new();
 
-fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(())).blocking_lock()
-}
-
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(())).lock().await
 }

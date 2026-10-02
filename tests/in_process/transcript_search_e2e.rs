@@ -9,7 +9,7 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::env_guard::{env_lock, env_lock_async, EnvVarGuard};
+use crate::env_guard::{env_lock_async, EnvVarGuard};
 use std::path::Path;
 
 use serde_json::json;

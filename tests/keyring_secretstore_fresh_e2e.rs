@@ -5,11 +5,6 @@ use openhuman_core::config::schema::{Config, StreamMode, TelegramConfig};
 use openhuman_core::security::keyring;
 use std::sync::OnceLock;
 
-fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| tokio::sync::Mutex::new(())).blocking_lock()
-}
-
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| tokio::sync::Mutex::new(())).lock().await

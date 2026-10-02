@@ -5,7 +5,7 @@
 //! deterministic controller paths. External-service paths are asserted at
 //! validation/config boundaries so the suite stays hermetic.
 
-use crate::env_guard::{env_lock, env_lock_async};
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_harness::serve_rpc;
 use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};

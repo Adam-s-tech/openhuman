@@ -37,12 +37,6 @@ const TEST_RPC_TOKEN: &str = "skills-mcp-live-token";
 static AUTH_INIT: OnceLock<()> = OnceLock::new();
 static ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 
-fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    let mutex = ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    mutex
-        .blocking_lock()
-}
-
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     let mutex = ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
     mutex

@@ -6,7 +6,7 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::env_guard::{env_lock, env_lock_async};
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::memory_rpc::{ok, serve, write_config};
 use crate::rpc_auth::rpc_token;

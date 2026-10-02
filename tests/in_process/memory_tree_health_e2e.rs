@@ -24,7 +24,7 @@
 //! cross-method invariant that IS reachable and says so in a comment, rather
 //! than asserting `0 == 0` and calling it coverage.
 
-use crate::env_guard::{env_lock, env_lock_async};
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::memory_rpc::{ok, serve, write_config};
 use crate::rpc_auth::rpc_token;

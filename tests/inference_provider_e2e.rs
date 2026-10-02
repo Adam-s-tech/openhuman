@@ -32,11 +32,6 @@ use openhuman_rpc::server::build_core_http_router;
 static ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 static RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
 
-fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    let m = ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    m.blocking_lock()
-}
-
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     let m = ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
     m.lock().await
