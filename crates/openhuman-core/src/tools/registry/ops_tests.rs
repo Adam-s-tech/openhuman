@@ -13,13 +13,13 @@ fn registry_entries_include_mcp_and_controller_tools() {
     // controller half below must keep its coverage in BOTH builds.
     #[cfg(feature = "mcp")]
     {
-        let memory_search = entries
+        let memory_recall = entries
             .iter()
-            .find(|entry| entry.tool_id == "memory.search")
-            .expect("memory.search mcp tool");
-        assert_eq!(memory_search.transport, ToolRegistryTransport::McpStdio);
-        assert_eq!(memory_search.route["method"], json!("tools/call"));
-        assert_eq!(memory_search.health, ToolRegistryHealth::Available);
+            .find(|entry| entry.tool_id == "memory.recall")
+            .expect("memory.recall mcp tool");
+        assert_eq!(memory_recall.transport, ToolRegistryTransport::McpStdio);
+        assert_eq!(memory_recall.route["method"], json!("tools/call"));
+        assert_eq!(memory_recall.health, ToolRegistryHealth::Available);
     }
 
     // With `mcp` compiled out the registry must contain NO MCP-transport
