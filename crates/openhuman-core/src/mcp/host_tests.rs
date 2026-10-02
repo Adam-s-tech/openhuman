@@ -186,56 +186,13 @@ fn the_registry_credentials_survive_the_conversion() {
 }
 
 #[test]
-fn the_documentation_server_is_seeded_when_it_is_enabled() {
-    // It is this application's own server. `tinymcp` has no business knowing
-    // about it, so the seeding happens here.
+fn the_documentation_server_is_never_seeded_as_an_mcp_server() {
+    // The docs are served by the hard-coded `gitbooks_*` tools; an MCP server
+    // entry would make the first turn dial the endpoint for nothing.
     let mut config = Config::default();
     config.gitbooks.enabled = true;
 
-    let converted = client_config(&config);
-    let docs = converted
-        .servers
-        .iter()
-        .find(|server| server.name == GITBOOKS_SERVER_NAME)
-        .expect("the documentation server");
-
-    assert_eq!(docs.endpoint, config.gitbooks.endpoint);
-    assert_eq!(docs.timeout_secs, config.gitbooks.timeout_secs);
-}
-
-#[test]
-fn the_documentation_server_is_not_seeded_when_it_is_disabled() {
-    let converted = client_config(&config_without_docs());
-
-    assert!(!converted
-        .servers
-        .iter()
-        .any(|server| server.name == GITBOOKS_SERVER_NAME));
-}
-
-#[test]
-fn a_user_declared_server_of_the_same_name_wins_over_the_seeded_one() {
-    // Someone who deliberately pointed that name somewhere else keeps it.
-    let mut config = Config::default();
-    config.gitbooks.enabled = true;
-    config.mcp_client.servers.push(HostServer {
-        server: tinymcp_bus::McpServerConfig {
-            name: GITBOOKS_SERVER_NAME.into(),
-            endpoint: "https://mine.test/mcp".into(),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
-
-    let converted = client_config(&config);
-    let matching: Vec<_> = converted
-        .servers
-        .iter()
-        .filter(|server| server.name == GITBOOKS_SERVER_NAME)
-        .collect();
-
-    assert_eq!(matching.len(), 1);
-    assert_eq!(matching[0].endpoint, "https://mine.test/mcp");
+    assert!(client_config(&config).servers.is_empty());
 }
 
 #[test]
