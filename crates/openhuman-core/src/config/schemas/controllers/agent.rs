@@ -7,7 +7,7 @@ use crate::core::all::ControllerFuture;
 
 use super::super::helpers::{
     deserialize_params, to_json, AgentSettingsUpdate, AutonomySettingsUpdate,
-    BrowserSettingsUpdate, ComputerSettingsUpdate, MemorySyncSettingsUpdate, PrivacyModeUpdate,
+    BrowserSettingsUpdate, ComputerSettingsUpdate, PrivacyModeUpdate,
     SandboxSettingsUpdate, SetBrowserAllowAllParams,
 };
 
