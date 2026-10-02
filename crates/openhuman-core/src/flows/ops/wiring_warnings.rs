@@ -96,8 +96,8 @@ pub(super) async fn graph_output_field_warnings(
     use crate::flows::tinyflows::caps::fetch_live_toolkit_catalog;
     // Reading a graph's `=`-bindings is the engine's grammar, not this host's:
     // both helpers were a private copy here until the gates moved upstream.
-    use tinyflows::bindings::{collect_expressions, parse_node_binding};
     use crate::integrations::composio::contract::toolkit_from_slug;
+    use tinyflows::bindings::{collect_expressions, parse_node_binding};
 
     let mut warnings = Vec::new();
     for node in &graph.nodes {

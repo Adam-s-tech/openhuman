@@ -353,7 +353,11 @@ async fn digest_writes_run_digest_entry_for_completed_run() {
     .await;
 
     let digests = stored_digests(&config, "f-ok").await;
-    assert_eq!(digests.len(), 1, "completed run must produce one run digest");
+    assert_eq!(
+        digests.len(),
+        1,
+        "completed run must produce one run digest"
+    );
     let entry = &digests[0];
     assert_eq!(entry.meta.source.kind, tinymemory::SourceKind::Agent);
     assert!(entry.meta.tags.contains(&crate::flows::flow_tag("f-ok")));
@@ -440,7 +444,9 @@ async fn retention_cap_forgets_the_oldest_digests() {
     assert_eq!(enforce_retention_cap(&config, "f-cap", 2).await.unwrap(), 2);
     let kept = stored_digests(&config, "f-cap").await;
     assert_eq!(kept.len(), 2);
-    assert!(kept.iter().all(|hit| hit.text.contains("digest 2") || hit.text.contains("digest 3")));
+    assert!(kept
+        .iter()
+        .all(|hit| hit.text.contains("digest 2") || hit.text.contains("digest 3")));
 }
 
 #[test]

@@ -65,7 +65,10 @@ fn flow_key_round_trips_through_tags() {
 fn learning_kind_maps_categories() {
     assert_eq!(learning_kind_for(None), LearningKind::Fact);
     assert_eq!(learning_kind_for(Some("core")), LearningKind::Fact);
-    assert_eq!(learning_kind_for(Some("Preference")), LearningKind::Preference);
+    assert_eq!(
+        learning_kind_for(Some("Preference")),
+        LearningKind::Preference
+    );
     assert_eq!(learning_kind_for(Some("daily")), LearningKind::Other);
 }
 
@@ -97,7 +100,10 @@ async fn flow_filters_isolate_flows_and_cross_flow_sees_all() {
         .unwrap();
     assert_eq!(list(&config, flow_filter("f1")).await.len(), 1);
     assert_eq!(list(&config, cross_flow_filter()).await.len(), 2);
-    assert_eq!(forget_matching(&config, flow_filter("f1")).await.unwrap(), 1);
+    assert_eq!(
+        forget_matching(&config, flow_filter("f1")).await.unwrap(),
+        1
+    );
     assert_eq!(list(&config, cross_flow_filter()).await.len(), 1);
 }
 
@@ -113,7 +119,10 @@ async fn forget_matching_refuses_an_empty_filter() {
 #[tokio::test]
 async fn memory_off_forgets_nothing_and_refuses_writes() {
     let (_tmp, config) = off_config();
-    assert_eq!(forget_matching(&config, flow_filter("f1")).await.unwrap(), 0);
+    assert_eq!(
+        forget_matching(&config, flow_filter("f1")).await.unwrap(),
+        0
+    );
     let err = remember_keyed(&config, "f1", "k", "v", LearningKind::Fact)
         .await
         .unwrap_err();

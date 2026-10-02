@@ -369,9 +369,10 @@ impl MemoryProvider for OpenHumanMemory {
         let audit_id = self.tier_gate_write("remember", &action).await?;
 
         let flow_id = self.trusted_flow_id()?;
-        let store_result = remember_keyed(&self.config, &flow_id, key, &content, LearningKind::Fact)
-            .await
-            .map_err(|e| capability_error("remember", &e));
+        let store_result =
+            remember_keyed(&self.config, &flow_id, key, &content, LearningKind::Fact)
+                .await
+                .map_err(|e| capability_error("remember", &e));
         Self::record_write_execution(
             "remember",
             audit_id.as_deref(),

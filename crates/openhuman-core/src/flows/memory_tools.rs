@@ -134,7 +134,9 @@ pub fn flow_meta(flow_id: &str, extra: &[String]) -> MemoryMeta {
 /// off forgets nothing.
 pub async fn forget_matching(config: &Config, filter: MetaFilter) -> MemoryResult<usize> {
     if filter.is_empty() {
-        return Err(MemoryError::invalid("refusing to forget with an empty filter"));
+        return Err(MemoryError::invalid(
+            "refusing to forget with an empty filter",
+        ));
     }
     let bound = match crate::memory::engine::resolve(config).engine() {
         Ok(bound) => bound,
@@ -371,7 +373,9 @@ impl Tool for FlowMemoryRecallTool {
                     code = error.code(),
                     "[flows:memory] flow_memory_recall: failed"
                 );
-                Ok(ToolResult::error(format!("Flow memory recall failed: {error}")))
+                Ok(ToolResult::error(format!(
+                    "Flow memory recall failed: {error}"
+                )))
             }
         }
     }

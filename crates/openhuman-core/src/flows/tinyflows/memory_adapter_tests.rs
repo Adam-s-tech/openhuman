@@ -242,7 +242,10 @@ async fn remember_search_and_forget_round_trip_in_the_flows_own_scope() {
         assert_eq!(results[0]["key"], json!("sent"));
         let text = results[0]["text"].as_str().unwrap();
         assert!(text.contains("item 43"));
-        assert!(text.contains("untrusted-source"), "flow output is marked as data");
+        assert!(
+            text.contains("untrusted-source"),
+            "flow output is marked as data"
+        );
 
         let recalled = adapter
             .recall("flows", "newsletter item", json!({"operation": "recall"}))
@@ -310,5 +313,8 @@ fn min_score_keeps_unscored_rows() {
 fn plain_agent_learnings_are_trusted_and_everything_else_is_not() {
     assert!(!is_untrusted(&MemoryMeta::default()));
     assert!(is_untrusted(&crate::flows::flow_meta("f", &[])));
-    assert!(is_untrusted(&MemoryMeta::from_source(SourceKind::Composio, None)));
+    assert!(is_untrusted(&MemoryMeta::from_source(
+        SourceKind::Composio,
+        None
+    )));
 }
