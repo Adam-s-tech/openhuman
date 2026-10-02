@@ -7,7 +7,7 @@ icon: code-branch
 
 **A personal AI assistant built on Rust, with a persistent local memory and an agent harness that can act across your connected services.**
 
-OpenHuman is a cross-platform communication and automation platform: a Rust core that runs agent turns, keeps a local-first memory tree, and executes tools against memory, channels, integrations, and (for users who opt in) a wallet, all wrapped in a single React + Rust (Tauri) codebase that can target multiple platforms. **What we document and ship for users today is desktop only: Windows, macOS, and Linux.** Android, iOS, and web are **not** supported in current docs or releases. The stack includes a managed Node.js runtime for tool-capable skills, persistent Rust-native WebSocket infrastructure to the backend, and a native Rust tool-dispatch path plus a standards-based Model Context Protocol (MCP) server for external clients.
+OpenHuman is a cross-platform communication and automation platform: a Rust core that runs agent turns, keeps a pluggable memory engine, and executes tools against memory, channels, integrations, and (for users who opt in) a wallet, all wrapped in a single React + Rust (Tauri) codebase that can target multiple platforms. **What we document and ship for users today is desktop only: Windows, macOS, and Linux.** Android, iOS, and web are **not** supported in current docs or releases. The stack includes a managed Node.js runtime for tool-capable skills, persistent Rust-native WebSocket infrastructure to the backend, and a native Rust tool-dispatch path plus a standards-based Model Context Protocol (MCP) server for external clients.
 
 ---
 
@@ -66,7 +66,7 @@ Tauri v2 compiles the Rust core into native binaries per platform, embedding the
 |                        Rust Core (openhuman_core)                  |
 |                                                                  |
 |  +------------------+  +------------------+  +-----------------+ |
-|  |  Agent harness    |  |  Socket Manager  |  |  Memory tree    | |
+|  |  Agent harness    |  |  Socket Manager  |  |  Memory (v2)    | |
 |  |  (tinyagents)      |  |  (client to      |  |  + encryption   | |
 |  |  + tool dispatch   |  |   backend, WS)   |  |  at rest        | |
 |  +------------------+  +------------------+  +-----------------+ |
@@ -175,9 +175,9 @@ Every remote tool definition, whether coming in through a connected server or se
 
 ## Memory
 
-Agent memory runs on TinyCortex, the memory engine vendored under `tinymemory` (`vendor/tinymemory/vendor/tinycortex`). OpenHuman's own code keeps RPC, tools, scheduling, credentials, and the host namespace-document store; the tree mechanics (chunking, scoring, retrieval, embedding) are crate-owned. See [Pluggable engines](engines.md) for which memory and embedding backends actually run, and [Memory tree](architecture/memory-tree.md) for the host layer over the engine.
+Memory v2 is three operations (Recall, Fetch, Store) over a pluggable engine: `tinyhumans` (hosted CortexDB, needs sign-in) or `cortexdb` (your own endpoint and key); with neither, memory is off. The contract and engines live in `vendor/tinymemory` (`tinymemory-api`, `tinymemory-cortex`, `-documents`, `-sources`, `-safety`, `-context`, `-import`, `-conformance`). OpenHuman's `crates/openhuman-core/src/memory/` keeps the host side: engine binding, ops, the single `memory` agent tool, conversation buffering, document sources, the compiled `context.md`, the consent-gated v1 import and the exit flush. See [Memory architecture](architecture/memory.md), [Pluggable engines](engines.md) and the spec `docs/specs/memory-v2.md`.
 
-Conversation state is separate from memory: each thread's transcript is a JSONL file keyed by thread and agent id, and compaction seals a generation rather than deleting it, so the full history stays recoverable even though a resumed session only reads the latest generation.
+Conversation state is separate from memory: each thread's transcript is a JSONL file keyed by thread and agent id (the thread store is `tinyagents_session::threads` in `vendor/tinyagents`, wrapped by `threads::store`), and compaction seals a generation rather than deleting it, so the full history stays recoverable even though a resumed session only reads the latest generation.
 
 ---
 
@@ -277,7 +277,7 @@ Core subsystems run on published `tiny*` crates, vendored as git submodules unde
 | **Realtime**   | Socket.io (client)                 | Bidirectional event-based communication                   |
 | **AI**         | MCP (JSON-RPC 2.0)                 | Standardized tool protocol for LLM integration            |
 | **Search**     | OpenAI embeddings + SQLite FTS5    | Hybrid semantic + keyword search                          |
-| **Graph**      | SQLite (`codegraph`/`memory_tree`) | Entity/code relationship graph, embedded                  |
+| **Graph**      | SQLite (`codegraph`)               | Code relationship graph, embedded                         |
 
 ---
 
