@@ -10855,7 +10855,7 @@ encrypt = false
 
 # Keep tool-result content raw: the workflow_builder agent runs the reasoning
 # tier with Full TokenJuice compaction, which CCR-compresses a large
-# `propose_workflow` result into a `tinyjuice_retrieve` reference. `flows_build`
+# `propose_workflow` result into a `juice_retrieve` reference. `flows_build`
 # extracts the proposal from the agent's tool history by JSON-parsing that
 # content, so compaction must stay off for the arc to be observable in-test.
 [context]

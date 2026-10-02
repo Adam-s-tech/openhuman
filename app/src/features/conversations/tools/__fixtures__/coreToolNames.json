@@ -193,7 +193,7 @@
   "task_source_remove",
   "task_source_status",
   "task_source_update",
-  "tinyjuice_retrieve",
+  "juice_retrieve",
   "todo",
   "tool_call",
   "tool_search",

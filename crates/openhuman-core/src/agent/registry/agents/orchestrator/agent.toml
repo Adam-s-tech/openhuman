@@ -29,15 +29,12 @@ omit_profile = false
 # prior conversations and distilled user preferences. Frozen per
 # session (KV-cache contract on `AgentDefinition::omit_memory_md`).
 omit_memory_md = false
-# Memory retrieval is ON-DEMAND, not pre-emptive. The orchestrator used to
-# run `agent_memory` eagerly before every turn (`trigger_memory_agent =
-# "always"`), spawning a full ≤15-iteration memory subagent on every
-# message — including trivial ones — before it had even read the user's
-# intent. That cost a blocking agentic round-trip per turn for a guarantee
-# the model rarely needed. Instead, `agent_memory` is listed in the
-# `[subagents]` allowlist below, which synthesises a `delegate_retrieve_memory`
-# tool the orchestrator calls only when a message actually needs the deep
-# memory-tree walk. (The frozen MEMORY.md digest still anchors every turn.)
+# Memory retrieval is ON-DEMAND, not pre-emptive, and it is one direct `memory`
+# tool (`ask` | `keyword_search` | `learn`). The orchestrator used to run
+# `agent_memory` eagerly before every turn, then to offer it as a second
+# `retrieve_memory` delegate beside `memory_recall`: two near-identical ways to
+# search the same store. Now there is one. (The frozen MEMORY.md digest still
+# anchors every turn.)
 
 # Delegation surface. The `collect_orchestrator_tools` helper reads this
 # at agent-build time and synthesises one `delegate_*` tool per entry:

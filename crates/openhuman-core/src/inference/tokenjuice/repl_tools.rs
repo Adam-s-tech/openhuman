@@ -10,7 +10,7 @@
 //! (`tinyjuice::repl::tools::repl_tools`, the `tinytools` feature). Its CCR
 //! store, though, lives inside the module behind the bus, so a store handed to
 //! `repl_tools` in this process would be empty. Each wrapper here therefore
-//! fetches the original through the same `Retrieve` call `tinyjuice_retrieve`
+//! fetches the original through the same `Retrieve` call `juice_retrieve`
 //! makes, gives the stock tool a one-entry store holding it, and returns what
 //! the stock tool answers. The ops, argument parsing, size caps and
 //! read-only/concurrency flags are TinyJuice's, unchanged.

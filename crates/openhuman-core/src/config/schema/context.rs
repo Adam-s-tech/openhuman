@@ -110,10 +110,10 @@ pub struct ContextConfig {
     /// stored in the CCR cache and replaced by a stats line, a short head and a
     /// handle. The model reads that, and queries the rest with `juice_find`,
     /// `juice_extract` and `juice_summarize` (registered only while this switch
-    /// is on) or takes the whole original with `tinyjuice_retrieve`. No model
+    /// is on) or takes the whole original with `juice_retrieve`. No model
     /// call is involved, so it cannot stall on a slow summarizer. With
     /// `repl_handle_enabled = false` the result is instead compressed to one
-    /// blob with a `⟦tj:<hash>⟧` marker for `tinyjuice_retrieve`.
+    /// blob with a `⟦tj:<hash>⟧` marker for `juice_retrieve`.
     ///
     /// **On by default.** It was off from the 2026-09 latency work, when a
     /// compacted view cost a retrieval round trip more often than it saved
