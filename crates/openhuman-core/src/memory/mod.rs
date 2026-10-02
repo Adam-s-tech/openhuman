@@ -28,6 +28,9 @@ pub mod status;
 pub mod tools;
 pub mod types;
 
+#[cfg(test)]
+pub(crate) mod test_fixtures;
+
 pub use bus::register_memory_subscribers;
 pub use engine::is_on as memory_is_on;
 pub use error::{MemoryError, MemoryResult};
