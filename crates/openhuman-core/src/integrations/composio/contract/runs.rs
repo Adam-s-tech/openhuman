@@ -37,8 +37,7 @@ impl SyncReason {
     }
 }
 
-/// Result of a provider sync run. Read by the sync status panel and written to
-/// the sync audit log.
+/// The `openhuman.composio_sync` reply.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SyncOutcome {
     /// Composio toolkit slug the run covered.
@@ -60,7 +59,6 @@ pub struct SyncOutcome {
     #[serde(default)]
     pub details: serde_json::Value,
 }
-
 
 #[cfg(test)]
 #[path = "runs_tests.rs"]

@@ -12,7 +12,6 @@ mod search;
 
 use super::super::proxy::{set_runtime_proxy_config, ProxyScope};
 use super::super::Config;
-use super::dirs::MEMORY_SYNC_INTERVAL_SECS_ENV_VAR;
 use std::path::PathBuf;
 
 /// Classification of an `OPENHUMAN_SHELL_HIDE_WINDOW` env value. Split out from
@@ -170,20 +169,6 @@ impl Config {
                     Err(_) => tracing::warn!(
                         value = %raw,
                         "invalid OPENHUMAN_MAX_ACTIONS_PER_HOUR ignored; expected an unsigned integer"
-                    ),
-                }
-            }
-        }
-
-        if let Some(raw) = env.get(MEMORY_SYNC_INTERVAL_SECS_ENV_VAR) {
-            let trimmed = raw.trim();
-            if !trimmed.is_empty() {
-                match trimmed.parse::<u64>() {
-                    Ok(secs) => self.memory_sync_interval_secs = Some(secs),
-                    Err(_) => tracing::warn!(
-                        env = %MEMORY_SYNC_INTERVAL_SECS_ENV_VAR,
-                        value = %raw,
-                        "invalid memory-sync interval ignored; expected an unsigned integer (0 = manual)"
                     ),
                 }
             }
