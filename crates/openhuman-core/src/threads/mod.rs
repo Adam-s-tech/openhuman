@@ -6,6 +6,7 @@
 
 pub mod error;
 pub mod ops;
+pub mod rpc_models;
 pub mod schemas;
 pub mod store;
 #[cfg(test)]
@@ -14,6 +15,7 @@ pub mod turn_state;
 pub mod welcome_migration;
 
 pub use error::{ThreadsError, THREAD_NOT_FOUND_KIND};
+pub use rpc_models::*;
 pub use schemas::{
     all_controller_schemas as all_threads_controller_schemas,
     all_registered_controllers as all_threads_registered_controllers,
