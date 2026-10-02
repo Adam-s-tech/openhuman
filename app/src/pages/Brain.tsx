@@ -2,6 +2,10 @@
  * Brain — the centerpiece memory surface.
  *
  * Sub-tabs: Welcome, Graph, Goals, Sources, and Sync.
+ *
+ * Rendered as the Brain sub-page of Connections → Integrations (it has no
+ * route of its own). Connections owns `?tab=brain` and the sidebar; this page
+ * keeps its sub-tab in `?brain=` and switches between them with chip tabs.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -18,8 +22,6 @@ import { SyncActivityCard } from '../components/intelligence/SyncActivityCard';
 import { SyncAuditPanel } from '../components/intelligence/SyncAuditPanel';
 import { ToastContainer } from '../components/intelligence/Toast';
 import PageWelcome from '../components/layout/PageWelcome';
-import { SidebarContent } from '../components/layout/shell/SidebarSlot';
-import TwoPaneNav from '../components/layout/TwoPaneNav';
 import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage';
 import MemoryEngineErrorAlert from '../components/settings/panels/MemoryEngineErrorAlert';
 import { classifyMemoryEngineError } from '../components/settings/panels/memoryEngineUtils';
@@ -36,17 +38,13 @@ import {
 
 type BrainTab = 'welcome' | 'graph' | 'goals' | 'sources' | 'sync';
 
-/** Small inline icon helper for the Brain sidebar nav. */
-const navIcon = (d: string) => (
-  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={d} />
-  </svg>
-);
-
 const BRAIN_TABS: readonly BrainTab[] = ['welcome', 'graph', 'goals', 'sources', 'sync'];
 
 /** Sub-tabs of Sync, reflected in `?view=`: live status, or the run history. */
 type SyncView = 'status' | 'history';
+
+/** Chip-tab ids: the functional tabs, with Sync's history view as its own chip. */
+type BrainChip = Exclude<BrainTab, 'welcome'> | 'history';
 
 /**
  * Backoff ladder for automatically retrying a failed graph load.
@@ -72,30 +70,38 @@ export default function Brain() {
   const { t } = useT();
   const location = useLocation();
   const navigate = useNavigate();
-  // Tab is reflected in `?tab=` so deep links (and the redirected old settings
-  // routes) land on the right sub-page.
+  // Tab is reflected in `?brain=` (`?tab=` belongs to Connections) so deep
+  // links (and the redirected old `/brain` and settings routes) land on the
+  // right sub-page.
   const activeTab = useMemo<BrainTab>(() => {
-    const raw = new URLSearchParams(location.search).get('tab');
+    const raw = new URLSearchParams(location.search).get('brain');
     return (BRAIN_TABS as readonly string[]).includes(raw ?? '') ? (raw as BrainTab) : 'welcome';
   }, [location.search]);
   const setActiveTab = useCallback(
     (tab: BrainTab) => {
       const params = new URLSearchParams(location.search);
-      params.set('tab', tab);
+      params.set('brain', tab);
+      params.delete('view');
       navigate({ pathname: location.pathname, search: `?${params.toString()}` });
     },
     [location.pathname, location.search, navigate]
   );
   const syncView: SyncView =
     new URLSearchParams(location.search).get('view') === 'history' ? 'history' : 'status';
-  const setSyncView = useCallback(
-    (view: SyncView) => {
+  const setChip = useCallback(
+    (chip: BrainChip) => {
       const params = new URLSearchParams(location.search);
-      params.set('view', view);
+      params.set('brain', chip === 'history' ? 'sync' : chip);
+      if (chip === 'history') params.set('view', 'history');
+      else params.delete('view');
       navigate({ pathname: location.pathname, search: `?${params.toString()}` });
     },
     [location.pathname, location.search, navigate]
   );
+  const chipValue: BrainChip =
+    activeTab === 'sync' && syncView === 'history'
+      ? 'history'
+      : (activeTab as Exclude<BrainTab, 'welcome'>);
   const [graph, setGraph] = useState<GraphExportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<GraphMode>('tree');
@@ -246,48 +252,6 @@ export default function Brain() {
 
   return (
     <div className="h-full">
-      {/* The Brain navigation lives in the root app sidebar's dynamic region. */}
-      <SidebarContent>
-        <div className="h-full overflow-hidden">
-          <TwoPaneNav
-            ariaLabel={t('nav.brain')}
-            selected={activeTab}
-            onSelect={value => setActiveTab(value as BrainTab)}
-            groups={[
-              {
-                items: [
-                  {
-                    value: 'graph',
-                    label: t('brain.tabs.graph'),
-                    icon: navIcon(
-                      'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z'
-                    ),
-                  },
-                  {
-                    value: 'goals',
-                    label: t('brain.tabs.goals'),
-                    icon: navIcon('M5 3v18M5 3l13 4-13 4M5 13l9 3-9 3'),
-                  },
-                  {
-                    value: 'sources',
-                    label: t('brain.tabs.sources'),
-                    icon: navIcon(
-                      'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4'
-                    ),
-                  },
-                  {
-                    value: 'sync',
-                    label: t('brain.tabs.sync'),
-                    icon: navIcon(
-                      'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
-                    ),
-                  },
-                ],
-              },
-            ]}
-          />
-        </div>
-      </SidebarContent>
       {
         // Full width on purpose: the header band has to run edge to edge across
         // the content card, so the width cap cannot live above it. Each tab's
@@ -345,23 +309,22 @@ export default function Brain() {
             PanelPage so every page opens with the same flush header band, rather
             than a bordered card floating in the content column. */
             <div className="h-full p-4">
-              <SettingsTabbedPage<SyncView>
+              <SettingsTabbedPage<BrainChip>
                 title={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].titleKey)}
                 description={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].descKey)}
-                {...(activeTab === 'sync'
-                  ? {
-                      tabs: [
-                        { id: 'status', label: t('brain.sync.viewStatus') },
-                        { id: 'history', label: t('brain.sync.viewHistory') },
-                      ],
-                      value: syncView,
-                      onChange: setSyncView,
-                      tabsAriaLabel: t('brain.tabs.sync'),
-                      tabsTestIdPrefix: 'brain-sync-view',
-                      // History is a full-height table: only its rows scroll.
-                      scrollable: syncView !== 'history',
-                    }
-                  : {})}>
+                tabs={[
+                  { id: 'graph', label: t('brain.tabs.graph') },
+                  { id: 'goals', label: t('brain.tabs.goals') },
+                  { id: 'sources', label: t('brain.tabs.sources') },
+                  { id: 'sync', label: t('brain.tabs.sync') },
+                  { id: 'history', label: t('brain.sync.viewHistory') },
+                ]}
+                value={chipValue}
+                onChange={setChip}
+                tabsAriaLabel={t('nav.brain')}
+                tabsTestIdPrefix="brain-tab"
+                // History is a full-height table: only its rows scroll.
+                scrollable={!(activeTab === 'sync' && syncView === 'history')}>
                 <div
                   className={
                     activeTab === 'sync' && syncView === 'history'
