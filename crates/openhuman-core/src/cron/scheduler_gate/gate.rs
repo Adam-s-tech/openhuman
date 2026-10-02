@@ -119,8 +119,8 @@ pub fn init_global(cfg: SchedulerGateConfig) {
 }
 
 /// Process-wide resume signal (#2831). Fired whenever the gate transitions
-/// **out of** a paused state — the user toggles Memory Tree back on
-/// ([`update_config`]) or signs back in ([`set_signed_out`]). Background loops
+/// **out of** a paused state — the user changes the scheduler-gate setting
+/// back to a running mode ([`update_config`]) or signs back in ([`set_signed_out`]). Background loops
 /// (e.g. the Composio periodic scheduler) park on [`resume_notify`] so they can
 /// resume work within seconds instead of waiting out their next tick boundary.
 static RESUME_NOTIFY: OnceLock<Arc<Notify>> = OnceLock::new();
@@ -133,8 +133,8 @@ static RESUME_NOTIFY: OnceLock<Arc<Notify>> = OnceLock::new();
 /// mid-tick, a single permit is stored so the *next* `notified()` returns at
 /// once — a resume that arrives during a tick is never lost.
 ///
-/// **Over-notifying is safe by design.** A spurious wake (e.g. Memory Tree
-/// toggled on while still signed out, so the effective policy is still paused)
+/// **Over-notifying is safe by design.** A spurious wake (e.g. the gate
+/// un-paused while still signed out, so the effective policy is still paused)
 /// just causes one cheap gate-checked tick that re-reads [`current_policy`] and
 /// no-ops. We therefore fire on each individual un-pause transition rather than
 /// computing the precise combined (config × signed-out) edge.
@@ -147,7 +147,7 @@ pub fn resume_notify() -> Arc<Notify> {
 /// Update the gate's view of user config (e.g. after a settings change).
 ///
 /// Fires [`resume_notify`] when this update moves the policy out of a paused
-/// state (e.g. Memory Tree toggled back on), so parked background loops resume
+/// state (e.g. a switch back to a running mode), so parked background loops resume
 /// promptly (#2831).
 pub fn update_config(cfg: SchedulerGateConfig) {
     let Some(state) = STATE.get() else {
