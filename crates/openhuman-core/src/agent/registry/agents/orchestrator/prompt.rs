@@ -354,8 +354,8 @@ fn strip_route_lines(archetype: &str, skills: bool, mcp: bool, composio: bool) -
 ///
 /// So: exact match first, then the longest registry id that `agent_id` extends
 /// at an `_` boundary. Longest wins because ids are not prefix-free —
-/// no id is a prefix of another today, but ids that share a stem (`goals_agent`
-/// vs a future `goals`) would, and a shorter accidental match would resolve
+/// no id is a prefix of another today, but ids that share a stem (`task_manager_agent`
+/// vs a future `task_manager`) would, and a shorter accidental match would resolve
 /// a renamed session onto the wrong agent's subagent list.
 fn resolve_definition<'r>(
     registry: &'r AgentDefinitionRegistry,
