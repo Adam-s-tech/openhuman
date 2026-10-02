@@ -13,6 +13,7 @@ pub mod bus;
 pub mod ops;
 mod schemas;
 pub mod seed;
+pub mod system_jobs;
 mod store;
 pub mod tools;
 
