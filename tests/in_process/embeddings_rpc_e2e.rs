@@ -303,13 +303,12 @@ async fn embeddings_update_settings_switches_provider() {
     let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
-    // Switch to "none" (noop) which has 0 dimensions — dimension change from
-    // the default requires confirm_wipe. We pass it so the update goes through.
+    // Switch to "none" (noop) which has 0 dimensions.
     let update = post_json_rpc(
         &rpc_base,
         2,
         "openhuman.embeddings_update_settings",
-        json!({ "provider": "none", "confirm_wipe": true }),
+        json!({ "provider": "none" }),
     )
     .await;
     let update_result = assert_no_rpc_error(&update, "embeddings_update_settings");
@@ -334,7 +333,7 @@ async fn embeddings_update_settings_switches_provider() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn embeddings_update_settings_dimension_change_requires_wipe() {
+async fn embeddings_update_settings_dimension_change_applies_without_a_wipe() {
     let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
@@ -343,12 +342,12 @@ async fn embeddings_update_settings_dimension_change_requires_wipe() {
         &rpc_base,
         10,
         "openhuman.embeddings_update_settings",
-        json!({ "provider": "voyage", "model": "voyage-3-large", "dimensions": 1024, "confirm_wipe": true }),
+        json!({ "provider": "voyage", "model": "voyage-3-large", "dimensions": 1024 }),
     )
     .await;
 
-    // Now try to change only dimensions without confirm_wipe — should get the
-    // EMBEDDINGS_DIMENSION_CHANGE_REQUIRES_WIPE sentinel in the result body.
+    // Memory v2 keeps no local vector store, so there is nothing to wipe: a
+    // dimension change applies directly and never returns a wipe sentinel.
     let resp = post_json_rpc(
         &rpc_base,
         11,
@@ -356,38 +355,29 @@ async fn embeddings_update_settings_dimension_change_requires_wipe() {
         json!({ "dimensions": 512 }),
     )
     .await;
-    let result = assert_no_rpc_error(&resp, "update_settings no confirm_wipe");
+    let result = assert_no_rpc_error(&resp, "update_settings dimension change");
     let inner = result.get("result").unwrap_or(result);
-
+    assert!(
+        inner.get("error").is_none(),
+        "a dimension change must not return an error sentinel: {inner}"
+    );
     assert_eq!(
-        inner.get("error").and_then(Value::as_str),
-        Some("EMBEDDINGS_DIMENSION_CHANGE_REQUIRES_WIPE"),
-        "expected EMBEDDINGS_DIMENSION_CHANGE_REQUIRES_WIPE sentinel in response body: {inner}"
-    );
-    assert!(
-        inner.get("old_dimensions").is_some(),
-        "response should include old_dimensions: {inner}"
-    );
-    assert!(
-        inner.get("new_dimensions").is_some(),
-        "response should include new_dimensions: {inner}"
+        inner.get("dimensions").and_then(Value::as_u64),
+        Some(512),
+        "the new dimensions are applied: {inner}"
     );
 
-    // With confirm_wipe=true the change should succeed
-    let confirmed = post_json_rpc(
+    // The retired wipe confirmation is no longer a parameter.
+    let stale = post_json_rpc(
         &rpc_base,
         12,
         "openhuman.embeddings_update_settings",
-        json!({ "dimensions": 512, "confirm_wipe": true }),
+        json!({ "dimensions": 256, "confirm_wipe": true }),
     )
     .await;
-    let confirmed_result = assert_no_rpc_error(&confirmed, "update_settings with confirm_wipe");
-    let confirmed_inner = confirmed_result.get("result").unwrap_or(confirmed_result);
-
-    // The confirmed update should NOT carry the error sentinel
     assert!(
-        confirmed_inner.get("error").is_none(),
-        "confirmed update must not return an error sentinel: {confirmed_inner}"
+        stale.get("error").is_some(),
+        "confirm_wipe is an unknown param now: {stale}"
     );
 }
 
@@ -487,7 +477,7 @@ async fn embeddings_test_connection_with_none_provider() {
         &rpc_base,
         30,
         "openhuman.embeddings_update_settings",
-        json!({ "provider": "none", "confirm_wipe": true }),
+        json!({ "provider": "none" }),
     )
     .await;
 
@@ -525,7 +515,7 @@ async fn embeddings_embed_with_none_returns_empty_vectors() {
         &rpc_base,
         40,
         "openhuman.embeddings_update_settings",
-        json!({ "provider": "none", "confirm_wipe": true }),
+        json!({ "provider": "none" }),
     )
     .await;
 
@@ -580,8 +570,7 @@ async fn embeddings_embed_with_custom_openai_endpoint_round_trips_vectors_and_ap
             "provider": "custom",
             "custom_endpoint": mock_base,
             "model": "mock-embedding-model",
-            "dimensions": 3,
-            "confirm_wipe": true
+            "dimensions": 3
         }),
     )
     .await;
@@ -707,8 +696,7 @@ async fn embeddings_update_settings_rejects_endpoint_with_no_embeddings_api() {
             "provider": "custom",
             "custom_endpoint": mock_base,
             "model": "mock-embedding-model",
-            "dimensions": 3,
-            "confirm_wipe": true
+            "dimensions": 3
         }),
     )
     .await;
@@ -798,8 +786,7 @@ async fn embeddings_update_settings_adopts_custom_endpoint_native_dimension() {
             "model": "mock-embedding-model",
             // The guess. The mock returns 3-wide vectors, so this is wrong on
             // purpose — it is the product default a user would never edit.
-            "dimensions": 1024,
-            "confirm_wipe": true
+            "dimensions": 1024
         }),
     )
     .await;
