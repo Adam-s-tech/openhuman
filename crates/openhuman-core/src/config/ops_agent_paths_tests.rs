@@ -113,6 +113,7 @@ async fn apply_agent_settings_rejects_a_mixed_patch_without_mutating_config() {
         AgentSettingsPatch {
             agent_timeout_secs: Some(300),
             chat_agent_id: Some("typoed_agent".into()),
+            ..AgentSettingsPatch::default()
         },
     )
     .await
