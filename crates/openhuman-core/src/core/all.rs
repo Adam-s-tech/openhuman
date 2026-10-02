@@ -544,7 +544,7 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         DomainGroup::Platform,
         crate::core::subsystem::all_subsystems_registered_controllers(),
     );
-    // One-time first-run initialization (Python/spaCy/Node provisioning)
+    // One-time first-run initialization (Python/Node provisioning)
     push(
         &mut controllers,
         DomainGroup::Agent,

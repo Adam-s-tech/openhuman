@@ -82,7 +82,7 @@ fn python_runtime_step() -> HarnessInitStep {
 }
 
 /// Whether the managed interpreter must be provisioned **eagerly at boot**.
-/// True only when Python is enabled AND a Python backend (spaCy / Kompress)
+/// True only when Python is enabled AND a Python backend (Kompress)
 /// actually needs it. When no backend is enabled we skip the speculative
 /// managed-CPython download entirely (#5056) — lazy consumers (Python tools /
 /// skills, Python MCP servers) still resolve the interpreter on first use.

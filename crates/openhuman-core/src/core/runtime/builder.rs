@@ -166,7 +166,7 @@ impl ServiceSet {
 pub struct DomainSet {
     /// Agent definition/registry/experience, orchestration, session DB/import.
     pub agent: bool,
-    /// Documents, knowledge graph, memory tree/sources/sync/diff/goals.
+    /// Memory v2: engine, recall/fetch/learn, sources, conversations, context.md, import.
     pub memory: bool,
     /// Conversation threads, per-thread goals, todos.
     pub threads: bool,

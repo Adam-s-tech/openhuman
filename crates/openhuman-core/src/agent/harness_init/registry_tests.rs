@@ -37,7 +37,7 @@ fn provisioning_classification_excludes_service_startup() {
 }
 
 /// #5056: on a fresh install (`Config::default()`) `runtime_python.enabled`
-/// is `true` but no Python backend (spaCy/Kompress) is on, so the
+/// is `true` but no Python backend (Kompress) is on, so the
 /// `python_runtime` step must report itself already `Done` and `run` must
 /// be a no-op — proving the eager managed-CPython download is skipped
 /// when nothing at boot needs it. This is a pure gating check
@@ -60,7 +60,7 @@ async fn python_runtime_step_is_done_by_default_with_no_backend_enabled() {
     );
 }
 
-/// Inverse of the above: once a backend (spaCy) is enabled, the step must
+/// Inverse of the above: once a backend (Kompress) is enabled, the step must
 /// no longer be trivially `Done` via the eager-skip branch — proving the
 /// gate still allows provisioning when a backend genuinely needs Python.
 /// We only assert the gating predicate here (not `is_done`/`run`), so the
