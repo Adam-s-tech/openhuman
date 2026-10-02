@@ -19,7 +19,6 @@ use tinytools_std::filesystem::{
 };
 use tinytools_std::network::{CurlTool, PushoverTool};
 
-pub(crate) use super::capability::tool_capability;
 
 /// Create the default tool registry
 pub fn default_tools(security: Arc<SecurityPolicy>) -> Vec<Box<dyn Tool>> {
@@ -380,57 +379,6 @@ pub fn all_tools_with_runtime(
         Box::new(WalletTxReceiptTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
         Box::new(WalletLookupTxTool::new(crate::web3::seams::engine())),
-        // The memory surface the model sees. The eleven per-operation tools it
-        // dispatches to stay registered as `ToolExposure::Hidden` so a
-        // replayed transcript or a saved skill naming `memory_*` still works —
-        // see `memory::tools::collapsed`.
-        Box::new(crate::memory::tools::MemoryTool::new(
-            config.clone(),
-            security.clone(),
-        )),
-        Box::new(MemoryStoreTool::new(security.clone())),
-        Box::new(MemoryRecallTool::new()),
-        Box::new(MemoryForgetTool::new(security.clone())),
-        // #4458: the memory read→dedupe→write→update-index protocol
-        // (`agent::harness::memory_protocol`) can only close its write cycle via a
-        // successful `update_memory_md` call, and the archivist's `[tools] named`
-        // allowlist selects it — but subagents only filter the *parent* tool set,
-        // so if this tool is absent from the registry the archivist silently loses
-        // it and the model hits a permanent unsatisfiable "call update_memory_md"
-        // nag loop (unknown-tool error → the tracker never sees IndexUpdate). It is
-        // always registered here (same as the other memory tools); per-agent
-        // visibility is governed by each agent's `named` allowlist. Targets the
-        // workspace `MEMORY.md`/`SKILL.md` (where `channels_prompt`/`session_memory`
-        // read them from), and prefers the live TinyAgents workspace descriptor at
-        // execution time when one is present.
-        Box::new(UpdateMemoryMdTool::new(root_config.workspace_dir.clone())),
-        // #002: read-only self-diagnosis of the memory pipeline so the agent
-        // can explain an empty/stalled wiki + the fix.
-        Box::new(MemoryDoctorTool::new(config.clone())),
-        // #5172: read-only access to the compiled persona flavour profiles
-        // (communication/coding_style/stack/workflow/environment/directives/
-        // anti_preferences) that persona ingestion builds but nothing
-        // previously surfaced to the agent loop.
-        Box::new(MemoryFlavourTool::new(config.clone())),
-        Box::new(MemoryQueryTool::default()),
-        // memory_search tools — vector search, chunk context, hybrid search,
-        // and previously unregistered raw store tools.
-        Box::new(MemoryVectorSearchTool::default()),
-        Box::new(MemoryChunkContextTool::default()),
-        Box::new(MemoryHybridSearchTool::default()),
-        Box::new(MemoryStoreRawSearchTool::default()),
-        Box::new(MemoryStoreRawChunksTool::default()),
-        Box::new(MemoryStoreKindsTool::default()),
-        // Explicit user-preference pinning — always registered so the model
-        // can save user-stated preferences regardless of whether the full
-        // inference-based learning subsystem is enabled.  The preference
-        // injection into the system prompt is controlled independently by
-        // `config.learning.explicit_preferences_enabled`.
-        Box::new(RememberPreferenceTool::new(security.clone())),
-        // Two-lane explicit preferences (general → system prompt, situational →
-        // per-query recall). Written verbatim to user_pref_{general,situational};
-        // bypasses the inference/stability pipeline. Always registered.
-        Box::new(SavePreferenceTool::new(security.clone())),
         Box::new(ScheduleTool::new(security.clone(), root_config.clone())),
         Box::new(ProxyConfigTool::new(config.clone(), security.clone())),
         Box::new(UpdateCheckTool::new()),
