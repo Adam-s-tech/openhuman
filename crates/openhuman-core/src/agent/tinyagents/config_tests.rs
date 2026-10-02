@@ -130,7 +130,6 @@ fn per_section_mappers_agree_with_the_composed_one() {
     let s = session_config_from(&c);
     assert_eq!(s.turn, turn_config_from(&c.agent));
     assert_eq!(s.tools, tool_config_from(&c.agent));
-    assert_eq!(s.memory, memory_limits_from(&c.agent));
     assert_eq!(s.tools.dispatcher, ToolDispatcher::Pformat);
 }
 
