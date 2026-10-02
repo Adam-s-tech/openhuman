@@ -56,16 +56,10 @@ fn default_config_maps_to_the_crate_defaults() {
     // unconfigured crate config.
     let s = session_config_from(&base());
     assert_eq!(s.turn, TurnConfig::default());
-    // OpenHuman's own default dialect is `python` (the crate's is `Auto`);
-    // everything else about the tool config must still be the crate default.
-    assert_eq!(s.tools.dispatcher, ToolDispatcher::Python);
-    assert_eq!(
-        ToolConfig {
-            dispatcher: ToolDispatcher::Auto,
-            ..s.tools.clone()
-        },
-        ToolConfig::default()
-    );
+    // The default dialect is `auto` (native, else JSON-in-tag), never a code
+    // dialect: python-style calls mis-parse on too many models.
+    assert_eq!(s.tools.dispatcher, ToolDispatcher::Auto);
+    assert_eq!(s.tools, ToolConfig::default());
     assert_eq!(s.memory.max_memory_context_chars, 2000);
 }
 
