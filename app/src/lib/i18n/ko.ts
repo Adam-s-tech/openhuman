@@ -3293,8 +3293,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.chatDesc':
     '직접 사용자 상호작용, 답변, 추론, 에이전트 루프 및 코딩 도움에 사용되는 모델입니다.',
   'settings.ai.routing.backgroundTasks': '백그라운드 작업',
-  'settings.ai.routing.bgTasksDesc':
-    '기본 대화 흐름 밖에서 요약에 사용되는 모델입니다.',
+  'settings.ai.routing.bgTasksDesc': '기본 대화 흐름 밖에서 요약에 사용되는 모델입니다.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description': '직접 대화 앞뒤로: 대화의 "빠른" 모드',
   'settings.ai.routing.workload.chat.hint':

@@ -3314,8 +3314,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.chatDesc':
     'সরাসরি ব্যবহারকারী যোগাযোগ, উত্তর, যুক্তি, এজেন্ট লুপ এবং কোড সাহায্য করার সময় ব্যবহার করা হয়েছে।',
   'settings.ai.routing.backgroundTasks': 'ব্যাকগ্রাউন্ড টাস্ক',
-  'settings.ai.routing.bgTasksDesc':
-    'মূল কথোপকথনের বাইরে সারসংক্ষেপ তৈরির জন্য ব্যবহৃত মডেল।',
+  'settings.ai.routing.bgTasksDesc': 'মূল কথোপকথনের বাইরে সারসংক্ষেপ তৈরির জন্য ব্যবহৃত মডেল।',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'প্রত্যক্ষ কথোপকথন সামনে এবং পিছনে: কথোপকথনে "দ্রুত" মোড',

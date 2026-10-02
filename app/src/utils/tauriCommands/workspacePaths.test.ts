@@ -2,11 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { isTauri } from './common';
-import {
-  openWorkspacePath,
-  previewWorkspaceText,
-  revealWorkspacePath,
-} from './workspacePaths';
+import { openWorkspacePath, previewWorkspaceText, revealWorkspacePath } from './workspacePaths';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('./common', () => ({ isTauri: vi.fn() }));

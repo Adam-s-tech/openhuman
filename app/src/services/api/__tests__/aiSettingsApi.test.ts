@@ -560,7 +560,6 @@ describe('saveAISettings', () => {
         coding: { kind: 'openhuman' },
         vision: { kind: 'openhuman' },
         memory: { kind: 'openhuman' },
-
       },
       modelRegistry: [],
       creditsBypass: { chat: false, reasoning: false },
@@ -658,7 +657,6 @@ describe('saveAISettings', () => {
         coding: { kind: 'openhuman' },
         vision: { kind: 'openhuman' },
         memory: { kind: 'openhuman' },
-
       },
       modelRegistry: [],
     };

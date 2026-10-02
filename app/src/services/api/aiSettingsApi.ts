@@ -40,13 +40,7 @@ import {
 
 // ─── Domain types — what the AIPanel consumes ──────────────────────────────
 
-export type WorkloadId =
-  | 'chat'
-  | 'reasoning'
-  | 'agentic'
-  | 'coding'
-  | 'vision'
-  | 'memory';
+export type WorkloadId = 'chat' | 'reasoning' | 'agentic' | 'coding' | 'vision' | 'memory';
 
 export const CHAT_WORKLOADS: WorkloadId[] = ['chat', 'reasoning', 'agentic', 'coding'];
 const BACKGROUND_WORKLOADS: WorkloadId[] = ['memory'];

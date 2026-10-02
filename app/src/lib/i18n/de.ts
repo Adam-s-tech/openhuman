@@ -3428,7 +3428,8 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.vision.hint':
     'Empfohlen: ein multimodales Modell, das Bildeingaben akzeptiert. Der verwaltete Standard (vision-v1) ist bildfähig; jeder hier zugewiesene Anbieter wird stets als vision-fähig behandelt.',
   'settings.ai.routing.workload.memory.label': 'Memory-Zusammenfassung',
-  'settings.ai.routing.workload.memory.description': 'Zusammenfassungen von Gesprächen und Dokumenten',
+  'settings.ai.routing.workload.memory.description':
+    'Zusammenfassungen von Gesprächen und Dokumenten',
   'settings.ai.routing.workload.memory.hint':
     'Empfohlen: ein günstigeres Zusammenfassungsmodell. Es sollte konsistent und kompakt sein, braucht aber keine erstklassige Frontier-Reasoning-Leistung.',
   'settings.ai.routing.addCustomProvider': 'Benutzerdefinierten Anbieter hinzufügen',

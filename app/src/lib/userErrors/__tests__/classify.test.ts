@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  classifyUserActionableError,
-  userErrorId,
-} from '../classify';
+import { classifyUserActionableError, userErrorId } from '../classify';
 
 const BUDGET_MSG = 'OpenHuman API error (400): Insufficient budget';
 const CREDITS_MSG = 'OpenRouter: this request requires more credits';
