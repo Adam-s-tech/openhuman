@@ -437,6 +437,19 @@ fn build_does_not_route_scope_errors_as_disconnected() {
     assert!(body.contains("`composio_connect`"));
 }
 
+#[test]
+fn composio_connect_is_not_advertised_when_the_tool_is_not_visible() {
+    let mut ctx = ctx_with(&[]);
+    // A filtered tool set without `composio_connect` (Composio disabled).
+    let hidden = ["web_fetch".to_string()].into_iter().collect();
+    ctx.visible_tool_names = &hidden;
+    assert!(!build(&ctx).unwrap().contains("composio_connect"));
+
+    let visible = ["composio_connect".to_string()].into_iter().collect();
+    ctx.visible_tool_names = &visible;
+    assert!(build(&ctx).unwrap().contains("`composio_connect`"));
+}
+
 fn gmail_only() -> Vec<ConnectedIntegration> {
     vec![ConnectedIntegration {
         toolkit: "gmail".into(),

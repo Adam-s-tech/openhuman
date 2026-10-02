@@ -227,7 +227,7 @@ fn skill_sections_name_the_hand_off_this_session_can_call() {
 fn a_route_tagged_prompt_row_is_dropped_when_its_family_is_absent() {
     let md = "keep me\n   - Skills row<!--route:skills-->\n   - MCP row<!--route:mcp-->\ntail";
 
-    let both = strip_route_lines(md, true, true);
+    let both = strip_route_lines(md, true, true, true);
     assert!(
         both.contains("Skills row") && both.contains("MCP row"),
         "both rows survive when both families are present: {both}"
@@ -237,7 +237,7 @@ fn a_route_tagged_prompt_row_is_dropped_when_its_family_is_absent() {
         "the tag is an authoring marker and must never reach the model: {both}"
     );
 
-    let neither = strip_route_lines(md, false, false);
+    let neither = strip_route_lines(md, false, false, true);
     assert!(
         !neither.contains("Skills row") && !neither.contains("MCP row"),
         "a row whose family is compiled out must be dropped: {neither}"
@@ -247,9 +247,19 @@ fn a_route_tagged_prompt_row_is_dropped_when_its_family_is_absent() {
         "untagged prose is untouched: {neither}"
     );
 
-    let skills_only = strip_route_lines(md, true, false);
+    let skills_only = strip_route_lines(md, true, false, true);
     assert!(
         skills_only.contains("Skills row") && !skills_only.contains("MCP row"),
         "each tag is decided on its own: {skills_only}"
     );
+}
+
+#[test]
+fn the_composio_connect_row_is_dropped_when_composio_is_off() {
+    let md = "keep\n- connect: `composio_connect`<!--route:composio-->\ntail";
+    let on = strip_route_lines(md, true, true, true);
+    assert!(on.contains("composio_connect") && !on.contains("<!--route:"));
+    let off = strip_route_lines(md, true, true, false);
+    assert!(!off.contains("composio_connect"), "{off}");
+    assert!(off.contains("keep") && off.contains("tail"));
 }
