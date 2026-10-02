@@ -371,14 +371,10 @@ fn master_agent_has_coding_hint_and_named_tools() {
                     "Master Agent must have direct inspect tool `{direct}`"
                 );
             }
-            // Direct memory surface (#4762): recall/store are the product's
-            // core and must be first-class direct tools, not a sub-agent
-            // spawn — a trivial recall or a single "remember this" must not
-            // pay a blocking agentic round-trip (over-delegation, #4744) that
-            // can hang or return a 0-char result with persistence unconfirmed.
-            // Deep tree walks / reconciliation still delegate to
-            // `retrieve_memory` / `manage_profile_memory`.
-            for direct in ["memory_recall", "memory_store", "save_preference"] {
+            // The unified `memory` tool handles direct recall, keyword
+            // search, writes, and forgetting without a sub-agent round-trip.
+            // Preferences retain their dedicated direct tool.
+            for direct in ["memory", "save_preference"] {
                 assert!(
                     tools.iter().any(|t| t == direct),
                     "orchestrator must have direct memory tool `{direct}` (#4762)"
@@ -388,18 +384,9 @@ fn master_agent_has_coding_hint_and_named_tools() {
         ToolScope::Wildcard => panic!("orchestrator must have named tool allowlist"),
     }
     assert_eq!(def.max_iterations, 15);
-    // Memory retrieval is on-demand (via the `agent_memory` subagent,
-    // surfaced as `delegate_retrieve_memory`), not an eager pre-turn
-    // pre-fetch. The allowlist entry is what makes that route reachable
-    // (see the `agent_memory::tools` allowlist gate).
+    // Recall happens through the direct unified `memory` tool, so the
+    // orchestrator does not need an eager pre-turn memory-agent run.
     assert_eq!(def.trigger_memory_agent, TriggerMemoryAgent::Never);
-    assert!(
-        def.subagents.iter().any(|entry| matches!(
-            entry,
-            SubagentEntry::AgentId(id) if id == "agent_memory"
-        )),
-        "orchestrator must allow `agent_memory` for on-demand retrieval"
-    );
 }
 
 /// Regression guard for the `resolve_time` wiring. Agents that emit

@@ -13,59 +13,9 @@
   ],
   "exemptions": [
     {
-      "id": "tinycomputer",
-      "expect": "v0.9.0-1-g8b73151a",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinysearch",
-      "expect": "v0.3.4-2-g2a71ea9",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinydocs",
-      "expect": "v0.1.19-3-g25290eb",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinywallet",
-      "expect": "v0.7.2-2-g5b18a06",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinyjuice",
-      "expect": "v0.5.1-2-gb2f7172",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinyvoice",
-      "expect": "v0.1.10-2-gb8594d5",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
       "id": "tinymcp",
-      "expect": "v0.3.6-8-g8a25ea4",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinyconnectors",
-      "expect": "v0.12.2-2-g8d54a88",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinybox",
-      "expect": "v0.1.12-2-g9106bf3",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinychannels",
-      "expect": "v0.1.8-2-gb5efe58",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinyhosts",
-      "expect": "v0.2.1-2-gd39dc16",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
+      "expect": "v0.3.6-6-g3a9a27ac",
+      "reason": "The upstream/main gitlink update selects this post-tag commit; reconcile the runtime artifact pin when tinymcp publishes the corresponding release."
     }
   ]
 }
