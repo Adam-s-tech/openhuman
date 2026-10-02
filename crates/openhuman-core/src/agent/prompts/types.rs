@@ -222,7 +222,7 @@ impl<'a> PromptTool<'a> {
     }
 
     /// An entry the catalogue owns rather than borrows: a tool that exists
-    /// only for this prompt build (the harness's `tool_search` / `tool_call`
+    /// only for this prompt build (the harness's `tool_search`
     /// bridge), with no registration to borrow a name from.
     pub fn owned(
         name: String,
@@ -284,12 +284,11 @@ impl<'a> PromptTool<'a> {
 ///   a 71 KB prompt, the exact cost deferral exists to avoid — and told the
 ///   model to search for an action whose signature it could already read.
 ///
-/// * **The bridge must take their place.** The harness mints `tool_search` /
-///   `tool_call` onto `request.tools`, which a text dialect drops, and with
-///   `host_renders_tool_catalogue` it appends nothing itself. Without these
-///   entries the model reads "invoke a match with `tool_call`" in a search
-///   result and has no signature for that name; observed live as a turn that
-///   narrates the call it is about to make and then stops.
+/// * **The bridge must take their place.** The harness mints `tool_search`
+///   onto `request.tools`, which a text dialect drops, and with
+///   `host_renders_tool_catalogue` it appends nothing itself. Without this
+///   entry the model has no signature for `tool_search`; observed live as a
+///   turn that narrates the call it is about to make and then stops.
 ///
 /// A native-tool-calling provider is unaffected: it reads `request.tools`,
 /// where the harness already puts exactly this pair.
