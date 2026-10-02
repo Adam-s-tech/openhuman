@@ -13,7 +13,6 @@ pub(crate) mod user_filter;
 pub(crate) mod implementations;
 
 pub use crate::agent::artifacts::tools::*;
-pub use crate::agent::learning::tools::*;
 pub use crate::agent::orchestration::tools::*;
 pub use crate::agent::tools::*;
 pub use crate::config::tools::*;

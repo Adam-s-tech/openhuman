@@ -6,7 +6,6 @@ fn all_steps_have_stable_ids_and_are_non_required() {
     let ids: Vec<_> = steps.iter().map(|s| s.id).collect();
     let mut expected = vec![
         "python_runtime",
-        "spacy",
         "kompress",
         "runtime_python_server",
     ];
@@ -66,17 +65,6 @@ async fn python_runtime_step_is_done_by_default_with_no_backend_enabled() {
 /// gate still allows provisioning when a backend genuinely needs Python.
 /// We only assert the gating predicate here (not `is_done`/`run`), so the
 /// test never attempts a real interpreter probe/download.
-#[test]
-fn python_needed_eagerly_true_when_spacy_backend_enabled() {
-    let mut config = Config::default();
-    config.runtime_python.enabled = true;
-    config.memory_tree.spacy_enabled = true;
-    assert!(
-        python_needed_eagerly(&config),
-        "python should be needed eagerly once a Python backend is enabled"
-    );
-}
-
 #[tokio::test]
 async fn disabled_runtimes_report_done_without_work() {
     let mut config = Config::default();
