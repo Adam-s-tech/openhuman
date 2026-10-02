@@ -29,9 +29,12 @@ use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
 
+/// One captured mock request: method/path, optional auth header, JSON body.
+type RecordedRequest = (String, Option<String>, Value);
+
 #[derive(Clone, Default)]
 struct MockState {
-    requests: Arc<Mutex<Vec<(String, Option<String>, Value)>>>,
+    requests: Arc<Mutex<Vec<RecordedRequest>>>,
 }
 
 // Serialize env mutation against every other aggregated suite via the

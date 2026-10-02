@@ -250,7 +250,7 @@ fn voice_and_audio_controllers_absent_when_feature_off() {
 #[test]
 #[cfg(feature = "inference")]
 fn inference_engine_compiled_in_when_feature_on() {
-    assert!(crate::inference::INFERENCE_COMPILED_IN);
+    const { assert!(crate::inference::INFERENCE_COMPILED_IN) };
 }
 
 /// With the `inference` feature off, the marker flips and `cpal` leaves the

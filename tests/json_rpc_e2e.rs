@@ -5563,7 +5563,7 @@ async fn json_rpc_wallet_tx_reads_and_web3_gates_round_trip() {
     let (wallet_rpc_addr, _raw_txs) = start_mock_wallet_evm_rpc().await;
     let _evm_provider_guard = EnvVarGuard::set(
         "OPENHUMAN_WALLET_RPC_EVM",
-        &format!("http://{wallet_rpc_addr}"),
+        format!("http://{wallet_rpc_addr}"),
     );
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;

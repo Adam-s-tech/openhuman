@@ -283,7 +283,7 @@ async fn composio_direct_handler(State(state): State<MockState>, request: Reques
     let body_json = if body_bytes.is_empty() {
         Value::Null
     } else {
-        serde_json::from_slice(&body_bytes).unwrap_or_else(|_| Value::Null)
+        serde_json::from_slice(&body_bytes).unwrap_or(Value::Null)
     };
 
     state

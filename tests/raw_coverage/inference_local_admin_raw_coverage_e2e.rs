@@ -27,9 +27,12 @@ use openhuman_core::inference::provider::factory::auth_key_for_slug;
 use openhuman_core::inference::provider::list_configured_models;
 use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 
+/// One captured mock request: method/path, optional auth header, JSON body.
+type RecordedRequest = (String, Option<String>, Value);
+
 #[derive(Clone, Default)]
 struct MockState {
-    requests: Arc<Mutex<Vec<(String, Option<String>, Value)>>>,
+    requests: Arc<Mutex<Vec<RecordedRequest>>>,
     ollama_models: Arc<Mutex<Vec<String>>>,
 }
 

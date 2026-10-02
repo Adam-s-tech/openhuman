@@ -42,7 +42,7 @@ async fn publishing_a_ptt_commit_reaches_a_subscriber() {
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
     let got = events.lock().await;
-    let found = got.iter().find_map(|e| match e {
+    let found = got.iter().map(|e| match e {
         VoiceEvent::PttTranscriptCommitted {
             thread_id,
             session_id,

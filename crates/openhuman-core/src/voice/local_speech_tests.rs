@@ -24,7 +24,7 @@ async fn synthesize_piper_surfaces_binary_lookup_failure() {
     let opts = PiperOptions::default();
     let result = synthesize_piper(&config, "hello world", &opts).await;
 
-    let err = result.err().expect("missing piper must error");
+    let err = result.expect_err("missing piper must error");
     assert!(
         err.contains("piper") || err.contains("TTS"),
         "should mention piper or TTS: {err}"
