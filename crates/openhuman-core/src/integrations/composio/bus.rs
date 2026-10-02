@@ -45,9 +45,8 @@ fn publish_integrations_changed(entries: &[crate::agent::prompts::types::Connect
         active_toolkits = ?toolkits,
         "[composio:bus] publishing integrations changed"
     );
-    crate::core::bus::BUS.publish(crate::core::events::DomainEvent::ComposioIntegrationsChanged {
-        toolkits,
-    });
+    crate::core::bus::BUS
+        .publish(crate::core::events::DomainEvent::ComposioIntegrationsChanged { toolkits });
 }
 
 #[cfg(test)]

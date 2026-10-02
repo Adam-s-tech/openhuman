@@ -54,8 +54,12 @@ where
             ))
         }
     };
-    serde_json::from_slice(&bytes)
-        .map_err(|error| format!("[composio:store] parsing {} failed: {error}", path.display()))
+    serde_json::from_slice(&bytes).map_err(|error| {
+        format!(
+            "[composio:store] parsing {} failed: {error}",
+            path.display()
+        )
+    })
 }
 
 /// Writes `value` to `path` atomically (temp file, then rename).
@@ -71,7 +75,10 @@ where
         .map_err(|error| format!("[composio:store] serializing failed: {error}"))?;
     if let Some(dir) = path.parent() {
         tokio::fs::create_dir_all(dir).await.map_err(|error| {
-            format!("[composio:store] creating {} failed: {error}", dir.display())
+            format!(
+                "[composio:store] creating {} failed: {error}",
+                dir.display()
+            )
         })?;
     }
     let tmp = path.with_extension("json.tmp");

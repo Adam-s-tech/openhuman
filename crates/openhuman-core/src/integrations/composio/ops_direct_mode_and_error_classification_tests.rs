@@ -486,8 +486,8 @@ async fn enrich_skips_connection_already_having_identity() {
 async fn enrich_leaves_unmatched_connection_unchanged() {
     // Connection whose id has no cached profile row is returned with all
     // identity fields as None — the UI falls back to "toolkit · connection_id".
-    use crate::integrations::composio::identity_store::persist_provider_profile;
     use crate::integrations::composio::contract::ProviderUserProfile;
+    use crate::integrations::composio::identity_store::persist_provider_profile;
 
     let tmp = tempfile::tempdir().unwrap();
     let config = test_config(&tmp);

@@ -38,7 +38,6 @@ const CAPABILITY_TOOLKITS: &[&str] = &[
     "todoist",
 ];
 
-
 #[test]
 fn catalog_for_toolkit_resolves_every_capability_toolkit() {
     // Every toolkit the capability surface reports on must have a catalog —

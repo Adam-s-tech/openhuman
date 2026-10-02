@@ -66,11 +66,11 @@ pub mod types;
 
 pub use crate::agent::prompts::types::ConnectedIntegration;
 pub use crate::integrations::composio::providers::{ProviderUserProfile, SyncOutcome, SyncReason};
+pub use action_tool::ComposioActionTool;
 pub use bus::{
     register_composio_trigger_subscriber, ComposioConfigChangedSubscriber,
     ComposioConnectionCreatedSubscriber, ComposioTriggerSubscriber,
 };
-pub use action_tool::ComposioActionTool;
 pub use identity::connection_identity;
 pub use ops::{
     cached_active_integrations, cached_active_integrations_including_expired, connected_set_hash,

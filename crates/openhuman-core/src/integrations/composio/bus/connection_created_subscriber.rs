@@ -32,9 +32,12 @@ const CONNECTION_READY_MAX_BACKOFF: Duration = Duration::from_secs(4);
 /// than taken from the snapshot: the OAuth completion being reacted to may
 /// have written credentials since.
 async fn backend_composio_config(config: &Config, toolkit: &str) -> anyhow::Result<Config> {
-    let live_config = config_rpc::reload_config_from_paths(&config.config_path, &config.workspace_dir)
-        .await
-        .map_err(|e| anyhow::anyhow!("composio backend client: failed to reload live config: {e}"))?;
+    let live_config =
+        config_rpc::reload_config_from_paths(&config.config_path, &config.workspace_dir)
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!("composio backend client: failed to reload live config: {e}")
+            })?;
     match resolve_composio_route(&live_config)? {
         ComposioRoute::Backend => Ok(live_config),
         ComposioRoute::Direct(_) => Err(anyhow::anyhow!(
@@ -220,12 +223,20 @@ pub(super) enum WaitError {
 
 /// Polls `ListConnections` until `connection_id` is active, or until
 /// [`CONNECTION_READY_TIMEOUT`]. Returns the observed status.
-async fn wait_for_connection_active(config: &Config, connection_id: &str) -> Result<String, WaitError> {
+async fn wait_for_connection_active(
+    config: &Config,
+    connection_id: &str,
+) -> Result<String, WaitError> {
     let started = std::time::Instant::now();
     let mut backoff = CONNECTION_READY_INITIAL_BACKOFF;
     let mut last_status: Option<String> = None;
     loop {
-        match connectors::call_bare::<ComposioConnectionsResponse>(config, methods::LIST_CONNECTIONS).await {
+        match connectors::call_bare::<ComposioConnectionsResponse>(
+            config,
+            methods::LIST_CONNECTIONS,
+        )
+        .await
+        {
             Ok(resp) => {
                 if let Some(conn) = resp.connections.into_iter().find(|c| c.id == connection_id) {
                     if conn.is_active() {
@@ -244,7 +255,10 @@ async fn wait_for_connection_active(config: &Config, connection_id: &str) -> Res
             }
         }
         if started.elapsed() >= CONNECTION_READY_TIMEOUT {
-            if let Some(status) = last_status.as_ref().filter(|s| s.starts_with("lookup_error:")) {
+            if let Some(status) = last_status
+                .as_ref()
+                .filter(|s| s.starts_with("lookup_error:"))
+            {
                 return Err(WaitError::Lookup {
                     error: status.clone(),
                 });

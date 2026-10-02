@@ -157,7 +157,9 @@ pub async fn composio_delete_connection(
     // The toolkit names the identity facets and the PROFILE.md bullet to drop;
     // forgetting memory needs only the connection id (its records carry a
     // `connection:<id>` tag), so an unresolvable toolkit skips the former only.
-    let toolkit = resolve_toolkit_for_connection(config, connection_id).await.ok();
+    let toolkit = resolve_toolkit_for_connection(config, connection_id)
+        .await
+        .ok();
     // Only the Composio-side removal crosses the bus. Everything around it —
     // the synced memory, the identity facets, PROFILE.md — is this host's own
     // bookkeeping about a connection it no longer has.

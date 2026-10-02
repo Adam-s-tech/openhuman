@@ -239,14 +239,15 @@ pub async fn run_sync_pass(
     let written = if records_read == 0 {
         0
     } else {
-        store_records(bound, toolkit, connection_id, source_id, &response.batch.records)
-            .await
-            .map_err(|error| {
-                format!(
-                    "storing {toolkit} records failed: {}",
-                    String::from(error)
-                )
-            })?
+        store_records(
+            bound,
+            toolkit,
+            connection_id,
+            source_id,
+            &response.batch.records,
+        )
+        .await
+        .map_err(|error| format!("storing {toolkit} records failed: {}", String::from(error)))?
     };
 
     if more_pending {
