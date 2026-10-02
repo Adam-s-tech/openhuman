@@ -41,17 +41,23 @@ struct MockState {
 /// unavailable while another points it at a mock and asserts it is available.
 /// Each env-mutating test holds this guard for its whole body; declaring it
 /// before any `EnvVarGuard` makes it drop last, after the env is restored.
-fn env_lock() -> MutexGuard<'static, ()> {
-    static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
+fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
+    static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
     ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .blocking_lock()
+}
+
+async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock().await
 }
 
 #[tokio::test]
 async fn local_admin_covers_diagnostics_and_endpoint_probe_without_spawning() {
-    let _env_guard = env_lock();
+    let _env_guard = env_lock_async().await;
     let (base, state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
     let mut config = temp_config(&tmp);
@@ -119,7 +125,7 @@ async fn local_admin_covers_diagnostics_and_endpoint_probe_without_spawning() {
 
 #[tokio::test]
 async fn provider_model_listing_covers_local_synthesis_and_openrouter_failures() {
-    let _env_guard = env_lock();
+    let _env_guard = env_lock_async().await;
     let (base, _state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
     let mut config = temp_config(&tmp);
@@ -193,7 +199,7 @@ async fn provider_model_listing_covers_local_synthesis_and_openrouter_failures()
 
 #[tokio::test]
 async fn local_admin_reports_unhealthy_runtime_and_lm_studio_issue_shapes() {
-    let _env_guard = env_lock();
+    let _env_guard = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let mut config = temp_config(&tmp);
     config.local_ai.runtime_enabled = true;

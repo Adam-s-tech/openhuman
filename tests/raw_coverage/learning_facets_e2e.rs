@@ -60,13 +60,18 @@ static AUTH_INIT: OnceLock<()> = OnceLock::new();
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 
 /// The crate-wide env lock — see the module docs.
-static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .blocking_lock()
+}
+
+async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock().await
 }
 
 // ── Env isolation ─────────────────────────────────────────────────────────
@@ -324,7 +329,7 @@ fn facets_of(payload: &Value, context: &str) -> Vec<Value> {
 /// on the previous one's leftovers — the state-leak the wave brief forbids.
 #[tokio::test]
 async fn learning_facet_lifecycle_from_rebuild_to_reset() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     // Drain anything a sibling suite left, so `rebuild` scores only these.
@@ -639,7 +644,7 @@ async fn learning_facet_lifecycle_from_rebuild_to_reset() {
 /// handler's wording would pass only if that uniform gate were removed.
 #[tokio::test]
 async fn learning_facet_controllers_refuse_bad_input_and_absent_keys() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     // `get_facet` needs both halves of the key.
@@ -754,7 +759,7 @@ async fn learning_facet_controllers_refuse_bad_input_and_absent_keys() {
 /// deliberately does not have.
 #[tokio::test]
 async fn learning_save_profile_writes_the_workspace_file() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let body = "# E2E Profile\n\n- Prefers terse answers\n- Uses pnpm\n";
@@ -831,7 +836,7 @@ async fn learning_save_profile_writes_the_workspace_file() {
 /// with an empty result.
 #[tokio::test]
 async fn learning_linkedin_enrichment_fails_loudly_without_a_backend() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(

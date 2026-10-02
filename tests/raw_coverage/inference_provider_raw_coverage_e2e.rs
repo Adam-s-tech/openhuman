@@ -38,16 +38,21 @@ struct MockState {
 // single crate-wide SHARED_ENV_LOCK (these tests use an `EnvVarGuard` struct
 // that does not itself hold a lock). Poison is recovered so a panic
 // elsewhere cannot wedge the suite.
-fn __shared_env_lock() -> std::sync::MutexGuard<'static, ()> {
+fn __shared_env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     crate::SHARED_ENV_LOCK
-        .get_or_init(|| std::sync::Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .blocking_lock()
+}
+
+async fn __shared_env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    crate::SHARED_ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock().await
 }
 
 #[tokio::test]
 async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes() {
-    let _env_lock = __shared_env_lock();
+    let _env_lock = __shared_env_lock_async().await;
     let (base, _state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
     let mut config = temp_config(&tmp);
@@ -207,7 +212,7 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
 
 #[tokio::test]
 async fn local_service_public_inference_and_diagnostics_use_loopback_ollama() {
-    let _env_lock = __shared_env_lock();
+    let _env_lock = __shared_env_lock_async().await;
     let (base, _state) = serve_mock().await;
     let _ollama_env = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", &base);
     let tmp = tempdir().expect("tempdir");

@@ -43,18 +43,23 @@ struct MockState {
 /// by default. These tests mutate `OPENHUMAN_WORKSPACE`, `OPENHUMAN_OLLAMA_BASE_URL`,
 /// and binary path env vars, so every test takes this guard before reading or
 /// writing config that may be influenced by process env.
-static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .blocking_lock()
+}
+
+async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock().await
 }
 
 #[tokio::test]
 async fn http_models_and_chat_use_mocked_ollama_without_real_runtime() {
-    let _env = env_lock();
+    let _env = env_lock_async().await;
     let (base, state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
     let mut config = temp_config(&tmp);
@@ -166,7 +171,7 @@ async fn http_models_and_chat_use_mocked_ollama_without_real_runtime() {
 
 #[tokio::test]
 async fn dictation_ws_empty_stop_and_audio_cap_do_not_load_whisper() {
-    let _env = env_lock();
+    let _env = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let mut config = temp_config(&tmp);
     config.dictation.streaming = false;
@@ -205,7 +210,7 @@ async fn dictation_ws_empty_stop_and_audio_cap_do_not_load_whisper() {
 
 #[tokio::test]
 async fn local_service_reports_endpoint_state_from_mocked_ollama_without_spawning() {
-    let _env = env_lock();
+    let _env = env_lock_async().await;
     let (base, _state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
     // Runtime binaries on PATH leave a marker if run: OpenHuman probes the
