@@ -86,7 +86,6 @@ fn load_openclaw_bootstrap_files(
         None => inject_workspace_file(prompt, workspace_dir, "SOUL.md", max_chars_per_file),
     }
     inject_workspace_file(prompt, workspace_dir, "IDENTITY.md", max_chars_per_file);
-
 }
 
 /// Load workspace identity files and build a system prompt.

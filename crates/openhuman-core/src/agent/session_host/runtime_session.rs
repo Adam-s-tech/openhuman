@@ -1162,7 +1162,7 @@ impl OpenHumanSessionHost {
                     workflows: self.workflows.clone(),
                     composio_events: None,
                     skill_events: None,
-                    pending_user_autosave: None,
+                    pending_user_text: None,
                 })),
             });
         }
@@ -1208,9 +1208,8 @@ impl OpenHumanSessionHost {
                                 "OpenHumanTurnPrelude",
                             )
                         })?;
-                        prelude
-                            .refresh_turn_boundary(!view.resumed && view.history.is_empty())
-                            .await;
+                        let new_session = !view.resumed && view.history.is_empty();
+                        prelude.refresh_turn_boundary(new_session).await;
                         let context_window = prelude
                             .turn_model_source
                             .effective_context_window(&prelude.model_name)
@@ -1224,12 +1223,7 @@ impl OpenHumanSessionHost {
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
                             .context_window = context_window;
                         let original_user_message = user_text_with_markers(&request.input);
-                        prelude.begin_user_effects(
-                            &mut state
-                                .lock()
-                                .unwrap_or_else(|poisoned| poisoned.into_inner()),
-                            request,
-                        );
+                        prelude.begin_user_effects(request);
                         let overrides = std::mem::take(
                             &mut state
                                 .lock()
@@ -1241,11 +1235,12 @@ impl OpenHumanSessionHost {
                                 &original_user_message,
                                 &overrides,
                                 &mut options.run_context.data,
+                                new_session,
                             )
                             .await;
                         request.input = user_message_from_text(&enriched);
                         let mut preparation = prelude
-                            .prepare(!view.resumed && view.history.is_empty())
+                            .prepare(new_session)
                             .await
                             .map_err(|error| {
                                 tinyagents_runtime::RuntimeError::Driver(error.to_string())
@@ -1378,11 +1373,6 @@ impl OpenHumanSessionHost {
                             .unwrap_or_else(|poisoned| poisoned.into_inner())
                             .prelude
                             .clone();
-                        let citations = state
-                            .lock()
-                            .unwrap_or_else(|poisoned| poisoned.into_inner())
-                            .pending_citations
-                            .take();
                         if let Some(prelude) = prelude {
                             prelude.finalize_after_durable_commit(&receipt).await;
                             account_committed_turn_against_goal(
@@ -1392,14 +1382,6 @@ impl OpenHumanSessionHost {
                             )
                             .await;
                         }
-                        // Citations are display-only, but their result belongs
-                        // to this committed turn. Join only after durability so
-                        // a failed/cancelled candidate never becomes the UI's
-                        // "last turn" citation set.
-                        let citations = match citations {
-                            Some(task) => task.await.unwrap_or_default(),
-                            None => Vec::new(),
-                        };
                         let _ =
                             progress::send_receipt_progress(&receipt, &input, &output, iterations)
                                 .await;
@@ -1413,7 +1395,6 @@ impl OpenHumanSessionHost {
                                 .unwrap_or_else(|poisoned| poisoned.into_inner());
                             state.last_turn_hit_cap = interrupted;
                             state.last_turn_usage = Some(usage);
-                            state.last_turn_citations = citations;
                         }
                         crate::agent::hooks::fire_hooks(
                             &post_turn_hooks,
