@@ -996,18 +996,8 @@ pub fn namespace_description(namespace: &str) -> Option<&'static str> {
         "skill_runtime" => Some("Run installed skills, inspect run logs, and resolve Node/Python skill runtimes."),
         "skills" => Some("Discovered SKILL.md skills (discovery, parse, install, run) and their resources."),
         "socket" => Some("Backend Socket.IO bridge controls."),
-        "memory" => Some("Document storage, vector search, key-value store, and knowledge graph."),
-        "memory_goals" => Some(
-            "The agent's long-term goals list for working with the user — editable items plus turn-based enrichment.",
-        ),
-        "memory_tree" => Some(
-            "Canonical chunk ingestion, provenance capture, and chunk retrieval for source-grounded memory.",
-        ),
-        "memory_sync" => Some(
-            "Per-connection memory sync status, user enable toggle, and live progress for the desktop UI.",
-        ),
-        "memory_sources" => Some(
-            "User-configured data connectors (Composio, folders, GitHub repos, RSS, web pages) that feed memory.",
+        "memory" => Some(
+            "Memory v2: engine selection, recall, fetch, learn, forget, conversations, document sources, context.md and v1 import.",
         ),
         "run_ledger" => Some(
             "Durable agent and workflow run state, child lineage, events, telemetry, and checkpoint references.",
@@ -1041,15 +1031,7 @@ pub fn namespace_description(namespace: &str) -> Option<&'static str> {
         "update" => {
             Some("Self-update: check GitHub Releases for newer core binary and stage updates.")
         }
-        "tree_summarizer" => {
-            Some("Hierarchical time-based summarization tree for background knowledge compression.")
-        }
-        "learning" => Some(
-            "User context enrichment — LinkedIn profile scraping and onboarding intelligence.",
-        ),
-        "people" => {
-            Some("Contact resolution and recency × frequency × reciprocity × depth scoring.")
-        },
+
         "notification" => Some(
             "Integration notification ingest, triage scoring, listing, read-state, \
              and per-provider routing settings.",
