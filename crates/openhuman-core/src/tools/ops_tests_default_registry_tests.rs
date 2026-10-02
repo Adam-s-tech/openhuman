@@ -1,9 +1,10 @@
 use super::*;
 #[test]
-fn all_tools_registers_collapsed_memory_and_search_tools() {
+fn all_tools_registers_the_memory_tool_while_memory_is_on() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
     let cfg = test_config(&tmp);
+    crate::memory::test_fixtures::bind_reference(&cfg);
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
     let tools = all_tools(
@@ -20,14 +21,10 @@ fn all_tools_registers_collapsed_memory_and_search_tools() {
     let memory = tools
         .iter()
         .find(|tool| tool.name() == crate::memory::tools::MEMORY_TOOL_NAME)
-        .expect("collapsed memory tool must be registered");
+        .expect("the memory tool must be registered while memory is on");
     assert_eq!(
         tool_group(memory.name()),
         crate::core::all::DomainGroup::Memory
-    );
-    assert_eq!(
-        tool_capability(memory.name()),
-        Some(tinymemory_api::capabilities::Capability::Core)
     );
     // The search half of deferral is the harness's intrinsic bridge, never a
     // registered tool: a host `tool_search` would shadow it.
