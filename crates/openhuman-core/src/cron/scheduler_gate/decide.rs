@@ -93,5 +93,5 @@ pub fn decide(signals: &Signals, cfg: &SchedulerGateConfig) -> Policy {
 }
 
 #[cfg(test)]
-#[path = "scheduler_gate_decide_tests.rs"]
+#[path = "decide_tests.rs"]
 mod tests;

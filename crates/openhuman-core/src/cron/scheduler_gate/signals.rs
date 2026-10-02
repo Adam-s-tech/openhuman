@@ -91,7 +91,7 @@ struct BatteryProbe {
 }
 
 /// The real probe, when `battery` is compiled in.
-#[cfg(feature = "battery")]
+#[cfg(feature = "scheduler-gate")]
 fn battery_probe() -> Option<BatteryProbe> {
     match probe_battery() {
         Ok(probe) => Some(probe),
@@ -99,7 +99,7 @@ fn battery_probe() -> Option<BatteryProbe> {
             // Probe failure on Linux often just means no /sys/class/power_supply
             // entries (server, container). Log once at debug because this fires
             // every 30s on the sampler tick.
-            log::debug!("[tinymemory_gate] battery probe failed: {err:#}");
+            log::debug!("[scheduler_gate] battery probe failed: {err:#}");
             None
         }
     }
@@ -112,12 +112,12 @@ fn battery_probe() -> Option<BatteryProbe> {
 /// a configuration this code already handles — rather than down a new branch.
 /// The visible consequence is that `require_ac_power` and `battery_floor` stop
 /// being enforced; CPU throttling and server-mode detection are unaffected.
-#[cfg(not(feature = "battery"))]
+#[cfg(not(feature = "scheduler-gate"))]
 fn battery_probe() -> Option<BatteryProbe> {
     None
 }
 
-#[cfg(feature = "battery")]
+#[cfg(feature = "scheduler-gate")]
 fn probe_battery() -> Result<BatteryProbe, starship_battery::Error> {
     let manager = starship_battery::Manager::new()?;
     let mut any = false;
@@ -143,7 +143,7 @@ fn probe_battery() -> Result<BatteryProbe, starship_battery::Error> {
     Ok(BatteryProbe { on_ac, charge })
 }
 
-#[cfg(any(feature = "battery", test))]
+#[cfg(any(feature = "scheduler-gate", test))]
 fn include_charge_sample(total: &mut f32, count: &mut f32, charge: f32) {
     if charge.is_finite() {
         *total += charge;
