@@ -3377,7 +3377,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'Schleifenaufrufbudget',
   'settings.ai.composioSyncScans': 'Composio Synchronisierungsscans',
   'settings.ai.totalBackgroundApiReadBudget': 'Gesamtbg API Lesebudget',
-  'settings.ai.memoryWorkerPolls': 'Speicher-Worker-Umfragen',
   'settings.ai.routing.managed': 'Verwaltet',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'Von TinyHumans verwaltet',
@@ -3432,11 +3431,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Baum-Extraktionen und Konsolidierungen',
   'settings.ai.routing.workload.memory.hint':
     'Empfohlen: ein günstigeres Zusammenfassungsmodell. Es sollte konsistent und kompakt sein, braucht aber keine erstklassige Frontier-Reasoning-Leistung.',
-  'settings.ai.routing.workload.learning.label': 'Lernen · Reflexionen',
-  'settings.ai.routing.workload.learning.description':
-    'Periodische Reflexion über den jüngsten Verlauf',
-  'settings.ai.routing.workload.learning.hint':
-    'Empfohlen: ein stärkeres reflektierendes Modell. Kann mittelpreisig oder Premium sein, da es von besserer Synthese über den jüngsten Verlauf profitiert.',
   'settings.ai.routing.addCustomProvider': 'Benutzerdefinierten Anbieter hinzufügen',
   'settings.billing.autoRecharge.addAmount': 'Füge diesen Betrag hinzu',
   'settings.billing.autoRecharge.addCard': 'Karte hinzufügen',
@@ -4633,18 +4627,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.modelIdPlaceholder': 'Modell-ID eingeben',
   'settings.ai.picker.claudeCodeHint':
     'Verwende einen Claude-Code-Modellalias oder eine Modell-ID.',
-  'settings.ai.loops.memoryTreeWorkers.name': 'Speicherbaum-Worker',
-  'settings.ai.loops.cadence.queue': 'Warteschlange',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'Extrahiert Abschnitte, versiegelt Zweige, erstellt tägliche Zusammenfassungen und ordnet Themen zu.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} Worker fragen alle {seconds}s ab; das LLM wird nur aufgerufen, wenn die Warteschlange Extrahier-, Versiegel-, Zusammenfassungs- oder Themenaufgaben enthält.',
-  'settings.ai.loops.reflectionRebuild.name': 'Reflexions-Neuaufbau',
-  'settings.ai.loops.cadence.thirtyMin': '30 Min.',
-  'settings.ai.loops.reflectionRebuild.work':
-    'Aktualisiert den Reflexionsstatus nach Speicheraktivität.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} Aufwachvorgänge/Woche; das LLM arbeitet nur, wenn der Neuaufbau Reflexion benötigt.',
   'settings.ai.loops.composioSync.name': 'Composio-Synchronisierung',
   'settings.ai.loops.cadence.twentyMin': '20 Min.',
   'settings.ai.loops.composioSync.route': 'Integrations-APIs',
@@ -4661,7 +4643,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/Woche',
   'settings.ai.perWeekMax': '{count}/Woche max.',
   'settings.ai.perHour': '{amount}/Std.',
-  'settings.ai.memoryPollsDetail': '{count} Speicherabfragen',
   'settings.ai.connectionSyncBreakdown': '{sync} Verbindungssynchronisierung',
   'settings.ai.rowsLeftFormula': 'verbleibend / durchschnittliche Zeile = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate':
@@ -4682,8 +4663,6 @@ const messages: TranslationMap = {
     '{count} aktive Integrationsverbindung(en), alle 20 Min. gescannt',
   'settings.ai.totalApiReadBudgetDetail':
     'Kalenderplaner-Abfragen + regelmäßige Integrationsscans; schließt vom Nutzer gestartete Chat-Tools aus',
-  'settings.ai.memoryWorkerPollsDetail':
-    '4 Worker fragen alle 5s ab; das LLM wird nur für Aufgaben in der Warteschlange aufgerufen',
   'settings.mcpServer.tools.listTools': 'Listet alle verfügbaren MCP-Tools auf',
   'settings.mcpServer.tools.toolInstructions': 'Ruft die Nutzungshinweise für ein Tool ab',
   'settings.mcpServer.tools.listSubagents': 'Listet verfügbare Subagenten auf',

@@ -3332,7 +3332,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'Budżet wywołań pętli',
   'settings.ai.composioSyncScans': 'Skanowania synchronizacji Composio',
   'settings.ai.totalBackgroundApiReadBudget': 'Łączny budżet odczytów API w tle',
-  'settings.ai.memoryWorkerPolls': 'Odpytywania procesu pamięci',
   'settings.ai.routing.managed': 'Zarządzane',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'Zarządzane przez TinyHumans',
@@ -3388,10 +3387,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Ekstrakty i konsolidacje z drzew',
   'settings.ai.routing.workload.memory.hint':
     'Zalecane: tańszy model podsumowujący. Powinien być spójny i zwarty, ale nie wymaga zaawansowanego rozumowania na poziomie pionierskim.',
-  'settings.ai.routing.workload.learning.label': 'Nauka · Refleksje',
-  'settings.ai.routing.workload.learning.description': 'Okresowa refleksja nad historią najnowszą',
-  'settings.ai.routing.workload.learning.hint':
-    'Zalecane: mocniejszy model odblaskowy. Może to być produkt średniej klasy lub premium, ponieważ korzysta z lepszej syntezy w najnowszej historii.',
   'settings.ai.routing.addCustomProvider': 'Dodaj własnego dostawcę',
   'settings.billing.autoRecharge.addAmount': 'Dodaj tę kwotę',
   'settings.billing.autoRecharge.addCard': 'Dodaj kartę',
@@ -4573,17 +4568,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': 'Dostawcy',
   'settings.ai.picker.modelIdPlaceholder': 'Wpisz identyfikator modelu',
   'settings.ai.picker.claudeCodeHint': 'Użyj aliasu modelu Claude Code lub identyfikatora modelu.',
-  'settings.ai.loops.memoryTreeWorkers.name': 'Workery drzewa pamięci',
-  'settings.ai.loops.cadence.queue': 'kolejka',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'Wydobywa fragmenty, pieczętuje gałęzie, tworzy codzienne podsumowania i kieruje tematy.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} workerów odpytuje kolejkę co {seconds}s; LLM jest wywoływany tylko wtedy, gdy w kolejce są zadania wydobycia/pieczętowania/podsumowania/tematu.',
-  'settings.ai.loops.reflectionRebuild.name': 'Odbudowa refleksji',
-  'settings.ai.loops.cadence.thirtyMin': '30 min',
-  'settings.ai.loops.reflectionRebuild.work': 'Odświeża stan refleksji po aktywności pamięci.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} przebudzeń/tydzień; LLM pracuje tylko wtedy, gdy odbudowa wymaga refleksji.',
   'settings.ai.loops.composioSync.name': 'Synchronizacja Composio',
   'settings.ai.loops.cadence.twentyMin': '20 min',
   'settings.ai.loops.composioSync.route': 'API integracji',
@@ -4600,7 +4584,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/tydzień',
   'settings.ai.perWeekMax': '{count}/tydzień maks.',
   'settings.ai.perHour': '{amount}/godz.',
-  'settings.ai.memoryPollsDetail': '{count} odpytań pamięci',
   'settings.ai.connectionSyncBreakdown': '{sync} synchronizacja połączeń',
   'settings.ai.rowsLeftFormula': 'pozostało / średni wiersz = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Do oszacowania potrzebne są ostatnie wiersze wydatków.',
@@ -4617,8 +4600,6 @@ const messages: TranslationMap = {
     '{count} aktywne połączenie(a) integracyjne, skanowane co 20 min',
   'settings.ai.totalApiReadBudgetDetail':
     'odczyty planera kalendarza + okresowe skanowanie integracji; nie obejmuje narzędzi czatu uruchamianych przez użytkownika',
-  'settings.ai.memoryWorkerPollsDetail':
-    '4 workery odpytują co 5s; LLM jest wywoływany tylko dla zadań w kolejce',
   'settings.mcpServer.tools.listTools': 'Wyświetla listę wszystkich dostępnych narzędzi MCP',
   'settings.mcpServer.tools.toolInstructions': 'Pobiera instrukcję użycia narzędzia',
   'settings.mcpServer.tools.listSubagents': 'Wyświetla listę dostępnych subagentów',

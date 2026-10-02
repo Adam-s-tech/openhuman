@@ -3341,7 +3341,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'Presupuesto de llamadas en bucle',
   'settings.ai.composioSyncScans': 'Composio escaneos de sincronización',
   'settings.ai.totalBackgroundApiReadBudget': 'Total bg API leer presupuesto',
-  'settings.ai.memoryWorkerPolls': 'Encuestas de trabajadores de la memoria',
   'settings.ai.routing.managed': 'Gestionado',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'Gestionado por TinyHumans',
@@ -3397,11 +3396,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Extractos de árboles y consolidaciones.',
   'settings.ai.routing.workload.memory.hint':
     'Recomendado: un modelo de resumen más económico. Debe ser coherente y compacto, pero no necesita un razonamiento de primer nivel.',
-  'settings.ai.routing.workload.learning.label': 'Aprendizaje · Reflexiones',
-  'settings.ai.routing.workload.learning.description':
-    'Reflexión periódica sobre la historia reciente',
-  'settings.ai.routing.workload.learning.hint':
-    'Recomendado: un modelo reflectante más fuerte. Esto puede ser de costo medio o premium porque se beneficia de una mejor síntesis a lo largo de la historia reciente.',
   'settings.ai.routing.addCustomProvider': 'Agregar proveedor personalizado',
   'settings.billing.autoRecharge.addAmount': 'Agregar esta cantidad',
   'settings.billing.autoRecharge.addCard': 'Agregar tarjeta',
@@ -4597,18 +4591,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': 'Proveedores',
   'settings.ai.picker.modelIdPlaceholder': 'Introduce el ID del modelo',
   'settings.ai.picker.claudeCodeHint': 'Usa un alias de modelo de Claude Code o un ID de modelo.',
-  'settings.ai.loops.memoryTreeWorkers.name': 'Trabajadores del árbol de memoria',
-  'settings.ai.loops.cadence.queue': 'cola',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'Extrae fragmentos, sella ramas, genera resúmenes diarios y enruta temas.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} trabajadores sondean cada {seconds}s; el LLM solo se invoca cuando la cola tiene tareas de extracción, sellado, resumen o tema.',
-  'settings.ai.loops.reflectionRebuild.name': 'Reconstrucción de reflexión',
-  'settings.ai.loops.cadence.thirtyMin': '30 min',
-  'settings.ai.loops.reflectionRebuild.work':
-    'Actualiza el estado de reflexión tras la actividad de memoria.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} activaciones por semana; el LLM solo trabaja cuando la reconstrucción necesita reflexión.',
   'settings.ai.loops.composioSync.name': 'Sincronización de Composio',
   'settings.ai.loops.cadence.twentyMin': '20 min',
   'settings.ai.loops.composioSync.route': 'APIs de integración',
@@ -4625,7 +4607,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/semana',
   'settings.ai.perWeekMax': '{count}/semana como máximo',
   'settings.ai.perHour': '{amount}/h',
-  'settings.ai.memoryPollsDetail': '{count} sondeos de memoria',
   'settings.ai.connectionSyncBreakdown': '{sync} de sincronización de conexiones',
   'settings.ai.rowsLeftFormula': 'restante / fila media = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Se necesitan filas de gasto recientes para estimar.',
@@ -4644,8 +4625,6 @@ const messages: TranslationMap = {
     '{count} conexión(es) de integración activa(s), exploradas cada 20 min',
   'settings.ai.totalApiReadBudgetDetail':
     'lecturas del planificador de calendario + exploraciones periódicas de integraciones; excluye herramientas de chat iniciadas por el usuario',
-  'settings.ai.memoryWorkerPollsDetail':
-    '4 trabajadores sondean cada 5s; el LLM solo se invoca para tareas en cola',
   'settings.mcpServer.tools.listTools': 'Lista todas las herramientas MCP disponibles',
   'settings.mcpServer.tools.toolInstructions':
     'Obtiene las instrucciones de uso de una herramienta',

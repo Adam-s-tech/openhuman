@@ -3290,7 +3290,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'লুপ কল বাজেট',
   'settings.ai.composioSyncScans': 'Composio সিঙ্ক স্ক্যান',
   'settings.ai.totalBackgroundApiReadBudget': 'মোট bg API পঠিত বাজেট',
-  'settings.ai.memoryWorkerPolls': 'মেমরি কর্মী পোল',
   'settings.ai.routing.managed': 'পরিচালিত',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'TinyHumans দ্বারা পরিচালিত',
@@ -3344,11 +3343,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'গাছের নির্যাস এবং একত্রীকরণ',
   'settings.ai.routing.workload.memory.hint':
     'প্রস্তাবিত: একটি সস্তা সংক্ষিপ্তকরণ মডেল। এটি সামঞ্জস্যপূর্ণ এবং কম্প্যাক্ট হওয়া উচিত, তবে এর জন্য প্রিমিয়াম ফ্রন্টিয়ার-লেভেল যুক্তির প্রয়োজন নেই।',
-  'settings.ai.routing.workload.learning.label': 'শিক্ষা · প্রতিফলন',
-  'settings.ai.routing.workload.learning.description':
-    'সাম্প্রতিক ইতিহাসের উপর পর্যায়ক্রমিক প্রতিফলন',
-  'settings.ai.routing.workload.learning.hint':
-    'প্রস্তাবিত: একটি শক্তিশালী প্রতিফলিত মডেল। এটি মধ্য-খরচ বা প্রিমিয়াম হতে পারে কারণ সাম্প্রতিক ইতিহাসের তুলনায় এটি আরও ভাল সংশ্লেষণ থেকে উপকৃত হয়।',
   'settings.ai.routing.addCustomProvider': 'কাস্টম প্রদানকারী যোগ করুন',
   'settings.billing.autoRecharge.addAmount': 'এই পরিমাণ যোগ করুন',
   'settings.billing.autoRecharge.addCard': 'কার্ড যোগ করুন',
@@ -4517,17 +4511,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': 'প্রদানকারী',
   'settings.ai.picker.modelIdPlaceholder': 'মডেল আইডি লিখুন',
   'settings.ai.picker.claudeCodeHint': 'একটি Claude Code মডেল উপনাম বা মডেল আইডি ব্যবহার করুন।',
-  'settings.ai.loops.memoryTreeWorkers.name': 'মেমরি ট্রি ওয়ার্কার',
-  'settings.ai.loops.cadence.queue': 'সারি',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'খণ্ড বের করে, শাখা সিল করে, দৈনিক সারাংশ তৈরি করে এবং বিষয় রুট করে।',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} জন ওয়ার্কার প্রতি {seconds} সেকেন্ডে সারি পরীক্ষা করে; সারিতে extract/seal/digest/topic কাজ থাকলেই কেবল LLM কল হয়।',
-  'settings.ai.loops.reflectionRebuild.name': 'রিফ্লেকশন পুনর্নির্মাণ',
-  'settings.ai.loops.cadence.thirtyMin': '৩০ মিনিট',
-  'settings.ai.loops.reflectionRebuild.work': 'মেমরি কার্যকলাপের পর রিফ্লেকশন অবস্থা রিফ্রেশ করে।',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} জাগরণ/সপ্তাহ; পুনর্নির্মাণে রিফ্লেকশন দরকার হলেই কেবল LLM কাজ করে।',
   'settings.ai.loops.composioSync.name': 'Composio সিঙ্ক',
   'settings.ai.loops.cadence.twentyMin': '২০ মিনিট',
   'settings.ai.loops.composioSync.route': 'ইন্টিগ্রেশন API',
@@ -4543,7 +4526,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/সপ্তাহ',
   'settings.ai.perWeekMax': '{count}/সপ্তাহ সর্বোচ্চ',
   'settings.ai.perHour': '{amount}/ঘণ্টা',
-  'settings.ai.memoryPollsDetail': '{count}টি মেমরি পোল',
   'settings.ai.connectionSyncBreakdown': '{sync} সংযোগ সিঙ্ক',
   'settings.ai.rowsLeftFormula': 'অবশিষ্ট / গড় সারি = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'অনুমান করতে সাম্প্রতিক খরচের সারি প্রয়োজন।',
@@ -4559,8 +4541,6 @@ const messages: TranslationMap = {
     '{count}টি সক্রিয় ইন্টিগ্রেশন সংযোগ, প্রতি ২০ মিনিটে স্ক্যান করা হয়',
   'settings.ai.totalApiReadBudgetDetail':
     'ক্যালেন্ডার প্ল্যানার রিড + পর্যায়ক্রমিক ইন্টিগ্রেশন স্ক্যান; ব্যবহারকারীর শুরু করা চ্যাট টুল বাদে',
-  'settings.ai.memoryWorkerPollsDetail':
-    '৪ জন ওয়ার্কার প্রতি ৫ সেকেন্ডে পরীক্ষা করে; কেবল সারিবদ্ধ কাজের জন্য LLM কল হয়',
   'settings.mcpServer.tools.listTools': 'সব উপলব্ধ MCP টুলের তালিকা দেয়',
   'settings.mcpServer.tools.toolInstructions': 'একটি টুলের ব্যবহার নির্দেশনা পায়',
   'settings.mcpServer.tools.listSubagents': 'উপলব্ধ সাব-এজেন্টের তালিকা দেয়',

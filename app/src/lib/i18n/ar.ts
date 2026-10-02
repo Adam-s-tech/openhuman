@@ -3230,7 +3230,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'ميزانية المكالمة المتكررة',
   'settings.ai.composioSyncScans': 'Composio عمليات مسح المزامنة',
   'settings.ai.totalBackgroundApiReadBudget': 'إجمالي bg API ميزانية القراءة',
-  'settings.ai.memoryWorkerPolls': 'استطلاعات عاملي الذاكرة',
   'settings.ai.routing.managed': 'المُدارة',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'مُدار بواسطة TinyHumans',
@@ -3285,10 +3284,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'مقتطفات شجرة والتوحيد',
   'settings.ai.routing.workload.memory.hint':
     'موصى به: نموذج تلخيص أرخص. وينبغي أن تكون متسقة ومتماسكة، ولكنها لا تحتاج إلى تفكير عالي المستوى.',
-  'settings.ai.routing.workload.learning.label': 'التعلم · تأملات',
-  'settings.ai.routing.workload.learning.description': 'التفكير الدوري في التاريخ الحديث',
-  'settings.ai.routing.workload.learning.hint':
-    'الموصى بها: نموذج عاكس أقوى. يمكن أن يكون هذا متوسط ​​التكلفة أو ممتازًا لأنه يستفيد من التوليف الأفضل على مدار التاريخ الحديث.',
   'settings.ai.routing.addCustomProvider': 'إضافة موفر مخصص',
   'settings.billing.autoRecharge.addAmount': 'أضف هذا المبلغ',
   'settings.billing.autoRecharge.addCard': 'إضافة بطاقة',
@@ -4431,17 +4426,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': 'المزوّدون',
   'settings.ai.picker.modelIdPlaceholder': 'أدخل معرّف النموذج',
   'settings.ai.picker.claudeCodeHint': 'استخدم اسمًا مستعارًا لنموذج Claude Code أو معرّف نموذج.',
-  'settings.ai.loops.memoryTreeWorkers.name': 'عمّال شجرة الذاكرة',
-  'settings.ai.loops.cadence.queue': 'قائمة الانتظار',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'يستخرج المقاطع، ويختم الفروع، وينشئ ملخصات يومية، ويوجّه المواضيع.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    'يستطلع {workers} عاملًا قائمة الانتظار كل {seconds}ث؛ لا يُستدعى النموذج اللغوي إلا عندما تحتوي القائمة على مهام استخراج/ختم/تلخيص/موضوع.',
-  'settings.ai.loops.reflectionRebuild.name': 'إعادة بناء التأمل',
-  'settings.ai.loops.cadence.thirtyMin': '30 دقيقة',
-  'settings.ai.loops.reflectionRebuild.work': 'يحدّث حالة التأمل بعد نشاط الذاكرة.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} استيقاظ/أسبوعيًا؛ يعمل النموذج اللغوي فقط عندما تحتاج إعادة البناء إلى تأمل.',
   'settings.ai.loops.composioSync.name': 'مزامنة Composio',
   'settings.ai.loops.cadence.twentyMin': '20 دقيقة',
   'settings.ai.loops.composioSync.route': 'واجهات برمجة التكامل',
@@ -4457,7 +4441,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/أسبوعيًا',
   'settings.ai.perWeekMax': '{count}/أسبوعيًا كحد أقصى',
   'settings.ai.perHour': '{amount}/ساعة',
-  'settings.ai.memoryPollsDetail': '{count} من استطلاعات الذاكرة',
   'settings.ai.connectionSyncBreakdown': 'مزامنة الاتصالات {sync}',
   'settings.ai.rowsLeftFormula': 'المتبقّي / متوسط الصف = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'يلزم وجود صفوف إنفاق حديثة للتقدير.',
@@ -4473,8 +4456,6 @@ const messages: TranslationMap = {
   'settings.ai.composioSyncScansDetail': '{count} اتصال(اتصالات) تكامل نشط(ة)، يُفحص كل 20 دقيقة',
   'settings.ai.totalApiReadBudgetDetail':
     'قراءات مخطِّط التقويم + عمليات فحص التكامل الدورية؛ لا يشمل أدوات المحادثة التي يبدأها المستخدم',
-  'settings.ai.memoryWorkerPollsDetail':
-    'يستطلع 4 عمّال كل 5 ثوانٍ؛ لا يُستدعى النموذج اللغوي إلا للمهام في قائمة الانتظار',
   'settings.mcpServer.tools.listTools': 'يسرد كل أدوات MCP المتاحة',
   'settings.mcpServer.tools.toolInstructions': 'يحصل على تعليمات استخدام أداة',
   'settings.mcpServer.tools.listSubagents': 'يسرد الوكلاء الفرعيين المتاحين',

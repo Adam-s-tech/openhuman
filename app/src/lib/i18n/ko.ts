@@ -3269,7 +3269,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': '루프 호출 예산',
   'settings.ai.composioSyncScans': 'Composio 동기화 검색',
   'settings.ai.totalBackgroundApiReadBudget': '총 bg API 읽기 예산',
-  'settings.ai.memoryWorkerPolls': '메모리 작업자 설문 조사',
   'settings.ai.routing.managed': '관리됨',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'TinyHumans이 관리',
@@ -3322,10 +3321,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': '나무 추출물 및 통합',
   'settings.ai.routing.workload.memory.hint':
     '권장사항: 더 저렴한 요약 모델. 일관되고 간결해야 하지만 프리미엄 프론티어 수준의 추론은 필요하지 않습니다.',
-  'settings.ai.routing.workload.learning.label': '학습 · 반성',
-  'settings.ai.routing.workload.learning.description': '최근 역사에 대한 주기적인 성찰',
-  'settings.ai.routing.workload.learning.hint':
-    '권장 사항: 더 강한 반사 모델. 최근 역사에 비해 더 나은 합성을 통해 이점을 얻을 수 있으므로 중간 비용 또는 프리미엄이 될 수 있습니다.',
   'settings.ai.routing.addCustomProvider': '사용자 정의 공급자 추가',
   'settings.billing.autoRecharge.addAmount': '이 금액 추가',
   'settings.billing.autoRecharge.addCard': '카드 추가',
@@ -4479,17 +4474,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': '제공업체',
   'settings.ai.picker.modelIdPlaceholder': '모델 ID 입력',
   'settings.ai.picker.claudeCodeHint': 'Claude Code 모델 별칭 또는 모델 ID를 사용하세요.',
-  'settings.ai.loops.memoryTreeWorkers.name': '메모리 트리 워커',
-  'settings.ai.loops.cadence.queue': '대기열',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    '청크를 추출하고, 브랜치를 봉인하고, 일일 요약을 실행하고, 주제를 라우팅합니다.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '워커 {workers}개가 {seconds}초마다 대기열을 확인합니다. 대기열에 추출/봉인/요약/주제 작업이 있을 때만 LLM이 호출됩니다.',
-  'settings.ai.loops.reflectionRebuild.name': '리플렉션 재구성',
-  'settings.ai.loops.cadence.thirtyMin': '30분',
-  'settings.ai.loops.reflectionRebuild.work': '메모리 활동 후 리플렉션 상태를 새로 고칩니다.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '주당 {count}회 활성화되며, 재구성에 리플렉션이 필요할 때만 LLM이 작동합니다.',
   'settings.ai.loops.composioSync.name': 'Composio 동기화',
   'settings.ai.loops.cadence.twentyMin': '20분',
   'settings.ai.loops.composioSync.route': '통합 API',
@@ -4504,7 +4488,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/주',
   'settings.ai.perWeekMax': '최대 {count}/주',
   'settings.ai.perHour': '{amount}/시간',
-  'settings.ai.memoryPollsDetail': '메모리 폴링 {count}회',
   'settings.ai.connectionSyncBreakdown': '연결 동기화 {sync}',
   'settings.ai.rowsLeftFormula': '남은 금액 / 평균 행 = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': '추정하려면 최근 지출 행이 필요합니다.',
@@ -4519,8 +4502,6 @@ const messages: TranslationMap = {
   'settings.ai.composioSyncScansDetail': '활성 통합 연결 {count}개, 20분마다 스캔',
   'settings.ai.totalApiReadBudgetDetail':
     '캘린더 플래너 읽기 + 주기적 통합 스캔; 사용자가 시작한 채팅 도구는 제외',
-  'settings.ai.memoryWorkerPollsDetail':
-    '워커 4개가 5초마다 확인하며, 대기열에 있는 작업에만 LLM이 호출됩니다',
   'settings.mcpServer.tools.listTools': '사용 가능한 모든 MCP 도구를 나열합니다',
   'settings.mcpServer.tools.toolInstructions': '도구의 사용 지침을 가져옵니다',
   'settings.mcpServer.tools.listSubagents': '사용 가능한 서브에이전트를 나열합니다',

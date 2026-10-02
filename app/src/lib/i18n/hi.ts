@@ -3291,7 +3291,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'लूप कॉल बजट',
   'settings.ai.composioSyncScans': 'Composio सिंक स्कैन',
   'settings.ai.totalBackgroundApiReadBudget': 'कुल बीजी API बजट पढ़ें',
-  'settings.ai.memoryWorkerPolls': 'स्मृति कार्यकर्ता सर्वेक्षण',
   'settings.ai.routing.managed': 'प्रबंधित',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'TinyHumans द्वारा प्रबंधित',
@@ -3344,10 +3343,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'वृक्ष-अर्क और समेकन',
   'settings.ai.routing.workload.memory.hint':
     'अनुशंसित: एक सस्ता सारांशीकरण मॉडल। यह सुसंगत और संक्षिप्त होना चाहिए, लेकिन इसके लिए प्रीमियम सीमांत-स्तरीय तर्क की आवश्यकता नहीं है।',
-  'settings.ai.routing.workload.learning.label': 'सीखना · चिंतन',
-  'settings.ai.routing.workload.learning.description': 'हाल के इतिहास पर समय-समय पर चिंतन',
-  'settings.ai.routing.workload.learning.hint':
-    'अनुशंसित: एक मजबूत चिंतनशील मॉडल। यह मध्य-लागत या प्रीमियम हो सकता है क्योंकि यह हाल के इतिहास में बेहतर संश्लेषण से लाभान्वित होता है।',
   'settings.ai.routing.addCustomProvider': 'कस्टम प्रदाता जोड़ें',
   'settings.billing.autoRecharge.addAmount': 'यह राशि जोड़ें',
   'settings.billing.autoRecharge.addCard': 'कार्ड जोड़ें',
@@ -4515,18 +4510,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': 'प्रदाता',
   'settings.ai.picker.modelIdPlaceholder': 'मॉडल आईडी दर्ज करें',
   'settings.ai.picker.claudeCodeHint': 'Claude Code मॉडल उपनाम या मॉडल आईडी का उपयोग करें।',
-  'settings.ai.loops.memoryTreeWorkers.name': 'मेमोरी ट्री वर्कर',
-  'settings.ai.loops.cadence.queue': 'कतार',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'अंश निकालता है, शाखाएँ सील करता है, रोज़ाना सार तैयार करता है, और विषयों को रूट करता है।',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} वर्कर हर {seconds} सेकंड में कतार जाँचते हैं; LLM तभी कॉल होता है जब कतार में extract/seal/digest/topic कार्य हों।',
-  'settings.ai.loops.reflectionRebuild.name': 'रिफ्लेक्शन पुनर्निर्माण',
-  'settings.ai.loops.cadence.thirtyMin': '30 मिनट',
-  'settings.ai.loops.reflectionRebuild.work':
-    'मेमोरी गतिविधि के बाद रिफ्लेक्शन स्थिति को ताज़ा करता है।',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} जागरण/सप्ताह; LLM तभी काम करता है जब पुनर्निर्माण को रिफ्लेक्शन की ज़रूरत हो।',
   'settings.ai.loops.composioSync.name': 'Composio सिंक',
   'settings.ai.loops.cadence.twentyMin': '20 मिनट',
   'settings.ai.loops.composioSync.route': 'इंटीग्रेशन API',
@@ -4541,7 +4524,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/सप्ताह',
   'settings.ai.perWeekMax': '{count}/सप्ताह अधिकतम',
   'settings.ai.perHour': '{amount}/घंटा',
-  'settings.ai.memoryPollsDetail': '{count} मेमोरी पोल',
   'settings.ai.connectionSyncBreakdown': '{sync} कनेक्शन सिंक',
   'settings.ai.rowsLeftFormula': 'शेष / औसत पंक्ति = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'अनुमान लगाने के लिए हालिया खर्च पंक्तियाँ चाहिए।',
@@ -4556,8 +4538,6 @@ const messages: TranslationMap = {
   'settings.ai.composioSyncScansDetail': '{count} सक्रिय इंटीग्रेशन कनेक्शन, हर 20 मिनट में स्कैन',
   'settings.ai.totalApiReadBudgetDetail':
     'कैलेंडर प्लानर रीड + आवधिक इंटीग्रेशन स्कैन; उपयोगकर्ता द्वारा शुरू किए गए चैट टूल शामिल नहीं',
-  'settings.ai.memoryWorkerPollsDetail':
-    '4 वर्कर हर 5 सेकंड में जाँचते हैं; LLM केवल कतारबद्ध कार्यों के लिए कॉल होता है',
   'settings.mcpServer.tools.listTools': 'सभी उपलब्ध MCP टूल सूचीबद्ध करता है',
   'settings.mcpServer.tools.toolInstructions': 'किसी टूल के उपयोग निर्देश प्राप्त करता है',
   'settings.mcpServer.tools.listSubagents': 'उपलब्ध सब-एजेंट सूचीबद्ध करता है',

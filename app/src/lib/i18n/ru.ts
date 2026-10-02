@@ -3319,7 +3319,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'Бюджет циклических вызовов',
   'settings.ai.composioSyncScans': 'Composio синхронизируют сканирование',
   'settings.ai.totalBackgroundApiReadBudget': 'Общий бюджет чтения API',
-  'settings.ai.memoryWorkerPolls': 'Опросы работников памяти',
   'settings.ai.routing.managed': 'Управляемый',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'Управляется TinyHumans',
@@ -3374,11 +3373,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Древесные экстракты и консолидации',
   'settings.ai.routing.workload.memory.hint':
     'Рекомендуется: более дешевая модель обобщения. Он должен быть последовательным и компактным, но не требует первоочередных рассуждений.',
-  'settings.ai.routing.workload.learning.label': 'Обучение · Размышления',
-  'settings.ai.routing.workload.learning.description':
-    'Периодические размышления над недавней историей',
-  'settings.ai.routing.workload.learning.hint':
-    'Рекомендуется: более сильная светоотражающая модель. Это может быть средний или премиум-класс, поскольку он выигрывает от лучшего синтеза в недавней истории.',
   'settings.ai.routing.addCustomProvider': 'Добавить специального поставщика.',
   'settings.billing.autoRecharge.addAmount': 'Добавить эту сумму',
   'settings.billing.autoRecharge.addCard': 'Добавить карту',
@@ -4559,18 +4553,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': 'Провайдеры',
   'settings.ai.picker.modelIdPlaceholder': 'Введите ID модели',
   'settings.ai.picker.claudeCodeHint': 'Используйте псевдоним модели Claude Code или ID модели.',
-  'settings.ai.loops.memoryTreeWorkers.name': 'Воркеры дерева памяти',
-  'settings.ai.loops.cadence.queue': 'очередь',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'Извлекает фрагменты, запечатывает ветви, формирует ежедневные сводки, направляет темы.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} воркеров опрашивают очередь каждые {seconds}с; LLM вызывается только когда в очереди есть задачи извлечения, запечатывания, сводки или темы.',
-  'settings.ai.loops.reflectionRebuild.name': 'Перестроение рефлексии',
-  'settings.ai.loops.cadence.thirtyMin': '30 мин',
-  'settings.ai.loops.reflectionRebuild.work':
-    'Обновляет состояние рефлексии после активности памяти.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} пробуждений/неделю; LLM работает только когда перестроение требует рефлексии.',
   'settings.ai.loops.composioSync.name': 'Синхронизация Composio',
   'settings.ai.loops.cadence.twentyMin': '20 мин',
   'settings.ai.loops.composioSync.route': 'API интеграций',
@@ -4586,7 +4568,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/нед.',
   'settings.ai.perWeekMax': '{count}/нед. макс.',
   'settings.ai.perHour': '{amount}/ч',
-  'settings.ai.memoryPollsDetail': '{count} опросов памяти',
   'settings.ai.connectionSyncBreakdown': '{sync} синхронизация подключений',
   'settings.ai.rowsLeftFormula': 'остаток / средняя строка = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Для оценки нужны недавние строки расходов.',
@@ -4603,8 +4584,6 @@ const messages: TranslationMap = {
     '{count} активных интеграционных соединений, сканируются каждые 20 мин',
   'settings.ai.totalApiReadBudgetDetail':
     'обращения планировщика календаря + периодическое сканирование интеграций; не включает инструменты чата, запущенные пользователем',
-  'settings.ai.memoryWorkerPollsDetail':
-    '4 воркера опрашивают каждые 5с; LLM вызывается только для задач в очереди',
   'settings.mcpServer.tools.listTools': 'Выводит список всех доступных инструментов MCP',
   'settings.mcpServer.tools.toolInstructions': 'Получает инструкции по использованию инструмента',
   'settings.mcpServer.tools.listSubagents': 'Выводит список доступных субагентов',

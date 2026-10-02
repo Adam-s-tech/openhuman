@@ -3312,7 +3312,6 @@ const messages: TranslationMap = {
   'settings.ai.loopCallBudget': 'Anggaran panggilan berulang',
   'settings.ai.composioSyncScans': 'Composio pemindaian sinkronisasi',
   'settings.ai.totalBackgroundApiReadBudget': 'Total bg API anggaran baca',
-  'settings.ai.memoryWorkerPolls': 'Jajak pendapat pekerja memori',
   'settings.ai.routing.managed': 'Terkelola',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'Dikelola oleh TinyHumans',
@@ -3368,10 +3367,6 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Ekstraksi dan konsolidasi pohon',
   'settings.ai.routing.workload.memory.hint':
     'Direkomendasikan: model peringkasan yang lebih murah. Hal ini harus konsisten dan kompak, namun tidak memerlukan penalaran tingkat premium.',
-  'settings.ai.routing.workload.learning.label': 'Pembelajaran · Refleksi',
-  'settings.ai.routing.workload.learning.description': 'Refleksi berkala atas sejarah terkini',
-  'settings.ai.routing.workload.learning.hint':
-    'Direkomendasikan: model reflektif yang lebih kuat. Ini bisa menjadi biaya menengah atau premium karena mendapat manfaat dari sintesis yang lebih baik dalam sejarah terkini.',
   'settings.ai.routing.addCustomProvider': 'Tambahkan Penyedia Khusus',
   'settings.billing.autoRecharge.addAmount': 'Tambahkan jumlah ini',
   'settings.billing.autoRecharge.addCard': 'Tambah kartu',
@@ -4545,18 +4540,6 @@ const messages: TranslationMap = {
   'settings.ai.picker.providersLabel': 'Penyedia',
   'settings.ai.picker.modelIdPlaceholder': 'Masukkan ID model',
   'settings.ai.picker.claudeCodeHint': 'Gunakan alias model Claude Code atau ID model.',
-  'settings.ai.loops.memoryTreeWorkers.name': 'Worker pohon memori',
-  'settings.ai.loops.cadence.queue': 'antrean',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'Mengekstrak potongan, menyegel cabang, menjalankan ringkasan harian, dan merutekan topik.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} worker memeriksa antrean setiap {seconds}dtk; LLM hanya dipanggil saat antrean memiliki tugas ekstrak/segel/ringkasan/topik.',
-  'settings.ai.loops.reflectionRebuild.name': 'Pembangunan ulang refleksi',
-  'settings.ai.loops.cadence.thirtyMin': '30 mnt',
-  'settings.ai.loops.reflectionRebuild.work':
-    'Menyegarkan status refleksi setelah aktivitas memori.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} aktivasi/minggu; LLM hanya bekerja saat pembangunan ulang membutuhkan refleksi.',
   'settings.ai.loops.composioSync.name': 'Sinkronisasi Composio',
   'settings.ai.loops.cadence.twentyMin': '20 mnt',
   'settings.ai.loops.composioSync.route': 'API integrasi',
@@ -4572,7 +4555,6 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/minggu',
   'settings.ai.perWeekMax': '{count}/minggu maksimum',
   'settings.ai.perHour': '{amount}/jam',
-  'settings.ai.memoryPollsDetail': '{count} pemeriksaan memori',
   'settings.ai.connectionSyncBreakdown': '{sync} sinkronisasi koneksi',
   'settings.ai.rowsLeftFormula': 'sisa / rata-rata baris = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate':
@@ -4591,8 +4573,6 @@ const messages: TranslationMap = {
   'settings.ai.composioSyncScansDetail': '{count} koneksi integrasi aktif, dipindai setiap 20 mnt',
   'settings.ai.totalApiReadBudgetDetail':
     'pembacaan perencana kalender + pemindaian integrasi berkala; tidak termasuk alat chat yang dimulai pengguna',
-  'settings.ai.memoryWorkerPollsDetail':
-    '4 worker memeriksa setiap 5dtk; LLM hanya dipanggil untuk tugas dalam antrean',
   'settings.mcpServer.tools.listTools': 'Mencantumkan semua alat MCP yang tersedia',
   'settings.mcpServer.tools.toolInstructions': 'Mendapatkan petunjuk penggunaan untuk sebuah alat',
   'settings.mcpServer.tools.listSubagents': 'Mencantumkan subagen yang tersedia',

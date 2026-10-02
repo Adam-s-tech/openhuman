@@ -3750,17 +3750,6 @@ const en: TranslationMap = {
   'settings.ai.routeLabel': 'route: {route}',
   'settings.ai.on': 'on',
   'settings.ai.off': 'off',
-  'settings.ai.loops.memoryTreeWorkers.name': 'Memory tree workers',
-  'settings.ai.loops.cadence.queue': 'queue',
-  'settings.ai.loops.memoryTreeWorkers.work':
-    'Extracts chunks, seals branches, runs daily digests, routes topics.',
-  'settings.ai.loops.memoryTreeWorkers.risk':
-    '{workers} workers poll every {seconds}s; LLM calls only when queue has extract/seal/digest/topic jobs.',
-  'settings.ai.loops.reflectionRebuild.name': 'Reflection rebuild',
-  'settings.ai.loops.cadence.thirtyMin': '30 min',
-  'settings.ai.loops.reflectionRebuild.work': 'Refreshes reflection state after memory activity.',
-  'settings.ai.loops.reflectionRebuild.risk':
-    '{count} wakeups/week; LLM work only when rebuild needs reflection.',
   'settings.ai.loops.composioSync.name': 'Composio sync',
   'settings.ai.loops.cadence.twentyMin': '20 min',
   'settings.ai.loops.composioSync.route': 'Integration APIs',
@@ -3853,7 +3842,6 @@ const en: TranslationMap = {
   'settings.ai.loopCallBudget': 'Loop call budget',
   'settings.ai.composioSyncScans': 'Composio sync scans',
   'settings.ai.totalBackgroundApiReadBudget': 'Total bg API read budget',
-  'settings.ai.memoryWorkerPolls': 'Memory worker polls',
   'settings.ai.resetsAt': 'resets {time}',
   'settings.ai.usedAmount': '{amount} used',
   'settings.ai.inferenceIntegrationsBreakdown':
@@ -3862,7 +3850,6 @@ const en: TranslationMap = {
   'settings.ai.perWeek': '{count}/week',
   'settings.ai.perWeekMax': '{count}/week max',
   'settings.ai.perHour': '{amount}/hr',
-  'settings.ai.memoryPollsDetail': '{count} memory polls',
   'settings.ai.connectionSyncBreakdown': '{sync} connection sync',
   'settings.ai.rowsLeftFormula': 'remaining / avg row = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Need recent spend rows to estimate.',
@@ -3878,7 +3865,6 @@ const en: TranslationMap = {
     '{count} active integration connection(s) scanned every 20 min',
   'settings.ai.totalApiReadBudgetDetail':
     'calendar planner reads + periodic integration scans; excludes user-initiated chat tools',
-  'settings.ai.memoryWorkerPollsDetail': '4 workers * 5s poll; LLM calls only for queued jobs',
   'settings.ai.routing.managed': 'Managed',
   'settings.ai.managedSourceLabel': 'OpenRouter',
   'settings.ai.managedSourceDetail': 'Managed by TinyHumans',
@@ -3937,10 +3923,6 @@ const en: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Tree-extracts and consolidations',
   'settings.ai.routing.workload.memory.hint':
     'Recommended: a cheaper summarization model. It should be consistent and compact, but it does not need premium frontier-level reasoning.',
-  'settings.ai.routing.workload.learning.label': 'Learning · Reflections',
-  'settings.ai.routing.workload.learning.description': 'Periodic reflection over recent history',
-  'settings.ai.routing.workload.learning.hint':
-    'Recommended: a stronger reflective model. This can be mid-cost or premium because it benefits from better synthesis over recent history.',
   'settings.ai.routing.addCustomProvider': 'Add Custom Provider',
   'settings.billing.autoRecharge.addAmount': 'Add this amount',
   'settings.billing.autoRecharge.addCard': 'Add card',
