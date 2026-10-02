@@ -28,7 +28,7 @@ use openhuman_core::config::schema::{
 use openhuman_core::config::{
     clear_active_user, default_projects_dir, pre_login_user_dir, read_active_user_id,
     user_openhuman_dir, write_active_user_id, Config, DaemonConfig, DictationActivationMode,
-    LlmBackend, ReflectionSource, UpdateRestartStrategy,
+    UpdateRestartStrategy,
 };
 use openhuman_core::core::events::DomainEvent;
 use openhuman_core::desktop::app_state::app_state_schemas;
@@ -245,14 +245,7 @@ runtime_enabled = false
 opt_in_confirmed = false
 
 [memory]
-provider = "none"
-embedding_provider = "none"
-embedding_model = "none"
-embedding_dimensions = 0
-auto_save = false
-
-[memory_tree]
-embedding_strict = false
+engine = "tinyhumans"
 "#;
     std::fs::write(openhuman_dir.join("config.toml"), cfg).expect("write config.toml");
     let _: openhuman_core::config::Config =
@@ -390,19 +383,10 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         serde_json::from_value(json!({})).expect("model health defaults");
     assert_eq!(model_health.evaluation_window_tasks, 50);
 
-    let memory = MemoryConfig {
-        agentmemory_url: Some("https://memory.example.test".to_string()),
-        agentmemory_secret: Some("secret-token".to_string()),
-        agentmemory_timeout_ms: Some(750),
-        ..MemoryConfig::default()
-    };
-    let debug = format!("{memory:?}");
-    assert!(debug.contains("<redacted>"));
-    assert!(!debug.contains("secret-token"));
-    assert_eq!(LlmBackend::Cloud.as_str(), "cloud");
-    assert_eq!(LlmBackend::Local.as_str(), "local");
-    assert_eq!(LlmBackend::parse(" LOCAL "), Ok(LlmBackend::Local));
-    assert!(LlmBackend::parse("remote").is_err());
+    let memory = MemoryConfig::default();
+    assert_eq!(memory.engine, "tinyhumans");
+    assert!(memory.conversations.enabled);
+    assert!(memory.context.enabled);
 
     let telegram: TelegramConfig = serde_json::from_value(json!({
         "bot_token": "bot-token",
