@@ -1,23 +1,23 @@
-//! `memory` — the memory surface as one action-dispatched tool.
+//! `memory` — the whole agent-facing memory surface as one three-action tool:
+//! `memory(action: "ask" | "keyword_search" | "learn", text: "...")`.
 //!
-//! Replaces eleven advertised schemas (`memory_store`, `memory_recall`,
-//! `memory_forget`, `memory_doctor`, `memory_flavour`, `memory_vector_search`,
-//! `memory_chunk_context`, `memory_hybrid_search`, `memory_store_raw_search`,
-//! `memory_store_raw_chunks`, `memory_store_kinds`) with one. Between them they
-//! were 7,879 bytes on every request, and three of the eleven are variations on
-//! "search this index with a query and a limit".
+//! * `ask` — a question in plain language; answered by the hybrid
+//!   (keyword + semantic) search over stored chunks.
+//! * `keyword_search` — keywords or a phrase; the lexical `memory_recall` search.
+//! * `learn` — one explicit learning to keep, saved as a durable fact.
 //!
-//! Hermes' whole memory surface is a single `memory` tool for the same reason.
+//! The model sees one verb per intent and one text argument, instead of the
+//! eleven schemas (`memory_store`, `memory_recall`, `memory_hybrid_search`, …)
+//! this replaced. Those tools stay registered and `Hidden`, dispatchable by
+//! name for a replayed transcript or a curated belt that lists one (the memory
+//! agent's `memory_tree`, `memory_doctor`, `memory_flavour`, …); they are just
+//! not part of this tool's surface.
 //!
 //! # `memory_tree` is deliberately NOT folded in
 //!
-//! It is already a collapsed tool: it dispatches eight operations on a `mode`
-//! field over the ingested email/chat/document tree, which is a different
-//! subsystem with a different storage model. Folding it in would produce
-//! two-level dispatch — `action: "tree"` plus `mode: "drill_down"` — which is
-//! harder for a model to get right than two tools, and would put its 3 KB of
-//! schema behind an action most turns never take. Two tools that each dispatch
-//! once beat one tool that dispatches twice.
+//! It dispatches eight operations on a `mode` field over the ingested
+//! email/chat/document tree, a different subsystem with a different storage
+//! model. Two tools that each dispatch once beat one that dispatches twice.
 //!
 //! # Permissions
 //!
@@ -26,32 +26,24 @@
 //! member requires, so an argument-less caller over-restricts rather than
 //! under-. See `tinytools::collapse`.
 //!
-//! **Pre-existing, and left alone:** this family declares one level between
-//! them. Neither `memory_store` nor `memory_forget` overrides
-//! `permission_level`, so a write and a delete both inherit the `ReadOnly`
-//! default; both gate internally through their own `SecurityPolicy` +
-//! `ToolOperation` check, so they are not ungated, but what they *declare* to
-//! the approval gate is wrong. Collapsing reproduces that exactly and does not
-//! correct it — raising them would change which turns get parked for approval,
-//! which is a product decision rather than a token optimisation.
+//! **Pre-existing, and left alone:** `memory_store` does not override
+//! `permission_level`, so a write inherits the `ReadOnly` default; it gates
+//! internally through its own `SecurityPolicy` + `ToolOperation` check.
+//! Collapsing reproduces that and does not correct it — raising it would change
+//! which turns get parked for approval, a product decision.
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use serde_json::Value;
+use serde_json::{json, Value};
 
-use super::doctor::MemoryDoctorTool;
-use super::flavour::MemoryFlavourTool;
-use super::forget::MemoryForgetTool;
-use super::raw_store::{MemoryStoreKindsTool, MemoryStoreRawChunksTool, MemoryStoreRawSearchTool};
 use super::recall::MemoryRecallTool;
-use super::search::{MemoryChunkContextTool, MemoryHybridSearchTool, MemoryVectorSearchTool};
+use super::search::MemoryHybridSearchTool;
 use super::store::MemoryStoreTool;
 use crate::config::Config;
 use crate::security::policy::SecurityPolicy;
 use tinytools::collapse::{
-    any_external_effect, args_without_action, merge_action_schemas, resolve, strictest_permission,
-    unknown_action_message, CollapsedAction,
+    any_external_effect, resolve, strictest_permission, unknown_action_message, CollapsedAction,
 };
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 
@@ -61,50 +53,32 @@ use tinytools::ToolExposure;
 /// The advertised name.
 pub const MEMORY_TOOL_NAME: &str = "memory";
 
+/// Answer a question in plain language (hybrid keyword + semantic search).
+pub const ACTION_ASK: &str = "ask";
+/// Search by keywords or a phrase (lexical recall).
+pub const ACTION_KEYWORD_SEARCH: &str = "keyword_search";
+/// Save one explicit learning as a durable fact.
+pub const ACTION_LEARN: &str = "learn";
+
 pub struct MemoryTool {
     store: MemoryStoreTool,
     recall: MemoryRecallTool,
-    forget: MemoryForgetTool,
-    doctor: MemoryDoctorTool,
-    flavour: MemoryFlavourTool,
     hybrid_search: MemoryHybridSearchTool,
-    vector_search: MemoryVectorSearchTool,
-    chunk_context: MemoryChunkContextTool,
-    raw_search: MemoryStoreRawSearchTool,
-    raw_chunks: MemoryStoreRawChunksTool,
-    kinds: MemoryStoreKindsTool,
 }
 
 impl MemoryTool {
-    pub fn new(config: Arc<Config>, security: Arc<SecurityPolicy>) -> Self {
+    pub fn new(_config: Arc<Config>, security: Arc<SecurityPolicy>) -> Self {
         Self {
-            store: MemoryStoreTool::new(Arc::clone(&security)),
+            store: MemoryStoreTool::new(security),
             recall: MemoryRecallTool::new(),
-            forget: MemoryForgetTool::new(security),
-            doctor: MemoryDoctorTool::new(Arc::clone(&config)),
-            flavour: MemoryFlavourTool::new(config),
             hybrid_search: MemoryHybridSearchTool::default(),
-            vector_search: MemoryVectorSearchTool::default(),
-            chunk_context: MemoryChunkContextTool::default(),
-            raw_search: MemoryStoreRawSearchTool::default(),
-            raw_chunks: MemoryStoreRawChunksTool::default(),
-            kinds: MemoryStoreKindsTool::default(),
         }
     }
 
-    /// The action table, in the order it is advertised.
-    ///
-    /// Ordered by how often a turn needs it — `recall` and `store` first — so
-    /// the enum reads as a recommendation as well as a list.
-    ///
-    /// **Filtered by memory capability.** The eleven members span five of them
-    /// (`Core`, `Recall`, `Tree`, `Entities`, `Maintenance`), and the registry
-    /// drops a tool whose capability the active memory driver does not serve —
-    /// on the stated principle that absence beats a registered tool that
-    /// fails. Collapsing would have quietly broken that: one tool cannot be
-    /// dropped for one capability, so an unavailable action would sit in the
-    /// enum inviting a call that always errors. Filtering here keeps the
-    /// original behaviour, one action at a time.
+    /// The action table, in the order it is advertised, filtered by memory
+    /// capability: one tool cannot be dropped for one capability, so an
+    /// action the active memory driver does not serve is left out of the enum
+    /// rather than inviting a call that always errors.
     fn actions(&self) -> Vec<CollapsedAction<'_>> {
         self.all_actions()
             .into_iter()
@@ -120,51 +94,65 @@ impl MemoryTool {
     fn all_actions(&self) -> Vec<CollapsedAction<'_>> {
         vec![
             CollapsedAction {
-                action: "recall",
-                tool: &self.recall,
-            },
-            CollapsedAction {
-                action: "store",
-                tool: &self.store,
-            },
-            CollapsedAction {
-                action: "forget",
-                tool: &self.forget,
-            },
-            CollapsedAction {
-                action: "hybrid_search",
+                action: ACTION_ASK,
                 tool: &self.hybrid_search,
             },
             CollapsedAction {
-                action: "vector_search",
-                tool: &self.vector_search,
+                action: ACTION_KEYWORD_SEARCH,
+                tool: &self.recall,
             },
             CollapsedAction {
-                action: "chunk_context",
-                tool: &self.chunk_context,
-            },
-            CollapsedAction {
-                action: "raw_search",
-                tool: &self.raw_search,
-            },
-            CollapsedAction {
-                action: "raw_chunks",
-                tool: &self.raw_chunks,
-            },
-            CollapsedAction {
-                action: "kinds",
-                tool: &self.kinds,
-            },
-            CollapsedAction {
-                action: "flavour",
-                tool: &self.flavour,
-            },
-            CollapsedAction {
-                action: "doctor",
-                tool: &self.doctor,
+                action: ACTION_LEARN,
+                tool: &self.store,
             },
         ]
     }
+}
+
+/// Translate the tool's `{action, text, namespace?, limit?}` call into the
+/// member tool's own argument shape.
+fn member_args(action: &str, args: &Value) -> Result<Value, String> {
+    let text = args
+        .get("text")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|t| !t.is_empty())
+        .ok_or_else(|| "memory: `text` is required and cannot be empty".to_string())?;
+    let namespace = args.get("namespace").cloned();
+    let limit = args.get("limit").cloned();
+    let mut out = serde_json::Map::new();
+    match action {
+        ACTION_ASK => {
+            out.insert("query".into(), json!(text));
+            // The hybrid search requires a namespace; default to the
+            // assistant's own memory like every other memory tool.
+            out.insert(
+                "namespace".into(),
+                namespace.unwrap_or_else(|| {
+                    json!(crate::agent::tinyagents::host::agent_memory::DEFAULT_AGENT_MEMORY_NAMESPACE)
+                }),
+            );
+        }
+        ACTION_KEYWORD_SEARCH => {
+            out.insert("query".into(), json!(text));
+            if let Some(ns) = namespace {
+                out.insert("namespace".into(), ns);
+            }
+        }
+        ACTION_LEARN => {
+            out.insert("content".into(), json!(text));
+            if let Some(ns) = namespace {
+                out.insert("namespace".into(), ns);
+            }
+            // `limit` means nothing to a write.
+            return Ok(Value::Object(out));
+        }
+        _ => return Err(format!("memory: unknown action `{action}`")),
+    }
+    if let Some(limit) = limit {
+        out.insert("limit".into(), limit);
+    }
+    Ok(Value::Object(out))
 }
 
 #[async_trait]
@@ -174,20 +162,38 @@ impl Tool for MemoryTool {
     }
 
     fn description(&self) -> &str {
-        "Read and write the user's long-term memory. `action`: `recall` \
-         (retrieve memories for a query — start here), `store` (save a durable \
-         fact), `forget` (delete one), `hybrid_search` (keyword + semantic over \
-         stored chunks), `vector_search` (semantic only), `chunk_context` \
-         (surrounding text for a chunk you already have), `raw_search` / \
-         `raw_chunks` / `kinds` (the raw ingest store and what source kinds it \
-         holds), `flavour` (the compiled persona profile: communication style, \
-         stack, workflow, directives), `doctor` (diagnose an empty or stalled \
-         memory pipeline). For ingested email, chat and documents use the \
-         separate `memory_tree` tool instead."
+        "The user's long-term memory. `ask`: a question in plain language \
+         (start here). `keyword_search`: keywords or a phrase when you know \
+         the words. `learn`: one explicit, durable thing worth remembering. \
+         `text` is the question, the keywords or the learning. For ingested \
+         email, chat and documents use the separate `memory_tree` tool."
     }
 
     fn parameters_schema(&self) -> Value {
-        merge_action_schemas(&self.actions())
+        let actions: Vec<&str> = self.actions().iter().map(|a| a.action).collect();
+        json!({
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": actions,
+                    "description": "`ask` a question, `keyword_search` by words, or `learn` a fact."
+                },
+                "text": {
+                    "type": "string",
+                    "description": "The question, the keywords, or the learning to keep."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results for `ask` / `keyword_search`."
+                },
+                "namespace": {
+                    "type": "string",
+                    "description": "Optional. Defaults to the assistant's own memory."
+                }
+            },
+            "required": ["action", "text"]
+        })
     }
 
     fn permission_level(&self) -> PermissionLevel {
@@ -231,11 +237,12 @@ impl Tool for MemoryTool {
                 &actions, requested,
             )));
         };
+        let member = match member_args(entry.action, &args) {
+            Ok(member) => member,
+            Err(message) => return Ok(ToolResult::error(message)),
+        };
         tracing::debug!(action = %entry.action, "[tool][memory] dispatch");
-        entry
-            .tool
-            .execute_with_options(args_without_action(&args), options)
-            .await
+        entry.tool.execute_with_options(member, options).await
     }
 }
 

@@ -29,7 +29,7 @@ fn the_schema_advertises_every_action() {
         .as_array()
         .expect("enum")
         .len();
-    assert_eq!(listed, 11);
+    assert_eq!(listed, 3);
 }
 
 #[test]
