@@ -73,8 +73,8 @@ vi.mock('../../services/chatService', () => ({
 }));
 
 const { mockGetClientConfig, mockUpdateRuntimeSettings } = vi.hoisted(() => ({
-  mockGetClientConfig: vi.fn(),
-  mockUpdateRuntimeSettings: vi.fn(),
+  mockGetClientConfig: vi.fn(() => Promise.resolve({ result: {} })),
+  mockUpdateRuntimeSettings: vi.fn(() => Promise.resolve({})),
 }));
 vi.mock('../../utils/tauriCommands/config', async importOriginal => ({
   ...(await importOriginal<typeof import('../../utils/tauriCommands/config')>()),
@@ -362,6 +362,8 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    mockGetClientConfig.mockResolvedValue({ result: {} });
+    mockUpdateRuntimeSettings.mockResolvedValue({});
     // Reset the mock to defaults for each test
     mockGetThreads.mockResolvedValue({ threads: [], count: 0 });
     mockGetThreadMessages.mockResolvedValue({ messages: [], count: 0 });
