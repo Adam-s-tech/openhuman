@@ -206,10 +206,9 @@ fn all_controller_schemas_matches_registered_count() {
         .collect();
     let schemas = visible
         .iter()
-        .filter(|g| !g.controller.schema.function.is_empty())
-        .count();
+        .filter(|g| !g.controller.schema.function.is_empty());
     let controllers = visible.len();
-    assert_eq!(schemas, controllers);
+    assert_eq!(schemas.count(), controllers);
 }
 
 /// With the `voice` feature on (the default), the voice + audio_toolkit
