@@ -39,7 +39,7 @@ pub use agent_graph::{AgentGraph, AgentTurnRequest, AgentTurnResult, AgentTurnUs
 // glob-importing this module; callers use the `artifact_offload::` path.
 pub use definition::{
     AgentDefinition, AgentDefinitionRegistry, DefinitionSource, ModelSpec, PromptSource,
-    SandboxMode, ToolScope, TriggerMemoryAgent,
+    SandboxMode, ToolScope,
 };
 pub use fork_context::{
     current_parent, with_parent_context, AgentContextPreparedSource, ParentExecutionContext,

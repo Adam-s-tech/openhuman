@@ -55,8 +55,8 @@ used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
 What `harness/mod.rs` actually re-exports:
 
 - `AgentDefinition`, `AgentDefinitionRegistry`, `DefinitionSource`,
-  `ModelSpec`, `PromptSource`, `SandboxMode`, `ToolScope`,
-  `TriggerMemoryAgent`: the sub-agent archetype data model.
+  `ModelSpec`, `PromptSource`, `SandboxMode`, `ToolScope`: the sub-agent
+  archetype data model.
 - `ParentExecutionContext` and its accessors (`current_parent`,
   `with_parent_context`, `AgentContextPreparedSource`):
   parent runtime context for spawned tools.
