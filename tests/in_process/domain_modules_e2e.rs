@@ -5,7 +5,7 @@
 //! exercises cheap read/status handlers through HTTP. Mutating or networked
 //! domain behavior remains covered by the focused `*_e2e.rs` suites.
 
-use crate::env_guard::env_lock, env_lock_async;
+use crate::env_guard::{env_lock, env_lock_async};
 use crate::env_guard::EnvVarGuard;
 use crate::memory_module;
 use crate::rpc_harness::serve_rpc;
