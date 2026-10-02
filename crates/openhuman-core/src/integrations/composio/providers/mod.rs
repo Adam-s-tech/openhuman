@@ -8,8 +8,7 @@
 // ── The contract half ───────────────────────────────────────────────────────
 pub use crate::integrations::composio::contract::catalogs::{
     catalog_for_toolkit, curated_scope_for, has_native_provider, is_action_visible_with_pref,
-    native_provider_sync_interval_secs, sync_interval_env_var, toolkit_description,
-    toolkit_has_scope, CAPABILITY_TOOLKITS, NATIVE_PROVIDERS,
+    toolkit_description,
 };
 pub use crate::integrations::composio::contract::scopes::{
     agent_ready_toolkits, classify_unknown, find_curated, toolkit_from_slug, CuratedTool,

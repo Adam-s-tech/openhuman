@@ -27,5 +27,5 @@ pub use tasks::{GithubFetchMode, NormalizedTask, TaskContainer, TaskFetchFilter,
 
 pub use catalogs::{
     catalog_for_toolkit, curated_scope_for, has_native_provider, is_action_visible_with_pref,
-    toolkit_description, NATIVE_PROVIDERS,
+    toolkit_description,
 };
