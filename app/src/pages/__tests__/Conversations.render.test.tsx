@@ -834,6 +834,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       message: 'hello cloud',
       model: 'hint:chat',
       locale: 'en',
+      reasoningEffort: 'default',
     });
   });
 
@@ -857,6 +858,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         message: 'play highway to hell',
         model: 'hint:chat',
         locale: 'en',
+        reasoningEffort: 'default',
       });
     });
   });
@@ -908,6 +910,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       message: 'slow backend',
       model: 'hint:chat',
       locale: 'en',
+      reasoningEffort: 'default',
     });
     // The send cleared the composer; with an empty composer mid-send the Send
     // button morphs into the Stop button, so there is no Send affordance left
@@ -1997,6 +2000,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         message: 'enter send',
         model: 'hint:chat',
         locale: 'en',
+        reasoningEffort: 'default',
       });
     });
   });
@@ -2071,6 +2075,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         message: '안녕',
         model: 'hint:chat',
         locale: 'en',
+        reasoningEffort: 'default',
       });
     });
   });
