@@ -16,7 +16,7 @@ OpenHuman is designed so that the **memory of your life lives on your machine**.
 
 **OS-level credential storage.** Sensitive local secrets are rooted in your platform's secure keychain, macOS Keychain, Windows Credential Manager, Linux Secret Service. See [OS Keyring & Secret Storage](os-keyring-and-secret-storage.md).
 
-**No training on your data.** Your conversations, your Memory Tree, and your personal information are never used to train AI models or improve systems.
+**No training on your data.** Your conversations, your memories, and your personal information are never used to train AI models or improve systems.
 
 **Optional** [**Local AI**](model-routing/local-ai.md)**.** If you want embeddings and summary-tree building to stay on your machine, run a local runtime such as Ollama, pull the models yourself, and add it as a provider. Learning and reflection passes, and chat if you choose, can be moved on-device the same way. OpenHuman does not install the runtime or download models.
 
@@ -92,6 +92,6 @@ OpenHuman includes an intelligence layer designed to help you reason about credi
 
 ## Shared environments
 
-In team or community settings, privacy remains user-centric. Each user's connected sources are scoped to their account; admins do not get a backdoor into other users' Memory Trees.
+In team or community settings, privacy remains user-centric. Each user's connected sources are scoped to their account; admins do not get a backdoor into other users' memory.
 
 Community-level intelligence is derived from aggregated and anonymized signals, never from direct access to individual message content.

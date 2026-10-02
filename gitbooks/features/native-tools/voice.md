@@ -35,7 +35,7 @@ OpenHuman's flagship voice integration:
 
 - Audio capture is local. Streaming STT goes through the OpenHuman backend; no recording is retained beyond the live transcript.
 - TTS audio is streamed and discarded - nothing stored.
-- Meeting transcripts land in your local memory tree, like any other source.
+- Meeting transcripts are stored as conversations in your memory engine, when memory is on.
 
 ## See also
 
