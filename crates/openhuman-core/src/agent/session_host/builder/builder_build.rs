@@ -121,8 +121,8 @@ impl SessionHostBuilder {
             &mut visible_names,
             &agent_definition_name,
         );
-        // Per-tool exposure: `Hidden` members of a collapsed tool (`memory_*`,
-        // `todo_*`) and `Deferred` tools leave the wire; they stay registered
+        // Per-tool exposure: `Hidden` members of a collapsed tool (`todo_*`)
+        // and `Deferred` tools leave the wire; they stay registered
         // and dispatchable. A wildcard belt always gets this; a hand-written
         // `[tools] named` list is already the answer to "what should this
         // agent see", so it opts into discovery by naming `tool_search` — the
@@ -144,7 +144,7 @@ impl SessionHostBuilder {
             visible_names.remove(crate::tools::implementations::meta::TOOL_SEARCH_NAME);
         let discovery_enabled = belt_is_wildcard || discovery_opted_in;
         // A wildcard belt was seeded from the whole registry, so its durable
-        // `Hidden` members (collapsed `memory_*` / `todo_*`) leave here too.
+        // `Hidden` members (collapsed `todo_*`) leave here too.
         // A named belt never listed them.
         let mut deferred_names = if belt_is_wildcard {
             crate::tools::implementations::meta::strip_deferred_from_visible(
