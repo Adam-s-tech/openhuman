@@ -162,30 +162,10 @@ const KNOWLEDGE_TOOLS: &[&str] = &[
     "create_skill",
     "install_workflow_from_url",
     "uninstall_workflow",
-    "learning_list_facets",
-    "learning_get_facet",
-    "learning_cache_stats",
-    "learning_update_facet",
-    "learning_pin_facet",
-    "learning_unpin_facet",
-    "learning_forget_facet",
-    "learning_rebuild_cache",
-    "learning_reset_cache",
-    "learning_save_profile",
-    "learning_enrich_profile",
 ];
 
 fn knowledge_default_off() -> Vec<&'static str> {
-    let mut tools = vec![
-        "learning_update_facet",
-        "learning_pin_facet",
-        "learning_unpin_facet",
-        "learning_forget_facet",
-        "learning_rebuild_cache",
-        "learning_reset_cache",
-        "learning_save_profile",
-        "learning_enrich_profile",
-    ];
+    let mut tools: Vec<&'static str> = Vec::new();
     // These tools exist only when their feature gates are on. All of
     // create_skill / install_workflow_from_url / uninstall_workflow are
     // registered under `#[cfg(feature = "skills")]` in ops.rs — none of

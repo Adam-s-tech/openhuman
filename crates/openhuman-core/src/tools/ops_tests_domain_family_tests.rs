@@ -210,20 +210,7 @@ fn knowledge_tools_are_registered() {
     let tmp = TempDir::new().unwrap();
     let names = tool_names(&expansion_tools_for(&tmp));
 
-    // Base knowledge tools that are always present
-    let mut expected_tools = vec![
-        "learning_list_facets",
-        "learning_get_facet",
-        "learning_cache_stats",
-        "learning_update_facet",
-        "learning_pin_facet",
-        "learning_unpin_facet",
-        "learning_forget_facet",
-        "learning_rebuild_cache",
-        "learning_reset_cache",
-        "learning_save_profile",
-        "learning_enrich_profile",
-    ];
+    let mut expected_tools: Vec<&str> = Vec::new();
 
     // Add gated tools only when their feature is enabled. All of these —
     // list/describe/read_resource/recent_runs/read_run_log,

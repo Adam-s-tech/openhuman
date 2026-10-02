@@ -268,10 +268,10 @@ fn all_tools_registers_integration_families_when_enabled_and_signed_in() {
 }
 
 #[test]
-fn all_tools_registers_brave_engine_lsp_and_tool_stats_when_enabled() {
+fn all_tools_registers_brave_engine_and_lsp_when_enabled() {
     // Search registers one tool per capability role from the TinySearch
     // catalog; a usable BYOK Brave key yields the `search` role tool
-    // alongside lsp + tool_stats.
+    // alongside lsp.
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
     let browser = BrowserConfig::default();
@@ -307,7 +307,6 @@ fn all_tools_registers_brave_engine_lsp_and_tool_stats_when_enabled() {
             #[cfg(feature = "modules")]
             "web_search_tool",
             "lsp",
-            "tool_stats",
         ],
     );
 
