@@ -87,15 +87,15 @@ fn find<'a>(tools: &'a [Box<dyn Tool>], name: &str) -> &'a dyn Tool {
         .unwrap_or_else(|| panic!("{name} missing"))
 }
 
+/// A shared, immutable tool registry.
+type ToolRegistry = Arc<Vec<Box<dyn Tool>>>;
+
 /// A registry split the way a real agent's is: the pack tool in the durable
 /// vector, the packed tool in the separate synthesised one.
 ///
 /// This is not a contrived shape. Every `delegate_*` tool is synthesised into
 /// `OpenHumanSessionHost::synthesized_tools`, a different `Arc` from the durable registry
 /// (#6145), and seven delegates were already packed.
-/// A shared, immutable tool registry.
-type ToolRegistry = Arc<Vec<Box<dyn Tool>>>;
-
 fn split_registries(
     name: &'static str,
     level: PermissionLevel,
