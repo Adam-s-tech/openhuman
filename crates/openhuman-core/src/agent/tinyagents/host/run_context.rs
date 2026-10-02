@@ -307,6 +307,12 @@ pub struct OpenHumanRunContext {
     /// the registry that recovers positional / code-style calls; `Auto`
     /// (the default) leaves the harness to choose from the model profile.
     pub(crate) tool_dialect: tinyagents_harness::config::ToolDispatcher,
+    /// The reasoning ("thinking") config this turn asks every model call for,
+    /// resolved from the session's effective config
+    /// (`agent::tinyagents::reasoning_for_config`). Turn assembly installs it
+    /// as the harness `RunPolicy::default_reasoning`; `None` leaves the
+    /// provider default.
+    pub(crate) reasoning: Option<tinyinference_llm::model::ReasoningConfig>,
 }
 
 impl Default for OpenHumanRunContext {
@@ -348,6 +354,7 @@ impl OpenHumanRunContext {
             session_sidecar: Arc::new(Mutex::new(SessionTurnSidecar::default())),
             required_output: None,
             tool_dialect: tinyagents_harness::config::ToolDispatcher::Auto,
+            reasoning: None,
         }
     }
 
