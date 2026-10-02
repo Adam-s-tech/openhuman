@@ -217,13 +217,10 @@ fn capability_error(op: &str, error: &MemoryError) -> EngineError {
 
 #[async_trait]
 impl MemoryProvider for OpenHumanMemory {
-    /// Backs both `recall` and `search` (`opts.operation` distinguishes them
-    /// only for the `tracing::debug!` logs below — [`Self::shape_recall_result`]
-    /// returns `{ scope, query, results }` with no `operation` field, so the
-    /// two ops are otherwise indistinguishable in the response; both
-    /// currently route through the same [`Memory::recall`] call, as there is
-    /// no separate hybrid-search path reachable through the generic
-    /// `Arc<dyn Memory>` trait object this adapter holds).
+    /// Backs both `recall` and `search`. `recall` returns the engine's
+    /// synthesised `answer` plus its citations as `results`; `search` returns
+    /// raw ranked hits as `results`. Each row is `{ id, key, text, score,
+    /// source }`; rows under the node's `min_score` are dropped.
     async fn recall(&self, scope: &str, query: &str, opts: Value) -> Result<Value> {
         let operation: &str = opts
             .get("operation")
