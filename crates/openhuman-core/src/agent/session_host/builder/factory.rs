@@ -418,7 +418,7 @@ impl OpenHumanSessionHost {
         // connected Composio action (reached through `tool_search`).
         //
         // For an agent without `subagents` (today: welcome, critic,
-        // archivist, etc.), no delegation tools are synthesised — the
+        // summarizer, etc.), no delegation tools are synthesised — the
         // LLM only sees the agent's own `ToolScope::Named` entries
         // from the global registry, narrowed by the visible-tool
         // filter.
