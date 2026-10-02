@@ -4,7 +4,6 @@
 //! both hold a permit at the same time and confuse each other's
 //! `available_permits` reads.
 use super::*;
-use std::sync::Mutex;
 use std::time::Instant;
 use tokio::time::{timeout, Duration as TokioDuration};
 

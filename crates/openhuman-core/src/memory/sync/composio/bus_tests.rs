@@ -7,7 +7,6 @@ use crate::memory::sync::composio::bus::connection_created_subscriber::WaitError
 use crate::memory::sync::composio::bus::trigger_subscriber::triage_disabled;
 use crate::memory::sync::composio::bus::trigger_subscriber::TRIAGE_DISABLED_ENV;
 use serde_json::json;
-use std::sync::Mutex;
 use tinybus::EventHandler;
 
 /// #4957 regression, in the half that is still this host's.

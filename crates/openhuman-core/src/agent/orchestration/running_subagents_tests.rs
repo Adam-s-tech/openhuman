@@ -8,7 +8,6 @@ use crate::agent::queued_turn::QueuedTurn;
 use crate::agent::tinyagents::host::steering::shared_steering_registry;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::MutexGuard;
 use std::time::Duration;
 use tinyagents_graph::orchestration::OrchestrationTaskStatus;
 use tinyagents_harness::ids::TaskId;

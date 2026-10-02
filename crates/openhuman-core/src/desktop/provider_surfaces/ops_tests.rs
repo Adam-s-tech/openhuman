@@ -1,5 +1,4 @@
 use super::*;
-use std::sync::Mutex;
 
 /// Serializes tests that mutate the process-global RESPOND_QUEUE so cargo's
 /// default parallel test runner cannot interleave clear/insert/assert cycles.
