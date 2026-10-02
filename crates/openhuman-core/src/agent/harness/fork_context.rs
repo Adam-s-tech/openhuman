@@ -91,7 +91,7 @@ pub struct ParentExecutionContext {
     /// through this task-local.
     pub workspace_descriptor: Option<WorkspaceDescriptor>,
 
-    /// Parent's agent config (for `max_tool_iterations`, `max_memory_context_chars`,
+    /// Parent's agent config (for `max_tool_iterations`,
     /// dispatcher choice, …).
     pub agent_config: AgentConfig,
 

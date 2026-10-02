@@ -72,8 +72,7 @@ mod update;
 mod web_chat_config;
 
 pub use agent::{
-    AgentConfig, DelegateAgentConfig, MemoryContextWindow, MemoryWindowLimits,
-    OrchestratorModelConfig, RequiredOutputContract, TeamModelConfig, ToolSearchConfig,
+    AgentConfig, DelegateAgentConfig, OrchestratorModelConfig, RequiredOutputContract, TeamModelConfig, ToolSearchConfig,
 };
 pub use autonomy::AutonomyConfig;
 pub use capability_providers::{CapabilityProviderConfig, CapabilityProviderTrustState};

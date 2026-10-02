@@ -76,8 +76,6 @@ pub(super) struct MemorySettingsUpdate {
     pub(super) embedding_provider: Option<String>,
     pub(super) embedding_model: Option<String>,
     pub(super) embedding_dimensions: Option<usize>,
-    /// One of `"minimal" | "balanced" | "extended" | "maximum"`.
-    pub(super) memory_window: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

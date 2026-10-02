@@ -153,7 +153,6 @@ pub(super) fn handle_update_memory_settings(params: Map<String, Value>) -> Contr
             embedding_provider: update.embedding_provider,
             embedding_model: update.embedding_model,
             embedding_dimensions: update.embedding_dimensions,
-            memory_window: update.memory_window,
         };
         to_json(config_rpc::load_and_apply_memory_settings(patch).await?)
     })

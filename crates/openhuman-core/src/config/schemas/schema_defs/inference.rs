@@ -113,10 +113,6 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                     comment: "Embedding dimensions.",
                     required: false,
                 },
-                optional_string(
-                    "memory_window",
-                    "Stepped long-term memory window preset: minimal | balanced | extended | maximum.",
-                ),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),

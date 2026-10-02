@@ -323,16 +323,11 @@ async fn apply_memory_settings_updates_all_provided_fields() {
         embedding_provider: Some("ollama".into()),
         embedding_model: Some("nomic".into()),
         embedding_dimensions: Some(768),
-        memory_window: Some("extended".into()),
     };
     let _ = apply_memory_settings(&mut cfg, patch).await.expect("apply");
     assert_eq!(cfg.memory.embedding_provider, "ollama");
     assert_eq!(cfg.memory.embedding_model, "nomic");
     assert_eq!(cfg.memory.embedding_dimensions, 768);
-    assert_eq!(
-        cfg.agent.memory_window,
-        Some(crate::config::schema::MemoryContextWindow::Extended)
-    );
 }
 
 #[tokio::test]
