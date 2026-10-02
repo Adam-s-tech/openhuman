@@ -21,14 +21,14 @@ pub(super) fn handle_apify_linkedin_scrape(params: Map<String, Value>) -> Contro
             "Apify scrape unavailable — no backend session token. Sign in first.".to_string()
         })?;
 
-        let data = crate::agent::learning::linkedin_enrichment::scrape_linkedin_profile(
+        let data = super::linkedin::scrape_linkedin_profile(
             &client,
             &profile_url,
         )
         .await
         .map_err(|e| format!("Apify LinkedIn scrape failed: {e:#}"))?;
 
-        let markdown = crate::agent::learning::linkedin_enrichment::render_profile_markdown(
+        let markdown = super::linkedin::render_profile_markdown(
             &profile_url,
             &data,
         );
