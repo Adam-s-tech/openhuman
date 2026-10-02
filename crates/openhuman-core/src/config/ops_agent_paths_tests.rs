@@ -12,7 +12,7 @@ async fn apply_agent_settings_rejects_out_of_range_timeout() {
         &mut cfg,
         AgentSettingsPatch {
             agent_timeout_secs: Some(0),
-            chat_agent_id: None,
+            ..AgentSettingsPatch::default()
         },
     )
     .await
@@ -24,7 +24,7 @@ async fn apply_agent_settings_rejects_out_of_range_timeout() {
         &mut cfg,
         AgentSettingsPatch {
             agent_timeout_secs: Some(99_999),
-            chat_agent_id: None,
+            ..AgentSettingsPatch::default()
         },
     )
     .await
@@ -472,4 +472,50 @@ fn ensure_usable_cwd_errors_when_uncreatable() {
         msg.contains("could not be created"),
         "unexpected error: {msg}"
     );
+}
+
+#[tokio::test]
+async fn apply_agent_settings_sets_and_normalizes_tool_dispatcher() {
+    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempdir().unwrap();
+    let mut cfg = tmp_config(&tmp);
+    assert_eq!(cfg.agent.tool_dispatcher, "auto", "JSON/native is the default");
+
+    apply_agent_settings(
+        &mut cfg,
+        AgentSettingsPatch {
+            tool_dispatcher: Some("  Python ".into()),
+            ..AgentSettingsPatch::default()
+        },
+    )
+    .await
+    .expect("known dispatcher is accepted");
+    assert_eq!(cfg.agent.tool_dispatcher, "python");
+
+    // Omitting the field leaves it alone.
+    apply_agent_settings(&mut cfg, AgentSettingsPatch::default())
+        .await
+        .expect("no-op");
+    assert_eq!(cfg.agent.tool_dispatcher, "python");
+}
+
+#[tokio::test]
+async fn apply_agent_settings_rejects_unknown_tool_dispatcher_without_mutating() {
+    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempdir().unwrap();
+    let mut cfg = tmp_config(&tmp);
+
+    let err = apply_agent_settings(
+        &mut cfg,
+        AgentSettingsPatch {
+            agent_timeout_secs: Some(321),
+            tool_dispatcher: Some("cobol".into()),
+            ..AgentSettingsPatch::default()
+        },
+    )
+    .await
+    .expect_err("unknown dispatcher must be rejected");
+    assert!(err.contains("invalid tool_dispatcher"), "unexpected: {err}");
+    assert_eq!(cfg.agent.tool_dispatcher, "auto");
+    assert_ne!(cfg.agent.agent_timeout_secs, 321, "mixed patch is atomic");
 }
