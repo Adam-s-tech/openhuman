@@ -331,14 +331,15 @@ fn body_failure_result(name: &str, extra: serde_json::Value) -> TaToolResult {
 
 // ── EmbedderToolHooksMiddleware ──────────────────────────────────────────
 
+/// One recorded post-tool notification: tool name, args, success flag, duration.
+type PostToolRecord = (String, serde_json::Value, Option<bool>, Option<u64>);
+
 /// Records lifecycle notifications for a test hook, optionally vetoing every
 /// pre-tool call so the veto path can be exercised.
 struct RecordingToolHook {
     name: &'static str,
     pre: std::sync::Arc<std::sync::Mutex<Vec<(String, serde_json::Value)>>>,
-    post: std::sync::Arc<
-        std::sync::Mutex<Vec<(String, serde_json::Value, Option<bool>, Option<u64>)>>,
-    >,
+    post: std::sync::Arc<std::sync::Mutex<Vec<PostToolRecord>>>,
     veto: bool,
 }
 
@@ -376,9 +377,7 @@ impl crate::agent::hooks::ToolHook for RecordingToolHook {
 
 fn embedder_hook_mw(
     pre: std::sync::Arc<std::sync::Mutex<Vec<(String, serde_json::Value)>>>,
-    post: std::sync::Arc<
-        std::sync::Mutex<Vec<(String, serde_json::Value, Option<bool>, Option<u64>)>>,
-    >,
+    post: std::sync::Arc<std::sync::Mutex<Vec<PostToolRecord>>>,
     veto: bool,
 ) -> EmbedderToolHooksMiddleware {
     EmbedderToolHooksMiddleware::new(vec![std::sync::Arc::new(RecordingToolHook {

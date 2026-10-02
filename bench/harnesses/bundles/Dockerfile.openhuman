@@ -15,10 +15,10 @@ ENV PATH=/root/.cargo/bin:$PATH
 WORKDIR /build
 COPY . .
 ARG CARGO_PROFILE=release
-# Bench-only: the product's orchestrator stops a turn after 15 tool iterations, which cuts the
-# agent off while it is still reading the repo on long-horizon tasks. The other harnesses are run
-# with no turn cap, so lift this one for the benchmark (product default stays 15). Set to 15 to
-# reproduce the shipped behaviour. The sed must change the file or the build fails.
+# Bench-only: the orchestrator's shipped turn cap (50 tool iterations) can still cut an agent off
+# mid-task on long-horizon benchmarks, and the other harnesses are run with no turn cap, so lift
+# this one to 200 for the benchmark. Set OH_MAX_ITERATIONS to the shipped value to reproduce the
+# product. The rewrite must change the file or the build fails.
 ARG OH_MAX_ITERATIONS=200
 RUN f=crates/openhuman-core/src/agent/registry/agents/orchestrator/agent.toml \
     && sed -i "s/^max_iterations = [0-9]*\$/max_iterations = ${OH_MAX_ITERATIONS}/" "$f" \

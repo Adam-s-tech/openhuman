@@ -5,7 +5,7 @@
 //! exercises cheap read/status handlers through HTTP. Mutating or networked
 //! domain behavior remains covered by the focused `*_e2e.rs` suites.
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::memory_module;
 use crate::rpc_harness::serve_rpc;
@@ -106,7 +106,7 @@ fn schema_methods(value: &Value) -> Vec<(String, String, String)> {
 
 #[tokio::test]
 async fn target_domain_schemas_are_exposed_over_http_schema_catalog() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let schema = schema(&harness.rpc_base).await;
@@ -169,7 +169,7 @@ async fn target_domain_schemas_are_exposed_over_http_schema_catalog() {
 
 #[tokio::test]
 async fn config_agent_tools_and_threads_mutation_paths_round_trip() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let set_onboarding = rpc(
@@ -423,7 +423,7 @@ async fn config_agent_tools_and_threads_mutation_paths_round_trip() {
 
 #[tokio::test]
 async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     // The memory_* reads below reach the driver; wait out the module's load.
     memory_module::settle().await;
@@ -505,7 +505,7 @@ async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
 /// those.
 #[tokio::test]
 async fn channels_default_get_and_set_keep_their_distinct_wire_shapes() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let set = rpc(
@@ -563,7 +563,7 @@ async fn channels_default_get_and_set_keep_their_distinct_wire_shapes() {
 /// fields it did NOT send.
 #[tokio::test]
 async fn cron_update_applies_a_partial_patch_without_clobbering_unset_fields() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let added = rpc(
@@ -678,7 +678,7 @@ async fn cron_update_applies_a_partial_patch_without_clobbering_unset_fields() {
 /// status surface, which is the moment someone should look.
 #[tokio::test]
 async fn subsystems_status_reports_each_bound_driver_with_its_health() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(
@@ -743,7 +743,7 @@ async fn subsystems_status_reports_each_bound_driver_with_its_health() {
 /// list, or an operator surface quietly becoming unreachable.
 #[tokio::test]
 async fn mcp_audit_list_dispatches_internally_and_stays_out_of_the_schema_dump() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let listed = rpc(
@@ -797,7 +797,7 @@ async fn mcp_audit_list_dispatches_internally_and_stays_out_of_the_schema_dump()
 /// separately below.
 #[tokio::test]
 async fn mcp_clients_read_paths_validate_before_reaching_outward() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     // A missing required param must be refused by name, not by a null deref

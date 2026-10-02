@@ -17,7 +17,7 @@
 use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use axum::http::header::AUTHORIZATION;
@@ -43,13 +43,18 @@ static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 /// The crate-wide env lock, not a private one. Every aggregated suite in
 /// `raw_coverage_all` shares one process, so libtest runs them concurrently
 /// and a lock local to this file would isolate nothing.
-static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .blocking_lock()
+}
+
+async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock().await
 }
 
 /// Initialise the process RPC token (idempotent) and return the bearer the
@@ -274,7 +279,7 @@ fn str_at<'a>(value: &'a Value, pointer: &str) -> &'a str {
 /// either way is that after a stop the run is **not** `running`.
 #[tokio::test]
 async fn workflow_run_stop_then_resume_preserves_the_phase_ledger() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let h = setup().await;
 
     let started = h
@@ -403,7 +408,7 @@ async fn workflow_run_stop_then_resume_preserves_the_phase_ledger() {
 /// is nothing to resume, and the caller asked for something specific).
 #[tokio::test]
 async fn workflow_run_stop_is_idempotent_where_resume_is_not() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let h = setup().await;
 
     let stopped = h
@@ -464,7 +469,7 @@ async fn workflow_run_stop_is_idempotent_where_resume_is_not() {
 /// rather than as a missing run.
 #[tokio::test]
 async fn agent_work_control_validates_verb_and_message_before_touching_the_ledger() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let h = setup().await;
 
     let unknown_verb = h
@@ -557,7 +562,7 @@ async fn agent_work_control_validates_verb_and_message_before_touching_the_ledge
 /// bucket to the other.
 #[tokio::test]
 async fn agent_team_close_flips_the_status_the_list_filter_selects_on() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let h = setup().await;
 
     let created = h
@@ -696,7 +701,7 @@ async fn agent_team_close_flips_the_status_the_list_filter_selects_on() {
 /// a wrongly typed pagination field must not silently become "all teams".
 #[tokio::test]
 async fn agent_team_list_and_close_reject_malformed_input() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let h = setup().await;
 
     let bad_limit = h
@@ -756,7 +761,7 @@ async fn agent_team_list_and_close_reject_malformed_input() {
 /// further and says *why* it did nothing.
 #[tokio::test]
 async fn subagent_steer_honours_and_defaults_the_queue_mode() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let h = setup().await;
 
     let collect = h
@@ -825,7 +830,7 @@ fn experience(id: &str, summary: &str, lesson: &str, tools: &[&str], tags: &[&st
 /// retrieval **without** deleting it.
 #[tokio::test]
 async fn agent_experience_capture_list_retrieve_and_dismiss_round_trip() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     ensure_memory_seams();
     let h = setup().await;
 
@@ -1007,7 +1012,7 @@ async fn agent_experience_capture_list_retrieve_and_dismiss_round_trip() {
 /// instead of being defaulted into a silently wrong record.
 #[tokio::test]
 async fn agent_experience_controllers_reject_malformed_params() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     ensure_memory_seams();
     let h = setup().await;
 

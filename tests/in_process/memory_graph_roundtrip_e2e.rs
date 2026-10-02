@@ -73,7 +73,7 @@
 //! A large stack is also needed — `RUST_MIN_STACK=67108864` — because
 //! publishing the policy touches deeply nested config types.
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::ensure_rpc_auth;
 use crate::rpc_harness::{ok, rpc};
@@ -124,6 +124,8 @@ fn ensure_memory_seams(workspace: &Path) {
                 });
                 #[cfg(feature = "modules")]
                 openhuman_core::modules::memory::set_modules_policy(config);
+                #[cfg(not(feature = "modules"))]
+                drop(config);
             })
             .expect("spawn memory graph seam installer")
             .join()
@@ -260,7 +262,7 @@ fn relation_matches(row: &Value, subject: &str, predicate: &str, object: &str) -
 /// and the response serialisation.
 #[tokio::test]
 async fn graph_relation_survives_the_json_rpc_round_trip() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     let namespace = unique_namespace("graph-rt");
 
@@ -310,7 +312,7 @@ async fn graph_relation_survives_the_json_rpc_round_trip() {
 /// filter breaks.
 #[tokio::test]
 async fn graph_query_does_not_leak_relations_across_namespaces() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     let mine = unique_namespace("graph-mine");
     let theirs = unique_namespace("graph-theirs");
@@ -376,7 +378,7 @@ async fn graph_query_does_not_leak_relations_across_namespaces() {
 /// substitute for it.
 #[tokio::test]
 async fn unfiltered_graph_query_is_a_superset_of_the_namespace_scoped_query() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     let namespace = unique_namespace("graph-superset");
 

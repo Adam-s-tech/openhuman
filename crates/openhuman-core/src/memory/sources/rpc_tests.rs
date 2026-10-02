@@ -216,7 +216,7 @@ async fn add_generates_an_id_and_caps_a_request_that_left_its_limits_unset() {
     let tmp = tempfile::TempDir::new().expect("tempdir");
     let workspace = tmp.path().join("workspace");
     std::fs::create_dir_all(&workspace).expect("workspace dir");
-    let _env = EnvVarGuard::workspace(&workspace);
+    let _env = EnvVarGuard::workspace_async(&workspace).await;
 
     let added = add_rpc(github_add_request())
         .await

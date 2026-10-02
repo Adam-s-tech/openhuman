@@ -88,9 +88,7 @@ fn diagnostics_reports_inventory_and_policy_surfaces() {
 
 #[tokio::test]
 async fn diagnostics_loads_active_capability_provider_config() {
-    let _lock = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let _lock = crate::config::TEST_ENV_LOCK.lock().await;
     let tmp = tempfile::tempdir().expect("tempdir");
     let _env = EnvVarGuard::set("OPENHUMAN_WORKSPACE", tmp.path());
     std::fs::write(

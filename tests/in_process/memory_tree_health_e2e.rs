@@ -24,7 +24,7 @@
 //! cross-method invariant that IS reachable and says so in a comment, rather
 //! than asserting `0 == 0` and calling it coverage.
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::memory_rpc::{ok, serve, write_config};
 use crate::rpc_auth::rpc_token;
@@ -118,7 +118,7 @@ fn body_for(source: &str) -> String {
 /// each other catches that in either direction without needing to force a fault.
 #[tokio::test]
 async fn memory_tree_doctor_verdict_agrees_with_its_own_evidence() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);
@@ -205,7 +205,7 @@ async fn memory_tree_doctor_verdict_agrees_with_its_own_evidence() {
 /// deleted, and the other must still be listed with its chunks intact.
 #[tokio::test]
 async fn memory_tree_delete_source_removes_only_the_named_source() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);
@@ -288,7 +288,7 @@ async fn memory_tree_delete_source_removes_only_the_named_source() {
 /// pipeline must not simultaneously present itself as unblocked.
 #[tokio::test]
 async fn memory_tree_vault_and_pipeline_health_surfaces_agree() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);
@@ -361,7 +361,7 @@ async fn memory_tree_vault_and_pipeline_health_surfaces_agree() {
 /// whole job table rather than the failed rows, fails both.
 #[tokio::test]
 async fn memory_tree_retry_failed_never_requeues_more_than_had_failed() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);
@@ -415,7 +415,7 @@ async fn memory_tree_retry_failed_never_requeues_more_than_had_failed() {
 /// to — or silently falls back to a global flush — shows up as a mismatch.
 #[tokio::test]
 async fn memory_tree_flush_source_seals_only_the_scope_it_was_given() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);
@@ -466,7 +466,7 @@ async fn memory_tree_flush_source_seals_only_the_scope_it_was_given() {
 /// depend on the code under test telling the truth about itself.
 #[tokio::test]
 async fn memory_tree_backfill_dry_run_reports_without_writing() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);
@@ -529,7 +529,7 @@ async fn memory_tree_backfill_dry_run_reports_without_writing() {
 /// than the contract.
 #[tokio::test]
 async fn memory_tree_smart_walk_answers_over_ingested_content() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);
@@ -596,7 +596,7 @@ async fn memory_tree_smart_walk_answers_over_ingested_content() {
 /// `Outcome` envelope.
 #[tokio::test]
 async fn memory_namespace_summaries_counts_each_namespace_it_was_given() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
     write_config(&openhuman_home);

@@ -2,7 +2,7 @@ use super::*;
 
 #[tokio::test]
 async fn offline_local_session_never_fetches_hosted_integrations() {
-    let _guard = cache_guard();
+    let _guard = cache_guard_async().await;
     let tmp = tempfile::tempdir().unwrap();
     let mut config = Config::default();
     config.workspace_dir = tmp.path().join("workspace");
@@ -27,7 +27,7 @@ async fn offline_local_session_never_fetches_hosted_integrations() {
 
 #[tokio::test]
 async fn fetch_connected_integrations_via_mock_aggregates_tools() {
-    let _guard = cache_guard();
+    let _guard = cache_guard_async().await;
     // Connections: gmail + notion. Tools: filtered to those toolkits
     // and prefixed with the uppercased slug. The toolkits route
     // backs the `list_toolkits()` allowlist gate that
@@ -90,7 +90,7 @@ async fn fetch_connected_integrations_via_mock_aggregates_tools() {
 
 #[tokio::test]
 async fn fetch_connected_integrations_treats_slack_and_telegram_status_like_ui() {
-    let _guard = cache_guard();
+    let _guard = cache_guard_async().await;
     let app = Router::new()
         .route(
             "/agent-integrations/composio/toolkits",
@@ -161,7 +161,7 @@ async fn fetch_connected_integrations_treats_slack_and_telegram_status_like_ui()
 
 #[tokio::test]
 async fn fetch_connected_integrations_via_mock_returns_empty_with_no_active() {
-    let _guard = cache_guard();
+    let _guard = cache_guard_async().await;
     let app = Router::new().route(
         "/agent-integrations/composio/connections",
         get(|| async {
@@ -302,7 +302,7 @@ fn sync_cache_treats_connected_status_equivalent_to_active() {
 
 #[tokio::test]
 async fn cache_entries_survive_idle_time_until_connection_change() {
-    let _guard = cache_guard();
+    let _guard = cache_guard_async().await;
     let tmp = tempfile::TempDir::new().unwrap();
     let config = test_config(&tmp);
     let key = crate::integrations::composio::connected_integrations::cache_key(&config);
@@ -393,7 +393,7 @@ async fn composio_list_available_triggers_omits_connection_when_none() {
         "/agent-integrations/composio/triggers/available",
         get(|Query(q): Query<HashMap<String, String>>| async move {
             assert!(
-                q.get("connectionId").is_none(),
+                !q.contains_key("connectionId"),
                 "should not forward connectionId"
             );
             Json(json!({"success": true, "data": {"triggers": []}}))
@@ -555,7 +555,7 @@ async fn composio_list_toolkits_returns_empty_in_direct_mode() {
 #[tokio::test]
 async fn composio_list_connections_routes_through_direct_mode() {
     let _serialised = module_guard().await;
-    let _guard = cache_guard();
+    let _guard = cache_guard_async().await;
     let tmp = tempfile::tempdir().unwrap();
     let config = direct_mode_config(&tmp);
     // [composio-direct] After commit 2 of #1710, direct mode actually

@@ -25,7 +25,7 @@
 //! positive here.
 #![allow(clippy::await_holding_lock)]
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::noop_memory;
 use async_trait::async_trait;
@@ -298,7 +298,7 @@ fn suppress_active_goal_keeps_the_thread_goal_out_of_the_prompt() {
 }
 
 async fn suppress_active_goal_keeps_the_thread_goal_out_of_the_prompt_inner() {
-    let _env = env_lock();
+    let _env = env_lock_async().await;
 
     // Control and measured agent get SEPARATE workspaces on purpose.
     //
@@ -405,7 +405,7 @@ fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript() {
 }
 
 async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript_inner() {
-    let _env = env_lock();
+    let _env = env_lock_async().await;
     let (_temp, workspace_path) = workspace("suppress-transcript-autoload");
     let _workspace_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
 
@@ -515,7 +515,7 @@ fn turn_overrides_apply_to_exactly_one_turn_and_then_reset() {
 }
 
 async fn turn_overrides_apply_to_exactly_one_turn_and_then_reset_inner() {
-    let _env = env_lock();
+    let _env = env_lock_async().await;
     let (_temp, workspace_path) = workspace("overrides-reset");
     let _workspace_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
 
@@ -573,7 +573,7 @@ fn thread_goal_complete_and_clear_stop_the_goal_reaching_later_turns() {
 }
 
 async fn thread_goal_complete_and_clear_stop_the_goal_reaching_later_turns_inner() {
-    let _env = env_lock();
+    let _env = env_lock_async().await;
 
     // Separate workspaces, for the same reason as
     // `suppress_active_goal_keeps_the_thread_goal_out_of_the_prompt`: a second

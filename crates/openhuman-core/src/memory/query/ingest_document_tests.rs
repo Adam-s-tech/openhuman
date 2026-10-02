@@ -8,7 +8,7 @@ use serde_json::json;
 use tinytools::Tool;
 
 async fn isolated_config(tmp: &TempDir) -> (EnvVarGuard, Config) {
-    let guard = EnvVarGuard::workspace(tmp.path());
+    let guard = EnvVarGuard::workspace_async(tmp.path()).await;
     let config = Config::load_or_init().await.expect("load config");
     // `list_chunks_rpc` reads through the bound driver now, and a unit-test
     // workspace binds the null one — which serves no Chunks family and
