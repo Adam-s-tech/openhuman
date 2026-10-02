@@ -19,9 +19,6 @@ fn user_memory_section_returns_empty_when_no_summaries() {
         tool_call_format: ToolCallFormat::PFormat,
         connected_integrations: &[],
         connected_identities_md: String::new(),
-        include_profile: false,
-        include_memory_md: false,
-        curated_snapshot: None,
         user_identity: None,
         personality_roster: vec![],
         agents_md_global: None,
@@ -147,8 +144,6 @@ fn render_subagent_system_prompt_honors_identity_safety_and_skills_flags() {
         SubagentRenderOptions {
             include_identity: true,
             include_safety_preamble: true,
-            include_profile: false,
-            include_memory_md: false,
         },
         ToolCallFormat::Json,
         &[],
@@ -221,8 +216,6 @@ fn only(identity: bool, profile: bool, memory: bool) -> SubagentRenderOptions {
     SubagentRenderOptions {
         include_identity: identity,
         include_safety_preamble: false,
-        include_profile: profile,
-        include_memory_md: memory,
     }
 }
 

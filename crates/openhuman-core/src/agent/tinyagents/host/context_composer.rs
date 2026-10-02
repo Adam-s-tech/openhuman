@@ -129,10 +129,8 @@ pub struct OpenHumanContextComposer {
     /// seam an opaque agent id, so the wiring site supplies it explicitly via
     /// [`Self::with_omissions`]; hardcoding it would inject a file a specialist
     /// definition deliberately excludes.
-    include_profile: bool,
     /// Whether the user's MEMORY.md layer is injected. See
     /// [`Self::include_profile`].
-    include_memory_md: bool,
     /// The section chain. Built once so per-turn composition is just a render.
     builder: SystemPromptBuilder,
 }
@@ -152,9 +150,6 @@ impl OpenHumanContextComposer {
             model_name,
             tool_call_format: ToolCallFormat::default(),
             connected_integrations: Vec::new(),
-            learned: LearnedContextData::default(),
-            include_profile: true,
-            include_memory_md: true,
             builder: SystemPromptBuilder::with_defaults(),
         }
     }
@@ -253,12 +248,9 @@ impl ContextComposer for OpenHumanContextComposer {
             // crate hands this seam a bare agent id, so the wiring site supplies
             // them via `with_omissions`; the default is the main-agent
             // behaviour (both included).
-            include_profile: self.include_profile,
-            include_memory_md: self.include_memory_md,
             // No turn-scoped curated-memory snapshot at this seam; the user
             // files sections fall back to the workspace files, which is the
             // documented `None` behaviour.
-            curated_snapshot: None,
             user_identity: crate::security::credentials::identity::peek_credential_user_identity(),
             // TODO(phase4): the master agent's personality roster is built
             // from the profiles domain (`crate::profiles`); the

@@ -63,9 +63,6 @@ impl OpenHumanSessionHost {
             ),
             connected_integrations: &self.connected_integrations,
             connected_identities_md: crate::agent::prompts::render_connected_identities(),
-            include_profile: !self.omit_profile,
-            include_memory_md: !self.omit_memory_md,
-            curated_snapshot: None,
             user_identity: crate::security::credentials::identity::peek_credential_user_identity(),
             personality_roster: vec![], // TODO: build_personality_roster(&workspace_dir)
             agents_md_global: agents_md.global,
