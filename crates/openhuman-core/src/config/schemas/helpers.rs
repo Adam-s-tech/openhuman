@@ -74,8 +74,6 @@ pub(super) struct ModelSettingsUpdate {
 
 #[derive(Debug, Deserialize)]
 pub(super) struct MemorySettingsUpdate {
-    pub(super) backend: Option<String>,
-    pub(super) auto_save: Option<bool>,
     pub(super) embedding_provider: Option<String>,
     pub(super) embedding_model: Option<String>,
     pub(super) embedding_dimensions: Option<usize>,
@@ -246,11 +244,6 @@ pub(super) struct AgentPathsUpdate {
     /// clears the override; omitted leaves it unchanged.
     #[serde(default)]
     pub(super) files_dir: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct MemorySyncSettingsUpdate {
-    pub(super) sync_interval_secs: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]

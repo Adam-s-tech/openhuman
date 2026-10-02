@@ -131,20 +131,6 @@ pub(super) fn handle_set_browser_allow_all(params: Map<String, Value>) -> Contro
     })
 }
 
-pub(super) fn handle_get_memory_sync_settings(_params: Map<String, Value>) -> ControllerFuture {
-    Box::pin(async move { to_json(config_rpc::get_memory_sync_settings().await?) })
-}
-
-pub(super) fn handle_update_memory_sync_settings(params: Map<String, Value>) -> ControllerFuture {
-    Box::pin(async move {
-        let update = deserialize_params::<MemorySyncSettingsUpdate>(params)?;
-        let patch = config_rpc::MemorySyncSettingsPatch {
-            sync_interval_secs: update.sync_interval_secs,
-        };
-        to_json(config_rpc::load_and_apply_memory_sync_settings(patch).await?)
-    })
-}
-
 pub(super) fn handle_get_sandbox_settings(_params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move { to_json(config_rpc::get_sandbox_settings().await?) })
 }

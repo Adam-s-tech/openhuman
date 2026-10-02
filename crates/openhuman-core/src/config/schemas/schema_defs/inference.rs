@@ -104,15 +104,8 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
 "update_memory_settings" => Some( ControllerSchema {
             namespace: "config",
             function: "update_memory_settings",
-            description: "Update memory backend and embedding settings.",
+            description: "Update the embedding settings and the agent's memory-context window.",
             inputs: vec![
-                optional_string("backend", "Memory backend identifier."),
-                FieldSchema {
-                    name: "auto_save",
-                    ty: TypeSchema::Option(Box::new(TypeSchema::Bool)),
-                    comment: "Enable auto-save.",
-                    required: false,
-                },
                 optional_string("embedding_provider", "Embedding provider identifier."),
                 optional_string("embedding_model", "Embedding model identifier."),
                 FieldSchema {

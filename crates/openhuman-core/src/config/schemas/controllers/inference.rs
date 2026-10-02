@@ -151,8 +151,6 @@ pub(super) fn handle_update_memory_settings(params: Map<String, Value>) -> Contr
     Box::pin(async move {
         let update = deserialize_params::<MemorySettingsUpdate>(params)?;
         let patch = config_rpc::MemorySettingsPatch {
-            backend: update.backend,
-            auto_save: update.auto_save,
             embedding_provider: update.embedding_provider,
             embedding_model: update.embedding_model,
             embedding_dimensions: update.embedding_dimensions,
