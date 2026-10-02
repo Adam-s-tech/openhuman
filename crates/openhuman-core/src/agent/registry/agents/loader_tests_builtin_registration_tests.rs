@@ -383,9 +383,11 @@ fn master_agent_has_coding_hint_and_named_tools() {
         }
         ToolScope::Wildcard => panic!("orchestrator must have named tool allowlist"),
     }
-    assert_eq!(def.max_iterations, 15);
-    // Recall happens through the direct unified `memory` tool, so the
-    // orchestrator does not need an eager pre-turn memory-agent run.
+    assert_eq!(def.max_iterations, 50);
+    // Memory retrieval is on-demand (via the `agent_memory` subagent,
+    // surfaced as `delegate_retrieve_memory`), not an eager pre-turn
+    // pre-fetch. The allowlist entry is what makes that route reachable
+    // (see the `agent_memory::tools` allowlist gate).
     assert_eq!(def.trigger_memory_agent, TriggerMemoryAgent::Never);
 }
 
