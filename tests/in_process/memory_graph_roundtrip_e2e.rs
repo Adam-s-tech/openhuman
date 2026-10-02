@@ -116,7 +116,7 @@ fn ensure_memory_seams(workspace: &Path) {
             .name("memory-graph-roundtrip-seams".to_string())
             .stack_size(8 * 1024 * 1024)
             .spawn(move || {
-                let _config = Arc::new(openhuman_core::config::Config {
+                let config = Arc::new(openhuman_core::config::Config {
                     workspace_dir: workspace.clone(),
                     action_dir: workspace.clone(),
                     config_path: workspace.join("config.toml"),
@@ -124,6 +124,8 @@ fn ensure_memory_seams(workspace: &Path) {
                 });
                 #[cfg(feature = "modules")]
                 openhuman_core::modules::memory::set_modules_policy(config);
+                #[cfg(not(feature = "modules"))]
+                drop(config);
             })
             .expect("spawn memory graph seam installer")
             .join()
