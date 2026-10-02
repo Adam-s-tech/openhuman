@@ -39,8 +39,8 @@
     },
     {
       "id": "tinyjuice",
-      "expect": "v0.5.1-2-gb2f7172",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
+      "expect": "v0.5.1-5-g9cb1693a",
+      "reason": "Pin carries the legacy test-file rename commits (#6903) and upstream main updates past the release tag; re-pin to the next release of this module once its rename PR is released."
     },
     {
       "id": "tinyvoice",
