@@ -14,21 +14,6 @@ impl Config {
         crate::config::resolve_files_dir(&self.files_dir_override)
     }
 
-    /// Resolve the root directory where chunk `.md` files are stored.
-    ///
-    /// Resolution order:
-    /// 1. `memory_tree.content_dir` if `Some`.
-    /// 2. Default: `<workspace_dir>/memory_tree/content/`.
-    ///
-    /// This is the only place in the codebase that should compute the content
-    /// root — all code that needs the path should call this method.
-    pub fn memory_tree_content_root(&self) -> PathBuf {
-        self.memory_tree
-            .content_dir
-            .clone()
-            .unwrap_or_else(|| self.workspace_dir.join("memory_tree").join("content"))
-    }
-
     /// Read the per-workload provider string and return the local model id
     /// when the workload is routed to Ollama.
     ///

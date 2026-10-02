@@ -116,9 +116,8 @@ pub(super) async fn reload_config_or(_fallback: &Config) -> Result<Config, Strin
 }
 
 /// Point every process-global store at `config`'s workspace after a
-/// credential change: cron seeds, the core context (which carries the memory
-/// binding — see `CoreContext::memory_binding`, #5560), conversation
-/// persistence, and the process-global cost tracker. Returns log lines for
+/// credential change: cron seeds (including memory's cron jobs), the core
+/// context, conversation persistence, and the process-global cost tracker. Returns log lines for
 /// the RPC outcome.
 pub(super) fn rebind_after_credential_change(
     config: &Config,

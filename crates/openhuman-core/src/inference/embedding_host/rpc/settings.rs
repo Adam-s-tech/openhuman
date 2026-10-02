@@ -39,40 +39,17 @@ fn model_rejection_outcome(reject: ModelNotServed) -> Outcome<serde_json::Value>
 /// Slug naming the embedder ingestion will actually use, resolved host-side
 /// from the `Config` fields the resolution ladder reads.
 ///
-/// Mirrors `tinymemory_core::tree::score::embed::effective_embedder_slug` so
-/// `get_settings` no longer calls `tinymemory_core::` directly (#5560).
-///
-/// `MemoryScoring::embedder_slug()` is not used here for two reasons:
-/// (1) `get_settings` is a synchronous config-reading RPC handler and cannot
-/// await an async bus call; (2) this function answers "what slug will ingestion
-/// use?" — a config-derived prediction that must work even when the module is
-/// not loaded. The bus call would give the same answer when the module is
-/// running, but would fail gracefully when it is not, offering no benefit over
-/// reading the config directly. Keep both implementations in sync whenever the
-/// engine's resolution ladder changes.
-///
-/// Resolution order (matches the engine factory's ladder):
-/// 1. Explicit Ollama override — `memory_tree.embedding_endpoint` +
-///    `memory_tree.embedding_model` both `Some` and non-empty → `"ollama"`.
-/// 2. Deliberate opt-out — `embeddings_provider` trimmed equals `"none"` → `"none"`.
-/// 3. Local Ollama via unified workload setting — `workload_local_model("embeddings")`
+/// Resolution order:
+/// 1. Deliberate opt-out — `embeddings_provider` trimmed equals `"none"` → `"none"`.
+/// 2. Local Ollama via unified workload setting — `workload_local_model("embeddings")`
 ///    is `Some` → `"ollama"`.
-/// 4. User OpenAI-compatible endpoint — `memory.embedding_provider` is
+/// 3. User OpenAI-compatible endpoint — `memory.embedding_provider` is
 ///    `"openai"`, `"custom"`, or starts with `"custom:"` → `"custom"`.
-/// 5. Managed cloud session — `auth-profiles.json` exists next to the config
+/// 4. Managed cloud session — `auth-profiles.json` exists next to the config
 ///    file → `"cloud"`.
-/// 6. Nothing usable → `"unconfigured"`.
+/// 5. Nothing usable → `"unconfigured"`.
 fn effective_embedder_slug_from_config(config: &Config) -> &'static str {
-    // 1. Explicit Ollama override.
-    if let (Some(ep), Some(model)) = (
-        config.memory_tree.embedding_endpoint.as_deref(),
-        config.memory_tree.embedding_model.as_deref(),
-    ) {
-        if !ep.trim().is_empty() && !model.trim().is_empty() {
-            return "ollama";
-        }
-    }
-    // 2. Deliberate opt-out.
+    // 1. Deliberate opt-out.
     if config
         .embeddings_provider
         .as_deref()
@@ -81,16 +58,16 @@ fn effective_embedder_slug_from_config(config: &Config) -> &'static str {
     {
         return "none";
     }
-    // 3. Local Ollama via unified workload setting.
+    // 2. Local Ollama via unified workload setting.
     if config.workload_local_model("embeddings").is_some() {
         return "ollama";
     }
-    // 4. User OpenAI-compatible endpoint.
+    // 3. User OpenAI-compatible endpoint.
     let picker = config.memory.embedding_provider.trim();
     if picker == "openai" || picker == "custom" || picker.starts_with("custom:") {
         return "custom";
     }
-    // 5. Managed cloud session.
+    // 4. Managed cloud session.
     let session_exists = config
         .config_path
         .parent()
