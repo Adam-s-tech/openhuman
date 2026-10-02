@@ -16,7 +16,7 @@ mod connectable_slug_tests;
 mod catalog_description_tests;
 
 #[cfg(test)]
-pub(crate) use cache::composio_cache_test_lock;
+pub(crate) use cache::{composio_cache_test_lock, composio_cache_test_lock_async};
 pub(crate) use cache::sync_cache_with_connections;
 pub use cache::{
     cached_active_integrations, cached_active_integrations_including_expired, connected_set_hash,

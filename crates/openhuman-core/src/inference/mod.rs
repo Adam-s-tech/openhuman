@@ -120,6 +120,11 @@ impl tinyinference_local::models::LocalModelConfig for crate::config::Config {
 
 // Test helpers (re-exported for sibling test files that use inference_test_guard)
 #[cfg(test)]
-pub(crate) fn inference_test_guard() -> std::sync::MutexGuard<'static, ()> {
+pub(crate) fn inference_test_guard() -> tokio::sync::MutexGuard<'static, ()> {
     host_runtime::inference_test_guard()
+}
+
+#[cfg(test)]
+pub(crate) async fn inference_test_guard_async() -> tokio::sync::MutexGuard<'static, ()> {
+    host_runtime::inference_test_guard_async().await
 }
