@@ -318,16 +318,11 @@ pub fn start_bootstrap_jobs(services: ServiceSet, config: &Config) {
     // loading the module gets TWO pairs of loops over one store, and neither
     // can see the other.
     if plan.composio_integration_sync {
-        log::debug!("[runtime.bootstrap] starting composio source reconcile");
-        tokio::spawn(async {
-            log::debug!("[runtime.bootstrap] composio source reconcile started");
-            crate::memory::sources::reconcile::ensure_composio_sources().await;
-            log::debug!("[runtime.bootstrap] composio source reconcile completed");
-        });
-    } else {
         log::debug!(
-            "[runtime.bootstrap] composio integration sync + source reconcile disabled by ServiceSet"
+            "[runtime.bootstrap] composio integrations enabled; memory syncs run on memory source schedules"
         );
+    } else {
+        log::debug!("[runtime.bootstrap] composio integrations disabled by ServiceSet");
     }
 
     // Memory sync — workspace-kind memory sources (GitHub repos, folders, RSS,

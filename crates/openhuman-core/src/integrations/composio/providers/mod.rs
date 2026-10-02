@@ -26,11 +26,7 @@
 //!       was pure indirection), or
 //!     - calls the `tinyconnectors` module directly through
 //!       [`super::module_client`] (profile fetch, action execution, sync —
-//!       see `ops::providers_ops::run_sync_pass` and `ops::execute`).
-//!
-//!   `slack` stays re-exported below: it is this host's own RPC layer over
-//!   the connector module (`memory::sync::composio::providers::slack`), not
-//!   an engine provider.
+//!       see `ops::sync::run_sync_pass` and `ops::execute`).
 
 // ── The contract half ───────────────────────────────────────────────────────
 pub use crate::integrations::composio::contract::catalogs::{
@@ -49,6 +45,3 @@ pub use crate::integrations::composio::contract::{
     render_connected_identities_section, ConnectedIdentity, ProviderUserProfile, SyncOutcome,
     SyncReason,
 };
-
-// ── This host's own RPC layer over the connector module ────────────────────
-pub use crate::memory::sync::composio::providers::slack;
