@@ -336,7 +336,7 @@ impl ParallelHarnessProvider {
             sleep(Duration::from_millis(5)).await;
         }
 
-        let response = (if flattened.contains(RESEARCH_PROMPT_CANARY) {
+        let response = if flattened.contains(RESEARCH_PROMPT_CANARY) {
                 if flattened.contains("research-step-3-ok") {
                     Ok(text_response(RESEARCH_DONE_CANARY))
                 } else if flattened.contains("research-step-2-ok") {
@@ -378,7 +378,7 @@ impl ParallelHarnessProvider {
                 Err(tinyinference_llm::Error::Model(format!(
                     "unexpected subagent payload: {flattened}"
                 )))
-            });
+            } ;
 
         self.state
             .active_subagent_calls
