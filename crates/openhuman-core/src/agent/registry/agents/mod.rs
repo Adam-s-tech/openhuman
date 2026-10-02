@@ -12,7 +12,7 @@
 //!   `include_str!`; nothing else reads it.
 //! * `prompt.rs`   — exposes `pub fn build(&PromptContext) ->
 //!   anyhow::Result<String>`, which appends runtime-dependent sections
-//!   (rendered tool list, user files, workspace) to the `prompt.md` body.
+//!   (rendered tool list, workspace) to the `prompt.md` body.
 //!   [`BUILTINS`] installs it as `PromptSource::Dynamic` on the parsed
 //!   definition. Most archetypes keep a `prompt_tests.rs` beside it.
 //!

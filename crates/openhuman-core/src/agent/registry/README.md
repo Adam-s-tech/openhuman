@@ -63,7 +63,7 @@ model, tool scope, sandbox mode, iteration cap, tier, `omit_*` flags, parsed
 directly into `AgentDefinition`), a `prompt.md` holding the static archetype
 body, and a `prompt.rs` that `include_str!`s that body and exposes
 `pub fn build(&PromptContext) -> anyhow::Result<String>`, appending
-runtime-dependent sections (rendered tool list, user files, workspace) to it.
+runtime-dependent sections (rendered tool list, workspace) to it.
 Every archetype currently uses `AgentGraph::Default`; an archetype that needs a
 bespoke `AgentGraph` adds a `graph.rs` and sets `BuiltinAgent::graph_fn`. The per-archetype contract is
 documented on [`agents/mod.rs`](agents/mod.rs).
