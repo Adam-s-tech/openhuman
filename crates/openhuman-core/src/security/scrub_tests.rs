@@ -22,6 +22,8 @@ fn drops_sensitive_json_keys() {
 
 #[test]
 fn flags_a_likely_secret() {
-    assert!(has_likely_secret("ghp_0123456789abcdefghijklmnopqrstuvwxyzAB"));
+    assert!(has_likely_secret(
+        "ghp_0123456789abcdefghijklmnopqrstuvwxyzAB"
+    ));
     assert!(!has_likely_secret("hello world"));
 }
