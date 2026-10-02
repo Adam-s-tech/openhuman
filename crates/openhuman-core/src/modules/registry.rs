@@ -38,7 +38,7 @@ mod records_computer;
 mod records_docs_wallet;
 mod records_extra;
 mod records_mcp_connectors;
-mod records_memory_juice;
+mod records_juice;
 mod records_runtime;
 mod records_search;
 mod records_voice;
@@ -48,7 +48,7 @@ use records_computer::TINYCOMPUTER;
 use records_docs_wallet::{TINYDOCS, TINYWALLET};
 use records_extra::{TINYBOX, TINYCHANNELS, TINYHOSTS};
 use records_mcp_connectors::{TINYCONNECTORS, TINYMCP};
-use records_memory_juice::{TINYJUICE, TINYMEMORY};
+use records_juice::TINYJUICE;
 use records_runtime::{TINYRUNTIME, TINYRUNTIME_NODEJS, TINYRUNTIME_PYTHON};
 use records_search::TINYSEARCH;
 use records_voice::TINYVOICE;
@@ -59,7 +59,6 @@ pub const ALL: &[ModuleRecord] = &[
     TINYSEARCH,
     TINYDOCS,
     TINYWALLET,
-    TINYMEMORY,
     TINYJUICE,
     TINYVOICE,
     TINYRUNTIME,
