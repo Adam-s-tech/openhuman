@@ -57,7 +57,10 @@ pub const PACKS: &[ToolPack] = &[
             "list_agent_definitions",
             "list_connectable_toolkits",
         ],
-        owners: &["orchestrator", "workflow_builder", "flow_discovery"],
+        // The orchestrator is NOT an owner: it builds and discovers through
+        // `spawn_async_subagent` (prompt.md) and reaches the rest via `use_skill`,
+        // so owning the pack put all of it on its wire for nothing.
+        owners: &["workflow_builder", "flow_discovery"],
         guide: "",
     },
     ToolPack {

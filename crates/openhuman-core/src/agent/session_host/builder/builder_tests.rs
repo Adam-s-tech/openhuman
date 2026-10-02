@@ -411,7 +411,7 @@ fn is_empty_tool_scope_distinguishes_the_three_states() {
 
 #[tokio::test]
 async fn a_summarized_agent_sees_the_recovery_tool_with_compaction_off() {
-    // A summary's footer names `tinyjuice_retrieve`, and summaries run with
+    // A summary's footer names `juice_retrieve`, and summaries run with
     // the compaction router off (the default). The orchestrator is the agent
     // that gets them, so it must see the tool whatever the router says.
     use crate::agent::session_host::types::OpenHumanSessionHost;

@@ -17,12 +17,14 @@ pub use types::{AgentTokenjuiceCompression, CompressorKind, ContentKind};
 
 use types::InstallRequest;
 
-pub const RETRIEVE_TOOL_NAME: &str = "tinyjuice_retrieve";
+pub const RETRIEVE_TOOL_NAME: &str = "juice_retrieve";
+pub const LEGACY_TINYJUICE_RETRIEVE_TOOL_NAME: &str = "tinyjuice_retrieve";
 pub const LEGACY_RETRIEVE_TOOL_NAME: &str = "retrieve_tool_output";
 /// Every name the recovery surface answers to: the live tool plus the two
 /// migration aliases a replayed transcript may still call.
 pub const RECOVERY_TOOL_NAMES: &[&str] = &[
     RETRIEVE_TOOL_NAME,
+    LEGACY_TINYJUICE_RETRIEVE_TOOL_NAME,
     "tokenjuice_retrieve",
     LEGACY_RETRIEVE_TOOL_NAME,
 ];

@@ -29,15 +29,12 @@ omit_profile = false
 # prior conversations and distilled user preferences. Frozen per
 # session (KV-cache contract on `AgentDefinition::omit_memory_md`).
 omit_memory_md = false
-# Memory retrieval is ON-DEMAND, not pre-emptive. The orchestrator used to
-# run `agent_memory` eagerly before every turn (`trigger_memory_agent =
-# "always"`), spawning a full ≤15-iteration memory subagent on every
-# message — including trivial ones — before it had even read the user's
-# intent. That cost a blocking agentic round-trip per turn for a guarantee
-# the model rarely needed. Instead, `agent_memory` is listed in the
-# `[subagents]` allowlist below, which synthesises a `delegate_retrieve_memory`
-# tool the orchestrator calls only when a message actually needs the deep
-# memory-tree walk. (The frozen MEMORY.md digest still anchors every turn.)
+# Memory retrieval is ON-DEMAND, not pre-emptive, and it is one direct `memory`
+# tool (`ask` | `keyword_search` | `learn` | `forget`). The orchestrator used to run
+# `agent_memory` eagerly before every turn, then to offer it as a second
+# `retrieve_memory` delegate beside `memory_recall`: two near-identical ways to
+# search the same store. Now there is one. (The frozen MEMORY.md digest still
+# anchors every turn.)
 
 # Delegation surface. The `collect_orchestrator_tools` helper reads this
 # at agent-build time and synthesises one `delegate_*` tool per entry:
@@ -122,11 +119,6 @@ allowlist = [
     # "forget", profile/persona edits, learned facets, and people alias
     # management here.
     "profile_memory_agent",
-    # On-demand memory retrieval. Synthesised into a `delegate_retrieve_memory`
-    # tool (from agent_memory's `delegate_name`). Replaces the old eager
-    # `trigger_memory_agent = "always"` pre-fetch — the orchestrator now walks
-    # the memory tree only when a message needs it, not before every turn.
-    "agent_memory",
     # Image-understanding specialist. Route anything that hinges on the content
     # of an attached or on-disk user-provided image file here — it is pinned to
     # a dedicated multimodal model (`MODEL_MEDIA_UNDERSTANDING`), so it can
@@ -241,20 +233,20 @@ named = [
     "web_contents_tool",
     "web_fetch",
     "http_request",
-    # Direct memory surface (#4762). Recall/store are the product's core and must
-    # be first-class DIRECT tools, not a sub-agent spawn: a trivial "what is my Q3
-    # OKR" recall or a "remember my Q3 OKR" write should not pay a blocking
-    # agentic round-trip (over-delegation, #4744) that can hang or — as observed —
-    # spawn `manage_profile_memory` which did 0 tool calls and returned a 0-char
-    # result, leaving the write's persistence unconfirmed. `memory_recall` reads
-    # the same store `memory_store` writes, so store→recall closes the loop inline
-    # with a real confirmation. Deep tree walks / reconciliation / people-graph /
-    # persona edits still delegate to `retrieve_memory` (agent_memory) and
+    # Direct memory surface (#4762): ONE `memory` tool, `ask` | `keyword_search` | `forget` |
+    # `learn`. Recall and store are the product's core and must be first-class
+    # DIRECT calls, not a sub-agent spawn: a trivial "what is my Q3 OKR" lookup or
+    # a "remember my Q3 OKR" write should not pay a blocking agentic round-trip
+    # (over-delegation, #4744) that can hang or — as observed — spawn
+    # `manage_profile_memory` which did 0 tool calls and returned a 0-char result,
+    # leaving the write's persistence unconfirmed. `learn` writes the store `ask`
+    # and `keyword_search` read, so the loop closes inline with a real
+    # confirmation. There is deliberately no second "deep recall" delegate beside
+    # it. Reconciliation / people-graph / persona edits still delegate to
     # `manage_profile_memory` (profile_memory_agent) below. These are memory-store
     # writes, NOT file/shell mutation — the "no write tools" rule (below) is about
     # editing files and running commands, which stays out.
-    "memory_recall",
-    "memory_store",
+    "memory",
     "save_preference",
     # The long-term goals store (goals doc over the memory binding). The
     # RPC/tab surface always had these; the agent could not answer "list my
