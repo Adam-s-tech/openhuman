@@ -1056,9 +1056,9 @@ pub fn all_tools_with_runtime(
     // through this function.
     crate::tools::toolpacks::append_pack_tools(&mut tools);
     // The lookup half of `ToolExposure::Deferred` is not registered here: the
-    // tinyagents harness advertises its intrinsic `tool_search` / `tool_call`
-    // bridge whenever a run has a deferred tool (`tool::discover`), ranked by
-    // whatever `agent::tinyagents::discovery` installed. A host-registered
+    // tinyagents harness advertises its intrinsic `tool_search` bridge
+    // (a found tool is then called by its own name) whenever a run has a
+    // deferred tool (`tool::discover`), ranked by whatever `agent::tinyagents::discovery` installed. A host-registered
     // `tool_search` would shadow that bridge.
     tools
 }
@@ -1305,7 +1305,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     }
     // Inference: the CCR retrieval surface. Matched against the crate's own
     // constant list rather than a name prefix — the live tool is
-    // `tinyjuice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
+    // `juice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
     // are migration aliases, so a prefix rule silently missed the real one.
     if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name)
         || crate::inference::tokenjuice::is_repl_tool(name)

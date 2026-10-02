@@ -112,7 +112,7 @@ pub(super) fn add_memory_prompt_sections(
 ) -> SystemPromptBuilder {
     use crate::agent::learning::{
         any_tool_offered, MemoryAccessSection, MemoryWriteSection, MEMORY_READ_TOOLS,
-        MEMORY_STORE_TOOL, MEMORY_WRITE_DELEGATE_TOOL, SAVE_PREFERENCE_TOOL,
+        MEMORY_STORE_TOOL, MEMORY_TOOL, MEMORY_WRITE_DELEGATE_TOOL, SAVE_PREFERENCE_TOOL,
     };
     let mut prompt_builder = prompt_builder;
     // Gate on the set the model will actually see: packs are stripped from
@@ -124,7 +124,26 @@ pub(super) fn add_memory_prompt_sections(
         crate::tools::toolpacks::strip_packed_from_visible(&mut after, agent_id);
         after
     };
-    if any_tool_offered(&MEMORY_READ_TOOLS, tools, delegation_tools, visible) {
+    // The collapsed `memory` tool counts only for the actions it still
+    // advertises: a driver that cannot store drops `learn`, and one that cannot
+    // search leaves only writes, so the tool's name alone proves neither.
+    let memory_actions: Vec<String> = tools
+        .iter()
+        .chain(delegation_tools)
+        .find(|tool| tool.name() == MEMORY_TOOL)
+        .filter(|_| any_tool_offered(&[MEMORY_TOOL], tools, delegation_tools, visible))
+        .map(|tool| crate::memory::tools::advertised_actions(tool.as_ref()))
+        .unwrap_or_default();
+    let memory_can_read = memory_actions
+        .iter()
+        .any(|a| a == "ask" || a == "keyword_search");
+    let memory_can_learn = memory_actions.iter().any(|a| a == "learn");
+    let legacy_read: Vec<&str> = MEMORY_READ_TOOLS
+        .iter()
+        .copied()
+        .filter(|name| *name != MEMORY_TOOL)
+        .collect();
+    if memory_can_read || any_tool_offered(&legacy_read, tools, delegation_tools, visible) {
         prompt_builder = prompt_builder.add_section(Box::new(MemoryAccessSection));
         log::debug!("[memory_access] prompt section registered");
     } else {
@@ -137,7 +156,11 @@ pub(super) fn add_memory_prompt_sections(
     // is given, so a profile carrying only one write tool must not be told
     // about the other (review finding).
     let preferences = any_tool_offered(&[SAVE_PREFERENCE_TOOL], tools, delegation_tools, visible);
-    let facts = any_tool_offered(&[MEMORY_STORE_TOOL], tools, delegation_tools, visible);
+    let store_offered = any_tool_offered(&[MEMORY_STORE_TOOL], tools, delegation_tools, visible);
+    // The collapsed `memory` tool writes through its `learn` action; the legacy
+    // `memory_store` wins the wording only when both are held.
+    let memory_offered = memory_can_learn;
+    let facts = store_offered || memory_offered;
     // #6200: asked for as well as the pair, not instead of it. An agent whose
     // only write path is the delegate held the tool and no rule about using it
     // — the write-side twin of the read-side gap #6183 closed.
@@ -148,11 +171,11 @@ pub(super) fn add_memory_prompt_sections(
         visible,
     );
     if preferences || facts || delegate {
-        prompt_builder = prompt_builder.add_section(Box::new(MemoryWriteSection::new(
-            preferences,
-            facts,
-            delegate,
-        )));
+        let mut section = MemoryWriteSection::new(preferences, facts, delegate);
+        if memory_offered && !store_offered {
+            section = section.via_memory_tool();
+        }
+        prompt_builder = prompt_builder.add_section(Box::new(section));
         log::debug!(
             "[memory_write] prompt section registered for agent={agent_id} \
              save_preference={preferences} memory_store={facts} \
