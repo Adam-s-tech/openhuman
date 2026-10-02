@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use crate::agent::harness::definition::{
     AgentDefinition, AgentTier, DefinitionSource, IterationPolicy, ModelSpec, PromptSource,
-    SandboxMode, SubagentEntry, ToolScope, TriggerMemoryAgent,
+    SandboxMode, SubagentEntry, ToolScope,
 };
 
 use super::types::{AgentRegistryEntry, AgentRegistrySource, AgentSubagentPolicy};
