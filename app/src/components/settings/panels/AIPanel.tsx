@@ -48,7 +48,6 @@ import { useProviderConnect } from './ai/useProviderConnect';
 import { WorkloadRow } from './ai/WorkloadRow';
 import { WorkloadTable } from './ai/WorkloadTable';
 import { routingWithProviderRemoved } from './aiRouting';
-import { useReembedBackfillModal } from './useReembedBackfillModal';
 
 export type { CloudProvider, ProviderRef, RoutingMap } from './ai/aiPanelTypes';
 export { buildRoutingDiffSummary, BackgroundLoopControls };
@@ -84,7 +83,6 @@ const AIPanel = ({
   const { navigateBack } = useSettingsNavigation();
   const { saved, draft, isDirty, save, persist, discard, loading, error, reload } = useAISettings();
   // #1574 §4b: advisory re-embed modal, driven by the backend status RPC.
-  const { reembed, handleSave, dismissReembed } = useReembedBackfillModal(save);
   const ollama = useOllamaStatus();
   const installed = useInstalledModels(ollama.snapshot);
   const [editing, setEditing] = useState<CloudProvider | 'new' | null>(null);
@@ -238,7 +236,7 @@ const AIPanel = ({
                   <SaveBar
                     diffSummary={diffSummary}
                     changeCount={diffSummary.length}
-                    onSave={() => void handleSave()}
+                    onSave={() => void save()}
                     onDiscard={discard}
                   />
                 )}
@@ -293,7 +291,7 @@ const AIPanel = ({
                   <SaveBar
                     diffSummary={diffSummary}
                     changeCount={diffSummary.length}
-                    onSave={() => void handleSave()}
+                    onSave={() => void save()}
                     onDiscard={discard}
                   />
                 )}
@@ -302,31 +300,6 @@ const AIPanel = ({
           },
         ]}
       />
-      {/* Informational, not a decision: one acknowledging action and no
-        second choice. That rules out `AlertDialog`, whose own contract
-        requires rendering a Cancel — offering "Cancel" for a notice the user
-        can only acknowledge invents a branch that does not exist. `Dialog`
-        via `ModalShell` is the right primitive, and it still brings the focus
-        trap, scroll lock and Escape handling. */}
-      {reembed.open && (
-        <ModalShell
-          title={t('settings.ai.reindexingMemory')}
-          titleId="ai-reembed-dialog-title"
-          onClose={dismissReembed}
-          maxWidthClassName="max-w-sm"
-          footer={
-            <div className="flex justify-end">
-              <Button variant="primary" size="sm" onClick={dismissReembed}>
-                {t('common.ok')}
-              </Button>
-            </div>
-          }>
-          <div className="text-sm text-content-secondary">
-            {formatI18n(t('settings.ai.reindexingMemoryMessage'), { pending: reembed.pending })}
-          </div>
-        </ModalShell>
-      )}
-
       {editing && (
         <CloudProviderEditor
           initial={editing === 'new' ? null : editing}

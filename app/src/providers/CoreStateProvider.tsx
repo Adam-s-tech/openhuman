@@ -453,7 +453,6 @@ export default function CoreStateProvider({ children }: { children: ReactNode })
     // with matching seed are no-ops — redux-persist already loaded the
     // right namespace and the active user id is already correct.
     syncAnalyticsConsent(snapshot.analyticsEnabled);
-
   }, [commitState, t]);
 
   /** Serialized refresh — all callers share the same in-flight promise. */
