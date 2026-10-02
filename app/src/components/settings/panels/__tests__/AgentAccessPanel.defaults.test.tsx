@@ -68,6 +68,8 @@ const agentSettings = (overrides: Partial<AgentSettings> = {}): AgentSettings =>
   env_override: false,
   min_timeout_secs: 1,
   max_timeout_secs: 3600,
+  tool_dispatcher: 'auto',
+  tool_dispatcher_env_override: false,
   ...overrides,
 });
 

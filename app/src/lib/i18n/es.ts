@@ -7349,9 +7349,9 @@ const messages: TranslationMap = {
   'settings.agentAccess.toolFormat.option.native':
     'JSON nativo (llamadas estructuradas del proveedor)',
   'settings.agentAccess.toolFormat.option.xml': 'JSON en etiquetas',
-  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (experimental)',
-  'settings.agentAccess.toolFormat.option.python': 'Python (experimental)',
-  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (experimental)',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (en pruebas)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (en pruebas)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (en pruebas)',
   'settings.agentAccess.toolFormat.envOverride':
     'La variable de entorno OPENHUMAN_TOOL_DISPATCHER anula este ajuste, por lo que los cambios aquí no surten efecto mientras esté definida.',
   'settings.sandbox.backendName.docker': 'Docker',

@@ -7310,9 +7310,9 @@ const messages: TranslationMap = {
   'settings.agentAccess.toolFormat.option.native':
     'JSON nativo (chamadas estruturadas do provedor)',
   'settings.agentAccess.toolFormat.option.xml': 'JSON em tags',
-  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (experimental)',
-  'settings.agentAccess.toolFormat.option.python': 'Python (experimental)',
-  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (experimental)',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (em teste)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (em teste)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (em teste)',
   'settings.agentAccess.toolFormat.envOverride':
     'A variável de ambiente OPENHUMAN_TOOL_DISPATCHER está substituindo esta configuração, então as alterações aqui não têm efeito enquanto ela estiver definida.',
   'settings.sandbox.backendName.docker': 'Docker',
