@@ -296,27 +296,8 @@ pub fn start_bootstrap_jobs(services: ServiceSet, config: &Config) {
         log::debug!("[runtime.bootstrap] memory queue workers disabled by ServiceSet");
     }
 
-    // Integrations — Composio source reconcile. No-ops without active
-    // connections.
-    //
-    // ── The periodic loops are NOT started here any more ────────────────────
-    //
-    // They were, and deleting them was blocked on upstream rather than on
-    // taste: `start_periodic_sync` is not host code, it re-exported through
-    // `integrations::composio` to `memory::sync::composio::periodic`, which was
-    // `pub use tinymemory_core::sync::composio::*` — engine code running in
-    // this process against the engine this host used to boot.
-    //
-    // tinymemory v1.6.0 moves both loops into the module and closes the three
-    // things that stopped them working there: the cadence, the Composio mode,
-    // and the module's client not being in the engine's global slot. The host
-    // now passes the first two in `ModuleConfig` (see `modules::ops`).
-    //
-    // Restoring either call would be worse than a duplicate. The cdylib carries
-    // its OWN copy of `tinymemory-core`, so each loop's `OnceLock` is a
-    // different static from this process's: a host that starts them while
-    // loading the module gets TWO pairs of loops over one store, and neither
-    // can see the other.
+    // Integrations — no bootstrap job. Composio → memory syncs run on memory
+    // v2 source schedules (`memory::sources`), not a host loop here.
     if plan.composio_integration_sync {
         log::debug!(
             "[runtime.bootstrap] composio integrations enabled; memory syncs run on memory source schedules"
