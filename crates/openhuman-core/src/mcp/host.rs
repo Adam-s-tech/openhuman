@@ -32,7 +32,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use tinymcp::{
     AuditStore, McpClientConfig, McpClientIdentityConfig, McpProxyConfig, McpRegistry,
-    McpServerConfig, McpServerRegistry, Store,
+    McpServerRegistry, Store,
 };
 
 use crate::config::Config;
