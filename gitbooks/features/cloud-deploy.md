@@ -478,11 +478,13 @@ credential; see [Local models and bring your own key](model-routing/local-and-by
 In `production` and `staging` the keyring backend is `encrypted_file`, and its
 master key is loaded from the OS keychain. A container has no keychain, so the
 first write that stores a provider key fails with `Failed to encrypt api_key`
-(`[keyring] set error ... master key unavailable`). Until the master key can be
-injected from the environment (#6926), set `OPENHUMAN_KEYRING_BACKEND=file`, which
-keeps secrets in `$OPENHUMAN_WORKSPACE/dev-keychain.json` (plaintext, `0600`);
-put the workspace volume on encrypted storage and treat the host as the secret
-boundary.
+(`[keyring] set error ... master key unavailable`). Supply the master key from
+the environment instead: `OPENHUMAN_KEYRING_MASTER_KEY` (64 hex characters) or
+`OPENHUMAN_KEYRING_MASTER_KEY_FILE` (a secret mount), described in "What you
+need before you start" (#6926). On a release that predates those variables, set
+`OPENHUMAN_KEYRING_BACKEND=file`, which keeps secrets in
+`$OPENHUMAN_WORKSPACE/dev-keychain.json` (plaintext, `0600`); put the workspace
+volume on encrypted storage and treat the host as the secret boundary.
 
 ---
 
@@ -790,8 +792,10 @@ Free tier: an Ampere A1 VM in a private subnet running the release binary in a
 container, a flexible load balancer that forwards only `/rpc`, `/health` and
 `/events`, secrets in OCI Vault read by the VM's instance principal, OCI
 Generative AI as the model provider through the `local-openai` route above, and
-an Autonomous Database reachable by agents through Oracle's managed Database
-Tools MCP Server.
+an Autonomous Database that agents reach through Oracle's managed Database
+Tools MCP Server once an operator registers a user access token for that server
+(the stack's post-apply step; the MCP server authenticates users, not the VM's
+instance principal).
 
 Repository and run book: <https://github.com/kamelhar/openhuman-oci>. Like the
 Fly and DigitalOcean recipes, it sets `OPENHUMAN_CORE_TOKEN`, mounts the
