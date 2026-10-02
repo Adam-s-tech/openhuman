@@ -7260,7 +7260,7 @@ dependencies = [
 
 [[package]]
 name = "tinyruntime-bus"
-version = "0.2.9"
+version = "0.2.8"
 dependencies = [
  "serde",
  "serde_json",
@@ -7268,7 +7268,7 @@ dependencies = [
 
 [[package]]
 name = "tinyruntime-pyserver"
-version = "0.2.9"
+version = "0.2.8"
 dependencies = [
  "serde",
  "serde_json",
