@@ -666,12 +666,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         DomainGroup::Platform,
         crate::platform::service::all_service_registered_controllers(),
     );
-    // Data migration utilities
-    push(
-        &mut controllers,
-        DomainGroup::Config,
-        crate::config::migration_helpers::all_migration_registered_controllers(),
-    );
     // Unified inference domain: text / vision / local runtime / cloud providers.
     // (Formerly split across inference, local AI, and providers modules.)
     push(

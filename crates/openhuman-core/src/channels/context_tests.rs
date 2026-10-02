@@ -1,7 +1,6 @@
 use super::*;
 use crate::channels::traits;
 use async_trait::async_trait;
-use tinymemory_api::types::{MemoryCategory, MemoryEntry};
 use tinytools::{Tool, ToolResult};
 
 struct DummyTool;
@@ -22,20 +21,6 @@ impl Tool for DummyTool {
 
     async fn execute(&self, _args: serde_json::Value) -> anyhow::Result<ToolResult> {
         Ok(ToolResult::success("ok"))
-    }
-}
-
-fn memory_entry(key: &str, content: &str, score: Option<f64>) -> MemoryEntry {
-    MemoryEntry {
-        id: key.into(),
-        key: key.into(),
-        content: content.into(),
-        namespace: None,
-        category: MemoryCategory::Conversation,
-        timestamp: "now".into(),
-        session_id: None,
-        score,
-        taint: Default::default(),
     }
 }
 
@@ -90,7 +75,6 @@ fn timeout_and_history_keys_respect_channel_rules() {
 
     let telegram = channel_message("telegram");
     let discord = channel_message("discord");
-    assert_eq!(conversation_memory_key(&telegram), "telegram_alice_m1");
     assert_eq!(conversation_history_key(&telegram), "telegram_alice_reply");
     assert_eq!(
         conversation_history_key(&discord),
@@ -133,52 +117,11 @@ fn clear_and_compact_sender_history_update_cached_messages() {
 }
 
 #[test]
-fn skip_and_overflow_detection_cover_edge_cases() {
-    assert!(should_skip_memory_context_entry("note_history", "short"));
-    assert!(should_skip_memory_context_entry(
-        "note",
-        &"x".repeat(MEMORY_CONTEXT_MAX_CHARS + 1)
-    ));
-    assert!(!should_skip_memory_context_entry("note", "short"));
-
+fn overflow_detection_covers_edge_cases() {
     assert!(is_context_window_overflow_error(&anyhow::anyhow!(
         "Maximum context length exceeded"
     )));
     assert!(!is_context_window_overflow_error(&anyhow::anyhow!(
         "network timeout"
     )));
-}
-
-#[tokio::test]
-async fn build_memory_context_filters_entries_and_truncates_content() {
-    let mem = crate::memory::guard::in_memory::guarded_fixed_recall(vec![
-        memory_entry("keep", "v", Some(0.9)),
-        memory_entry("drop_history", "ignored", Some(0.9)),
-        memory_entry("low", "too low", Some(0.1)),
-        memory_entry(
-            "long",
-            &"x".repeat(MEMORY_CONTEXT_ENTRY_MAX_CHARS + 50),
-            Some(0.9),
-        ),
-    ]);
-
-    let rendered = build_memory_context(&mem, "hello", 0.4).await;
-    assert!(rendered.starts_with("[Memory context]\n"));
-    assert!(rendered.contains("- keep: v"));
-    assert!(!rendered.contains("drop_history"));
-    assert!(!rendered.contains("too low"));
-    assert!(rendered.contains("- long: "));
-    assert!(rendered.contains("..."));
-}
-
-#[tokio::test]
-async fn build_memory_context_honors_total_budget_and_entry_limit() {
-    let entries = (0..10)
-        .map(|idx| memory_entry(&format!("k{idx}"), &"x".repeat(700), Some(0.9)))
-        .collect();
-    let mem = crate::memory::guard::in_memory::guarded_fixed_recall(entries);
-
-    let rendered = build_memory_context(&mem, "hello", 0.4).await;
-    assert!(rendered.chars().count() <= MEMORY_CONTEXT_MAX_CHARS + 32);
-    assert!(rendered.matches("- k").count() <= MEMORY_CONTEXT_MAX_ENTRIES);
 }
