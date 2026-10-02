@@ -98,7 +98,6 @@ impl Default for Config {
             memory_provider: None,
             embeddings_provider: None,
             custom_embeddings: None,
-            learning_provider: None,
             node: NodeConfig::default(),
             runtime_python: RuntimePythonConfig::default(),
             runtime_pool: RuntimePoolConfig::default(),

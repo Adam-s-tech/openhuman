@@ -97,7 +97,6 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_string("vision_provider", "Provider string for the vision / multimodal workload (managed default: the default model)."),
                 optional_string("memory_provider", "Provider string for memory-tree extract + summarise."),
                 optional_string("embeddings_provider", "Provider string for embedding generation."),
-                optional_string("learning_provider", "Provider string for learning / reflection passes."),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),
@@ -168,10 +167,6 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_bool(
                     "usage_embeddings",
                     "Use the local model for embedding generation (when runtime_enabled).",
-                ),
-                optional_bool(
-                    "usage_learning_reflection",
-                    "Use the local model for learning/reflection passes (when runtime_enabled).",
                 ),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],

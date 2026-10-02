@@ -141,7 +141,6 @@ pub(super) fn handle_update_model_settings(params: Map<String, Value>) -> Contro
             vision_provider: update.vision_provider,
             memory_provider: update.memory_provider,
             embeddings_provider: update.embeddings_provider,
-            learning_provider: update.learning_provider,
         };
         to_json(config_rpc::load_and_apply_model_settings(patch).await?)
     })
@@ -189,7 +188,6 @@ pub(super) fn handle_update_local_ai_settings(params: Map<String, Value>) -> Con
             model_id: update.model_id,
             chat_model_id: update.chat_model_id,
             usage_embeddings: update.usage_embeddings,
-            usage_learning_reflection: update.usage_learning_reflection,
             api_key: update.api_key,
         };
         to_json(config_rpc::load_and_apply_local_ai_settings(patch).await?)

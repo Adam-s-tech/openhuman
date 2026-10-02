@@ -189,7 +189,6 @@ fn workload_fields(config: &mut Config) -> [(&'static str, &mut Option<String>);
         ("vision", &mut config.vision_provider),
         ("memory", &mut config.memory_provider),
         ("embeddings", &mut config.embeddings_provider),
-        ("learning", &mut config.learning_provider),
     ]
 }
 
