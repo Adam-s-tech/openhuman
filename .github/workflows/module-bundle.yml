@@ -1,4 +1,4 @@
-name: Windows module bundle
+name: Module bundle
 
 on:
   pull_request:
@@ -8,9 +8,9 @@ on:
       - "crates/openhuman-app/tauri.conf.json"
       - "crates/openhuman-core/src/modules/**"
       - "scripts/ci/self-hosted/test-module-assets.mjs"
-      - "scripts/__tests__/stage-windows-modules.test.mjs"
+      - "scripts/__tests__/stage-modules.test.mjs"
       - "scripts/lib/module-pins.mjs"
-      - "scripts/release/stage-windows-modules.mjs"
+      - "scripts/release/stage-modules.mjs"
   workflow_dispatch: {}
 
 permissions:
@@ -18,7 +18,11 @@ permissions:
 
 jobs:
   stage:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -26,6 +30,6 @@ jobs:
         with:
           node-version: 24.x
       - name: Check registry coverage
-        run: node --test scripts/__tests__/stage-windows-modules.test.mjs
+        run: node --test scripts/__tests__/stage-modules.test.mjs
       - name: Download and verify every bundled release
-        run: node scripts/release/stage-windows-modules.mjs
+        run: node scripts/release/stage-modules.mjs
