@@ -257,8 +257,7 @@ export default function Brain() {
         // body carries its own `mx-auto max-w-3xl`, which is what the old
         // `max-w-5xl` here was really constraining.
         <div className="h-full w-full">
-          {
-            /* All tabs share the standard scaffold: a single scrolling body,
+          {/* All tabs share the standard scaffold: a single scrolling body,
             all custom controls live inside it. The title/description go through
             PanelPage so every page opens with the same flush header band, rather
             than a bordered card floating in the content column. */
@@ -407,7 +406,6 @@ export default function Brain() {
                 </div>
               </SettingsTabbedPage>
             </div>
-          )}
         </div>
       }
 
