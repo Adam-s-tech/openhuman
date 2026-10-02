@@ -14,7 +14,6 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     out.push_str(ARCHETYPE.trim_end());
     out.push_str("\n\n");
 
-
     let tools = render_tools(ctx)?;
     if !tools.trim().is_empty() {
         out.push_str(tools.trim_end());

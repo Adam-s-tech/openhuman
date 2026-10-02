@@ -152,9 +152,7 @@ fn coding_agent_prompts_reference_action_sandbox_not_stale_workspace() {
 
 #[test]
 fn every_builtin_has_a_prompt_body() {
-    use crate::agent::prompts::{
-        ConnectedIntegration, PromptContext, PromptTool, ToolCallFormat,
-    };
+    use crate::agent::prompts::{ConnectedIntegration, PromptContext, PromptTool, ToolCallFormat};
     let empty_tools: Vec<PromptTool<'_>> = Vec::new();
     let empty_integrations: Vec<ConnectedIntegration> = Vec::new();
     let empty_visible: std::collections::HashSet<String> = std::collections::HashSet::new();

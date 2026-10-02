@@ -175,17 +175,31 @@ fn render_with_files(files: &[(&str, &str)], options: SubagentRenderOptions) -> 
 #[test]
 fn subagent_identity_flag_gates_bootstrap_files_and_never_injects_v1_memory_files() {
     let files = [
-        ("SOUL.md", "# Soul
-ctx"),
-        ("IDENTITY.md", "# Identity
-ctx"),
-        ("PROFILE.md", "# User Profile
-Name: Jane Doe"),
-        ("MEMORY.md", "# Long-term memory
-User prefers terse Rust answers."),
+        (
+            "SOUL.md",
+            "# Soul
+ctx",
+        ),
+        (
+            "IDENTITY.md",
+            "# Identity
+ctx",
+        ),
+        (
+            "PROFILE.md",
+            "# User Profile
+Name: Jane Doe",
+        ),
+        (
+            "MEMORY.md",
+            "# Long-term memory
+User prefers terse Rust answers.",
+        ),
     ];
-    let with_identity =
-        render_with_files(&files, SubagentRenderOptions::from_definition_flags(false, true));
+    let with_identity = render_with_files(
+        &files,
+        SubagentRenderOptions::from_definition_flags(false, true),
+    );
     assert!(with_identity.contains("### SOUL.md"), "{with_identity}");
     assert!(with_identity.contains("### IDENTITY.md"), "{with_identity}");
 

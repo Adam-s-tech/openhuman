@@ -326,47 +326,6 @@ pub(crate) async fn run_subagent_direct(
             .map(std::sync::Arc::new)
             .map_err(|e| e.to_string());
 
-        // Deterministic fast path for the pure-retrieval memory agent (#4677).
-        // Both `retrieve_memory` (chat delegate) and `call_memory_agent` land
-        // here via `run_subagent`; short-circuit with the E2GraphRAG hits when
-        // data is present so the happy path costs ~1 deterministic pass instead
-        // of a ≤6-iteration model walk (~30–40s of round-trips). Falls through
-        // to the full sub-agent when the fast path is disabled/errs/finds
-        // nothing (the empty/degraded case is handled by #4655).
-        if definition.id == AGENT_MEMORY_ID {
-            if let Some(outcome) = Box::pin(try_deterministic_memory_retrieval(
-                task_prompt,
-                definition,
-                &task_id,
-                started,
-                &loaded_config,
-            ))
-            .await
-            {
-                // The fast path completes a real delegation and returns here,
-                // short-circuiting the recorder below — so record it too, or a
-                // turn whose only delegations are deterministic memory
-                // retrievals never accumulates a sample and the budget gate
-                // stays disarmed for the whole turn (#5804 review).
-                //
-                // Including it cannot weaken the gate. `observed_max` is a
-                // running **maximum**, so a short sample can only leave it
-                // where it was — an earlier revision of this comment claimed
-                // the opposite and was wrong about its own statistic. What it
-                // does buy is a correct `observed_samples` count and a gate
-                // that arms on a turn shaped entirely from fast-path work.
-                if let Some(dispatch) = options.run_context.dispatch.as_deref() {
-                    dispatch.record_subagent_elapsed(started.elapsed());
-                }
-                usage_finalizer.finish(crate::agent::tinyagents::host::SubagentUsageEntry {
-                    task_id: task_id.clone(),
-                    agent_id: definition.id.clone(),
-                    usage: outcome.usage,
-                });
-                return Ok(outcome);
-            }
-        }
-
         tracing::info!(
             agent_id = %definition.id,
             task_id = %task_id,
@@ -1192,5 +1151,5 @@ async fn run_typed_mode(
 }
 
 #[cfg(test)]
-#[path = "runner_fast_path_tests_tests.rs"]
-mod fast_path_tests;
+#[path = "runner_result_cap_tests.rs"]
+mod result_cap_tests;

@@ -20,9 +20,9 @@ pub mod render_helpers;
 pub use render_helpers::{
     current_datetime_line, default_workspace_file_content, inject_inline_content,
     inject_workspace_file, inject_workspace_file_capped, render_ambient_environment,
-    render_datetime, render_identity, render_runtime, render_safety,
-    render_subagent_system_prompt, render_subagent_system_prompt_with_format, render_tools,
-    render_user_identity, render_workspace, sync_workspace_file,
+    render_datetime, render_identity, render_runtime, render_safety, render_subagent_system_prompt,
+    render_subagent_system_prompt_with_format, render_tools, render_user_identity,
+    render_workspace, sync_workspace_file,
 };
 
 #[cfg(test)]

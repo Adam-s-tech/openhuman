@@ -250,11 +250,7 @@ fn morning_briefing_is_read_only() {
     // for every registered tool.
     match &def.tools {
         ToolScope::Named(tools) => {
-            for required in [
-                "composio_execute",
-                "tool_search",
-                "current_time",
-            ] {
+            for required in ["composio_execute", "tool_search", "current_time"] {
                 assert!(
                     tools.iter().any(|t| t == required),
                     "morning_briefing needs `{required}`"

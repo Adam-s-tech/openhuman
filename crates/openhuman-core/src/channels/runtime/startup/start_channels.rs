@@ -70,14 +70,6 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     // thread/client only (C5) — never carries memory content or the raw
     // recall query, only a short clipped preview.
     crate::web_chat::register_memory_activity_surface_subscriber();
-    // Spawn the per-toolkit provider periodic sync scheduler. This is
-    // a thin tokio task that ticks every minute and dispatches into
-    // any provider whose `sync_interval_secs` has elapsed for an
-    // active Composio connection. Safe to call here even though
-    // `bootstrap_core_runtime` may also start it — `start_periodic_sync`
-    // is intentionally cheap and the loop body no-ops when there are
-    // no connections.
-    crate::integrations::composio::start_periodic_sync();
     // Task-sources: subscribe to Composio connection-created events for
     // one-shot fetches, and spawn the periodic poll that pulls work from
     // configured external sources onto the agent's todo board.

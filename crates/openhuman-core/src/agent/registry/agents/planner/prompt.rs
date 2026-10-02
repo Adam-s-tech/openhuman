@@ -5,9 +5,7 @@
 //! in the order it wants — so the output IS what the LLM sees, no
 //! post-processing in the runner.
 
-use crate::agent::prompts::{
-    render_datetime, render_tools, render_workspace, PromptContext,
-};
+use crate::agent::prompts::{render_datetime, render_tools, render_workspace, PromptContext};
 use anyhow::Result;
 
 const ARCHETYPE: &str = include_str!("prompt.md");
@@ -16,7 +14,6 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     let mut out = String::with_capacity(4096);
     out.push_str(ARCHETYPE.trim_end());
     out.push_str("\n\n");
-
 
     let tools = render_tools(ctx)?;
     if !tools.trim().is_empty() {

@@ -128,7 +128,7 @@ fn collects_agentid_entries_and_expands_skills_wildcard_to_deferred_actions() {
             // see tinyhumansai/openhuman#1624. Re-add the leading entry
             // when the registration in `collect_orchestrator_tools` is
             // restored.
-            "research",           // researcher's delegate_name override
+            "research",        // researcher's delegate_name override
             "delegate_critic", // critic has no delegate_name → default
             // Actions sorted by toolkit, then action name.
             "GITHUB_CREATE_ISSUE",
