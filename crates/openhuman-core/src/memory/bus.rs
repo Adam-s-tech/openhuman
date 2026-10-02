@@ -41,6 +41,7 @@ pub fn committed_turn(event: &DomainEvent) -> Option<CommittedTurn> {
         user_text,
         assistant_text,
         tool_calls,
+        ..
     } = event
     else {
         return None;
@@ -49,8 +50,8 @@ pub fn committed_turn(event: &DomainEvent) -> Option<CommittedTurn> {
         thread_id: thread_id.clone(),
         agent_id: agent_id.clone(),
         workspace: workspace.clone(),
-        user: user_text.0.clone(),
-        assistant: assistant_text.0.clone(),
+        user: user_text.clone(),
+        assistant: assistant_text.clone(),
         tool_calls: tool_calls
             .iter()
             .map(|call| ToolCallRef {
@@ -78,7 +79,10 @@ impl EventHandler<DomainEvent> for ConversationIngestSubscriber {
         let Some(turn) = committed_turn(event) else {
             return;
         };
-        match crate::config::rpc::load_config_with_timeout().await {
+        let DomainEvent::ConversationTurnCommitted { workspace_dir, .. } = event else {
+            return;
+        };
+        match crate::config::rpc::load_config_for_workspace_with_timeout(workspace_dir).await {
             Ok(config) => super::conversations::record_turn(&config, turn).await,
             Err(error) => tracing::debug!(error = %error, "[memory:bus] config unavailable; turn dropped"),
         }
