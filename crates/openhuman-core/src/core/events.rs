@@ -37,6 +37,15 @@ pub enum VoiceEvent {
     },
 }
 
+/// A tool call made while answering a committed turn: name and id only.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ConversationToolCall {
+    /// Tool name.
+    pub name: String,
+    /// Provider-assigned call id, when known.
+    pub id: Option<String>,
+}
+
 /// Top-level domain event. Non-exhaustive so new variants can be added
 /// without breaking existing match arms.
 #[non_exhaustive]
@@ -50,6 +59,23 @@ pub enum DomainEvent {
         session_id: String,
         text_chars: usize,
         iterations: usize,
+    },
+    /// A threaded conversation turn was durably committed. Consumed by memory's
+    /// conversation ingestion (`memory::bus`). Carries the turn text, as
+    /// `ChannelMessageProcessed` does; subscribers must never log it. Tool
+    /// calls carry names and ids only — never arguments.
+    ConversationTurnCommitted {
+        thread_id: String,
+        /// The agent definition that answered.
+        agent_id: Option<String>,
+        /// The agent's working folder (`action_dir`).
+        workspace: Option<String>,
+        user_text: String,
+        assistant_text: String,
+        tool_calls: Vec<ConversationToolCall>,
+        /// Workspace directory active when this event was published.
+        /// Subscribers that persist data load this workspace's config.
+        workspace_dir: std::path::PathBuf,
     },
     /// An error occurred during agent processing.
     AgentError {
@@ -363,6 +389,12 @@ pub enum DomainEvent {
         message: String,
         /// Optional job name for display/threading purposes.
         job_name: Option<String>,
+    },
+    /// A host-owned system cron job came due (a `flow`-type row whose command
+    /// is `system:<job>`, see `cron::system_jobs`). The owning domain runs it.
+    CronSystemJobDue {
+        /// The job name, e.g. `memory_context_refresh`.
+        job: String,
     },
     /// A `flow`-type cron job fired its schedule tick (issue B2,
     /// `my_docs/ohxtf/b2-triggers-trust/01-triggers-and-trust.md` §1).
@@ -1323,6 +1355,7 @@ impl DomainEvent {
         match self {
             Self::AgentTurnStarted { .. }
             | Self::AgentTurnCompleted { .. }
+            | Self::ConversationTurnCommitted { .. }
             | Self::AgentError { .. }
             | Self::SubagentSpawned { .. }
             | Self::SubagentCompleted { .. }
@@ -1357,6 +1390,7 @@ impl DomainEvent {
             | Self::CronDeliveryRequested { .. }
             | Self::ProactiveMessageRequested { .. }
             | Self::FlowScheduleTick { .. }
+            | Self::CronSystemJobDue { .. }
             | Self::FlowRunProgress { .. }
             | Self::FlowRunStarted { .. }
             | Self::FlowRunFinished { .. }
@@ -1460,6 +1494,7 @@ impl DomainEvent {
         match self {
             Self::AgentTurnStarted { .. } => "AgentTurnStarted",
             Self::AgentTurnCompleted { .. } => "AgentTurnCompleted",
+            Self::ConversationTurnCommitted { .. } => "ConversationTurnCommitted",
             Self::AgentError { .. } => "AgentError",
             Self::SubagentSpawned { .. } => "SubagentSpawned",
             Self::SubagentCompleted { .. } => "SubagentCompleted",
@@ -1490,6 +1525,7 @@ impl DomainEvent {
             Self::CronDeliveryRequested { .. } => "CronDeliveryRequested",
             Self::ProactiveMessageRequested { .. } => "ProactiveMessageRequested",
             Self::FlowScheduleTick { .. } => "FlowScheduleTick",
+            Self::CronSystemJobDue { .. } => "CronSystemJobDue",
             Self::FlowRunProgress { .. } => "FlowRunProgress",
             Self::FlowRunStarted { .. } => "FlowRunStarted",
             Self::FlowRunFinished { .. } => "FlowRunFinished",
