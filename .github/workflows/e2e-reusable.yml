@@ -157,21 +157,6 @@ jobs:
           # Appium builds; install idempotently and ignore "already installed".
           bash scripts/ci-cancel-aware.sh appium driver install --source=npm appium-chromium-driver >/dev/null 2>&1 || true
 
-      - name: Install checksum-pinned TinyMemory test module
-        run: |
-          # Keep memory E2E independent of the GitHub release-metadata API.
-          # tinybus validates every directory ancestor, so the fixture must
-          # live outside the runner-owned checkout in this root-run container.
-          # Version and digest are ONE decision and live on adjacent lines for that
-          # reason: the archive name, the release tag and the checksum each used to
-          # carry the version independently, so a bump could update two of the three
-          # and leave a stale digest that only fails after the download. Both values
-          # are the ubuntu-22.04-x86_64 row of `crates/openhuman-core/src/modules/registry.rs`,
-          # which is the authoritative pin — copy them from there, never recompute.
-          module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          rm -rf
-          mkdir -p
-
       - name: Build E2E app
         run: bash scripts/ci-cancel-aware.sh pnpm --filter openhuman-app test:e2e:build
 
@@ -352,15 +337,10 @@ jobs:
 
       - name: Install native E2E test modules
         run: |
-          # Every shard resets memory and calls Composio RPCs. Supply both
-          # modules so the packaged app never depends on release metadata or
-          # a runner-owned cache while tests are running.
-          # Version and digest are ONE decision and live on adjacent lines for that
-          # reason: the archive name, the release tag and the checksum each used to
-          # carry the version independently, so a bump could update two of the three
-          # and leave a stale digest that only fails after the download. Both values
-          # are the ubuntu-22.04-x86_64 row of `crates/openhuman-core/src/modules/registry.rs`,
-          # which is the authoritative pin — copy them from there, never recompute.
+          # Every shard calls Composio RPCs. Supply the connectors module
+          # (built from the checked-out submodule) so the packaged app never
+          # depends on release metadata or a runner-owned cache while tests
+          # are running.
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           connectors_dir="$module_root/tinyconnectors"
           rm -rf "$connectors_dir"
