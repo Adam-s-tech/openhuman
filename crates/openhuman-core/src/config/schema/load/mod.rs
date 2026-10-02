@@ -55,7 +55,9 @@ pub(crate) use dirs::ACTIVE_USER_STATE_FILE;
 #[cfg(test)]
 pub(crate) use impl_load::parse_config_with_recovery;
 #[cfg(test)]
-pub(crate) use migrate::{migrate_cloud_provider_slugs, migrate_legacy_inference_url};
+pub(crate) use migrate::{
+    migrate_cloud_provider_slugs, migrate_legacy_inference_url, migrate_legacy_memory_sources,
+};
 #[cfg(test)]
 pub(crate) use std::path::PathBuf;
 
