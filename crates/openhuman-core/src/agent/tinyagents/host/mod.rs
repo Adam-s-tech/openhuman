@@ -32,6 +32,7 @@ mod bundle;
 pub mod context_composer;
 pub mod definition_registry;
 pub mod delegation;
+pub mod learning_sink;
 pub mod model_resolver;
 pub mod progress_sink;
 pub mod run_context;
@@ -46,6 +47,7 @@ pub use bundle::{
 };
 pub use context_composer::OpenHumanContextComposer;
 pub use definition_registry::OpenHumanDefinitionRegistry;
+pub use learning_sink::OpenHumanLearningSink;
 pub use model_resolver::OpenHumanModelResolver;
 pub use progress_sink::OpenHumanProgressSink;
 pub(crate) use run_context::direct_subagent_child;

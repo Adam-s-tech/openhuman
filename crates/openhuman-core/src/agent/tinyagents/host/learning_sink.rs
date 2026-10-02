@@ -31,8 +31,6 @@ use crate::agent::hooks::{self, PostTurnHook, TurnContext};
 /// installed is a composition decision the session builder already makes (see
 /// `agent/session_host/builder/factory.rs`); duplicating that policy here
 /// would give the generic runtime a second, silently divergent hook set.
-/// [`OpenHumanLearningSink::from_learning_config`] is a convenience for the
-/// hooks that need nothing but config and memory.
 pub struct OpenHumanLearningSink {
     /// Hooks fired, in parallel, for every completed turn.
     hooks: Vec<Arc<dyn PostTurnHook>>,
