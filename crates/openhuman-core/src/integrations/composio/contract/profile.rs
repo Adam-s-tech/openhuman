@@ -26,11 +26,9 @@
 //!
 //! # What is not here
 //!
-//! Everything that touches the profile facet store: persisting a profile,
-//! loading the identities back, deleting a connection's rows, and the
-//! `is_self_identity` lookups. Those are the engine crate's, along with the
-//! `PROFILE.md` markdown bridge, which rewrites a file in the host's workspace
-//! and is host policy rather than a wire type.
+//! Persisting a profile, loading the identities back and deleting a
+//! connection's rows: those are `identity_store`'s, over a JSON file in the
+//! workspace. The `PROFILE.md` markdown bridge is `profile_md`'s.
 
 use serde::{Deserialize, Serialize};
 
@@ -180,7 +178,8 @@ pub fn canonicalize(kind: IdentityKind, raw: &str) -> Option<String> {
 /// This is the read shape: the store holds one facet per identifier, and a
 /// loader groups them back into this so a caller does not have to reassemble an
 /// account from seven rows.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ConnectedIdentity {
     /// Toolkit slug the identity came from, normalised.
     pub source: String,
