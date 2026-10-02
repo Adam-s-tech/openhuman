@@ -207,10 +207,6 @@ tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-featu
 # crate makes calls into the loaded `tinyconnectors` module and compiles none
 # of it.
 #
-# These types previously came from `tinymemory-api::host::composio`, which held
-# them only because two crates needed to name them and there was nowhere else
-# both could. That is what this dependency fixes — one definition, owned by the
-# crate that produces the shapes.
 tinyconnectors-bus = { path = "../../vendor/tinyconnectors/crates/tinyconnectors-bus" }
 # tinyconnectors — the connector module's implementation crate, linked as a
 # plain Rust library (never as the loaded module) for its pure, host-agnostic
@@ -348,15 +344,9 @@ argon2 = "0.5"
 rand = "0.10"
 dirs = "6"
 sha2 = "0.10"
-# NO `git2` HERE, DELIBERATELY — do not add it back. Every use of libgit2 in
-# the memory stack lives in tinycortex: the diff ledger, the wiki mirror
-# (`memory::store::content::wiki_git`), and the persona git-history reader.
-# This crate never touches a repository itself, so a direct dependency here
-# would be a declaration with no `use` behind it. It also invites a second
-# major pin, and `git2` sets `links = "git2"` — two majors in one graph is a
-# hard cargo error, not a warning. Nothing here now enables tinycortex's
-# `git-diff` / `wiki-git` features either, so libgit2 is out of the graph
-# entirely; re-adding a gate for it means re-adding the cohort.
+# NO `git2` HERE, DELIBERATELY — this crate never touches a repository
+# itself, and `git2` sets `links = "git2"`: two majors in one graph is a hard
+# cargo error, not a warning.
 # Archive handling for the Piper voice installer and the document tools. The
 # Node.js and Python toolchain archives are no longer unpacked here — the
 # `tinyruntime` module owns that — which is what let `xz2` and its static
@@ -670,8 +660,8 @@ proptest = "1"
 # keeping them on means `cargo check` and rust-analyzer still typecheck nearly
 # all of the tree. The gates turned OFF are the ones that carry the graph —
 # web3's ethers/secp256k1 cohort, `documents`' zstd/bzip2 native builds,
-# `voice`+`inference`'s cpal/lettre/arboard/enigo/rdev stack, `contacts`'
-# macOS objc2 cohort and `crash-reporting`'s sentry tree. The terminal-specific
+# `voice`+`inference`'s cpal/lettre/arboard/enigo/rdev stack and
+# `crash-reporting`'s sentry tree. The terminal-specific
 # ratatui/crossterm cohort lives in the separate `openhuman-tui` package.
 # Turning the core gates off takes a
 # bare `cargo check` from 540 packages / 7 native builds down to ~350 / 2, which
@@ -684,20 +674,10 @@ proptest = "1"
 # gated-off domains, so every CI lane that builds or tests "the product" now
 # passes `--features "$(scripts/ci/product-features.sh)"`. If you add a lane,
 # decide which of the two sets it is testing and say so.
-# `modules` is in this list because the memory seam is not optional at test
-# time. `memory::binding::module_provider` has a `#[cfg(not(feature =
-# "modules"))]` arm that binds `NullMemoryProvider`, so without the gate a bare
-# `cargo test --lib -- memory::` fails 26 tests, every one of them a "null vs
-# module" assertion, and 15 further module-gated tests do not exist at all
-# (582 passed / 26 failed, versus 623 passed / 0 failed with the gate on).
-# A default set that cannot run its own test suite is not a usable inner loop.
-# The cost is the smallest of any gate here: +9 packages / +5 unique names
-# (`ureq`, `ureq-proto`, `utf8-zero`, `toml_edit`, `toml_write`) and **zero**
-# new native builds — the native list is byte-identical with the gate on and
-# off. That is nothing like the cohorts #4919 moved out of `default`, and it
-# also brings the build in line with what AGENTS.md has always documented
-# (`modules`: Contrib=ON, Product=ON) and with `scripts/ci/product-features.txt`,
-# which already lists it. This does NOT move the kernel floor: that profile is
+# `modules` is in this list because the loadable-module seams (tokenjuice,
+# documents, voice, runtimes) are exercised by the default test suite, and it
+# costs no new native builds. It matches `scripts/ci/product-features.txt`. This
+# does NOT move the kernel floor: that profile is
 # `--no-default-features --features flows` and never reads this list.
 default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules"]
 # The core's domain-owned HTTP surfaces (#5048): the `/v1` OpenAI-compatible
