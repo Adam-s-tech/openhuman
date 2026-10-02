@@ -22,7 +22,7 @@ import { openhumanUpdateLocalAiSettings as openhumanUpdateLocalAiSettingsMock } 
 import AIPanel from '../AIPanel';
 
 vi.mock('../../../../services/api/aiSettingsApi', () => ({
-  ALL_WORKLOADS: ['chat', 'reasoning', 'agentic', 'coding', 'memory', 'embeddings', 'learning'],
+  ALL_WORKLOADS: ['chat', 'reasoning', 'agentic', 'coding', 'memory', 'embeddings'],
   loadAISettings: vi.fn(),
   saveAISettings: vi.fn(),
   loadLocalProviderSnapshot: vi.fn(),

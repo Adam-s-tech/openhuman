@@ -2174,8 +2174,6 @@ describe('AIPanel', () => {
 
     expect(screen.getByText('Recent usage ledger')).toBeInTheDocument();
     expect(screen.getByText('Loop map')).toBeInTheDocument();
-    expect(screen.getByText('Memory tree workers')).toBeInTheDocument();
-    expect(screen.getByText('Reflection rebuild')).toBeInTheDocument();
     expect(screen.getByText('Composio sync')).toBeInTheDocument();
 
     expect(screen.getByText('Week budget')).toBeInTheDocument();
@@ -2193,7 +2191,6 @@ describe('AIPanel', () => {
     expect(screen.getByText('API reads per $ remaining')).toBeInTheDocument();
     expect(screen.getByText('Loop call budget')).toBeInTheDocument();
     expect(screen.getByText('Composio sync scans')).toBeInTheDocument();
-    expect(screen.getByText('Memory worker polls')).toBeInTheDocument();
 
     expect(screen.getByText('MEMORY_SUMMARY')).toBeInTheDocument();
     expect(screen.getByText('SPEND:USAGE_DEDUCTION:USER')).toBeInTheDocument();

@@ -234,11 +234,6 @@ export const UsageLedgerSection = ({
           )}
           detail={t('settings.ai.totalApiReadBudgetDetail')}
         />
-        <FormulaRow
-          label={t('settings.ai.memoryWorkerPolls')}
-          value={t('settings.ai.perWeekMax').replace('{count}', formatCount(memoryPollsPerWeek))}
-          detail={t('settings.ai.memoryWorkerPollsDetail')}
-        />
       </Card>
     </div>
 
