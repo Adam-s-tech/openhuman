@@ -768,11 +768,15 @@ impl CoreRuntime {
     }
 
     /// Cleanup to run once a transport has stopped serving, whether it ended
-    /// cleanly or with an error. There is no local model runtime to stop: the
-    /// user runs Ollama / LM Studio / MLX themselves and OpenHuman never
-    /// spawns it.
+    /// cleanly or with an error: memory stores the conversation turns it still
+    /// has buffered, within [`crate::memory::exit::EXIT_BUDGET`]. There is no
+    /// local model runtime to stop: the user runs Ollama / LM Studio / MLX
+    /// themselves and OpenHuman never spawns it.
     pub async fn exit_cleanup(&self) {
-        log::debug!("[core] shutdown: exit cleanup done (no owned local runtime to stop)");
+        if let Some(config) = self.config.as_ref() {
+            crate::memory::exit::run(config).await;
+        }
+        log::debug!("[core] shutdown: exit cleanup done");
     }
 
     /// Spawn each selected background service.
