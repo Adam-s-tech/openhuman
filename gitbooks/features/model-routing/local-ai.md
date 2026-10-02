@@ -75,7 +75,7 @@ The legacy `local_ai.usage.*` booleans are kept only so older configs migrate. T
 | Workload                             | Configured by                                         | Notes                                                                                                                               |
 | ------------------------------------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **Chat, reasoning, coding, agentic** | `chat_provider`, `reasoning_provider`, ...            | Any local prefix from the table above.                                                                                              |
-| **Memory embeddings**                | `embeddings_provider = "ollama:bge-m3"`               | Used by the [Memory Tree](../obsidian-wiki/memory-tree.md). Needs a 1024-dimension model; `bge-m3` fits. You pull it.               |
+| **Memory embeddings**                | `embeddings_provider = "ollama:bge-m3"`               | Used by the [Memory Tree](../memory.md). Needs a 1024-dimension model; `bge-m3` fits. You pull it.               |
 | **Summary-tree building**            | `local_ai.runtime_enabled` + `local_ai.chat_model_id` | With local AI on, summaries fold on that Ollama model. With it off, they need `memory_tree.cloud_summarization_opt_in = true`.       |
 | **Learning / reflection**            | `learning_provider`                                   | `crates/openhuman-core/src/agent/learning/reflection.rs`.                                                                           |
 | **Vision**                           | `vision_provider`, `local_ai.vision_model_id`         | Must be a vision-capable model. See [Local vision](#local-vision).                                                                  |
@@ -131,6 +131,6 @@ Vision is a separate capability from chat, and most small local models cannot do
 
 - [Use OpenHuman with a local model](../../guides/local-model.md). Step-by-step setup.
 - [Local models & bring your own key](local-and-byok-models.md). Per-model capability table and BYOK setup.
-- [Memory Tree](../obsidian-wiki/memory-tree.md). What local embeddings and summarization power.
+- [Memory Tree](../memory.md). What local embeddings and summarization power.
 - [Automatic Model Routing](README.md). How lightweight chat hints prefer the local provider.
 - [Privacy Mode](../privacy-mode.md). Enforcing local-only inference.

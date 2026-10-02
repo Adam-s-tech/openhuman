@@ -26,7 +26,7 @@ Learning is organized into six **facet classes**. Each class has its own decay r
 | **Goal**     | Active goals and ongoing projects | free-form goal sentences                             |
 | **Channel**  | Your preferred place to talk      | `primary=desktop-chat`                               |
 
-Recurring people, topics, and past threads are **not** stored here. Those live in the [memory tree](obsidian-wiki/memory-tree.md) and are pulled in per-turn by `memory_recall`.
+Recurring people, topics, and past threads are **not** stored here. Those live in the [memory tree](memory.md) and are pulled in per-turn by `memory_recall`.
 
 ---
 
@@ -118,6 +118,6 @@ Everything learned is inspectable and reversible:
 
 ## See also
 
-- [Memory Tree](obsidian-wiki/memory-tree.md), where recurring people, topics, and threads live and are recalled per-turn.
+- [Memory Tree](memory.md), where recurring people, topics, and threads live and are recalled per-turn.
 - [Goals & To-dos](goals-and-todos.md), the goal-tracking surface that pairs with learned `goal/*` facets.
 - [Cron & Scheduling](native-tools/cron.md), the scheduled runs that keep working your workspace between turns.

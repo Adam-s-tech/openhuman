@@ -176,7 +176,7 @@ credential refused, unreachable) puts a one-line reason in the recall block
 instead of an empty result, so the model says memory is unavailable rather than
 that something was never stored.
 
-Related pages: [Memory](../features/obsidian-wiki/README.md) and its
+Related pages: [Memory](../features/memory.md) and its
 sub-pages for what TinyCortex actually does (memory tree, scoring, retrieval,
 git-backed diffs).
 

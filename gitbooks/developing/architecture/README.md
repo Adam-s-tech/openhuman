@@ -59,7 +59,7 @@ The full table is under "Repository layout" in the [deep architecture reference]
 ## Data flow
 
 1. **Connect**. OAuth into an [integration](../../features/integrations/README.md). Backend stores the token; core never sees it in plaintext.
-2. **Auto-fetch**. Every twenty minutes the [scheduler](../../features/obsidian-wiki/auto-fetch.md) walks every active connection and asks each native provider to sync.
+2. **Auto-fetch**. Every twenty minutes the [scheduler](../../features/memory.md) walks every active connection and asks each native provider to sync.
 3. **Canonicalize**. Provider output (an email page, a GitHub diff, a Slack channel dump) is normalized into provenance-tagged Markdown.
 4. **Chunk**. Markdown is split into ≤3k-token deterministic chunks.
 5. **Store**. Chunks land in SQLite (`<workspace>/memory_tree/chunks.db`) and as `.md` files in `<workspace>/wiki/`.

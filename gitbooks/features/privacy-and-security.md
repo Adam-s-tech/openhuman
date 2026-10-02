@@ -46,7 +46,7 @@ OpenHuman is designed so that the **memory of your life lives on your machine**.
 
 OpenHuman accesses an integration only after you complete its OAuth flow. Each connection has its own scope; you can revoke any of them at any time from the **Connections** page.
 
-[Auto-fetch](obsidian-wiki/auto-fetch.md) does run continuously while a connection is active, that is the whole point. But it is bound by:
+[Auto-fetch](memory.md) does run continuously while a connection is active, that is the whole point. But it is bound by:
 
 - The **OAuth scope** you granted that integration.
 - A **per-provider sync interval** (e.g. Gmail every 15 min by default).

@@ -32,7 +32,7 @@ It is meant to feel alive, not animated-on-rails.
 
 ### It remembers you
 
-The mascot is the visible part of an agent that has the [Memory Tree](../obsidian-wiki/memory-tree.md) underneath it. It remembers what you've talked about, who the people in your life are, what's open on your plate, what's been decided, and what's outstanding, across every source you've connected. When it greets you in the morning, it isn't starting from zero.
+The mascot is the visible part of an agent that has the [Memory Tree](../memory.md) underneath it. It remembers what you've talked about, who the people in your life are, what's open on your plate, what's been decided, and what's outstanding, across every source you've connected. When it greets you in the morning, it isn't starting from zero.
 
 That memory is what makes the personality consistent over weeks and months. The mascot you talk to today knows what the mascot you talked to last Tuesday knows.
 
@@ -59,5 +59,5 @@ The mascot exists because:
 ## See also
 
 - [Native Voice](../native-tools/voice.md), the STT / TTS plumbing the mascot rides on.
-- [Memory Tree](../obsidian-wiki/memory-tree.md), what the mascot remembers, and how.
+- [Memory Tree](../memory.md), what the mascot remembers, and how.
 - [Chromium Embedded Framework](../../developing/cef.md), the camera-into-Meet pipeline (developer reference).

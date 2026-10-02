@@ -65,7 +65,7 @@ OpenHuman picks the right model for each task automatically. See [Automatic Mode
 
 ## 4. Open the Obsidian vault
 
-The Memory tab has a **View vault in Obsidian** button. Click it to open `<workspace>/wiki/` in [Obsidian](https://obsidian.md). You can browse the agent's summaries, drop in your own notes, and even build manual links - the agent will pick up your edits on the next ingest. See [Obsidian-Style Memory](../features/obsidian-wiki/).
+The Memory tab has a **View vault in Obsidian** button. Click it to open `<workspace>/wiki/` in [Obsidian](https://obsidian.md). You can browse the agent's summaries, drop in your own notes, and even build manual links - the agent will pick up your edits on the next ingest. See [Obsidian-Style Memory](../features/memory.md).
 
 ---
 
@@ -73,7 +73,7 @@ The Memory tab has a **View vault in Obsidian** button. Click it to open `<works
 
 Now that the agent has memory and a model, the rest of the product is about giving it more surfaces:
 
-- [**Auto-fetch from Integrations**](../features/obsidian-wiki/auto-fetch.md) - connect more sources from **Settings**; every twenty minutes the scheduler pulls fresh data into your tree.
+- [**Auto-fetch from Integrations**](../features/memory.md) - connect more sources from **Settings**; every twenty minutes the scheduler pulls fresh data into your tree.
 - [**Native Voice**](../features/native-tools/voice.md) - push-to-talk dictation and TTS replies so you can talk to OpenHuman instead of typing.
 
 ## Join the community

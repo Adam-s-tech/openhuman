@@ -46,4 +46,4 @@ goal on screen for the many turns after the one that set it.
 
 ## See also
 
-- [Memory Tree](obsidian-wiki/memory-tree.md): what goal reflection reads from.
+- [Memory Tree](memory.md): what goal reflection reads from.
