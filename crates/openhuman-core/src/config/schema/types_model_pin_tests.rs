@@ -143,13 +143,12 @@ fn workload_local_model_trims_and_only_honours_ollama_providers() {
     config.coding_provider = Some("ollama:code-local".into());
     config.memory_provider = Some("ollama:memory-local".into());
     config.embeddings_provider = Some("ollama:embed-local".into());
-    config.learning_provider = Some("ollama:learning-local".into());
     assert_eq!(
         config.workload_local_model("chat").as_deref(),
         Some("chat-local")
     );
     assert_eq!(config.workload_local_model("reasoning"), None);
-    for workload in ["agentic", "coding", "memory", "embeddings", "learning"] {
+    for workload in ["agentic", "coding", "memory", "embeddings"] {
         assert!(config.workload_uses_local(workload), "{workload}");
     }
     assert!(!config.workload_uses_local("unknown"));

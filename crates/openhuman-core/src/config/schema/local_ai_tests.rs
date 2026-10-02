@@ -10,7 +10,6 @@ fn defaults_keep_local_runtime_and_every_usage_gate_off() {
     {
         assert!(!cfg.use_local_for_embeddings());
         assert!(!cfg.use_local_for_heartbeat());
-        assert!(!cfg.use_local_for_learning());
         assert!(!cfg.use_local_for_subconscious());
     }
     assert_eq!(cfg.embedding_model_id, "bge-m3");

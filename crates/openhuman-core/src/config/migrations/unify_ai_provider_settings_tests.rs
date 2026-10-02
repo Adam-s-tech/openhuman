@@ -13,7 +13,6 @@ fn make_legacy_config_local_on() -> Config {
         usage: LocalAiUsage {
             embeddings: true,
             heartbeat: true,
-            learning_reflection: false,
             subconscious: true,
         },
         ..LocalAiConfig::default()
@@ -103,14 +102,6 @@ fn retired_background_usage_flags_derive_no_route() {
 }
 
 #[test]
-fn learning_provider_defaults_to_cloud_when_flag_off() {
-    // learning_reflection is `false` in our fixture.
-    let mut c = make_legacy_config_local_on();
-    let _ = run(&mut c).unwrap();
-    assert_eq!(c.learning_provider.as_deref(), Some("cloud"));
-}
-
-#[test]
 fn memory_provider_cloud_when_llm_backend_cloud() {
     let mut c = Config::default();
     // default backend is Cloud
@@ -135,7 +126,6 @@ fn idempotent_second_run_is_noop() {
     let first = run(&mut c).expect("first run must succeed");
     let providers_after_first = c.cloud_providers.len();
     let primary_after_first = c.primary_cloud.clone();
-    let learning_after_first = c.learning_provider.clone();
 
     let second = run(&mut c).expect("second run must succeed");
 
@@ -145,7 +135,6 @@ fn idempotent_second_run_is_noop() {
     assert_eq!(second.workload_fields_filled, 0);
     assert_eq!(c.cloud_providers.len(), providers_after_first);
     assert_eq!(c.primary_cloud, primary_after_first);
-    assert_eq!(c.learning_provider, learning_after_first);
 
     // Sanity: stats from the first run say we did do work.
     assert!(first.cloud_providers_seeded >= 1);
@@ -158,7 +147,6 @@ fn runtime_disabled_falls_back_to_cloud_even_with_usage_flags() {
     c.local_ai.runtime_enabled = false;
     let _ = run(&mut c).unwrap();
     // With runtime off, every workload routes to cloud regardless of usage.*
-    assert_eq!(c.learning_provider.as_deref(), Some("cloud"));
     assert_eq!(c.embeddings_provider.as_deref(), Some("cloud"));
     assert_eq!(c.memory_provider.as_deref(), Some("cloud"));
 }

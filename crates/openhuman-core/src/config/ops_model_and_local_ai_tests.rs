@@ -526,7 +526,6 @@ async fn apply_local_ai_settings_updates_lm_studio_provider_fields() {
         model_id: Some(" local-default ".into()),
         chat_model_id: Some(" local-chat ".into()),
         usage_embeddings: Some(true),
-        usage_learning_reflection: Some(false),
         api_key: None,
     };
 
@@ -544,7 +543,6 @@ async fn apply_local_ai_settings_updates_lm_studio_provider_fields() {
     assert_eq!(cfg.local_ai.model_id, "local-default");
     assert_eq!(cfg.local_ai.chat_model_id, "local-chat");
     assert!(cfg.local_ai.usage.embeddings);
-    assert!(!cfg.local_ai.usage.learning_reflection);
     assert_eq!(outcome.value["config"]["local_ai"]["provider"], "lm_studio");
 
     let clear_and_fallback = LocalAiSettingsPatch {
