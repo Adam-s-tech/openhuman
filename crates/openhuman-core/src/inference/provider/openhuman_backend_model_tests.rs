@@ -380,7 +380,7 @@ fn request_reasoning_budget_becomes_max_tokens() {
 }
 
 #[test]
-fn request_reasoning_wins_over_the_suggestion_off_hint() {
+fn suggestion_off_hint_wins_over_request_reasoning() {
     use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
     let request = apply_reasoning_hint(
         without_reasoning(ModelRequest::new(vec![Message::user("hi")]))
@@ -388,7 +388,7 @@ fn request_reasoning_wins_over_the_suggestion_off_hint() {
     );
     assert_eq!(
         request.provider_options["reasoning"],
-        serde_json::json!({ "effort": "low" })
+        serde_json::json!({ "enabled": false })
     );
 }
 

@@ -441,9 +441,10 @@ pub(crate) fn without_reasoning(mut request: ModelRequest) -> ModelRequest {
 /// upstream.
 ///
 /// Sources, highest first: a `reasoning` object the caller already put in
-/// provider options (left alone); the request's provider-neutral
+/// provider options (left alone); the [`without_reasoning`] hint, which marks
+/// one helper call specifically; the request's provider-neutral
 /// `ModelRequest::reasoning` (the user's thinking level, from the harness
-/// `RunPolicy::default_reasoning`); the [`without_reasoning`] hint. The
+/// `RunPolicy::default_reasoning`). The
 /// neutral field is consumed here, so the OpenAI-compatible transport does not
 /// also emit a top-level `reasoning_effort` for the same choice.
 fn apply_reasoning_hint(mut request: ModelRequest) -> ModelRequest {
@@ -455,10 +456,11 @@ fn apply_reasoning_hint(mut request: ModelRequest) -> ModelRequest {
         .get(REASONING_OFF_METADATA_KEY)
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let wire = match request.reasoning.take() {
-        Some(reasoning) => managed_reasoning_wire(&reasoning),
-        None if wants_off => Some(serde_json::json!({ "enabled": false })),
-        None => None,
+    let neutral = request.reasoning.take();
+    let wire = if wants_off {
+        Some(serde_json::json!({ "enabled": false }))
+    } else {
+        neutral.as_ref().and_then(managed_reasoning_wire)
     };
     let Some(wire) = wire else {
         return request;
