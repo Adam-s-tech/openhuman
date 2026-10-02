@@ -23,9 +23,8 @@ pub const PACKS: &[ToolPack] = &[
         tools: &[
             "build_workflow",
             "discover_workflows",
-            // `run_workflow` / `await_workflow` are deliberately NOT packed: running an
-            // installed skill is a routine orchestrator action, and `await_workflow`
-            // re-attaches to a run mid-turn, the worst moment for a load round-trip.
+            "run_workflow",
+            "await_workflow",
             "describe_workflow",
             "list_workflows",
             "list_workflow_runs",
@@ -343,17 +342,6 @@ pub const PACKS: &[ToolPack] = &[
         tools: &["cron"],
         owners: &[],
         guide: include_str!("guides/scheduling.md"),
-    },
-    ToolPack {
-        id: "memory",
-        summary: "Deep recall over the memory tree: multi-hop questions across past conversations and documents.",
-        // `memory_recall` stays a direct tool and answers most lookups. The
-        // `retrieve_memory` delegate is the escalation for when it is not
-        // enough, so it rides behind `use_skill` instead of sitting beside it
-        // as a second, near-identical way to search memory.
-        tools: &["retrieve_memory"],
-        owners: &[],
-        guide: "",
     },
     ToolPack {
         id: "profile",

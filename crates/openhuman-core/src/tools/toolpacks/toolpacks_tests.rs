@@ -221,6 +221,8 @@ fn every_pack_declares_the_tools_it_is_named_for() {
             &[
                 "build_workflow",
                 "discover_workflows",
+                "run_workflow",
+                "await_workflow",
                 "describe_workflow",
                 "list_workflows",
                 "list_workflow_runs",
@@ -251,7 +253,6 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "list_connectable_toolkits",
             ],
         ),
-        ("memory", &["retrieve_memory"]),
         (
             "web3",
             &[
