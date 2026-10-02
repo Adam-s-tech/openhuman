@@ -1834,7 +1834,7 @@ async fn credentials_secret_helpers_round_trip_with_file_keyring_backend() {
     let _lock = env_lock_async().await;
     let _keyring_guard = EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file");
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config {
+    let config = Config {
         config_path: tmp.path().join("config.toml"),
         workspace_dir: tmp.path().join("workspace"),
         ..Default::default()
