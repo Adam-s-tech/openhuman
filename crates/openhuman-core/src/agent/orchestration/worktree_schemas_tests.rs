@@ -81,8 +81,7 @@ fn list_view_surfaces_managed_worktree() {
 #[tokio::test]
 async fn handle_list_degrades_for_non_git_action_dir() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let tmp = tempfile::tempdir().unwrap();
     let action_dir = tmp.path().join("actions");
     std::fs::create_dir_all(&action_dir).unwrap();

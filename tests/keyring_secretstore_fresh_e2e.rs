@@ -5,9 +5,14 @@ use openhuman_core::config::schema::{Config, StreamMode, TelegramConfig};
 use openhuman_core::security::keyring;
 use std::sync::{Mutex, OnceLock};
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| tokio::sync::Mutex::new(())).blocking_lock()
+}
+
+async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| tokio::sync::Mutex::new(())).lock().await
 }
 
 fn parse_keyring_payload(json: &str) -> serde_json::Value {
@@ -16,7 +21,7 @@ fn parse_keyring_payload(json: &str) -> serde_json::Value {
 
 #[tokio::test]
 async fn config_secrets_create_master_key_in_keyring_on_fresh_install() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let tmp = tempfile::tempdir().expect("tempdir");
     let openhuman_dir = tmp.path().join("fresh-user");
     let workspace_dir = openhuman_dir.join("workspace");

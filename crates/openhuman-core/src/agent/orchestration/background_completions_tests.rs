@@ -7,8 +7,7 @@ use std::sync::MutexGuard;
 /// mutex wouldn't prevent that cross-module race.
 fn test_guard() -> MutexGuard<'static, ()> {
     crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
+        .blocking_lock()
 }
 
 fn c(task: &str, agent: &str, summary: &str) -> CompletedBackgroundAgent {

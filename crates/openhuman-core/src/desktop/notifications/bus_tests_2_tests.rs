@@ -439,8 +439,7 @@ async fn the_active_workspace_s_outage_is_announced() {
     // cleared while this lock is still held. Releasing the lock early would
     // let the next test set its own override and have this guard erase it.
     let _lock = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+        .lock().await;
     let active = tempfile::TempDir::new().unwrap();
     let _guard = EnvVarGuard::workspace_unlocked(active.path());
 
@@ -467,8 +466,7 @@ async fn a_switched_away_workspace_s_outage_is_not_announced() {
     // cleared while this lock is still held. Releasing the lock early would
     // let the next test set its own override and have this guard erase it.
     let _lock = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+        .lock().await;
     let active = tempfile::TempDir::new().unwrap();
     let switched_away = tempfile::TempDir::new().unwrap();
     let _guard = EnvVarGuard::workspace_unlocked(active.path());

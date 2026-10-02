@@ -67,7 +67,7 @@ async fn a_driver_that_cannot_answer_makes_a_toolkit_not_registrable() {
 // items these assert on (`TRIAGE_DISABLED_ENV`, the parser). They belong here,
 // against the module that actually defines them.
 
-static TRIAGE_ENV_GUARD: Mutex<()> = Mutex::new(());
+static TRIAGE_ENV_GUARD: Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[tokio::test]
 async fn ignores_non_composio_events() {
@@ -94,8 +94,8 @@ async fn handles_trigger_event_without_panic() {
     // (acquired before `TRIAGE_ENV_GUARD` for a stable lock order) and
     // point `OPENHUMAN_WORKSPACE` at an isolated, persisted config.
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_lock = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let _guard = TRIAGE_ENV_GUARD.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_lock = TEST_ENV_LOCK.lock().await;
+    let _guard = TRIAGE_ENV_GUARD.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
@@ -127,7 +127,7 @@ async fn handles_trigger_event_without_panic() {
 
 #[test]
 fn triage_disabled_flag_parser() {
-    let _guard = TRIAGE_ENV_GUARD.lock().unwrap_or_else(|e| e.into_inner());
+    let _guard = TRIAGE_ENV_GUARD.blocking_lock();
     // Truthy values disable triage.
     for val in ["1", "true", "TRUE", "yes", "YES"] {
         std::env::set_var(TRIAGE_DISABLED_ENV, val);
@@ -204,8 +204,8 @@ async fn trigger_subscriber_skips_triage_when_env_disabled() {
     // this test must isolate `OPENHUMAN_WORKSPACE` under `TEST_ENV_LOCK`
     // (acquired before `TRIAGE_ENV_GUARD`).
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_lock = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let _guard = TRIAGE_ENV_GUARD.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_lock = TEST_ENV_LOCK.lock().await;
+    let _guard = TRIAGE_ENV_GUARD.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
@@ -250,7 +250,7 @@ async fn handles_connection_created_event_without_panic() {
     // var is deliberately left set to the isolated dir — the next
     // `TEST_ENV_LOCK` holder re-points it to its own workspace.
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_guard = TEST_ENV_LOCK.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
@@ -341,7 +341,7 @@ async fn connection_subscriber_skips_when_no_provider_registered() {
     // hold `TEST_ENV_LOCK`, point `OPENHUMAN_WORKSPACE` at a leaked
     // persisted tempdir, and drain the spawn before releasing the lock.
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_guard = TEST_ENV_LOCK.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {

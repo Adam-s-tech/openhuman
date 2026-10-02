@@ -29,16 +29,18 @@ use tokio::time::timeout;
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
 
-static LIVE_E2E_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+static LIVE_E2E_ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 static LIVE_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
 const TEST_RPC_TOKEN: &str = "live-routing-e2e-local-token";
 
-fn live_e2e_env_lock() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = LIVE_E2E_ENV_LOCK.get_or_init(|| Mutex::new(()));
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
+fn live_e2e_env_lock() -> tokio::sync::MutexGuard<'static, ()> {
+    let mutex = LIVE_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
+    mutex.blocking_lock()
+}
+
+async fn live_e2e_env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    let mutex = LIVE_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
+    mutex.lock().await
 }
 
 fn required_env(name: &str) -> String {
@@ -170,7 +172,7 @@ fn ensure_test_rpc_auth() {
 #[tokio::test]
 #[ignore = "requires live backend URL + valid token"]
 async fn live_channel_web_chat_routing_cases_trigger_real_backend() {
-    let _env_lock = live_e2e_env_lock();
+    let _env_lock = live_e2e_env_lock_async().await;
 
     let api_url = required_env("OPENHUMAN_LIVE_API_URL");
     let token = required_env("OPENHUMAN_LIVE_TOKEN");

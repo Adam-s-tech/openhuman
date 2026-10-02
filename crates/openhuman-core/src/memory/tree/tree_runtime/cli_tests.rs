@@ -7,8 +7,12 @@ use crate::config::TEST_ENV_LOCK;
 use super::*;
 use crate::config::test_env::EnvVarGuard;
 
-fn lock_env() -> std::sync::MutexGuard<'static, ()> {
-    TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner())
+fn lock_env() -> tokio::sync::MutexGuard<'static, ()> {
+    TEST_ENV_LOCK.blocking_lock()
+}
+
+async fn lock_env_async() -> tokio::sync::MutexGuard<'static, ()> {
+    TEST_ENV_LOCK.lock().await
 }
 
 #[test]

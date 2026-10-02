@@ -103,8 +103,7 @@ async fn resolve_dirs_uses_active_user_when_present() {
     // `resolve_runtime_config_dirs` reads `OPENHUMAN_WORKSPACE`; hold the shared
     // env lock and clear it so a sibling test's override cannot leak in.
     let _env_guard = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let prior_workspace = std::env::var_os("OPENHUMAN_WORKSPACE");
     std::env::remove_var("OPENHUMAN_WORKSPACE");
     let tmp = tempfile::tempdir().unwrap();
@@ -154,8 +153,7 @@ fn default_root_dir_name_uses_staging_suffix_for_staging_env() {
     // stops finding `active_user.toml` once the root becomes `.openhuman-staging`).
     // Take the same lock those tests hold.
     let _env_guard = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let prior = std::env::var(crate::config::app_env::APP_ENV_VAR).ok();
 
     std::env::set_var(crate::config::app_env::APP_ENV_VAR, "staging");

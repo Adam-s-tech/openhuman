@@ -10,8 +10,7 @@ const HTTPS_BASE: &str = "https://backend.composio.dev/api/v3";
 /// Run `body` with a runtime proxy config installed, then restore the old one.
 fn with_proxy<T>(config: ProxyConfig, body: impl FnOnce() -> T) -> T {
     let _lock = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let previous = runtime_proxy_config();
     set_runtime_proxy_config(config);
     let result = body();

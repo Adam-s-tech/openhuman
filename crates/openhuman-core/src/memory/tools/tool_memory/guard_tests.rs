@@ -36,7 +36,7 @@ fn scoped_tier(autonomy: AutonomyLevel) -> live_policy::TestPolicyGuard {
 }
 
 async fn isolated_config(tmp: &TempDir) -> (EnvVarGuard, Config) {
-    let guard = EnvVarGuard::workspace(tmp.path());
+    let guard = EnvVarGuard::workspace_async(tmp.path()).await;
     let config = Config::load_or_init().await.expect("load config");
     (guard, config)
 }

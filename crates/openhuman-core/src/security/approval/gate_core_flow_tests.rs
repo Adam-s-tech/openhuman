@@ -172,8 +172,7 @@ async fn auto_approve_tool_skips_prompt() {
     // (the `live_policy` module test + the autonomy `ops` tests, which all
     // take this same lock) so a parallel install can't clobber ours mid-test.
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let (gate, dir) = test_gate();
 
     // A tool name unique to this test so leaving it in the global allowlist
@@ -214,8 +213,7 @@ async fn auto_approve_tool_skips_prompt() {
 #[tokio::test]
 async fn auto_approve_all_resolves_allow() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,
@@ -249,8 +247,7 @@ async fn auto_approve_all_resolves_allow() {
 #[tokio::test]
 async fn auto_approve_all_off_still_parks() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: false,
@@ -302,8 +299,7 @@ async fn auto_approve_all_off_still_parks() {
 #[tokio::test]
 async fn auto_approve_all_does_not_override_unknown() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,
@@ -341,8 +337,7 @@ async fn auto_approve_all_does_not_override_unknown() {
 #[tokio::test]
 async fn auto_approve_all_overrides_require_approval_workflow() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,
@@ -397,8 +392,7 @@ async fn auto_approve_all_allows_a_remote_triage_dispatch_without_an_audit_row()
     use crate::agent::triage::{remote_trigger_origin, TriggerEnvelope};
 
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,

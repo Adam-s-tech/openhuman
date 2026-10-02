@@ -5,8 +5,7 @@ use crate::security::AutonomyLevel;
 #[test]
 fn scoped_policy_is_thread_local_and_restored() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let workspace = std::env::temp_dir().join("openhuman_scoped_policy_test");
     install(
         Arc::new(SecurityPolicy::default()),
@@ -47,8 +46,7 @@ fn install_then_reload_swaps_policy_and_bumps_generation() {
     // (the approval-gate auto_approve test and the autonomy `ops` tests),
     // which all take this same lock — otherwise a parallel install races.
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let workspace = std::env::temp_dir().join("openhuman_live_policy_test");
     let initial = Arc::new(SecurityPolicy {
         autonomy: AutonomyLevel::Supervised,
@@ -82,8 +80,7 @@ fn install_then_reload_swaps_policy_and_bumps_generation() {
 fn reload_privacy_swaps_mode_and_survives_autonomy_reload() {
     // Same process-global lock as the other live-policy tests.
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let workspace = std::env::temp_dir().join("openhuman_privacy_live_test");
     let initial = Arc::new(SecurityPolicy {
         autonomy: AutonomyLevel::Supervised,
@@ -136,8 +133,7 @@ fn set_action_dir_swaps_root_and_bumps_generation() {
     // Same process-global lock as the reload test — these install/swap the
     // shared live policy and would race each other otherwise.
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let workspace = std::env::temp_dir().join("openhuman_set_action_dir_test_ws");
     let action = std::env::temp_dir().join("openhuman_set_action_dir_test_action_a");
     let initial = Arc::new(SecurityPolicy {

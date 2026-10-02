@@ -267,8 +267,7 @@ async fn intercept_audited_bounded_abandons_park_and_leaves_row_pending() {
 #[test]
 fn effective_ttl_uses_env_override_when_valid() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let (gate, _dir) = test_gate_with_ttl(BOOT_TTL_UNDER_TEST);
     unsafe { std::env::set_var("OPENHUMAN_APPROVAL_TTL_SECS", "42") };
     assert_eq!(
@@ -282,8 +281,7 @@ fn effective_ttl_uses_env_override_when_valid() {
 #[test]
 fn effective_ttl_falls_back_to_boot_ttl_for_garbage_value() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let (gate, _dir) = test_gate_with_ttl(BOOT_TTL_UNDER_TEST);
     unsafe { std::env::set_var("OPENHUMAN_APPROVAL_TTL_SECS", "not-a-number") };
     assert_eq!(
@@ -297,8 +295,7 @@ fn effective_ttl_falls_back_to_boot_ttl_for_garbage_value() {
 #[test]
 fn effective_ttl_falls_back_to_boot_ttl_when_unset() {
     let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+        .blocking_lock();
     let (gate, _dir) = test_gate_with_ttl(BOOT_TTL_UNDER_TEST);
     unsafe { std::env::remove_var("OPENHUMAN_APPROVAL_TTL_SECS") };
     assert_eq!(
