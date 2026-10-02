@@ -476,7 +476,7 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         assert!(local_ai.use_local_for_subconscious());
     }
 
-    let search = openhuman_core::config::schema::SearchConfig {
+    let mut search = openhuman_core::config::schema::SearchConfig {
         brave: openhuman_core::config::schema::SearchEngineCredentials {
             api_key: Some(" brave-key ".into()),
         },
