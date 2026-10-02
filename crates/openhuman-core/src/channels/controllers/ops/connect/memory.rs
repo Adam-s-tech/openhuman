@@ -24,3 +24,7 @@ pub(super) async fn clear_channel_memory(
     );
     Ok(forgotten)
 }
+
+#[cfg(test)]
+#[path = "memory_tests.rs"]
+mod tests;
