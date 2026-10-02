@@ -93,8 +93,17 @@ import type { ConfirmationModal as ConfirmationModalType } from '../../types/int
 import type { ThreadMessage } from '../../types/thread';
 import { chatThreadPath } from '../../utils/chatRoutes';
 import { CHAT_ATTACHMENTS_ENABLED } from '../../utils/config';
+import {
+  openhumanGetClientConfig,
+  openhumanUpdateRuntimeSettings,
+} from '../../utils/tauriCommands/config';
 import { ApprovalCardAdapter } from './aui/ApprovalCardAdapter';
 import { ComposerMessageQueue } from './aui/ComposerMessageQueue';
+import {
+  type ReasoningEffortChoice,
+  ReasoningEffortPicker,
+  toReasoningEffortChoice,
+} from './aui/ReasoningEffortPicker';
 import { useChatSurfaceRegistration } from './hooks/useChatSurfaceRegistration';
 import { ThreadList } from './threadList/ThreadList';
 
@@ -442,6 +451,42 @@ const Conversations = ({
   const [composerModelContextWindow, setComposerModelContextWindow] = useState<
     number | null | undefined
   >(undefined);
+  // The composer's thinking level. Sent with every turn (`reasoning_effort`)
+  // so it applies immediately, and written to the core's
+  // `runtime.reasoning_effort` so it survives a restart and is the default for
+  // turns the composer does not start — the same split as the model pick.
+  const [composerReasoningEffort, setComposerReasoningEffort] =
+    useState<ReasoningEffortChoice>('default');
+  useEffect(() => {
+    let cancelled = false;
+    void openhumanGetClientConfig()
+      .then(res => {
+        if (!cancelled) {
+          setComposerReasoningEffort(toReasoningEffortChoice(res.result?.reasoning_effort));
+        }
+      })
+      .catch((err: unknown) => {
+        console.debug('[chat][composer-reasoning] client config unavailable', {
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const applyComposerReasoningEffort = useCallback((value: ReasoningEffortChoice) => {
+    setComposerReasoningEffort(value);
+    void openhumanUpdateRuntimeSettings({ reasoning_effort: value === 'default' ? '' : value })
+      .then(() => {
+        console.debug('[chat][composer-reasoning] persisted reasoning_effort', { effort: value });
+      })
+      .catch((err: unknown) => {
+        // The per-send value still applies; only persistence failed.
+        console.warn('[chat][composer-reasoning] failed to persist reasoning_effort', {
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+  }, []);
   const applyComposerModel = useCallback((value: string | null, contextWindow?: number | null) => {
     setComposerModelOverride(value);
     setComposerModelContextWindow(contextWindow ?? null);
@@ -1228,6 +1273,7 @@ const Conversations = ({
         message: messageText,
         model: modelOverride,
         locale: uiLocale,
+        reasoningEffort: composerReasoningEffort,
       });
       trackAnalyticsEvent('chat_message_sent', {
         send_mode: 'standard',
@@ -1327,6 +1373,7 @@ const Conversations = ({
         model: modelOverride,
         locale: uiLocale,
         queueMode: 'followup',
+        reasoningEffort: composerReasoningEffort,
       });
       // Only clear the composer once the backend has accepted the queue, so a
       // failed send leaves the user's draft + attachments intact to retry.
@@ -1944,7 +1991,15 @@ const Conversations = ({
   );
 
   // Left-hand controls in the assistant-ui composer toolbar.
-  const assistantComposerFooterExtras = <>{chatFilesChip}</>;
+  const assistantComposerFooterExtras = (
+    <>
+      <ReasoningEffortPicker
+        value={composerReasoningEffort}
+        onChange={applyComposerReasoningEffort}
+      />
+      {chatFilesChip}
+    </>
+  );
 
   // The mic-first (`mic-cloud`) composer. It replaces only the text composer:
   // the transcript above it is the same assistant-ui `Thread` as text mode, so

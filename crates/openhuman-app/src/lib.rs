@@ -3061,7 +3061,6 @@ pub fn run() {
     let builder = builder.manage(std::sync::Arc::new(imessage_scanner::ScannerRegistry::new()));
     builder
         .setup(move |app| {
-            #[cfg(windows)]
             {
                 if let Ok(resource_dir) = app.path().resource_dir() {
                     let bundled = resource_dir.join("bundled-modules");

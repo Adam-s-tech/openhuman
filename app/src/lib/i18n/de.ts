@@ -4763,6 +4763,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Datei anhängen',
   'composer.modelSelector': 'Modell',
+  'composer.reasoning.label': 'Denkstufe',
+  'composer.reasoning.default': 'Denken: automatisch',
+  'composer.reasoning.none': 'Denken: aus',
+  'composer.reasoning.low': 'Denken: niedrig',
+  'composer.reasoning.medium': 'Denken: mittel',
+  'composer.reasoning.high': 'Denken: hoch',
+  'composer.reasoning.xhigh': 'Denken: maximal',
   'composer.settings.model': 'Modell',
   'composer.settings.temperature': 'Temperatur',
   'composer.settings.chooseModel': 'Anderes Modell wählen…',
@@ -5313,6 +5320,18 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'Genehmigungen',
   'settings.agentAccess.group.fileSystem': 'Dateisystem',
   'settings.agentAccess.group.limits': 'Grenzwerte',
+  'settings.agentAccess.toolFormat.label': 'Format für Tool-Aufrufe',
+  'settings.agentAccess.toolFormat.desc':
+    'Wie der Agent Tool-Aufrufe an das Modell formuliert. JSON ist über Modelle hinweg am zuverlässigsten; codeartige Formate sind experimentell und werden von manchen Modellen falsch gelesen. Gilt für neue Unterhaltungen.',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (empfohlen)',
+  'settings.agentAccess.toolFormat.option.native':
+    'Natives JSON (strukturierte Aufrufe des Anbieters)',
+  'settings.agentAccess.toolFormat.option.xml': 'JSON in Tags',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (experimentell)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (experimentell)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (experimentell)',
+  'settings.agentAccess.toolFormat.envOverride':
+    'Die Umgebungsvariable OPENHUMAN_TOOL_DISPATCHER überschreibt diese Einstellung, Änderungen hier haben keine Wirkung, solange sie gesetzt ist.',
   'settings.sandbox.backendName.docker': 'Docker',
   'settings.sandbox.backendName.landlock': 'Landlock',
   'settings.sandbox.backendName.firejail': 'Firejail',

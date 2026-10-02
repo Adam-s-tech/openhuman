@@ -577,7 +577,7 @@ fn named_scope_admits_the_tinyjuice_tools_a_handle_names() {
     def.tools = ToolScope::Named(vec!["file_read".into()]);
     let registered = Arc::new(vec![
         "file_read".to_string(),
-        "tinyjuice_retrieve".to_string(),
+        "juice_retrieve".to_string(),
         "juice_find".to_string(),
         "juice_extract".to_string(),
         "juice_summarize".to_string(),
@@ -588,7 +588,7 @@ fn named_scope_admits_the_tinyjuice_tools_a_handle_names() {
         .project(&def)
         .tools;
     for name in [
-        "tinyjuice_retrieve",
+        "juice_retrieve",
         "juice_find",
         "juice_extract",
         "juice_summarize",

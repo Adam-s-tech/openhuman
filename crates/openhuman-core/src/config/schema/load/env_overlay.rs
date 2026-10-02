@@ -105,6 +105,19 @@ impl Config {
             }
         }
 
+        // One-launch override of `composio.mode`: `backend | direct | disabled`.
+        // The factory rejects an unknown spelling loudly, so no validation here.
+        if let Some(raw) = env.get("OPENHUMAN_COMPOSIO_MODE") {
+            let trimmed = raw.trim();
+            if !trimmed.is_empty() {
+                tracing::debug!(
+                    mode = trimmed,
+                    "OPENHUMAN_COMPOSIO_MODE overrides composio.mode"
+                );
+                self.composio.mode = trimmed.to_ascii_lowercase();
+            }
+        }
+
         // One-launch override of how the Jev tool ranker is reached
         // (`agent.tool_search.jev_route`): `auto | tinyhumans | typesafe |
         // openrouter`. The ranker validates the spelling and falls back to
