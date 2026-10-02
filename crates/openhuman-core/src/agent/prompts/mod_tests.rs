@@ -214,7 +214,8 @@ fn tool_call_format_maps_to_the_dialect_and_harness_vocabulary() {
 }
 
 /// The prompt catalogue is the callable surface on a text dialect, so a
-/// deferred tool must leave it and the discovery bridge must take its place.
+/// deferred tool must leave it and the discovery bridge (`tool_search`) must
+/// take its place.
 /// Rendering the deferred set instead (what the policy allow-set does, since
 /// it admits those names to keep a found tool callable) both spends the bytes
 /// deferral exists to save and tells the model to search for a signature it
@@ -243,10 +244,10 @@ fn swapping_deferred_entries_leaves_the_bridge_in_their_place() {
         "deferred tools must not be rendered into the catalogue: {visible:?}"
     );
     assert!(
-        visible.contains("tool_search") && visible.contains("tool_call"),
-        "the bridge replaces them so the model can reach what it finds: {visible:?}"
+        visible.contains("tool_search") && !visible.contains("tool_call"),
+        "`tool_search` replaces them; there is no `tool_call` wrapper: {visible:?}"
     );
-    for name in ["tool_search", "tool_call"] {
+    for name in ["tool_search"] {
         assert!(
             tools.iter().any(|tool| tool.name == name
                 && tool
@@ -259,8 +260,8 @@ fn swapping_deferred_entries_leaves_the_bridge_in_their_place() {
 }
 
 /// Nothing deferred: the catalogue and the advertised set are untouched, and
-/// a belt that never opted into discovery does not pay for two bridge
-/// schemas it cannot use.
+/// a belt that never opted into discovery does not pay for a bridge
+/// schema it cannot use.
 #[test]
 fn swapping_is_a_no_op_without_a_deferred_set() {
     let mut tools = vec![PromptTool::new("shell", "Run a command.")];
