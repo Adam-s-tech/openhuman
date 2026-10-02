@@ -4684,6 +4684,17 @@ const en: TranslationMap = {
   'settings.agentAccess.group.approvals': 'Approvals',
   'settings.agentAccess.group.fileSystem': 'File system',
   'settings.agentAccess.group.limits': 'Limits',
+  'settings.agentAccess.toolFormat.label': 'Tool call format',
+  'settings.agentAccess.toolFormat.desc':
+    'How the agent writes tool calls to the model. JSON is the most reliable across models; code-style formats are experimental and can be misread by some models. Applies to new conversations.',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (recommended)',
+  'settings.agentAccess.toolFormat.option.native': 'Native JSON (provider structured calls)',
+  'settings.agentAccess.toolFormat.option.xml': 'JSON in tags',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (experimental)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (experimental)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (experimental)',
+  'settings.agentAccess.toolFormat.envOverride':
+    'The OPENHUMAN_TOOL_DISPATCHER environment variable is overriding this setting, so changes here have no effect until it is unset.',
   'settings.agentAccess.grantedFolders': 'Granted folders',
   'settings.agentAccess.filesFolder.label': 'Files folder',
   'settings.agentAccess.filesFolder.desc':
@@ -5396,6 +5407,13 @@ const en: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Attach file',
   'composer.modelSelector': 'Model',
+  'composer.reasoning.label': 'Thinking level',
+  'composer.reasoning.default': 'Thinking: auto',
+  'composer.reasoning.none': 'Thinking: off',
+  'composer.reasoning.low': 'Thinking: low',
+  'composer.reasoning.medium': 'Thinking: medium',
+  'composer.reasoning.high': 'Thinking: high',
+  'composer.reasoning.xhigh': 'Thinking: max',
   'composer.settings.model': 'Model',
   'composer.settings.temperature': 'Temperature',
   'composer.settings.chooseModel': 'Choose another model…',

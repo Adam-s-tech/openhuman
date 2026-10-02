@@ -1350,6 +1350,83 @@ async fn json_rpc_config_update_browser_settings_persists_backend() {
 }
 
 #[tokio::test]
+async fn json_rpc_reasoning_effort_persists_and_rejects_unknown_levels() {
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+
+    write_min_config(&openhuman_home, "http://127.0.0.1:9");
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+
+    // The composer's default: an alias is stored as the canonical wire token
+    // and surfaces in the client config the UI loads.
+    let updated = post_json_rpc(
+        &rpc_base,
+        41_251,
+        "openhuman.config_update_runtime_settings",
+        json!({ "reasoning_effort": "max" }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&updated, "config_update_runtime_settings reasoning_effort");
+    let client = post_json_rpc(
+        &rpc_base,
+        41_252,
+        "openhuman.inference_get_client_config",
+        json!({}),
+    )
+    .await;
+    let client_config = peel_logs_envelope(assert_no_jsonrpc_error(
+        &client,
+        "inference_get_client_config",
+    ));
+    assert_eq!(
+        client_config
+            .get("reasoning_effort")
+            .and_then(Value::as_str),
+        Some("xhigh"),
+        "client config should report the saved thinking level: {client_config}"
+    );
+
+    let invalid_default = post_json_rpc(
+        &rpc_base,
+        41_253,
+        "openhuman.config_update_runtime_settings",
+        json!({ "reasoning_effort": "turbo" }),
+    )
+    .await;
+    assert_jsonrpc_error(&invalid_default, "unknown default reasoning_effort");
+
+    // A per-thread level that does not parse is rejected before any turn starts.
+    let invalid_turn = post_json_rpc(
+        &rpc_base,
+        41_254,
+        "openhuman.channel_web_chat",
+        json!({
+            "client_id": "reasoning-client",
+            "thread_id": "reasoning-thread",
+            "message": "hello",
+            "reasoning_effort": "turbo",
+        }),
+    )
+    .await;
+    let err = assert_jsonrpc_error(&invalid_turn, "unknown turn reasoning_effort");
+    assert!(
+        err.to_string().contains("reasoning_effort"),
+        "the rejection should name the bad param: {err}"
+    );
+
+    rpc_join.abort();
+}
+
+#[tokio::test]
 async fn json_rpc_tokenjuice_detect_and_cache_stats() {
     let _env_lock = json_rpc_e2e_env_lock();
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;

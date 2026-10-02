@@ -318,13 +318,13 @@ pub fn swap_deferred_for_discovery_bridge<'a>(
 pub enum ToolCallFormat {
     /// Compact positional legacy dialect.
     PFormat,
-    /// Legacy JSON-in-tag rendering with full schemas.
+    /// JSON-in-tag rendering with full schemas. The default.
+    #[default]
     Json,
     /// Provider supplies structured tool calls — catalogue is
     /// informational. Renders in the same JSON-schema form as `Json`.
     Native,
     /// Python `def` signatures; the model calls `name(arg="value")`.
-    #[default]
     Python,
     /// TypeScript `function` signatures; the model calls `name({arg: "value"})`.
     TypeScript,

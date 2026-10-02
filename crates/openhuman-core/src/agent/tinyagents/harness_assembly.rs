@@ -148,6 +148,9 @@ pub(super) fn assemble_turn_harness(
     // `None` for a caller with no thread identity (a sub-agent child, most
     // notably), which never runs in plan mode.
     run_mode: Option<RunModeHandle>,
+    // The turn's reasoning choice (`reasoning::turn_reasoning_for`), attached
+    // to every model request this harness builds.
+    reasoning: Option<tinyinference_llm::model::ReasoningConfig>,
 ) -> AssembledTurnHarness {
     let mut harness: AgentHarness<(), OpenHumanRunContext> = AgentHarness::new();
     // Cross-route fallback ownership (issue #4249, Workstream 02.2): populate the
@@ -166,6 +169,7 @@ pub(super) fn assemble_turn_harness(
     policy.discovery = super::discovery::discovery_policy();
 
     policy.tool_dialect = tool_dialect;
+    policy.default_reasoning = reasoning;
     // The session composes its prompt for this same dialect: `ToolsSection`
     // renders the protocol block and the catalogue of the visible tools into
     // the system prompt (inside the cacheable prefix, counted by

@@ -408,12 +408,30 @@ async fn apply_runtime_settings_updates_kind_and_reasoning() {
     let patch = RuntimeSettingsPatch {
         kind: Some("desktop".into()),
         reasoning_enabled: Some(true),
+        reasoning_effort: Some("max".into()),
     };
     let _ = apply_runtime_settings(&mut cfg, patch)
         .await
         .expect("apply");
     assert_eq!(cfg.runtime.kind, "desktop");
     assert_eq!(cfg.runtime.reasoning_enabled, Some(true));
+    // Aliases are stored as the canonical wire token.
+    assert_eq!(cfg.runtime.reasoning_effort.as_deref(), Some("xhigh"));
+
+    let cleared = RuntimeSettingsPatch {
+        reasoning_effort: Some(String::new()),
+        ..RuntimeSettingsPatch::default()
+    };
+    let _ = apply_runtime_settings(&mut cfg, cleared)
+        .await
+        .expect("apply clear");
+    assert_eq!(cfg.runtime.reasoning_effort, None);
+
+    let bogus = RuntimeSettingsPatch {
+        reasoning_effort: Some("turbo".into()),
+        ..RuntimeSettingsPatch::default()
+    };
+    assert!(apply_runtime_settings(&mut cfg, bogus).await.is_err());
 }
 
 #[tokio::test]

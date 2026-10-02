@@ -108,7 +108,10 @@ for (const file of allRustFiles(ROOT)) {
 
 for (const file of allRustFiles(CRATES_ROOT)) {
   const source = fs.readFileSync(file, "utf8");
-  if (["tests.rs", "test.rs"].includes(path.basename(file))) {
+  if (
+    ["tests.rs", "test.rs"].includes(path.basename(file)) ||
+    path.basename(file).endsWith("_test.rs")
+  ) {
     failures.push(
       `${file}: test modules must use a descriptive *_tests.rs filename`,
     );
