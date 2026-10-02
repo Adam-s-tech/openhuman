@@ -15,9 +15,6 @@ export const USD = new Intl.NumberFormat('en-US', {
 
 export const WEEK_MINUTES = 7 * 24 * 60;
 export const COMPOSIO_PERIODIC_TICK_MINUTES = 20;
-export const LEARNING_REBUILD_MINUTES = 30;
-export const MEMORY_WORKERS = 4;
-export const MEMORY_POLL_SECONDS = 5;
 
 export const formatUsd = (value: number): string => {
   const safe = Number.isFinite(value) ? value : 0;

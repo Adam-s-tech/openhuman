@@ -115,7 +115,6 @@ export interface ModelSettingsUpdate {
   vision_provider?: string | null;
   memory_provider?: string | null;
   embeddings_provider?: string | null;
-  learning_provider?: string | null;
 }
 
 export interface RuntimeSettingsUpdate {
@@ -160,7 +159,6 @@ export interface LocalAiSettingsUpdate {
   model_id?: string | null;
   chat_model_id?: string | null;
   usage_embeddings?: boolean | null;
-  usage_learning_reflection?: boolean | null;
 }
 
 export interface RuntimeFlags {
@@ -245,7 +243,6 @@ export interface ClientConfig {
   vision_provider: string | null;
   memory_provider: string | null;
   embeddings_provider: string | null;
-  learning_provider: string | null;
 }
 
 export async function openhumanGetClientConfig(): Promise<CommandResponse<ClientConfig>> {
