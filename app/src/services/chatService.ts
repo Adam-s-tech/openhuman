@@ -1613,6 +1613,12 @@ interface ChatSendParams {
    * (default) aborts the running turn.
    */
   queueMode?: QueueMode | null;
+  /**
+   * Thinking level for this thread: `none` | `low` | `medium` | `high` |
+   * `xhigh`, or `default` to hand the choice back to config/provider. Omitted
+   * leaves the thread's previous choice in place.
+   */
+  reasoningEffort?: string | null;
 }
 
 /**
@@ -1645,6 +1651,7 @@ export async function chatSend(params: ChatSendParams): Promise<string | undefin
       source: params.source ?? undefined,
       session_id: params.sessionId ?? undefined,
       queue_mode: params.queueMode ?? undefined,
+      reasoning_effort: params.reasoningEffort ?? undefined,
     },
   });
 

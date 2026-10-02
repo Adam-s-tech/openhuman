@@ -145,6 +145,8 @@ export interface MemorySettingsUpdate {
 export interface RuntimeSettingsUpdate {
   kind?: string | null;
   reasoning_enabled?: boolean | null;
+  /** Default thinking level for agent turns; `''` clears it to the provider default. */
+  reasoning_effort?: string | null;
 }
 
 export interface BrowserSettingsUpdate {
@@ -234,6 +236,12 @@ export interface ClientConfig {
    */
   inference_url: string | null;
   default_model: string | null;
+  /**
+   * The composer's thinking-level default (`runtime.reasoning_effort`):
+   * `none` | `minimal` | `low` | `medium` | `high` | `xhigh`, or null when the
+   * provider decides. Absent on cores that predate it.
+   */
+  reasoning_effort?: string | null;
   app_version: string;
   api_key_set: boolean;
   /** Legacy per-task-hint model overrides (deprecated; will be removed). */
