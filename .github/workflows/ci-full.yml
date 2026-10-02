@@ -132,28 +132,18 @@ jobs:
           # and leave a stale digest that only fails after the download. Both values
           # are the ubuntu-22.04-x86_64 row of `crates/openhuman-core/src/modules/registry.rs`,
           # which is the authoritative pin — copy them from there, never recompute.
-          memory_version="1.22.2"
-          memory_sha256="89f1da9f53e939263f3a7d9f4c6c19b52951bde308a9beb6efedc2b6c272163e"
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          memory_dir="$module_root/tinymemory"
           juice_dir="$module_root/tinyjuice"
           connectors_dir="$module_root/tinyconnectors"
           search_dir="$module_root/tinysearch"
-          memory_archive="$memory_dir/tinymemory-module-${memory_version}-ubuntu-22.04-x86_64.tar.gz"
           juice_archive="$juice_dir/tinyjuice-module-0.5.0-ubuntu-22.04-x86_64.tar.gz"
-          rm -rf "$memory_dir" "$juice_dir" "$connectors_dir"
-          mkdir -p "$memory_dir" "$juice_dir" "$connectors_dir" "$search_dir"
-          curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
-            "https://github.com/tinyhumansai/tinymemory/releases/download/v${memory_version}/$(basename "$memory_archive")" \
-            --output "$memory_archive"
+          rm -rf "$juice_dir" "$connectors_dir"
+          mkdir -p "$juice_dir" "$connectors_dir" "$search_dir"
           curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
             "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.5.0/$(basename "$juice_archive")" \
             --output "$juice_archive"
-          echo "${memory_sha256}  $memory_archive" \
-            | sha256sum --check
           echo "94c8998c830d9454560c00055187198a598eefaf5be51bcecdcd194a66f3b388  $juice_archive" \
             | sha256sum --check
-          tar --no-same-owner -xzf "$memory_archive" -C "$memory_dir"
           tar --no-same-owner -xzf "$juice_archive" -C "$juice_dir"
           bash scripts/ci-cancel-aware.sh cargo build --release \
             --manifest-path vendor/tinyconnectors/crates/tinyconnectors/Cargo.toml
@@ -163,8 +153,6 @@ jobs:
             --manifest-path vendor/tinysearch/crates/tinysearch/Cargo.toml
           cp vendor/tinysearch/target/release/libtinysearch.so \
             "$search_dir/libtinysearch.so"
-          echo "TINYMEMORY_TEST_MODULE=$memory_dir/libtinymemory_module.so" \
-            >> "$GITHUB_ENV"
           echo "TINYJUICE_TEST_MODULE=$juice_dir/libtinyjuice_module.so" \
             >> "$GITHUB_ENV"
           echo "TINYCONNECTORS_TEST_MODULE=$connectors_dir/libtinyconnectors.so" \
@@ -333,27 +321,18 @@ jobs:
           # tinybus validates every directory ancestor. GitHub mounts the
           # checkout as the host runner uid while this container runs as root,
           # so keep native fixtures in a root-owned, ephemeral tree.
-          memory_version="1.22.2"
-          memory_sha256="89f1da9f53e939263f3a7d9f4c6c19b52951bde308a9beb6efedc2b6c272163e"
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          memory_dir="$module_root/tinymemory"
           juice_dir="$module_root/tinyjuice"
           connectors_dir="$module_root/tinyconnectors"
           search_dir="$module_root/tinysearch"
-          memory_archive="$memory_dir/tinymemory-module-${memory_version}-ubuntu-22.04-x86_64.tar.gz"
           juice_archive="$juice_dir/tinyjuice-module-0.5.0-ubuntu-22.04-x86_64.tar.gz"
-          rm -rf "$memory_dir" "$juice_dir" "$connectors_dir"
-          mkdir -p "$memory_dir" "$juice_dir" "$connectors_dir" "$search_dir"
-          curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
-            "https://github.com/tinyhumansai/tinymemory/releases/download/v${memory_version}/$(basename "$memory_archive")" \
-            --output "$memory_archive"
+          rm -rf "$juice_dir" "$connectors_dir"
+          mkdir -p "$juice_dir" "$connectors_dir" "$search_dir"
           curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
             "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.5.0/$(basename "$juice_archive")" \
             --output "$juice_archive"
-          echo "${memory_sha256}  $memory_archive" | sha256sum --check
           echo "94c8998c830d9454560c00055187198a598eefaf5be51bcecdcd194a66f3b388  $juice_archive" \
             | sha256sum --check
-          tar --no-same-owner -xzf "$memory_archive" -C "$memory_dir"
           tar --no-same-owner -xzf "$juice_archive" -C "$juice_dir"
           bash scripts/ci-cancel-aware.sh cargo build --release \
             --manifest-path vendor/tinyconnectors/crates/tinyconnectors/Cargo.toml
@@ -363,7 +342,6 @@ jobs:
             --manifest-path vendor/tinysearch/crates/tinysearch/Cargo.toml
           cp vendor/tinysearch/target/release/libtinysearch.so \
             "$search_dir/libtinysearch.so"
-          echo "TINYMEMORY_TEST_MODULE=$memory_dir/libtinymemory_module.so" >> "$GITHUB_ENV"
           echo "TINYJUICE_TEST_MODULE=$juice_dir/libtinyjuice_module.so" >> "$GITHUB_ENV"
           echo "TINYCONNECTORS_TEST_MODULE=$connectors_dir/libtinyconnectors.so" >> "$GITHUB_ENV"
           echo "TINYSEARCH_TEST_MODULE=$search_dir/libtinysearch.so" >> "$GITHUB_ENV"
