@@ -5126,7 +5126,7 @@ const messages: TranslationMap = {
     'Das Gedächtnis synchronisiert sie sofort und danach im gewählten Rhythmus.',
   'memoryPage.documents.kindLabel': 'Typ',
   'memoryPage.documents.targetLabel': 'Speicherort',
-  'memoryPage.documents.labelLabel': 'Name (optional)',
+  'memoryPage.documents.labelLabel': 'Bezeichnung (optional)',
   'memoryPage.documents.scheduleLabel': 'Synchronisieren alle (Minuten, optional)',
   'memoryPage.documents.schedulePlaceholder': 'Standardintervall',
   'memoryPage.documents.scheduleHelp': 'Leer lassen, um das Standardintervall zu verwenden.',

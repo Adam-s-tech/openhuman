@@ -4963,7 +4963,7 @@ const messages: TranslationMap = {
   'memoryPage.engine.connectTitle': 'Hubungkan {engine}',
   'memoryPage.engine.connect': 'Hubungkan',
   'memoryPage.engine.endpoint': 'Endpoint',
-  'memoryPage.engine.apiKey': 'API key',
+  'memoryPage.engine.apiKey': 'Kunci API',
   'memoryPage.engine.keySavedPlaceholder': 'Tersimpan. Masukkan kunci baru untuk menggantinya',
   'memoryPage.engine.keySavedHint': 'Kunci sudah tersimpan. Biarkan kosong untuk tetap memakainya.',
   'memoryPage.ask.questionLabel': 'Pertanyaan Anda',
