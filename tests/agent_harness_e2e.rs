@@ -2059,7 +2059,7 @@ async fn multi_hop_delegation_chain_inner() {
     let _lock = env_lock();
     reset_script(vec![
         // request[0]: Orchestrator delegates to vision_agent via
-        // `analyze_image` (its delegate_name, memory/agent/agent/agent.toml:3).
+        // `analyze_image` (its delegate_name, agent/registry/agents/vision_agent/agent.toml:3).
         tool_call_completion(
             "analyze_image",
             json!({ "prompt": "deep question", "blocking": true }),
