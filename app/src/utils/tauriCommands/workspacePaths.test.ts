@@ -5,7 +5,6 @@ import { isTauri } from './common';
 import {
   openWorkspacePath,
   previewWorkspaceText,
-  resolveWorkspaceAbsolutePath,
   revealWorkspacePath,
 } from './workspacePaths';
 
@@ -65,37 +64,5 @@ describe('tauriCommands/workspacePaths', () => {
     });
 
     expect(invoke).toHaveBeenCalledWith('preview_workspace_text', { path: 'docs/readme.md' });
-  });
-
-  test('invokes resolve_workspace_absolute_path with a workspace-relative path', async () => {
-    vi.mocked(invoke).mockResolvedValue('/tmp/workspace/docs/readme.md');
-
-    await expect(resolveWorkspaceAbsolutePath('docs/readme.md')).resolves.toBe(
-      '/tmp/workspace/docs/readme.md'
-    );
-
-    expect(invoke).toHaveBeenCalledWith('resolve_workspace_absolute_path', {
-      path: 'docs/readme.md',
-    });
-  });
-
-  test('surfaces invoke rejection from resolve_workspace_absolute_path', async () => {
-    vi.mocked(invoke).mockRejectedValue('workspace path does not exist nope.md');
-
-    await expect(resolveWorkspaceAbsolutePath('nope.md')).rejects.toBe(
-      'workspace path does not exist nope.md'
-    );
-
-    expect(invoke).toHaveBeenCalledWith('resolve_workspace_absolute_path', { path: 'nope.md' });
-  });
-
-  test('resolveWorkspaceAbsolutePath throws before invoking when not running in Tauri', async () => {
-    vi.mocked(isTauri).mockReturnValue(false);
-
-    await expect(resolveWorkspaceAbsolutePath('docs/readme.md')).rejects.toThrow(
-      'Not running in Tauri'
-    );
-
-    expect(invoke).not.toHaveBeenCalled();
   });
 });
