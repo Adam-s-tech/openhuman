@@ -301,6 +301,31 @@ fn agent_tools_skip_registration_when_no_credentials_at_all() {
 }
 
 #[test]
+fn agent_tools_are_all_removed_when_composio_is_disabled_even_if_signed_in() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut config = crate::config::Config::default();
+    config.config_path = tmp.path().join("config.toml");
+    crate::security::credentials::AuthService::from_config(&config)
+        .store_provider_token(
+            crate::security::credentials::APP_SESSION_PROVIDER,
+            crate::security::credentials::DEFAULT_AUTH_PROFILE_NAME,
+            "test-token",
+            std::collections::HashMap::new(),
+            true,
+        )
+        .expect("store test session token");
+    config.composio.mode = "disabled".into();
+    let names: Vec<String> = all_composio_agent_tools(&config)
+        .iter()
+        .map(|t| t.name().to_string())
+        .collect();
+    assert!(
+        names.is_empty(),
+        "no composio tool (incl. composio_connect) may register: {names:?}"
+    );
+}
+
+#[test]
 fn agent_tools_register_when_backend_signed_in() {
     let tmp = tempfile::tempdir().unwrap();
     let mut config = crate::config::Config::default();
