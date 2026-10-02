@@ -282,7 +282,7 @@ fn knowledge_default_off_tools_retained_when_opted_in() {
     let mut tools = expansion_tools_for(&tmp);
     filter_tools_by_user_preference(
         &mut tools,
-        &["workflow_manage".to_string(), "learning_manage".to_string()],
+        &["workflow_manage".to_string()],
     );
     let names = tool_names(&tools);
     let off_tools = knowledge_default_off();
