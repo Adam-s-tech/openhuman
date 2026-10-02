@@ -42,7 +42,7 @@ fn sample_orchestrator() -> AgentDefinition {
     let mut orch = def("orchestrator", "Routes work to the right specialist", None);
     orch.subagents = vec![
         SubagentEntry::AgentId("researcher".into()),
-        SubagentEntry::AgentId("archivist".into()),
+        SubagentEntry::AgentId("critic".into()),
         SubagentEntry::Skills(SkillsWildcard { skills: "*".into() }),
     ];
     orch
@@ -55,11 +55,11 @@ fn registry_with_targets() -> AgentDefinitionRegistry {
         "Web & docs crawler — reads real documentation",
         Some("research"),
     ));
-    // `archivist` has no `delegate_name` override — tool name should
-    // fall back to `delegate_archivist`.
+    // `critic` has no `delegate_name` override — tool name should
+    // fall back to `delegate_critic`.
     reg.insert(def(
-        "archivist",
-        "Background librarian — extracts lessons from a completed session",
+        "critic",
+        "Adversarial reviewer — cross-checks claims and diffs",
         None,
     ));
     reg
@@ -129,7 +129,7 @@ fn collects_agentid_entries_and_expands_skills_wildcard_to_deferred_actions() {
             // when the registration in `collect_orchestrator_tools` is
             // restored.
             "research",           // researcher's delegate_name override
-            "delegate_archivist", // archivist has no delegate_name → default
+            "delegate_critic", // critic has no delegate_name → default
             // Actions sorted by toolkit, then action name.
             "GITHUB_CREATE_ISSUE",
             "GMAIL_FETCH_EMAILS",
@@ -206,7 +206,7 @@ fn skills_wildcard_with_no_integrations_produces_no_integration_tools() {
     let tools = collect_orchestrator_tools(&orch, &reg, &[]);
     let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
     // `spawn_worker_thread` is temporarily disabled — see #1624.
-    assert_eq!(names, vec!["research", "delegate_archivist"]);
+    assert_eq!(names, vec!["research", "delegate_critic"]);
 }
 
 /// An AgentId entry whose target carries a `delegate_name` override
