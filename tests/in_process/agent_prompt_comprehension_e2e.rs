@@ -958,7 +958,7 @@ fn max_consecutive_counts_the_longest_run() {
 #[test]
 fn orchestrator_prompt_names_only_discoverable_delegates() {
     run_on_agent_stack("orchestrator_discoverable_delegates", || async {
-        let _lock = env_lock();
+        let _lock = env_lock_async().await;
         reset_script(vec![text_completion("Hello.")]);
         let stack = boot_stack("").await;
         let client_id = "prompt-discoverable";
