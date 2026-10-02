@@ -4582,7 +4582,6 @@ const messages: TranslationMap = {
     'wnioskowanie {inference} + integracje {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} ostatnich wierszy wydatków',
   'settings.ai.perWeek': '{count}/tydzień',
-  'settings.ai.perWeekMax': '{count}/tydzień maks.',
   'settings.ai.perHour': '{amount}/godz.',
   'settings.ai.connectionSyncBreakdown': '{sync} synchronizacja połączeń',
   'settings.ai.rowsLeftFormula': 'pozostało / średni wiersz = {remaining} / {avgRow}',

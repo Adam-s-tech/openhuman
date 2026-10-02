@@ -4522,7 +4522,6 @@ const messages: TranslationMap = {
   'settings.ai.inferenceIntegrationsBreakdown': 'इंफ़रेंस {inference} + इंटीग्रेशन {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} हालिया खर्च पंक्तियाँ',
   'settings.ai.perWeek': '{count}/सप्ताह',
-  'settings.ai.perWeekMax': '{count}/सप्ताह अधिकतम',
   'settings.ai.perHour': '{amount}/घंटा',
   'settings.ai.connectionSyncBreakdown': '{sync} कनेक्शन सिंक',
   'settings.ai.rowsLeftFormula': 'शेष / औसत पंक्ति = {remaining} / {avgRow}',

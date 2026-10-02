@@ -4553,7 +4553,6 @@ const messages: TranslationMap = {
   'settings.ai.inferenceIntegrationsBreakdown': 'inferensi {inference} + integrasi {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} baris pengeluaran terbaru',
   'settings.ai.perWeek': '{count}/minggu',
-  'settings.ai.perWeekMax': '{count}/minggu maksimum',
   'settings.ai.perHour': '{amount}/jam',
   'settings.ai.connectionSyncBreakdown': '{sync} sinkronisasi koneksi',
   'settings.ai.rowsLeftFormula': 'sisa / rata-rata baris = {remaining} / {avgRow}',

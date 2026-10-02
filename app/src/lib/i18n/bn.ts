@@ -4524,7 +4524,6 @@ const messages: TranslationMap = {
     'ইনফারেন্স {inference} + ইন্টিগ্রেশন {integrations}',
   'settings.ai.recentSpendRowsCount': '{count}টি সাম্প্রতিক খরচের সারি',
   'settings.ai.perWeek': '{count}/সপ্তাহ',
-  'settings.ai.perWeekMax': '{count}/সপ্তাহ সর্বোচ্চ',
   'settings.ai.perHour': '{amount}/ঘণ্টা',
   'settings.ai.connectionSyncBreakdown': '{sync} সংযোগ সিঙ্ক',
   'settings.ai.rowsLeftFormula': 'অবশিষ্ট / গড় সারি = {remaining} / {avgRow}',

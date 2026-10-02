@@ -4272,7 +4272,6 @@ const messages: TranslationMap = {
   'settings.ai.inferenceIntegrationsBreakdown': '推理 {inference} + 集成 {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} 条最近的支出记录',
   'settings.ai.perWeek': '{count}/周',
-  'settings.ai.perWeekMax': '最多 {count}/周',
   'settings.ai.perHour': '{amount}/小时',
   'settings.ai.connectionSyncBreakdown': '连接同步 {sync}',
   'settings.ai.rowsLeftFormula': '剩余额度 / 平均单条 = {remaining} / {avgRow}',

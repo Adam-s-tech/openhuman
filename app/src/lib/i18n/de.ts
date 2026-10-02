@@ -4641,7 +4641,6 @@ const messages: TranslationMap = {
     'Inferenz {inference} + Integrationen {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} aktuelle Ausgabenzeilen',
   'settings.ai.perWeek': '{count}/Woche',
-  'settings.ai.perWeekMax': '{count}/Woche max.',
   'settings.ai.perHour': '{amount}/Std.',
   'settings.ai.connectionSyncBreakdown': '{sync} Verbindungssynchronisierung',
   'settings.ai.rowsLeftFormula': 'verbleibend / durchschnittliche Zeile = {remaining} / {avgRow}',

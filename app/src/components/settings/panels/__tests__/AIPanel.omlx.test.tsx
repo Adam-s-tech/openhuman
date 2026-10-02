@@ -90,7 +90,6 @@ const baseSettings = {
     vision: { kind: 'openhuman' as const },
     memory: { kind: 'openhuman' as const },
     embeddings: { kind: 'openhuman' as const },
-    learning: { kind: 'openhuman' as const },
   },
   modelRegistry: [],
 };

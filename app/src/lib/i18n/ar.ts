@@ -4439,7 +4439,6 @@ const messages: TranslationMap = {
   'settings.ai.inferenceIntegrationsBreakdown': 'الاستدلال {inference} + التكاملات {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} من صفوف الإنفاق الأخيرة',
   'settings.ai.perWeek': '{count}/أسبوعيًا',
-  'settings.ai.perWeekMax': '{count}/أسبوعيًا كحد أقصى',
   'settings.ai.perHour': '{amount}/ساعة',
   'settings.ai.connectionSyncBreakdown': 'مزامنة الاتصالات {sync}',
   'settings.ai.rowsLeftFormula': 'المتبقّي / متوسط الصف = {remaining} / {avgRow}',

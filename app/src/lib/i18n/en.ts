@@ -3848,7 +3848,6 @@ const en: TranslationMap = {
     'inference {inference} + integrations {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} recent spend rows',
   'settings.ai.perWeek': '{count}/week',
-  'settings.ai.perWeekMax': '{count}/week max',
   'settings.ai.perHour': '{amount}/hr',
   'settings.ai.connectionSyncBreakdown': '{sync} connection sync',
   'settings.ai.rowsLeftFormula': 'remaining / avg row = {remaining} / {avgRow}',

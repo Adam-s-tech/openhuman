@@ -4486,7 +4486,6 @@ const messages: TranslationMap = {
   'settings.ai.inferenceIntegrationsBreakdown': '추론 {inference} + 통합 {integrations}',
   'settings.ai.recentSpendRowsCount': '최근 지출 행 {count}개',
   'settings.ai.perWeek': '{count}/주',
-  'settings.ai.perWeekMax': '최대 {count}/주',
   'settings.ai.perHour': '{amount}/시간',
   'settings.ai.connectionSyncBreakdown': '연결 동기화 {sync}',
   'settings.ai.rowsLeftFormula': '남은 금액 / 평균 행 = {remaining} / {avgRow}',

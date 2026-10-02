@@ -4566,7 +4566,6 @@ const messages: TranslationMap = {
   'settings.ai.inferenceIntegrationsBreakdown': 'инференс {inference} + интеграции {integrations}',
   'settings.ai.recentSpendRowsCount': '{count} недавних строк расходов',
   'settings.ai.perWeek': '{count}/нед.',
-  'settings.ai.perWeekMax': '{count}/нед. макс.',
   'settings.ai.perHour': '{amount}/ч',
   'settings.ai.connectionSyncBreakdown': '{sync} синхронизация подключений',
   'settings.ai.rowsLeftFormula': 'остаток / средняя строка = {remaining} / {avgRow}',
