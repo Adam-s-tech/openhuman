@@ -256,7 +256,6 @@ pub enum DomainEvent {
     /// A memory recall query completed.
     MemoryRecalled { query: String, hit_count: usize },
 
-    // ── Memory Diff ─────────────────────────────────────────────────────
 
     // ── Channels ────────────────────────────────────────────────────────
     /// An inbound channel message from the transport layer, ready for processing.
@@ -924,7 +923,6 @@ pub enum DomainEvent {
         reason: String,
     },
 
-    // ── Tree Summarizer ──────────────────────────────────────────────────
 
 
     // ── Notification ────────────────────────────────────────────────────
@@ -964,9 +962,7 @@ pub enum DomainEvent {
         channel_id: String,
         payload_b64: String,
     },
-    // ── Memory tree ─────────────────────────────────────────────────────
 
-    // ── Learning ─────────────────────────────────────────────────────────
 
     // ── MCP Clients ─────────────────────────────────────────────────────
     /// A new MCP server was installed from the Smithery registry.
@@ -1346,20 +1342,7 @@ impl DomainEvent {
 
             Self::EmbeddingModelUnhealthy { .. }
             | Self::MemoryStored { .. }
-            | Self::MemoryRecalled { .. }
-            | Self::MemoryDriverBindFailed { .. }
-            | Self::MemoryDriverChanged { .. }
-            | Self::MemoryGuardDenied { .. }
-            | Self::MemorySyncRequested { .. }
-            | Self::MemorySyncStageChanged { .. }
-            | Self::MemoryIngestionStarted { .. }
-            | Self::MemoryIngestionCompleted { .. }
-            | Self::DocumentCanonicalized { .. }
-            | Self::MemoryDiffSnapshotTaken { .. }
-            | Self::MemoryDiffComputed { .. }
-            | Self::MemoryDiffMarkedRead { .. } => "memory",
-
-            Self::CacheRebuilt { .. } => "learning",
+            | Self::MemoryRecalled { .. } => "memory",
 
             Self::ChannelInboundMessage { .. }
             | Self::ChannelMessageReceived { .. }
@@ -1407,11 +1390,6 @@ impl DomainEvent {
             Self::TriggerEvaluated { .. }
             | Self::TriggerEscalated { .. }
             | Self::TriggerEscalationFailed { .. } => "triage",
-
-            Self::TreeSummarizerHourCompleted { .. }
-            | Self::TreeSummarizerPropagated { .. }
-            | Self::TreeSummarizerRebuildCompleted { .. }
-            | Self::MemoryTreeBuildProgress { .. } => "tree_summarizer",
 
             Self::NotificationIngested { .. } | Self::NotificationTriaged { .. } => "notification",
 
@@ -1500,18 +1478,6 @@ impl DomainEvent {
             Self::MonitorLine { .. } => "MonitorLine",
             Self::MemoryStored { .. } => "MemoryStored",
             Self::MemoryRecalled { .. } => "MemoryRecalled",
-            Self::MemoryDriverBindFailed { .. } => "MemoryDriverBindFailed",
-            Self::MemoryDriverChanged { .. } => "MemoryDriverChanged",
-            Self::MemoryGuardDenied { .. } => "MemoryGuardDenied",
-            Self::MemorySyncRequested { .. } => "MemorySyncRequested",
-            Self::MemorySyncStageChanged { .. } => "MemorySyncStageChanged",
-            Self::MemoryIngestionStarted { .. } => "MemoryIngestionStarted",
-            Self::MemoryIngestionCompleted { .. } => "MemoryIngestionCompleted",
-            Self::DocumentCanonicalized { .. } => "DocumentCanonicalized",
-            Self::MemoryDiffSnapshotTaken { .. } => "MemoryDiffSnapshotTaken",
-            Self::MemoryDiffComputed { .. } => "MemoryDiffComputed",
-            Self::MemoryDiffMarkedRead { .. } => "MemoryDiffMarkedRead",
-            Self::CacheRebuilt { .. } => "CacheRebuilt",
             Self::ChannelInboundMessage { .. } => "ChannelInboundMessage",
             Self::ChannelMessageReceived { .. } => "ChannelMessageReceived",
             Self::ChannelMessageProcessed { .. } => "ChannelMessageProcessed",
@@ -1552,10 +1518,6 @@ impl DomainEvent {
             Self::TriggerEvaluated { .. } => "TriggerEvaluated",
             Self::TriggerEscalated { .. } => "TriggerEscalated",
             Self::TriggerEscalationFailed { .. } => "TriggerEscalationFailed",
-            Self::TreeSummarizerHourCompleted { .. } => "TreeSummarizerHourCompleted",
-            Self::TreeSummarizerPropagated { .. } => "TreeSummarizerPropagated",
-            Self::TreeSummarizerRebuildCompleted { .. } => "TreeSummarizerRebuildCompleted",
-            Self::MemoryTreeBuildProgress { .. } => "MemoryTreeBuildProgress",
             Self::NotificationIngested { .. } => "NotificationIngested",
             Self::NotificationTriaged { .. } => "NotificationTriaged",
             Self::DevicePaired { .. } => "DevicePaired",
