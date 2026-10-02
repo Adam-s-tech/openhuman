@@ -103,7 +103,7 @@ impl ConversationPersistenceSubscriber {
 #[async_trait]
 impl EventHandler<DomainEvent> for ConversationPersistenceSubscriber {
     fn name(&self) -> &str {
-        "memory::conversations::persistence"
+        "threads::store::persistence"
     }
 
     fn domains(&self) -> Option<&[&str]> {

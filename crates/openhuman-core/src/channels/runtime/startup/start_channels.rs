@@ -63,7 +63,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     let bus = crate::core::bus::BUS.get().expect("bus initialised");
     let _tracing_handle = bus.subscribe(Arc::new(crate::core::bus::TracingSubscriber));
     crate::platform::health::bus::register_health_subscriber();
-    crate::memory::conversations::register_conversation_persistence_subscriber(
+    crate::threads::store::register_conversation_persistence_subscriber(
         config.workspace_dir.clone(),
     );
     crate::memory::sync_events_bridge::register_sync_stage_bridge(&config);

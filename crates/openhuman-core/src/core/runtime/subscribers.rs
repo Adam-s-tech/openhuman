@@ -443,7 +443,7 @@ pub(super) fn register_domain_subscribers(
     // Memory: conversation-persistence + sync-stage bridge.
     if plan.memory {
         if group_first_time(DomainGroup::Memory) {
-            crate::memory::conversations::register_conversation_persistence_subscriber(
+            crate::threads::store::register_conversation_persistence_subscriber(
                 workspace_dir.clone(),
             );
             crate::memory::sync_events_bridge::register_sync_stage_bridge(&config);

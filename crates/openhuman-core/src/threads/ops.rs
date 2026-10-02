@@ -35,7 +35,7 @@ pub use usage::{token_usage, SubagentUsageDto, ThreadTokenUsageRequest, ThreadTo
 // Test-only re-exports so `use super::*;` in the split-out test modules below
 // keeps resolving the shared helpers that now live in `support`.
 #[cfg(test)]
-use crate::memory::conversations::{
+use crate::threads::store::{
     ConversationMessage, ConversationThread, CreateConversationThread,
 };
 #[cfg(test)]

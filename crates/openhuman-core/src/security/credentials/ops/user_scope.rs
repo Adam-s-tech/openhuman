@@ -11,7 +11,7 @@ use crate::config::{
     default_root_openhuman_dir, pre_login_user_dir, read_active_user_id, user_openhuman_dir,
     write_active_user_id, Config,
 };
-use crate::memory::conversations;
+use crate::threads::store;
 
 use super::gated_services::is_embedder_host;
 
@@ -68,7 +68,7 @@ pub(super) fn activate_user_scope(user_id: &str) -> Result<Vec<String>, String> 
     tracing::info!(user_id = %user_id, user_dir = %user_dir.display(), "{LOG_PREFIX} user-scoped directory activated");
 
     if previous_active.is_none() {
-        // Shares `memory::conversations`' process-wide mutex with
+        // Shares `threads::store`' process-wide mutex with
         // `list_threads` / `purge_threads` on any workspace, so purge and
         // concurrent thread RPC in this process cannot interleave.
         let pre_ws = pre_login_user_dir(&root_dir).join("workspace");

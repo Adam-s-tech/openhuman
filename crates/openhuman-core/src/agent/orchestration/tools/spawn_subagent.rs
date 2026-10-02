@@ -17,7 +17,7 @@ use crate::agent::progress::AgentProgress;
 use crate::agent::subagent_host::{
     run_subagent_with_parent, SubagentRunOptions, SubagentRunOutcome, SubagentRunStatus,
 };
-use crate::memory::conversations::{
+use crate::threads::store::{
     self as conversations, ConversationMessage, CreateConversationThread,
 };
 use async_trait::async_trait;

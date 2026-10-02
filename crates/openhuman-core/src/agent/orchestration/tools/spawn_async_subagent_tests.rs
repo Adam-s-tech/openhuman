@@ -291,7 +291,7 @@ fn extract_workflow_proposal_ignores_non_proposal_history() {
 
 #[test]
 fn attach_workflow_proposal_persists_thread_message_and_extends_summary() {
-    use crate::memory::conversations::CreateConversationThread;
+    use crate::threads::store::CreateConversationThread;
     let temp = tempfile::tempdir().expect("tempdir");
     conversations::ensure_thread(
         temp.path().to_path_buf(),

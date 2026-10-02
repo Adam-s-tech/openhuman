@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 use serde_json::json;
 
-use crate::memory::conversations::{
+use crate::threads::store::{
     self as conversations, ConversationMessage, CreateConversationThread,
 };
 

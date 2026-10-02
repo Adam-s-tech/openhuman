@@ -6,8 +6,8 @@ use super::support::{
     workspace_dir,
 };
 use crate::core::Outcome;
-use crate::memory::conversations;
-use crate::memory::conversations::{ConversationMessagePatch, CrossThreadHit};
+use crate::threads::store;
+use crate::threads::store::{ConversationMessagePatch, CrossThreadHit};
 use crate::memory::{
     ApiEnvelope, AppendConversationMessageRequest, ConversationMessageRecord,
     ConversationMessagesRequest, ConversationMessagesResponse, ConversationThreadSummary,

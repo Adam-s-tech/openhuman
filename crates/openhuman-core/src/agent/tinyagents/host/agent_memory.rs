@@ -499,7 +499,7 @@ impl AgentMemory for OpenHumanAgentMemory {
     /// "no summary" rather than concatenating recall output.
     ///
     // TODO(phase4): if a real per-thread rollup lands (the natural home is a
-    // summary column on `crate::memory::conversations::ConversationThread`,
+    // summary column on `crate::threads::store::ConversationThread`,
     // or a thread-scoped digest in `memory_tree::summarise`), return it here.
     async fn thread_summary(&self, _thread: &ThreadId) -> TaResult<Option<String>> {
         Ok(None)

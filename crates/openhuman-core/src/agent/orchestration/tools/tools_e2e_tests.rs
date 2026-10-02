@@ -2,7 +2,7 @@ use super::{ArchetypeDelegationTool, DelegationTarget, SpawnSubagentTool, SpawnW
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::{with_parent_context, ParentExecutionContext};
 use crate::agent::prompts::{ConnectedIntegration, ToolCallFormat};
-use crate::memory::conversations;
+use crate::threads::store;
 use crate::memory::test_support::NoopMemory;
 use async_trait::async_trait;
 use parking_lot::Mutex;

@@ -1,7 +1,7 @@
 use super::*;
 use crate::agent::harness::fork_context::with_parent_context;
 use crate::agent::harness::ParentExecutionContext;
-use crate::memory::conversations::CreateConversationThread;
+use crate::threads::store::CreateConversationThread;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::TempDir;
