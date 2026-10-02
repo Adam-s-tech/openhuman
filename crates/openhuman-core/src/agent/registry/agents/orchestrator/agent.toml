@@ -253,8 +253,7 @@ named = [
     # `manage_profile_memory` (profile_memory_agent) below. These are memory-store
     # writes, NOT file/shell mutation — the "no write tools" rule (below) is about
     # editing files and running commands, which stays out.
-    "memory_recall",
-    "memory_store",
+    "memory",
     "save_preference",
     # The long-term goals store (goals doc over the memory binding). The
     # RPC/tab surface always had these; the agent could not answer "list my

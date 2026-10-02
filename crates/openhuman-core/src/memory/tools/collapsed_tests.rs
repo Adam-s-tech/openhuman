@@ -84,13 +84,13 @@ fn an_unknown_action_falls_back_to_the_strictest_level() {
 #[tokio::test]
 async fn an_unknown_action_is_an_error_result_naming_the_valid_ones() {
     let result = tool()
-        .execute(serde_json::json!({"action": "recal"}))
+        .execute(serde_json::json!({"action": "recal", "text": "x"}))
         .await
         .expect("dispatch does not fail the call");
     assert!(result.is_error);
     let text = format!("{result:?}");
     assert!(text.contains("recal"));
-    assert!(text.contains("recall|store|forget"));
+    assert!(text.contains("ask|keyword_search|learn"));
 }
 
 #[test]
@@ -104,4 +104,27 @@ fn the_memory_tree_tool_is_not_a_member() {
             .any(|e| e.tool.name() == "memory_tree"),
         "memory_tree stays a separate tool"
     );
+}
+
+#[test]
+fn each_action_maps_text_onto_its_members_arguments() {
+    let ask = member_args(ACTION_ASK, &serde_json::json!({"text": " who is Ana? "})).unwrap();
+    assert_eq!(ask["query"], "who is Ana?");
+    assert!(ask["namespace"].is_string(), "hybrid search needs a namespace");
+
+    let keywords = member_args(ACTION_KEYWORD_SEARCH, &serde_json::json!({"text": "ana", "limit": 3}))
+        .unwrap();
+    assert_eq!(keywords["query"], "ana");
+    assert_eq!(keywords["limit"], 3);
+
+    let learn = member_args(ACTION_LEARN, &serde_json::json!({"text": "Ana prefers email", "limit": 9}))
+        .unwrap();
+    assert_eq!(learn["content"], "Ana prefers email");
+    assert!(learn.get("limit").is_none(), "a write takes no limit");
+}
+
+#[test]
+fn empty_text_is_refused() {
+    assert!(member_args(ACTION_ASK, &serde_json::json!({"text": "  "})).is_err());
+    assert!(member_args(ACTION_LEARN, &serde_json::json!({})).is_err());
 }
