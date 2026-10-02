@@ -6,7 +6,10 @@
 // extracted library, which is what `modules::ops::set_bundled_releases_dir`
 // (or `OPENHUMAN_BUNDLED_MODULES`) points at.
 //
-// Usage: node scripts/release/stage-modules.mjs [--host-key KEY] [--output DIR]
+// Usage: node scripts/release/stage-modules.mjs [--target TRIPLE | --host-key KEY] [--output DIR]
+//
+// `--target` takes the Rust target triple being built, so a cross-built app
+// (x86_64 macOS on an arm64 runner) gets modules for the target, not the runner.
 //
 // One key per OS/arch is staged: the oldest published build, because tinybus
 // tries every candidate for the host in order and skips any that is not
@@ -48,6 +51,19 @@ export function defaultHostKey(platform = process.platform, arch = process.arch)
     default:
       throw new Error(`no bundled modules for platform ${platform}`);
   }
+}
+
+/** The registry host key to bundle for a Rust target triple. */
+export function hostKeyForTarget(triple) {
+  const arch = triple.split("-")[0];
+  const archKey = { x86_64: "x86_64", aarch64: "arm64" }[arch];
+  if (!archKey) throw new Error(`no bundled modules for target ${triple}`);
+  if (triple.includes("apple-darwin")) return `macos-15-${archKey}`;
+  if (triple.includes("linux")) return `ubuntu-22.04-${archKey}`;
+  if (triple.includes("windows")) {
+    return archKey === "arm64" ? "windows-11-arm64" : "windows-2022-x86_64";
+  }
+  throw new Error(`no bundled modules for target ${triple}`);
 }
 
 export function bundledAssets(source, hostKey) {
@@ -123,12 +139,28 @@ export function extractArchive(archive, dir) {
   execFileSync("tar", ["-xzf", archive, "-C", dir], { stdio: "pipe" });
 }
 
-async function download(url, destination) {
+const DOWNLOAD_TIMEOUT_MS = 120_000;
+
+/**
+ * Fetch `url` to `destination` byte-for-byte. Identity encoding is requested
+ * and anything else is refused: `fetch` would transparently decode a
+ * `Content-Encoding: gzip` body, and the registry pin covers the archive's
+ * own bytes. Each attempt has a deadline that also covers the body.
+ */
+export async function download(url, destination, timeoutMs = DOWNLOAD_TIMEOUT_MS) {
   let lastError;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      const response = await fetch(url, { redirect: "follow" });
+      const response = await fetch(url, {
+        redirect: "follow",
+        headers: { "accept-encoding": "identity" },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const encoding = response.headers.get("content-encoding");
+      if (encoding && encoding.toLowerCase() !== "identity") {
+        throw new Error(`unexpected Content-Encoding ${encoding}`);
+      }
       writeFileSync(destination, Buffer.from(await response.arrayBuffer()));
       return;
     } catch (error) {
@@ -168,8 +200,9 @@ function option(name) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const target = option("--target");
   await stageModules({
-    hostKey: option("--host-key") ?? defaultHostKey(),
+    hostKey: option("--host-key") ?? (target ? hostKeyForTarget(target) : defaultHostKey()),
     output: option("--output") ? resolve(option("--output")) : OUTPUT,
   });
 }

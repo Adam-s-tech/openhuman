@@ -383,3 +383,18 @@ fn bundled_dir_ignores_paths_that_do_not_exist() {
     );
     assert_eq!(ops::resolve_bundled_dir(None, None, Some(root.path().into())), None);
 }
+
+#[test]
+fn bundled_dir_skips_a_missing_candidate_for_a_valid_later_one() {
+    let root = tempfile::tempdir().unwrap();
+    let exe_dir = root.path().join("bin");
+    std::fs::create_dir_all(exe_dir.join("bundled-modules")).unwrap();
+    assert_eq!(
+        ops::resolve_bundled_dir(
+            Some(root.path().join("stale")),
+            Some(root.path().join("typo")),
+            Some(exe_dir.clone())
+        ),
+        Some(exe_dir.join("bundled-modules"))
+    );
+}

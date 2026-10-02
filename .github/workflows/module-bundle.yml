@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/build-desktop.yml"
-      - ".github/workflows/windows-module-bundle.yml"
+      - ".github/workflows/module-bundle.yml"
       - "crates/openhuman-app/tauri.conf.json"
       - "crates/openhuman-core/src/modules/**"
       - "scripts/ci/self-hosted/test-module-assets.mjs"
@@ -21,7 +21,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-22.04, macos-latest]
+        include:
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+          - { os: windows-latest, target: aarch64-pc-windows-msvc }
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-22.04, target: aarch64-unknown-linux-gnu }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: macos-latest, target: x86_64-apple-darwin }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -32,4 +38,4 @@ jobs:
       - name: Check registry coverage
         run: node --test scripts/__tests__/stage-modules.test.mjs
       - name: Download and verify every bundled release
-        run: node scripts/release/stage-modules.mjs
+        run: node scripts/release/stage-modules.mjs --target ${{ matrix.target }}

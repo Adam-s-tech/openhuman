@@ -28,9 +28,9 @@ cp "$CORE_BIN_PATH" "$WORK/openhuman-core"
 cp "$TUI_BIN_PATH" "$WORK/openhuman-tui"
 chmod +x "$WORK/openhuman-core" "$WORK/openhuman-tui"
 # Pinned native modules, staged at build time and found by the core beside its
-# binary; the target's host key comes from the runner, so build natively.
+# binary; the host key follows the tarball's target triple.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-node "$REPO_ROOT/scripts/release/stage-modules.mjs" --output "$WORK/bundled-modules"
+node "$REPO_ROOT/scripts/release/stage-modules.mjs" --target "$TARGET" --output "$WORK/bundled-modules"
 tar -czf "$TARBALL" -C "$WORK" openhuman-core openhuman-tui bundled-modules
 
 # openssl dgst works on both macOS and Linux

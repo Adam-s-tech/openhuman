@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "node:http";
+import { gzipSync } from "node:zlib";
 import { test } from "node:test";
 
 import { readRegistrySource } from "../ci/self-hosted/test-module-assets.mjs";
@@ -9,6 +11,8 @@ import { parseAllList } from "../lib/module-pins.mjs";
 import {
   bundledAssets,
   defaultHostKey,
+  download,
+  hostKeyForTarget,
   extractWindowsZip,
 } from "../release/stage-modules.mjs";
 
@@ -90,4 +94,56 @@ test("Windows extraction rejects an archive entry escaping its destination", {
     (error) => /outside/i.test(error.stderr?.toString() ?? ""),
   );
   assert.throws(() => readFileSync(join(root, "escape.txt")), { code: "ENOENT" });
+});
+
+test("host keys follow the Rust target triple, not the runner", () => {
+  assert.equal(hostKeyForTarget("aarch64-apple-darwin"), "macos-15-arm64");
+  assert.equal(hostKeyForTarget("x86_64-apple-darwin"), "macos-15-x86_64");
+  assert.equal(hostKeyForTarget("x86_64-unknown-linux-gnu"), "ubuntu-22.04-x86_64");
+  assert.equal(hostKeyForTarget("aarch64-unknown-linux-gnu"), "ubuntu-22.04-arm64");
+  assert.equal(hostKeyForTarget("x86_64-pc-windows-msvc"), "windows-2022-x86_64");
+  assert.equal(hostKeyForTarget("aarch64-pc-windows-msvc"), "windows-11-arm64");
+  assert.throws(() => hostKeyForTarget("wasm32-unknown-unknown"), /no bundled modules/);
+});
+
+async function withServer(handler, run) {
+  const server = createServer(handler);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    await run(`http://127.0.0.1:${server.address().port}/a`);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test("download keeps the archive bytes and refuses a content-encoded body", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "openhuman-download-"));
+  const out = join(dir, "a.bin");
+  const raw = Buffer.from("raw archive bytes");
+  await withServer((req, res) => res.end(raw), async (url) => {
+    await download(url, out, 5000);
+    assert.deepEqual(readFileSync(out), raw);
+  });
+  await withServer(
+    (req, res) => {
+      res.setHeader("content-encoding", "gzip");
+      res.end(gzipSync(raw));
+    },
+    async (url) => {
+      await assert.rejects(download(url, out, 5000), /Content-Encoding gzip/);
+    },
+  );
+});
+
+test("a stalled download times out instead of hanging", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "openhuman-download-"));
+  await withServer(
+    (req, res) => {
+      res.write("partial");
+    },
+    async (url) => {
+      await assert.rejects(download(url, join(dir, "a.bin"), 200), /download of/);
+    },
+  );
 });
