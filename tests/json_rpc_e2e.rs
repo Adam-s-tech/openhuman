@@ -1627,13 +1627,13 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         .get("definitions")
         .and_then(Value::as_array)
         .expect("agent_list_definitions should return definitions array");
-    // The v1 `critic` built-in was removed with the v1 memory system
+    // The v1 `agent_memory` built-in was removed with the v1 memory system
     // (Memory v2 is one `memory` tool, not a sub-agent); `critic` is the
     // stand-in safe-library entry.
     assert!(
         !definitions
             .iter()
-            .any(|definition| definition.get("id").and_then(Value::as_str) == Some("critic")),
+            .any(|definition| definition.get("id").and_then(Value::as_str) == Some("agent_memory")),
         "the v1 memory agent must stay removed"
     );
     let memory_agent = definitions
