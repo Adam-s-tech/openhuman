@@ -98,11 +98,6 @@ enabled = false
 [runtime_python]
 enabled = false
 
-[memory]
-provider = "none"
-embedding_provider = "none"
-embedding_model = "none"
-embedding_dimensions = 0
 
 "#;
 
