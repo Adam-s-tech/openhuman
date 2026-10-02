@@ -209,6 +209,13 @@ test("CI Full refreshes the E2E marker after restoring its content-keyed artifac
   assert.ok(restoreStep, "CI Full must keep a Playwright artifact restore step");
   assert.match(restoreStep, /cp -a repo\/app\/dist-web app\//);
   assert.match(restoreStep, /touch app\/dist-web\/openhuman-e2e-bundle\.marker/);
+
+  const cacheStep = workflow.match(
+    /- name: Restore cached Playwright E2E artifact([\s\S]*?)(?=\n      - name: |\n    [a-zA-Z_-]+:|$)/,
+  )?.[1];
+  assert.ok(cacheStep, "CI Full must keep a Playwright artifact cache step");
+  assert.match(cacheStep, /app\/tsconfig\*\.json/);
+  assert.match(cacheStep, /packages\/\*\*/);
 });
 
 test("e2e-web-build.sh marks the bundle it builds, recording the E2E settings", () => {
