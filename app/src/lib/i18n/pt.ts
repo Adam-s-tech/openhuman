@@ -7303,6 +7303,24 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'Homologação',
   'settings.agentAccess.group.fileSystem': 'Sistema de ficheiros',
   'settings.agentAccess.group.limits': 'Limites',
+  'settings.agentAccess.toolFormat.label':
+    'Formato de chamadas de ferramentas',
+  'settings.agentAccess.toolFormat.desc':
+    'Como o agente escreve as chamadas de ferramentas para o modelo. JSON é o mais confiável entre modelos; formatos em estilo de código são experimentais e alguns modelos podem interpretá-los mal. Aplica-se a novas conversas.',
+  'settings.agentAccess.toolFormat.option.auto':
+    'JSON (recomendado)',
+  'settings.agentAccess.toolFormat.option.native':
+    'JSON nativo (chamadas estruturadas do provedor)',
+  'settings.agentAccess.toolFormat.option.xml':
+    'JSON em tags',
+  'settings.agentAccess.toolFormat.option.pformat':
+    'P-Format (experimental)',
+  'settings.agentAccess.toolFormat.option.python':
+    'Python (experimental)',
+  'settings.agentAccess.toolFormat.option.typescript':
+    'TypeScript (experimental)',
+  'settings.agentAccess.toolFormat.envOverride':
+    'A variável de ambiente OPENHUMAN_TOOL_DISPATCHER está substituindo esta configuração, então as alterações aqui não têm efeito enquanto ela estiver definida.',
   'settings.sandbox.backendName.docker': 'Docker',
   'settings.sandbox.backendName.landlock': 'Landlock',
   'settings.sandbox.backendName.firejail': 'Firejail',
