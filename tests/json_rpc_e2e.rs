@@ -42,7 +42,7 @@ static JSON_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
 /// Serializes tests in this binary: `HOME` / `OPENHUMAN_WORKSPACE` / backend URL overrides are
 /// process-global, so parallel tests would clobber each other and hit the wrong `config.toml` or
 /// inherited `VITE_BACKEND_URL`.
-static JSON_RPC_E2E_ENV_LOCK: OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = OnceLock::new();
+static JSON_RPC_E2E_ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 static JSON_RPC_E2E_KEYRING_INIT: OnceLock<()> = OnceLock::new();
 static JSON_RPC_E2E_MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static CHAT_COMPLETION_MODELS: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
