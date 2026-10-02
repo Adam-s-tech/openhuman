@@ -330,7 +330,7 @@ impl OpenHumanDefinitionRegistry {
                     names.extend(delegation_tools.iter().cloned());
                 }
                 // A curated belt still has to reach the tools a compacted
-                // result names (`tinyjuice_retrieve`, `juice_find`, …). The
+                // result names (`juice_retrieve`, `juice_find`, …). The
                 // session adds them to its visible set; without the same
                 // names here the harness allowlist rejects every call to them
                 // as an unknown tool. A zero-tool belt stays zero-tool.

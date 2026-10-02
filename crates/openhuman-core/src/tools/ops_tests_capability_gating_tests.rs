@@ -213,7 +213,7 @@ fn default_tools_omits_flows_tools_when_feature_off() {
 ///
 /// This is the guard that would have caught the #4808 leak by construction, and
 /// it caught a live one on the way in: the `Inference` rule matched
-/// `tokenjuice_` while the real tool is `tinyjuice_retrieve`, so CCR retrieval
+/// `tokenjuice_` while the real tool is `juice_retrieve`, so CCR retrieval
 /// was falling through to `Platform`.
 ///
 /// The failure it prevents is silent. A family whose tools have no `tool_group`
