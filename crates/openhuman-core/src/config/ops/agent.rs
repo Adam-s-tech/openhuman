@@ -8,9 +8,7 @@ use crate::config::Config;
 use crate::core::Outcome;
 
 use super::loader::{load_config_with_timeout, snapshot_config_json};
-use super::tool_dispatcher::{
-    apply_tool_dispatcher, normalize_optional, tool_dispatcher_env_override,
-};
+use super::tool_dispatcher as td;
 
 /// Partial update for the `[autonomy]` block — the agent's filesystem access
 /// mode. Each `None` field is left unchanged. `trusted_roots`, `allowed_commands`,
@@ -60,8 +58,7 @@ pub struct AgentSettingsPatch {
     pub chat_agent_id: Option<String>,
     /// How tool calls are spoken to the model (`[agent] tool_dispatcher`):
     /// one of [`TOOL_DISPATCHER_CHOICES`](super::tool_dispatcher::TOOL_DISPATCHER_CHOICES). `None` leaves it
-    /// unchanged. Takes effect for new sessions; a resumed thread keeps the
-    /// dialect its prompt was frozen with.
+    /// unchanged. Applies to new sessions; resumed threads keep their dialect.
     pub tool_dispatcher: Option<String>,
 }
 
@@ -243,13 +240,13 @@ pub async fn apply_agent_settings(
         }
     }
 
-    let tool_dispatcher = normalize_optional(update.tool_dispatcher.as_deref())?;
+    let tool_dispatcher = td::normalize_optional(update.tool_dispatcher.as_deref())?;
 
     if let Some(timeout_secs) = update.agent_timeout_secs {
         config.agent.agent_timeout_secs = timeout_secs;
     }
 
-    apply_tool_dispatcher(config, tool_dispatcher);
+    td::apply_tool_dispatcher(config, tool_dispatcher);
 
     if let Some(chat_agent_id) = update.chat_agent_id {
         let trimmed = chat_agent_id.trim();
@@ -300,7 +297,7 @@ pub async fn get_agent_settings() -> Result<Outcome<serde_json::Value>, String> 
         "min_timeout_secs": crate::tools::timeout::MIN_TIMEOUT_SECS,
         "max_timeout_secs": crate::tools::timeout::MAX_TIMEOUT_SECS,
         "tool_dispatcher": config.agent.tool_dispatcher,
-        "tool_dispatcher_env_override": tool_dispatcher_env_override(),
+        "tool_dispatcher_env_override": td::tool_dispatcher_env_override(),
     });
     Ok(Outcome::single_log(value, "agent settings read"))
 }
