@@ -42,14 +42,51 @@ use tinybus::module::platform::host_candidates;
 use tinybus::module::resolution::{self, Claim, Resolution, ResolutionState, Waited};
 use tinybus::module::{load_first_admitted, prune_stale_versions, ReleaseAsset, ReleasePlan};
 
+/// Environment variable naming a directory of bundled release archives, for
+/// headless hosts (the Docker image, the CLI tarball, bench bundles).
+pub const BUNDLED_MODULES_ENV: &str = "OPENHUMAN_BUNDLED_MODULES";
+
+/// Directory name searched beside the executable when nothing else is set.
+const BUNDLED_MODULES_DIR: &str = "bundled-modules";
+
 /// Installer-owned, read-only release cache. The desktop host sets this before
-/// starting the embedded core; other hosts continue using the user cache.
+/// starting the embedded core; headless hosts name it with
+/// [`BUNDLED_MODULES_ENV`] or ship it beside the binary.
 static BUNDLED_RELEASES: OnceLock<PathBuf> = OnceLock::new();
 
 /// Register the directory of release archives shipped with the desktop app.
 /// Its contents still pass the compiled digest and TinyBus admission gates.
 pub fn set_bundled_releases_dir(path: PathBuf) -> Result<(), PathBuf> {
     BUNDLED_RELEASES.set(path)
+}
+
+/// The bundled release directory: the one the host registered, else
+/// [`BUNDLED_MODULES_ENV`], else `bundled-modules/` beside the executable.
+/// Only an existing directory counts; nothing here creates one.
+fn bundled_releases_dir() -> Option<PathBuf> {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(Path::to_path_buf));
+    resolve_bundled_dir(
+        BUNDLED_RELEASES.get().cloned(),
+        std::env::var_os(BUNDLED_MODULES_ENV).map(PathBuf::from),
+        exe_dir,
+    )
+}
+
+fn resolve_bundled_dir(
+    registered: Option<PathBuf>,
+    from_env: Option<PathBuf>,
+    exe_dir: Option<PathBuf>,
+) -> Option<PathBuf> {
+    let found = registered
+        .or(from_env)
+        .or_else(|| exe_dir.map(|dir| dir.join(BUNDLED_MODULES_DIR)))
+        .filter(|dir| dir.is_dir());
+    if let Some(dir) = &found {
+        log::debug!("[modules] bundled release directory: {}", dir.display());
+    }
+    found
 }
 
 /// Why a bounded [`ensure_loaded_within`] did not end with the module serving.
@@ -239,6 +276,7 @@ async fn resolve(config: &Config, record: &'static ModuleRecord) -> Result<(), S
     let allow_download = config.modules.allow_download;
     let module_config = module_config(config, record.id);
     let cache_root = root.clone();
+    let bundled = bundled_releases_dir();
     let outcome = blocking(move || {
         load_cached(
             runtime,
@@ -246,7 +284,7 @@ async fn resolve(config: &Config, record: &'static ModuleRecord) -> Result<(), S
             &cache_root,
             module_config,
             allow_download,
-            BUNDLED_RELEASES.get().map(PathBuf::as_path),
+            bundled.as_deref(),
         )
     })
     .await;
