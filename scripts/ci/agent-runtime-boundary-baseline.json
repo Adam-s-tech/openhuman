@@ -37,7 +37,7 @@
   {
     "rule": "openhuman-runtime-bridge",
     "path": "crates/openhuman-core/src/agent/tinyagents/mod.rs",
-    "line": 83,
+    "line": 84,
     "text": "pub(crate) use turn_runner::{run_root_turn_via_hosted_agent, run_turn_via_tinyagents_shared};",
     "occurrence": 1
   },
@@ -422,21 +422,21 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 255,
+    "line": 256,
     "text": "if self.auto_save && crate::agent::turn_origin::current_is_user_authored() {",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 858,
+    "line": 859,
     "text": "workspace_descriptor: crate::agent::harness::current_parent()",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 1328,
+    "line": 1329,
     "text": "request_id: crate::agent::turn_origin::current_request_id(),",
     "occurrence": 1
   },
@@ -1359,7 +1359,7 @@
   },
   {
     "rule": "tinyagents-tool-calling-facade",
-    "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect/test.rs",
+    "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect/dialect_tests.rs",
     "line": 64,
     "text": "use tinytools_agent::dialect::CodeStyle;",
     "occurrence": 1
@@ -1387,8 +1387,8 @@
   },
   {
     "rule": "tinyagents-tool-calling-facade",
-    "path": "vendor/tinyagents/crates/tinyagents-session/src/transcript/typed_rows_test.rs",
-    "line": 9,
+    "path": "vendor/tinyagents/crates/tinyagents-session/src/transcript/typed_rows_tests.rs",
+    "line": 11,
     "text": "use tinytools_agent::dialect::{NativeToolCall, encode_assistant_envelope, encode_tool_envelope};",
     "occurrence": 1
   },
