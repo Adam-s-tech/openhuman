@@ -112,7 +112,10 @@ impl Config {
         if let Some(raw) = env.get("OPENHUMAN_JEV_ROUTE") {
             let trimmed = raw.trim();
             if !trimmed.is_empty() {
-                tracing::debug!(route = trimmed, "OPENHUMAN_JEV_ROUTE overrides agent.tool_search.jev_route");
+                tracing::debug!(
+                    route = trimmed,
+                    "OPENHUMAN_JEV_ROUTE overrides agent.tool_search.jev_route"
+                );
                 self.agent.tool_search.jev_route = trimmed.to_ascii_lowercase();
             }
         }
