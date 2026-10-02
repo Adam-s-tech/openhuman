@@ -264,7 +264,6 @@ fn make_parent(
         model_name: "test-model".into(),
         temperature: 0.5,
         workspace_dir: std::env::temp_dir(),
-        memory: noop_memory(),
         agent_config: crate::config::AgentConfig::default(),
         workflows: Arc::new(vec![]),
         memory_context: Arc::new(None),

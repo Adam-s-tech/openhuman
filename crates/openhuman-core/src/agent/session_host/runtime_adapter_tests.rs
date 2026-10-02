@@ -520,7 +520,6 @@ async fn cold_resumed_thread_can_send_again() {
             .tools(Vec::new())
             .workspace_dir(root.path().join("workspace"))
             .action_dir(root.path().to_path_buf())
-            .memory(crate::memory::test_support::noop_memory())
             .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
             .build()
             .expect("session build")
@@ -568,7 +567,6 @@ async fn production_turn_path_wires_an_artifact_store_at_the_read_path_root() {
         .chat_model(model)
         .tools(Vec::new())
         .action_dir(action_dir.path().to_path_buf())
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
         .workspace_descriptor(Some(
             tinytools::WorkspaceDescriptor::new(turn_root.path().to_path_buf())
@@ -613,7 +611,6 @@ async fn artifact_store_falls_back_to_action_dir_without_a_descriptor() {
         .chat_model(model)
         .tools(Vec::new())
         .action_dir(action_dir.path().to_path_buf())
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
         .build()
         .expect("session build");

@@ -122,7 +122,6 @@ fn build_with(
         .chat_model(model)
         .tools(tools)
         .visible_tool_names(visible)
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
         .build()
         .expect("session build")
