@@ -45,9 +45,6 @@ pub struct SyncPassOutcome {
     /// Whether the module has more to read — the caller decides whether to
     /// call again.
     pub more_pending: bool,
-    /// What the module said about a pass that stopped short without failing
-    /// (today's request budget being spent, typically).
-    pub message: Option<String>,
     /// Why the connector stopped this pass on an error (openhuman#6255). The
     /// counts above still stand; the caller ends or retries the run.
     pub failure: Option<String>,
@@ -237,7 +234,6 @@ pub async fn run_sync_pass(
     // A failed pass keeps what it read but is not "more pending" (#6255).
     let failure = pass_failure(&response, toolkit, connection_id);
     let more_pending = failure.is_none() && !response.batch.complete;
-    let message = response.message.clone().filter(|_| failure.is_none());
 
     let records_read = response.batch.records.len();
     let written = if records_read == 0 {
@@ -254,8 +250,10 @@ pub async fn run_sync_pass(
     };
 
     if more_pending {
+        // The module's note says why (today's request budget, typically).
         tracing::info!(
             toolkit = %toolkit,
+            note = response.message.as_deref().unwrap_or(""),
             "[composio] sync pass stopped short of the end; the next run resumes"
         );
     }
@@ -272,7 +270,6 @@ pub async fn run_sync_pass(
         records_read,
         written,
         more_pending,
-        message,
         failure,
     })
 }
