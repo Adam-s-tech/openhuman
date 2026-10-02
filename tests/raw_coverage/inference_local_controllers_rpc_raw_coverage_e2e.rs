@@ -102,9 +102,11 @@ async fn call(controller: &RegisteredController, params: Value) -> Result<Value,
 fn temp_config(tmp: &TempDir) -> Config {
     let root = tmp.path().join(".openhuman");
     std::fs::create_dir_all(root.join("workspace")).expect("workspace dir");
-    let mut config = Config::default();
-    config.config_path = root.join("config.toml");
-    config.workspace_dir = root.join("workspace");
+    let mut config = Config {
+        config_path: root.join("config.toml"),
+        workspace_dir: root.join("workspace"),
+        ..Default::default()
+    };
     config.secrets.encrypt = false;
     // Unroutable on purpose: any handler that reaches for the backend must fail
     // fast rather than touch the network from a test.

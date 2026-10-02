@@ -5401,7 +5401,7 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         .port();
     let _dead_btc_guard = EnvVarGuard::set(
         "OPENHUMAN_WALLET_RPC_BTC",
-        &format!("http://127.0.0.1:{closed_port}"),
+        format!("http://127.0.0.1:{closed_port}"),
     );
     let cs = post_json_rpc(&rpc_base, 20031, "openhuman.wallet_chain_status", json!({})).await;
     let body = assert_no_jsonrpc_error(&cs, "wallet_chain_status_unreachable");
@@ -13525,8 +13525,10 @@ async fn memory_flavour_agent_tool_e2e_5172() {
 
     let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
-    let mut cfg = Config::default();
-    cfg.workspace_dir = tmp.path().to_path_buf();
+    let cfg = Config {
+        workspace_dir: tmp.path().to_path_buf(),
+        ..Default::default()
+    };
     let tool = MemoryFlavourTool::new(std::sync::Arc::new(cfg));
 
     assert_eq!(tool.name(), "memory_flavour");

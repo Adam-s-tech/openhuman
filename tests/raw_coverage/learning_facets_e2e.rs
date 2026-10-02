@@ -125,14 +125,15 @@ fn learning_workspace() -> &'static Path {
 /// shared workspace is where `Config::load_or_init` resolves it from
 /// `OPENHUMAN_WORKSPACE` too — so env-driven and config-driven paths agree.
 fn shared_config_at(workspace: &Path) -> Config {
-    let mut config = Config::default();
-    config.workspace_dir = workspace.to_path_buf();
-    config.config_path = workspace
-        .parent()
-        .expect("shared workspace has a parent")
-        .join("config.toml");
-    config.embeddings_provider = Some("none".into());
-    config
+    Config {
+        workspace_dir: workspace.to_path_buf(),
+        config_path: workspace
+            .parent()
+            .expect("shared workspace has a parent")
+            .join("config.toml"),
+        embeddings_provider: Some("none".into()),
+        ..Default::default()
+    }
 }
 
 fn write_min_config(config_path: &Path) {

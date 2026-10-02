@@ -221,7 +221,7 @@ async fn connectivity_diag_rpc_reports_live_listener_port_and_process() {
         .expect("rpc url")
         .port()
         .expect("rpc port");
-    let _core_port = EnvVarGuard::set("OPENHUMAN_CORE_PORT", &rpc_port.to_string());
+    let _core_port = EnvVarGuard::set("OPENHUMAN_CORE_PORT", rpc_port.to_string());
 
     let diag_result = rpc(
         &harness.rpc_base,
