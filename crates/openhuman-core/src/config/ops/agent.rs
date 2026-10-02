@@ -56,7 +56,17 @@ pub struct AgentSettingsPatch {
     /// root (or to a guessed user dir) is silently ignored. Going through the
     /// running core writes wherever `Config::save` actually points.
     pub chat_agent_id: Option<String>,
+    /// How tool calls are spoken to the model (`[agent] tool_dispatcher`):
+    /// one of [`TOOL_DISPATCHER_CHOICES`] (case-insensitive). `None` leaves it
+    /// unchanged. Takes effect for new sessions; a resumed thread keeps the
+    /// dialect its prompt was frozen with.
+    pub tool_dispatcher: Option<String>,
 }
+
+/// Accepted spellings of `[agent] tool_dispatcher`. `auto` is the default:
+/// native structured calls when the provider supports them, else JSON-in-tag.
+pub const TOOL_DISPATCHER_CHOICES: [&str; 6] =
+    ["auto", "native", "xml", "pformat", "python", "typescript"];
 
 /// Partial update for the agent's editable filesystem roots.
 ///
@@ -233,8 +243,28 @@ pub async fn apply_agent_settings(
         }
     }
 
+    let tool_dispatcher = match update.tool_dispatcher.as_deref() {
+        Some(raw) => {
+            let normalized = raw.trim().to_ascii_lowercase();
+            if !TOOL_DISPATCHER_CHOICES.contains(&normalized.as_str()) {
+                log::warn!("[config][agent] rejected tool_dispatcher={normalized:?}");
+                return Err(format!(
+                    "invalid tool_dispatcher '{normalized}' (expected {})",
+                    TOOL_DISPATCHER_CHOICES.join(" | ")
+                ));
+            }
+            Some(normalized)
+        }
+        None => None,
+    };
+
     if let Some(timeout_secs) = update.agent_timeout_secs {
         config.agent.agent_timeout_secs = timeout_secs;
+    }
+
+    if let Some(tool_dispatcher) = tool_dispatcher {
+        log::debug!("[config][agent] tool_dispatcher -> {tool_dispatcher}");
+        config.agent.tool_dispatcher = tool_dispatcher;
     }
 
     if let Some(chat_agent_id) = update.chat_agent_id {
@@ -285,6 +315,10 @@ pub async fn get_agent_settings() -> Result<RpcOutcome<serde_json::Value>, Strin
         "env_override": crate::tools::timeout::env_override_active(),
         "min_timeout_secs": crate::tools::timeout::MIN_TIMEOUT_SECS,
         "max_timeout_secs": crate::tools::timeout::MAX_TIMEOUT_SECS,
+        "tool_dispatcher": config.agent.tool_dispatcher,
+        "tool_dispatcher_env_override": std::env::var("OPENHUMAN_TOOL_DISPATCHER")
+            .map(|v| !v.trim().is_empty())
+            .unwrap_or(false),
     });
     Ok(RpcOutcome::single_log(value, "agent settings read"))
 }
