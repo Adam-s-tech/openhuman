@@ -5274,7 +5274,7 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
     let (wallet_rpc_addr, raw_txs) = start_mock_wallet_evm_rpc().await;
     let _evm_provider_guard = EnvVarGuard::set(
         "OPENHUMAN_WALLET_RPC_EVM",
-        &format!("http://{wallet_rpc_addr}"),
+        format!("http://{wallet_rpc_addr}"),
     );
     // The same mock stands in for every other chain, so the run never reaches a
     // public endpoint: chain_status probes each one.

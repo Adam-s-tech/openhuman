@@ -145,8 +145,10 @@ async fn composio_action_tool_execute_reports_missing_route_without_network() {
     let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let tmp = tempfile::tempdir().expect("temp config directory");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
+    let config = Config {
+        config_path: tmp.path().join("config.toml"),
+        ..Default::default()
+    };
     let tool = ComposioActionTool::new(
         Arc::new(config),
         "GMAIL_SEND_EMAIL".into(),
