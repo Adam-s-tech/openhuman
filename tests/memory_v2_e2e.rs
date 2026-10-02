@@ -162,10 +162,15 @@ impl Fixture {
             EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file"),
         ];
         write_config(&home.path().join(".openhuman"), &mock.origin);
-        write_config(
-            &home.path().join(".openhuman").join("users").join("local"),
-            &mock.origin,
-        );
+        // Signing in moves the core to `users/<id>/`; every user dir a test
+        // signs into must point at the mock too, or the signed-in core falls
+        // back to the default (real) backend origin.
+        for user in ["local", MOCK_USER_ID, "second-user"] {
+            write_config(
+                &home.path().join(".openhuman").join("users").join(user),
+                &mock.origin,
+            );
+        }
         let (addr, join) = serve_rpc().await;
         let fixture = Self {
             rpc_base: format!("http://{addr}"),
