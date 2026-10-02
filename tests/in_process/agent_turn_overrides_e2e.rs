@@ -272,8 +272,6 @@ fn agent_with(
             ..AgentConfig::default()
         })
         .context_config(ContextConfig::default())
-        .auto_save(true)
-        .explicit_preferences_enabled(false)
         .build()
         .expect("build agent")
 }

@@ -2347,7 +2347,6 @@ mod streaming_support {
             .agent_definition(stream_definition())
             .config(config)
             .context_config(ContextConfig::default())
-            .explicit_preferences_enabled(false)
             .build()
             .unwrap()
     }
