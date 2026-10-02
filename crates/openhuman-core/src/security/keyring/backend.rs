@@ -223,6 +223,12 @@ pub struct MockBackend {
 }
 
 #[cfg(test)]
+impl Default for MockBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockBackend {
     pub fn new() -> Self {
         Self {

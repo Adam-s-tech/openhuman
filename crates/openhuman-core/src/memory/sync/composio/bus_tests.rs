@@ -191,7 +191,7 @@ fn composio_config_triage_disabled_toolkit_match() {
     assert!(
         !cfg.triage_disabled_toolkits
             .iter()
-            .any(|t| t.to_ascii_lowercase() == "github"),
+            .any(|t| t.eq_ignore_ascii_case("github")),
         "github should not match"
     );
 }
@@ -299,8 +299,8 @@ fn subscriber_default_impls_equal_new() {
     // Call Default just to cover the impl block. Since both are
     // unit structs, equality is implicit — we just exercise the
     // constructor to bump coverage on the Default line.
-    let _ = ComposioTriggerSubscriber::default();
-    let _ = ComposioConnectionCreatedSubscriber::default();
+    let _ = ComposioTriggerSubscriber;
+    let _ = ComposioConnectionCreatedSubscriber;
 }
 
 #[tokio::test]
@@ -404,7 +404,7 @@ fn config_changed_subscriber_has_stable_name_and_domain() {
     let s = ComposioConfigChangedSubscriber::new();
     assert_eq!(s.name(), "composio::config_changed");
     assert_eq!(s.domains(), Some(["composio"].as_ref()));
-    let _ = ComposioConfigChangedSubscriber::default();
+    let _ = ComposioConfigChangedSubscriber;
 }
 
 #[test]

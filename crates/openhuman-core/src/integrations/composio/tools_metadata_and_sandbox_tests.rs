@@ -52,7 +52,7 @@ fn list_toolkits_tool_metadata_is_stable() {
     assert!(s
         .get("required")
         .and_then(|r| r.as_array())
-        .map_or(true, |a| a.is_empty()));
+        .is_none_or(|a| a.is_empty()));
 }
 
 #[test]

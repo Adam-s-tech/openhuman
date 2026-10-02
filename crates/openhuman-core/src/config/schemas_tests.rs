@@ -270,7 +270,7 @@ fn deserialize_params_parses_workspace_onboarding_flag_set_params() {
     let mut m = Map::new();
     m.insert("value".into(), Value::Bool(true));
     let out: WorkspaceOnboardingFlagSetParams = deserialize_params(m).unwrap();
-    assert_eq!(out.value, true);
+    assert!(out.value);
     assert!(out.flag_name.is_none());
 }
 

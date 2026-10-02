@@ -413,7 +413,7 @@ bot_token = "{stale_ciphertext}"
         .as_ref()
         .map(|d| d.bot_token.as_str());
     assert!(
-        discord_token.map_or(true, |t| t.is_empty()),
+        discord_token.is_none_or(|t| t.is_empty()),
         "Expected discord.bot_token to be cleared after decryption failure, got: {discord_token:?}"
     );
 }

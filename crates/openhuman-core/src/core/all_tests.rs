@@ -38,7 +38,7 @@ fn grouped(controllers: Vec<RegisteredController>) -> Vec<GroupedController> {
 
 #[test]
 fn validate_registry_rejects_duplicate_namespace_function() {
-    let declared = vec![schema("dup", "fn", vec![]), schema("dup", "fn", vec![])];
+    let declared = [schema("dup", "fn", vec![]), schema("dup", "fn", vec![])];
     let registered = vec![
         RegisteredController {
             schema: declared[0].clone(),
@@ -56,7 +56,7 @@ fn validate_registry_rejects_duplicate_namespace_function() {
 
 #[test]
 fn validate_registry_rejects_duplicate_required_inputs() {
-    let declared = vec![schema(
+    let declared = [schema(
         "doctor",
         "models",
         vec![
@@ -85,11 +85,9 @@ fn validate_registry_rejects_duplicate_required_inputs() {
 
 #[test]
 fn validate_registry_accepts_valid_registry() {
-    let declared = vec![
-        schema("ns1", "fn1", vec![]),
+    let declared = [schema("ns1", "fn1", vec![]),
         schema("ns1", "fn2", vec![]),
-        schema("ns2", "fn1", vec![]),
-    ];
+        schema("ns2", "fn1", vec![])];
     let registered = declared
         .iter()
         .map(|s| RegisteredController {
@@ -767,7 +765,7 @@ fn validate_params_json_type_accepts_anything() {
 
 #[test]
 fn validate_registry_rejects_empty_namespace() {
-    let declared = vec![schema("", "fn", vec![])];
+    let declared = [schema("", "fn", vec![])];
     let registered = vec![RegisteredController {
         schema: declared[0].clone(),
         handler: noop_handler,
@@ -778,7 +776,7 @@ fn validate_registry_rejects_empty_namespace() {
 
 #[test]
 fn validate_registry_rejects_empty_function() {
-    let declared = vec![schema("ns", "", vec![])];
+    let declared = [schema("ns", "", vec![])];
     let registered = vec![RegisteredController {
         schema: declared[0].clone(),
         handler: noop_handler,
@@ -791,7 +789,7 @@ fn validate_registry_rejects_empty_function() {
 fn validate_registry_rejects_whitespace_only_namespace() {
     // `trim().is_empty()` is the invariant — a namespace of "   " must
     // be rejected to prevent `openhuman.   _fn` nonsense RPC method names.
-    let declared = vec![schema("   ", "fn", vec![])];
+    let declared = [schema("   ", "fn", vec![])];
     let registered = vec![RegisteredController {
         schema: declared[0].clone(),
         handler: noop_handler,
@@ -1441,7 +1439,7 @@ fn domain_group_all_lists_every_variant() {
         "DomainGroup::ALL and DomainGroup::COUNT disagree — a variant was added \
          to one but not the other"
     );
-    let mut seen = vec![false; DomainGroup::COUNT];
+    let mut seen = [false; DomainGroup::COUNT];
     for g in DomainGroup::ALL {
         let i = g.index();
         assert!(

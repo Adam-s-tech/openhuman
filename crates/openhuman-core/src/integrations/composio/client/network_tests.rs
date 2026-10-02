@@ -87,7 +87,7 @@ fn no_proxy_entries_travel_with_the_proxy_only() {
     let mut without = proxy(None, Some("http://h:2"), None);
     without.no_proxy = vec!["localhost".into()];
     let config = with_proxy(without, || module_transport(HTTPS_BASE));
-    assert!(config.map_or(true, |c| c.no_proxy.is_empty()));
+    assert!(config.is_none_or(|c| c.no_proxy.is_empty()));
 }
 
 #[test]

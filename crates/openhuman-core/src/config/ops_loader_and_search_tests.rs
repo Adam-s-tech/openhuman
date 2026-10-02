@@ -368,7 +368,7 @@ fn workspace_onboarding_flag_exists_returns_false_for_fresh_workspace() {
     let tmp = tempdir().unwrap();
     let res = workspace_onboarding_flag_exists(tmp.path().join("workspace"), "onboarding.done")
         .expect("flag check ok");
-    assert_eq!(res.value, false);
+    assert!(!res.value);
 }
 
 #[test]
@@ -390,7 +390,7 @@ fn workspace_onboarding_flag_exists_true_when_file_present() {
     std::fs::create_dir_all(&ws).unwrap();
     std::fs::write(ws.join("onboarding.done"), "").unwrap();
     let res = workspace_onboarding_flag_exists(ws, "onboarding.done").expect("flag check ok");
-    assert_eq!(res.value, true);
+    assert!(res.value);
 }
 
 #[tokio::test]

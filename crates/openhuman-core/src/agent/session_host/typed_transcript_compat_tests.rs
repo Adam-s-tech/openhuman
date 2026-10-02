@@ -307,8 +307,7 @@ fn typed_and_legacy_rows_bridge_to_identical_model_messages() {
         AssistantMessage, ContentBlock, ImageRef, Message, ToolMessage, UserMessage,
     };
 
-    let messages = vec![
-        Message::User(UserMessage {
+    let messages = [Message::User(UserMessage {
             content: vec![
                 ContentBlock::Text("see ".into()),
                 ContentBlock::Image(ImageRef {
@@ -329,8 +328,7 @@ fn typed_and_legacy_rows_bridge_to_identical_model_messages() {
             content: vec![ContentBlock::Text("echo:x".into())],
             trusted_verbatim: false,
             artifact: None,
-        }),
-    ];
+        })];
     let rows: Vec<_> = messages
         .iter()
         .filter_map(message_to_native_chat_message)
@@ -368,9 +366,7 @@ fn regenerate_typed_session_compat() {
         let legacy = std::fs::read_to_string(fixture(&format!("{name}.jsonl"))).expect("raw");
         let tools = legacy
             .lines()
-            .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-            .filter(|value| value.get("kind").and_then(Value::as_str) == Some("tools"))
-            .next_back()
+            .filter_map(|line| serde_json::from_str::<Value>(line).ok()).rfind(|value| value.get("kind").and_then(Value::as_str) == Some("tools"))
             .map(|value| value["tools"].clone())
             .expect("legacy fixture records its tools");
         append_tools_record(&path, &tools).expect("tools record");

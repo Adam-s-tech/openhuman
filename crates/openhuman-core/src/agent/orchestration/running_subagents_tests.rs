@@ -14,7 +14,7 @@ use tinyagents_graph::orchestration::OrchestrationTaskStatus;
 use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::{QueueLane, RunQueue};
 use tinyagents_harness::steering::{
-    SteeringCommand, SteeringCommandKind, SteeringHandle, SteeringPolicy,
+    SteeringCommand, SteeringHandle,
 };
 use tinyagents_orchestration::subagent::FinishedOutcome;
 use tinyagents_orchestration::subagent::{

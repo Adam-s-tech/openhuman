@@ -182,7 +182,7 @@ fn integration(toolkit: &str, connected: bool) -> ConnectedIntegration {
         connected,
         connections: if connected {
             vec![IntegrationConnection {
-                connection_id: format!("c-1"),
+                connection_id: "c-1".to_string(),
                 label: None,
                 is_default: true,
             }]

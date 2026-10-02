@@ -6,7 +6,6 @@
 
 use super::*;
 use std::fs;
-use std::path::Path as StdPath;
 
 /// The configured `action_dir` must be a read-write trusted root.
 ///
