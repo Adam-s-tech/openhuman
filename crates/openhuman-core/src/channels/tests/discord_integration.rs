@@ -3,9 +3,9 @@
 //!
 //! "Fully encapsulated" here means: the runtime dispatch pipeline can be
 //! exercised end-to-end for `channel = "discord"` with every cross-module
-//! boundary (agent runtime, memory backend, LLM provider) substituted with a
-//! stub/noop. These tests do NOT spin up a real Discord gateway, a real LLM
-//! provider, or a real memory store — they only exercise the channels module
+//! boundary (agent runtime, LLM provider) substituted with a stub/noop. These
+//! tests do NOT spin up a real Discord gateway or a real LLM provider — they
+//! only exercise the channels module
 //! itself.
 //!
 //! Coverage:
@@ -131,7 +131,7 @@ fn make_discord_ctx(
 // ── 1. Full-pipeline smoke test ─────────────────────────────────────────────
 
 /// A Discord inbound message must flow through the full runtime dispatch
-/// pipeline — memory lookup, history update, `agent.run_turn` bus call,
+/// pipeline — history update, `agent.run_turn` bus call,
 /// channel send — without requiring any external services. The response text
 /// from the stubbed provider must reach the channel's `send()` with the
 /// recipient matching `reply_target`.
