@@ -57,7 +57,6 @@ pub mod identity;
 pub mod identity_store;
 pub mod module_client;
 pub mod ops;
-pub mod profile_md;
 pub mod providers;
 pub mod schemas;
 pub mod tools;

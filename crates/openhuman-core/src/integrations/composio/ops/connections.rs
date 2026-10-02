@@ -154,14 +154,14 @@ pub async fn composio_delete_connection(
     clear_memory: bool,
 ) -> OpResult<Outcome<ComposioDeleteResponse>> {
     tracing::debug!(connection_id = %connection_id, "[composio] rpc delete_connection");
-    // The toolkit names the identity facets and the PROFILE.md bullet to drop;
+    // The toolkit names the identity facets to drop;
     // forgetting memory needs only the connection id (its records carry a
     // `connection:<id>` tag), so an unresolvable toolkit skips the former only.
     let toolkit = resolve_toolkit_for_connection(config, connection_id)
         .await
         .ok();
     // Only the Composio-side removal crosses the bus. Everything around it —
-    // the synced memory, the identity facets, PROFILE.md — is this host's own
+    // the synced memory and the identity facets — is this host's own
     // bookkeeping about a connection it no longer has.
     let mut resp = connectors::call::<_, ComposioDeleteResponse>(
         config,
@@ -213,18 +213,6 @@ pub async fn composio_delete_connection(
             facets_deleted = deleted,
             "[composio] deleted connected identity facets after connection removal"
         );
-        if let Err(e) = super::super::profile_md::remove_provider_from_profile_md(
-            &config.workspace_dir,
-            toolkit,
-            connection_id,
-        ) {
-            tracing::warn!(
-                toolkit = %toolkit,
-                connection_id = %connection_id,
-                error = %e,
-                "[composio] PROFILE.md bullet removal failed (non-fatal)"
-            );
-        }
     }
     crate::core::bus::BUS.publish(
         crate::core::events::DomainEvent::ComposioConnectionDeleted {
