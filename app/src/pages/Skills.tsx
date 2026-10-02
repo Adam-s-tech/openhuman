@@ -64,7 +64,7 @@ import type { ToastNotification } from '../types/intelligence';
 import { IS_DEV } from '../utils/config';
 import { isLocalSessionToken } from '../utils/localSession';
 import { openhumanComposioGetMode } from '../utils/tauriCommands';
-import Brain from './Brain';
+import Memory from './Memory';
 
 /** Small inline icon helper for the Connections sidebar nav. */
 const navIcon = (d: string) => (
@@ -610,7 +610,7 @@ export default function Skills() {
     (tab: ConnectionsTab) => {
       const params = new URLSearchParams(location.search);
       params.set('tab', tab);
-      // Brain's own sub-tab params must not leak into other tabs.
+      // Memory's own chip param (and v1's `view`) must not leak into other tabs.
       params.delete('brain');
       params.delete('view');
       navigate({ pathname: location.pathname, search: `?${params.toString()}` });
@@ -1034,8 +1034,8 @@ export default function Skills() {
                     ),
                   },
                   {
-                    // The memory knowledge graph, goals, sources and sync
-                    // (formerly the top-level /brain page).
+                    // Memory v2: engine, ask, learnings, conversations,
+                    // documents and context (formerly the top-level /brain page).
                     value: 'brain',
                     label: t('nav.brain'),
                     icon: navIcon(
@@ -1180,7 +1180,7 @@ export default function Skills() {
             {activeTab === 'mcp' ? (
               <McpServersPage />
             ) : activeTab === 'brain' ? (
-              <Brain />
+              <Memory />
             ) : (
               <SkillsPage onToast={addToast} />
             )}
