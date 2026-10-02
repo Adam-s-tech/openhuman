@@ -4,8 +4,9 @@
 //! the connector module's sync for each active connection of that toolkit
 //! (`integrations::composio::ops::run_sync_pass`), which pages the account and
 //! hands back decoded records; each record is stored as a document with
-//! `source = composio:<source id>`, `tags = [toolkit, …]`, its URL and its
-//! upstream timestamp. The same conversion backs `openhuman.composio_sync`,
+//! `source = composio:<source id>`, `tags = [toolkit, "connection:<id>", …]`,
+//! its URL and its upstream timestamp. The connection tag is what deleting a
+//! connection with `clear_memory` forgets by. The same conversion backs `openhuman.composio_sync`,
 //! which syncs one connection on demand.
 
 use chrono::{TimeZone, Utc};
@@ -21,13 +22,24 @@ use crate::memory::error::{MemoryError, MemoryResult};
 /// Most connector passes one source sync runs per connection.
 const MAX_PASSES_PER_CONNECTION: usize = 25;
 
+/// The tag every item synced through a connection carries.
+#[must_use]
+pub fn connection_tag(connection_id: &str) -> String {
+    format!("connection:{connection_id}")
+}
+
 /// The document one connector record stores, or `None` for an empty record.
 #[must_use]
-pub fn record_item(toolkit: &str, source_id: &str, record: &ConnectorRecord) -> Option<StoreItem> {
+pub fn record_item(
+    toolkit: &str,
+    connection_id: &str,
+    source_id: &str,
+    record: &ConnectorRecord,
+) -> Option<StoreItem> {
     if record.content.trim().is_empty() {
         return None;
     }
-    let mut tags = vec![toolkit.to_ascii_lowercase()];
+    let mut tags = vec![toolkit.to_ascii_lowercase(), connection_tag(connection_id)];
     for tag in &record.tags {
         if !tag.trim().is_empty() && !tags.contains(tag) {
             tags.push(tag.clone());
@@ -57,12 +69,13 @@ pub fn record_item(toolkit: &str, source_id: &str, record: &ConnectorRecord) -> 
 pub async fn store_records(
     bound: &BoundEngine,
     toolkit: &str,
+    connection_id: &str,
     source_id: &str,
     records: &[ConnectorRecord],
 ) -> MemoryResult<u64> {
     let items: Vec<StoreItem> = records
         .iter()
-        .filter_map(|record| record_item(toolkit, source_id, record))
+        .filter_map(|record| record_item(toolkit, connection_id, source_id, record))
         .collect();
     super::sync::store_all(bound, items, source_id).await
 }
@@ -106,6 +119,44 @@ pub async fn sync_toolkit(
         }
     }
     Ok(stored)
+}
+
+
+/// The memory source id a Composio sync of `toolkit` files its items under:
+/// the configured `composio` source for the toolkit when there is one, else
+/// `composio:<toolkit>`.
+#[must_use]
+pub fn source_id_for_toolkit(config: &Config, toolkit: &str) -> String {
+    let toolkit = toolkit.to_ascii_lowercase();
+    config
+        .memory
+        .sources
+        .iter()
+        .find(|source| {
+            source.kind == crate::config::schema::MemorySourceKind::Composio
+                && source.target == toolkit
+        })
+        .map_or_else(|| format!("composio:{toolkit}"), |source| source.id.clone())
+}
+
+/// Forgets every item synced through `connection_id`. Memory off forgets
+/// nothing and is not an error.
+pub async fn forget_connection(config: &Config, connection_id: &str) -> MemoryResult<usize> {
+    let bound = match crate::memory::engine::resolve(config).engine() {
+        Ok(bound) => bound,
+        Err(MemoryError::Off(_)) => return Ok(0),
+        Err(error) => return Err(error),
+    };
+    let filter = tinymemory::MetaFilter {
+        sources: vec![SourceKind::Composio],
+        tags_any: vec![connection_tag(connection_id)],
+        ..tinymemory::MetaFilter::default()
+    };
+    let report = bound
+        .engine
+        .forget(tinymemory::ForgetTarget::Filter(filter))
+        .await?;
+    Ok(report.forgotten)
 }
 
 #[cfg(test)]
