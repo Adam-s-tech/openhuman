@@ -11,7 +11,7 @@
 //! external effect); the "read, then suggest — never act" invariant lives in
 //! the archetype body instead.
 
-use crate::agent::prompts::{render_tools, render_user_files, render_workspace, PromptContext};
+use crate::agent::prompts::{render_tools, render_workspace, PromptContext};
 use anyhow::Result;
 
 const ARCHETYPE: &str = tinyflows_copilot::prompts::FLOW_DISCOVERY;
@@ -21,11 +21,6 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     out.push_str(ARCHETYPE.trim_end());
     out.push_str("\n\n");
 
-    let user_files = render_user_files(ctx)?;
-    if !user_files.trim().is_empty() {
-        out.push_str(user_files.trim_end());
-        out.push_str("\n\n");
-    }
 
     let tools = render_tools(ctx)?;
     if !tools.trim().is_empty() {

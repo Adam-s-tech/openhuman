@@ -13,7 +13,7 @@
 use crate::agent::harness::definition::SubagentEntry;
 use crate::agent::harness::AgentDefinitionRegistry;
 use crate::agent::prompts::{
-    render_datetime, render_identity, render_tools, render_user_files, render_workspace,
+    render_datetime, render_identity, render_tools, render_workspace,
     ConnectedIntegration, PromptContext, ToolCallFormat,
 };
 use crate::skills::ops_types::Workflow;
@@ -104,7 +104,6 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     // ── Volatile tier: the user's state, changes between sessions ────────
     out.push_str(PROMPT_TIER_VOLATILE_MARKER);
     out.push('\n');
-    push(&mut out, &render_user_files(ctx)?);
     push(&mut out, ctx.connected_identities_md.as_str());
     push(
         &mut out,
