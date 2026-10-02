@@ -1,6 +1,6 @@
 //! Scheduler-gate configuration — controls when background AI work runs.
 //!
-//! Consumed by `tinymemory-gate` and, through it, the host's scheduler gate.
+//! Consumed by `cron::scheduler_gate`.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
