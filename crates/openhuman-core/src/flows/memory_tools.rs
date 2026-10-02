@@ -59,7 +59,7 @@ const FLOW_KEY_INFIX: &str = ":key:";
 /// by a prompt-injected caller. Writes refuse when this is `None`; the
 /// read-only recall falls back to the argument (cross-flow reads are already
 /// open by design, so an argument grants no new read privilege).
-pub(crate) fn trusted_flow_id() -> Option<String> {
+fn trusted_flow_id() -> Option<String> {
     match turn_origin::current() {
         Some(AgentTurnOrigin::TrustedAutomation {
             job_id,
