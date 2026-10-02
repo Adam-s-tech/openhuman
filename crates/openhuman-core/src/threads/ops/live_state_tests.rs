@@ -24,7 +24,7 @@ struct WorkspaceGuard {
 
 impl WorkspaceGuard {
     async fn new() -> Self {
-        let lock = TEST_ENV_LOCK.blocking_lock();
+        let lock = TEST_ENV_LOCK.lock().await;
         let tmp = tempfile::tempdir().expect("tempdir");
         unsafe {
             std::env::set_var("OPENHUMAN_WORKSPACE", tmp.path());

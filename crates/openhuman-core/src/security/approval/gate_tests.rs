@@ -83,7 +83,7 @@ async fn expiry_gate() -> (ApprovalGate, TempDir, EnvVarGuard) {
     // developer who exported it in their shell. effective_ttl would then
     // replace EXPIRY_TEST_TTL at park time and the wait would be measuring
     // their value, so clear it while the lock is held.
-    let env = EnvVarGuard::locked_unset("OPENHUMAN_APPROVAL_TTL_SECS");
+    let env = EnvVarGuard::locked_unset_async("OPENHUMAN_APPROVAL_TTL_SECS").await;
     let (gate, dir) = test_gate_with_ttl(EXPIRY_TEST_TTL);
     (gate, dir, env)
 }
