@@ -93,10 +93,13 @@ fn find<'a>(tools: &'a [Box<dyn Tool>], name: &str) -> &'a dyn Tool {
 /// This is not a contrived shape. Every `delegate_*` tool is synthesised into
 /// `OpenHumanSessionHost::synthesized_tools`, a different `Arc` from the durable registry
 /// (#6145), and seven delegates were already packed.
+/// A shared, immutable tool registry.
+type ToolRegistry = Arc<Vec<Box<dyn Tool>>>;
+
 fn split_registries(
     name: &'static str,
     level: PermissionLevel,
-) -> (Arc<Vec<Box<dyn Tool>>>, Arc<Vec<Box<dyn Tool>>>) {
+) -> (ToolRegistry, ToolRegistry) {
     let mut durable: Vec<Box<dyn Tool>> = Vec::new();
     append_pack_tools(&mut durable);
     let durable = Arc::new(durable);
