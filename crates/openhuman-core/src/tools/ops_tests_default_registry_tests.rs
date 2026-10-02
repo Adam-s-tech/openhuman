@@ -287,11 +287,6 @@ fn document_tools_absent_when_feature_off() {
 fn all_tools_registers_gitbooks_when_enabled() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
     let mut cfg = test_config(&tmp);
@@ -381,11 +376,6 @@ fn all_tools_omits_mcp_tools_when_gate_off() {
 fn all_tools_skips_gitbooks_when_disabled() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
     let mut cfg = test_config(&tmp);
@@ -520,11 +510,6 @@ fn all_tools_default_registry_has_no_duplicate_tool_names() {
 fn all_tools_excludes_browser_when_disabled() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
 
     let browser = BrowserConfig {
         enabled: false,

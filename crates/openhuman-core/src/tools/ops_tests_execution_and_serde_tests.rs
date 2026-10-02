@@ -4,11 +4,6 @@ use super::*;
 fn all_tools_includes_browser_when_enabled() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
 
     let browser = BrowserConfig {
         enabled: true,
@@ -77,11 +72,6 @@ fn default_tools_all_have_schemas() {
 fn all_tools_includes_delegate_when_agents_configured() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
 
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
@@ -116,11 +106,6 @@ fn all_tools_includes_delegate_when_agents_configured() {
 fn all_tools_excludes_delegate_when_no_agents() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
 
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
@@ -149,11 +134,6 @@ fn all_tools_registers_node_exec_when_node_enabled() {
     // lose both tools.
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
 
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
@@ -186,11 +166,6 @@ fn all_tools_registers_python_exec_when_python_enabled() {
     // appear in the registry (routes inline code through the runtime pool, #5106).
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
 
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
@@ -217,11 +192,6 @@ fn all_tools_registers_python_exec_when_python_enabled() {
 fn all_tools_excludes_node_exec_when_node_disabled() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
 
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
@@ -312,8 +282,6 @@ fn all_tools_registers_brave_engine_lsp_and_tool_stats_when_enabled() {
         crate::config::SearchProviderSettings::direct(),
     );
     cfg.search.brave.api_key = Some("test-brave-key".into());
-    cfg.learning.enabled = true;
-    cfg.learning.tool_tracking_enabled = true;
 
     let _env_guard = crate::config::TEST_ENV_LOCK
         .lock()
