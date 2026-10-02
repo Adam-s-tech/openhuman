@@ -1680,7 +1680,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "name": "Review Specialist",
             "description": "Workspace-specific review specialist.",
             "model": "hint:reasoning",
-            "tool_allowlist": ["tools.web_search", "memory.search"],
+            "tool_allowlist": ["tools.web_search", "memory.recall"],
             "tool_denylist": ["wallet.execute_prepared"],
             "tags": ["memory", "workspace"],
             "metadata": { "pinned_by": "json_rpc_e2e" }
@@ -1851,7 +1851,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "description": "Drafts polished workspace updates.",
             "model": "hint:reasoning",
             "system_prompt": "Write concise, accurate updates.",
-            "tool_allowlist": ["memory.search", "tools.web_search"],
+            "tool_allowlist": ["memory.recall", "tools.web_search"],
             "tool_denylist": ["wallet.execute_prepared"],
             "tags": ["writing", "custom"],
             "metadata": { "created_by": "json_rpc_e2e" }
@@ -1874,7 +1874,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .and_then(Value::as_array)
             .and_then(|tools| tools.first())
             .and_then(Value::as_str),
-        Some("memory.search")
+        Some("memory.recall")
     );
 
     let get_custom = post_json_rpc(
@@ -1905,7 +1905,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "enabled": false,
             "model": "hint:coding",
             "system_prompt": "Write concise updates with citations when available.",
-            "tool_allowlist": ["memory.search"],
+            "tool_allowlist": ["memory.recall"],
             "tool_denylist": ["shell"],
             "subagents": ["critic"],
             "tags": ["writing", "custom", "disabled"],
@@ -1963,7 +1963,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
                 "enabled": false,
                 "model": "hint:reasoning",
                 "system_prompt": "Review plans for missing validation.",
-                "tool_allowlist": ["memory.search"],
+                "tool_allowlist": ["memory.recall"],
                 "tool_denylist": ["shell", "file_write"],
                 "subagents": ["critic"],
                 "tags": ["review"],
