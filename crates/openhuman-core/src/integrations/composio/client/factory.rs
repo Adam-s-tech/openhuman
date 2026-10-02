@@ -161,7 +161,9 @@ pub fn resolve_composio_route(config: &crate::config::Config) -> anyhow::Result<
         }
         MODE_DISABLED_PAT => {
             tracing::debug!("[composio-factory] composio disabled by config");
-            Err(anyhow::anyhow!("composio is disabled (composio.mode = \"disabled\")"))
+            Err(anyhow::anyhow!(
+                "composio is disabled (composio.mode = \"disabled\")"
+            ))
         }
         unknown => {
             tracing::warn!(mode = %unknown, "[composio-factory] unknown composio mode");

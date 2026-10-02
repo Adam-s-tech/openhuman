@@ -110,7 +110,10 @@ impl Config {
         if let Some(raw) = env.get("OPENHUMAN_COMPOSIO_MODE") {
             let trimmed = raw.trim();
             if !trimmed.is_empty() {
-                tracing::debug!(mode = trimmed, "OPENHUMAN_COMPOSIO_MODE overrides composio.mode");
+                tracing::debug!(
+                    mode = trimmed,
+                    "OPENHUMAN_COMPOSIO_MODE overrides composio.mode"
+                );
                 self.composio.mode = trimmed.to_ascii_lowercase();
             }
         }

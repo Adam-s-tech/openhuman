@@ -81,10 +81,14 @@ pub(crate) fn resolve_bundled_dir(
 ) -> Option<PathBuf> {
     // Each candidate must be a directory to win: a stale registered path or a
     // mistyped env var must not hide a valid directory further down the list.
-    let found = [registered, from_env, exe_dir.map(|dir| dir.join(BUNDLED_MODULES_DIR))]
-        .into_iter()
-        .flatten()
-        .find(|dir| dir.is_dir());
+    let found = [
+        registered,
+        from_env,
+        exe_dir.map(|dir| dir.join(BUNDLED_MODULES_DIR)),
+    ]
+    .into_iter()
+    .flatten()
+    .find(|dir| dir.is_dir());
     if let Some(dir) = &found {
         log::debug!("[modules] bundled release directory: {}", dir.display());
     }
