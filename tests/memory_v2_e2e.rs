@@ -1109,14 +1109,22 @@ async fn sources_add_sync_list_and_remove() {
     let empty = f
         .ok(
             "openhuman.memory_items_list",
-            json!({ "filter": { "kinds": ["document"] } }),
+            json!({ "filter": { "kinds": ["document"], "source_id": again_id } }),
         )
         .await;
     assert_eq!(
         empty["items"],
         json!([]),
-        "forget_items removed the documents: {empty}"
+        "forget_items removed the source's documents: {empty}"
     );
+    // The first source's documents were kept on purpose and stay.
+    let kept_docs = f
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["document"], "source_id": id } }),
+        )
+        .await;
+    assert_eq!(kept_docs["items"].as_array().unwrap().len(), items.len());
 }
 
 // ---------------------------------------------------------------------------
