@@ -60,8 +60,14 @@ fn prompt_injects_workspace_files() {
         "missing IDENTITY content"
     );
     // v1 memory files are never inlined; memory v2 injects `context.md`.
-    assert!(!prompt.contains("### PROFILE.md"), "PROFILE.md must not be inlined");
-    assert!(!prompt.contains("### MEMORY.md"), "MEMORY.md must not be inlined");
+    assert!(
+        !prompt.contains("### PROFILE.md"),
+        "PROFILE.md must not be inlined"
+    );
+    assert!(
+        !prompt.contains("### MEMORY.md"),
+        "MEMORY.md must not be inlined"
+    );
 }
 
 #[test]

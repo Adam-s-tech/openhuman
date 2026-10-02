@@ -260,7 +260,13 @@ fn memory_tool_is_absent_while_memory_is_off() {
         "the memory tool must not be registered with memory off; got: {names:?}"
     );
     // The v1 memory surface is gone, not merely hidden.
-    for removed in ["memory_store", "memory_recall", "memory_forget", "goals", "tool_stats"] {
+    for removed in [
+        "memory_store",
+        "memory_recall",
+        "memory_forget",
+        "goals",
+        "tool_stats",
+    ] {
         assert!(
             !names.iter().any(|n| n == removed),
             "v1 tool `{removed}` must no longer be registered"

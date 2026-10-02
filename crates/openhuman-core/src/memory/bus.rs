@@ -86,7 +86,9 @@ impl EventHandler<DomainEvent> for ConversationIngestSubscriber {
         };
         match crate::config::rpc::load_config_for_workspace_with_timeout(workspace_dir).await {
             Ok(config) => super::conversations::record_turn(&config, turn).await,
-            Err(error) => tracing::debug!(error = %error, "[memory:bus] config unavailable; turn dropped"),
+            Err(error) => {
+                tracing::debug!(error = %error, "[memory:bus] config unavailable; turn dropped")
+            }
         }
     }
 }
@@ -135,7 +137,10 @@ pub async fn run_system_job(config: &crate::config::Config, job: &str) {
         }
         SOURCES_SYNC_JOB => {
             let started = super::sources::sync_due(config, Utc::now());
-            tracing::debug!(started = started.len(), "[memory:bus] due source syncs started");
+            tracing::debug!(
+                started = started.len(),
+                "[memory:bus] due source syncs started"
+            );
         }
         _ => {}
     }

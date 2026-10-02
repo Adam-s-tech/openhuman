@@ -29,9 +29,7 @@ pub async fn run_within(config: &Config, budget: Duration) -> Option<usize> {
             Some(flushed)
         }
         Err(_) => {
-            log::warn!(
-                "[memory:exit] conversation flush exceeded {budget:?}; dropping the rest"
-            );
+            log::warn!("[memory:exit] conversation flush exceeded {budget:?}; dropping the rest");
             None
         }
     }

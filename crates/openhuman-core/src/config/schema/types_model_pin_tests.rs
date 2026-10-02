@@ -197,7 +197,10 @@ learning_reflection = true
 "#,
     )
     .expect("config with retired learning keys must still load");
-    assert_eq!(config.workload_local_model("memory").as_deref(), Some("summary-local"));
+    assert_eq!(
+        config.workload_local_model("memory").as_deref(),
+        Some("summary-local")
+    );
     assert_eq!(config.workload_local_model("learning"), None);
     assert!(config.local_ai.usage.embeddings);
 }

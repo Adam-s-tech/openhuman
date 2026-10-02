@@ -61,11 +61,19 @@ fn limit() -> FieldSchema {
 }
 
 fn filter() -> FieldSchema {
-    opt("filter", TypeSchema::Json, "MetaFilter: metadata fields, kinds, sources, tags_any, observed_after/before.")
+    opt(
+        "filter",
+        TypeSchema::Json,
+        "MetaFilter: metadata fields, kinds, sources, tags_any, observed_after/before.",
+    )
 }
 
 fn cursor() -> FieldSchema {
-    opt("cursor", TypeSchema::String, "Engine cursor from a previous page.")
+    opt(
+        "cursor",
+        TypeSchema::String,
+        "Engine cursor from a previous page.",
+    )
 }
 
 /// The schema of `function`; an unknown function gets the namespace's

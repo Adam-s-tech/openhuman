@@ -1,6 +1,6 @@
 use super::*;
-use std::collections::HashSet;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use tinymemory::{ItemKind, MetaFilter};
 
@@ -38,16 +38,28 @@ fn schema_and_permissions_follow_the_action() {
     assert!(!tool.description().is_empty());
     let schema = tool.parameters_schema();
     assert_eq!(schema["required"][0], "action");
-    assert_eq!(schema["properties"]["action"]["enum"].as_array().unwrap().len(), 4);
+    assert_eq!(
+        schema["properties"]["action"]["enum"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
     assert_eq!(tool.permission_level(), PermissionLevel::Write);
     for read in ["recall", "fetch"] {
         let args = json!({ "action": read });
-        assert_eq!(tool.permission_level_with_args(&args), PermissionLevel::ReadOnly);
+        assert_eq!(
+            tool.permission_level_with_args(&args),
+            PermissionLevel::ReadOnly
+        );
         assert!(tool.is_concurrency_safe(&args));
     }
     for write in ["learn", "forget"] {
         let args = json!({ "action": write });
-        assert_eq!(tool.permission_level_with_args(&args), PermissionLevel::Write);
+        assert_eq!(
+            tool.permission_level_with_args(&args),
+            PermissionLevel::Write
+        );
         assert!(!tool.is_concurrency_safe(&args));
     }
     assert_eq!(
@@ -197,7 +209,12 @@ async fn recall_without_a_thread_records_no_citations() {
         thread_id: None,
         ..facts()
     };
-    run_action(&config, &json!({"action": "learn", "text": "fact one"}), &no_thread).await;
+    run_action(
+        &config,
+        &json!({"action": "learn", "text": "fact one"}),
+        &no_thread,
+    )
+    .await;
     let result = run_action(
         &config,
         &json!({"action": "recall", "question": "fact one"}),
@@ -247,10 +264,16 @@ fn turn_citations_are_capped_and_deduplicated() {
     let drained = take_turn_citations(thread);
     assert_eq!(drained.len(), MAX_TURN_CITATIONS);
     assert_eq!(
-        drained.iter().map(|c| c.id.clone()).collect::<HashSet<_>>().len(),
+        drained
+            .iter()
+            .map(|c| c.id.clone())
+            .collect::<HashSet<_>>()
+            .len(),
         MAX_TURN_CITATIONS
     );
-    assert!(drained[0].snippet.chars().count() <= crate::memory::types::TURN_CITATION_SNIPPET_CHARS);
+    assert!(
+        drained[0].snippet.chars().count() <= crate::memory::types::TURN_CITATION_SNIPPET_CHARS
+    );
     assert_eq!(drained[0].key, "learning");
 }
 

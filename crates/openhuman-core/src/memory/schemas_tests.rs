@@ -1,8 +1,8 @@
 use super::*;
+use crate::config::Config;
 use crate::core::runtime::context::CoreContext;
 use crate::core::runtime::DomainSet;
 use crate::memory::test_fixtures::{bind_reference, config_in};
-use crate::config::Config;
 use serde_json::{json, Map, Value};
 
 /// Every method of the spec's RPC table (`docs/specs/memory-v2.md`), exactly.
@@ -166,21 +166,31 @@ async fn read_handlers_answer_over_a_bound_engine() {
     let config = config_in(&tmp);
     bind_reference(&config);
 
-    let learned = call(&config, "learn", json!({"text": "Likes oolong", "kind": "preference"}))
-        .await
-        .unwrap();
+    let learned = call(
+        &config,
+        "learn",
+        json!({"text": "Likes oolong", "kind": "preference"}),
+    )
+    .await
+    .unwrap();
     let learned = learned.get("result").unwrap_or(&learned).clone();
     let id = learned["id"].as_str().expect("id").to_string();
 
-    let listed = call(&config, "items_list", json!({"limit": 5})).await.unwrap();
+    let listed = call(&config, "items_list", json!({"limit": 5}))
+        .await
+        .unwrap();
     let listed = listed.get("result").unwrap_or(&listed);
     assert_eq!(listed["items"].as_array().unwrap().len(), 1);
 
-    let recalled = call(&config, "recall", json!({"question": "oolong"})).await.unwrap();
+    let recalled = call(&config, "recall", json!({"question": "oolong"}))
+        .await
+        .unwrap();
     let recalled = recalled.get("result").unwrap_or(&recalled);
     assert!(!recalled["citations"].as_array().unwrap().is_empty());
 
-    let fetched = call(&config, "fetch", json!({"query": "oolong"})).await.unwrap();
+    let fetched = call(&config, "fetch", json!({"query": "oolong"}))
+        .await
+        .unwrap();
     let fetched = fetched.get("result").unwrap_or(&fetched);
     assert_eq!(fetched["hits"].as_array().unwrap().len(), 1);
 
@@ -241,7 +251,11 @@ async fn settings_handlers_validate_persist_and_report() {
     let got = call(&config, "context_get", json!({})).await.unwrap();
     assert!(got.get("result").unwrap_or(&got).get("markdown").is_some());
     let convo = call(&config, "conversations_get", json!({})).await.unwrap();
-    assert!(convo.get("result").unwrap_or(&convo).get("recent").is_some());
+    assert!(convo
+        .get("result")
+        .unwrap_or(&convo)
+        .get("recent")
+        .is_some());
 }
 
 #[tokio::test]
@@ -269,7 +283,10 @@ async fn engine_set_persists_the_selection_and_rejects_unknown_engines() {
     assert_eq!(view["endpoint"], "https://cortex.example.test");
     let saved = std::fs::read_to_string(&config.config_path).unwrap();
     assert!(saved.contains("cortexdb"), "{saved}");
-    assert!(!saved.contains("cdb-test-key"), "the key never lands in config");
+    assert!(
+        !saved.contains("cdb-test-key"),
+        "the key never lands in config"
+    );
 }
 
 #[tokio::test]
@@ -293,9 +310,13 @@ async fn source_handlers_add_remove_and_sync() {
     let saved = std::fs::read_to_string(&config.config_path).unwrap();
     assert!(saved.contains("Docs"), "{saved}");
 
-    let bad_kind = call(&config, "sources_add", json!({"kind": "twitter", "target": "x"}))
-        .await
-        .unwrap_err();
+    let bad_kind = call(
+        &config,
+        "sources_add",
+        json!({"kind": "twitter", "target": "x"}),
+    )
+    .await
+    .unwrap_err();
     assert!(bad_kind.contains("INVALID_REQUEST"));
 
     let none = call(&config, "sources_list", json!({})).await.unwrap();
@@ -308,7 +329,9 @@ async fn source_handlers_add_remove_and_sync() {
 
     let unknown_sync = {
         bind_reference(&config);
-        call(&config, "sources_sync", json!({"id": "src-missing"})).await.unwrap_err()
+        call(&config, "sources_sync", json!({"id": "src-missing"}))
+            .await
+            .unwrap_err()
     };
     assert!(unknown_sync.contains("INVALID_REQUEST"));
 }
@@ -321,7 +344,10 @@ async fn import_handlers_report_scan_and_refuse_without_consent() {
     assert_eq!(scan.get("result").unwrap_or(&scan)["found"], false);
 
     let status = call(&config, "import_status", json!({})).await.unwrap();
-    assert_eq!(status.get("result").unwrap_or(&status)["state"]["phase"], "idle");
+    assert_eq!(
+        status.get("result").unwrap_or(&status)["state"]["phase"],
+        "idle"
+    );
 
     let refused = call(&config, "import_start", json!({"consent": false}))
         .await

@@ -51,7 +51,7 @@
 
 use std::path::PathBuf;
 
-use crate::threads::store as store;
+use crate::threads::store;
 
 use super::{
     ConversationMessage, ConversationMessagePatch, ConversationPurgeStats, ConversationStore,

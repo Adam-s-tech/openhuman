@@ -62,7 +62,9 @@ struct ThreadCounter {
 }
 
 fn state_path(workspace_dir: &Path) -> PathBuf {
-    workspace_dir.join("memory").join("conversations_state.json")
+    workspace_dir
+        .join("memory")
+        .join("conversations_state.json")
 }
 
 fn read_state(workspace_dir: &Path) -> ConversationsState {
@@ -92,7 +94,9 @@ fn write_state(workspace_dir: &Path, state: &ConversationsState) {
 
 /// Claims the next turn index of `thread_id`.
 fn next_turn_index(workspace_dir: &Path, thread_id: &str, now: DateTime<Utc>) -> u32 {
-    let _guard = STATE_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = STATE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut state = read_state(workspace_dir);
     let counter = state
         .threads
@@ -121,7 +125,9 @@ fn next_turn_index(workspace_dir: &Path, thread_id: &str, now: DateTime<Utc>) ->
 }
 
 fn remember_stored(workspace_dir: &Path, batch: &Batch, stored_at: DateTime<Utc>) {
-    let _guard = STATE_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = STATE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut state = read_state(workspace_dir);
     state.recent.insert(
         0,
@@ -156,7 +162,9 @@ pub async fn record_turn(config: &Config, turn: CommittedTurn) {
     }
     let index = next_turn_index(&config.workspace_dir, &turn.thread_id, turn.at);
     let ready = {
-        let mut buffers = BUFFERS.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut buffers = BUFFERS
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         buffers
             .entry(config.workspace_dir.clone())
             .or_default()
@@ -170,7 +178,9 @@ pub async fn record_turn(config: &Config, turn: CommittedTurn) {
 /// Stores every thread idle for `idle_secs` at `now`.
 pub async fn flush_idle(config: &Config, now: DateTime<Utc>) -> usize {
     let ready = {
-        let mut buffers = BUFFERS.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut buffers = BUFFERS
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         buffers
             .get_mut(&config.workspace_dir)
             .map(|buffer| buffer.take_idle(now, config.memory.conversations.idle_secs))
@@ -187,7 +197,9 @@ pub async fn flush_idle(config: &Config, now: DateTime<Utc>) -> usize {
 /// off, so nothing buffered is silently lost).
 pub async fn flush_all(config: &Config) -> usize {
     let ready = {
-        let mut buffers = BUFFERS.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut buffers = BUFFERS
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         buffers
             .get_mut(&config.workspace_dir)
             .map(ConversationBuffer::take_all)
@@ -247,7 +259,10 @@ pub async fn forget_channel(config: &Config, channel: &str) -> MemoryResult<usiz
         .engine
         .forget(tinymemory::ForgetTarget::Filter(filter))
         .await?;
-    tracing::debug!(forgotten = report.forgotten, "[memory:conversations] channel forgotten");
+    tracing::debug!(
+        forgotten = report.forgotten,
+        "[memory:conversations] channel forgotten"
+    );
     Ok(report.forgotten)
 }
 

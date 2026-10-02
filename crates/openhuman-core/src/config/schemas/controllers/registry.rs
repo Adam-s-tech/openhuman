@@ -5,11 +5,10 @@ use crate::core::ControllerSchema;
 
 use super::super::schema_defs::schemas;
 use super::agent::{
-    handle_get_agent_settings, handle_get_autonomy_settings,
-    handle_get_privacy_mode, handle_get_sandbox_settings, handle_set_browser_allow_all,
-    handle_set_privacy_mode, handle_update_agent_settings, handle_update_autonomy_settings,
-    handle_update_browser_settings, handle_update_computer_settings,
-    handle_update_sandbox_settings,
+    handle_get_agent_settings, handle_get_autonomy_settings, handle_get_privacy_mode,
+    handle_get_sandbox_settings, handle_set_browser_allow_all, handle_set_privacy_mode,
+    handle_update_agent_settings, handle_update_autonomy_settings, handle_update_browser_settings,
+    handle_update_computer_settings, handle_update_sandbox_settings,
 };
 use super::inference::{
     handle_get_client_config, handle_get_config, handle_get_runtime_flags, handle_resolve_api_url,

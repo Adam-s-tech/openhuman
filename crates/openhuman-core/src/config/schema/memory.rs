@@ -272,8 +272,8 @@ where
 pub(crate) fn decode_sources_lenient(raw: Vec<serde_json::Value>) -> Vec<MemorySourceConfig> {
     raw.into_iter()
         .enumerate()
-        .filter_map(|(index, value)| {
-            match serde_json::from_value::<MemorySourceConfig>(value) {
+        .filter_map(
+            |(index, value)| match serde_json::from_value::<MemorySourceConfig>(value) {
                 Ok(entry) => Some(entry),
                 Err(error) => {
                     tracing::warn!(
@@ -283,8 +283,8 @@ pub(crate) fn decode_sources_lenient(raw: Vec<serde_json::Value>) -> Vec<MemoryS
                     );
                     None
                 }
-            }
-        })
+            },
+        )
         .collect()
 }
 

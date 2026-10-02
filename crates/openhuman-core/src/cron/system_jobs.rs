@@ -17,7 +17,9 @@ use anyhow::Result;
 use crate::config::Config;
 use crate::memory::bus::{CONTEXT_REFRESH_JOB, SOURCES_SYNC_JOB};
 
-use super::{add_flow_schedule_job, list_jobs, update_job, CronJob, CronJobPatch, JobType, Schedule};
+use super::{
+    add_flow_schedule_job, list_jobs, update_job, CronJob, CronJobPatch, JobType, Schedule,
+};
 
 /// Command prefix that marks a `flow` row as a system job.
 pub const SYSTEM_COMMAND_PREFIX: &str = "system:";

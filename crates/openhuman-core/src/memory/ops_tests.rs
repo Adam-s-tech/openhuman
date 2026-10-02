@@ -44,12 +44,19 @@ async fn every_engine_operation_reports_memory_off_without_an_engine() {
     .unwrap_err();
     assert_eq!(fetch_error.code(), MEMORY_OFF);
 
-    let learn_error = learn(&config, learn_params("a fact"), None).await.unwrap_err();
-    assert_eq!(learn_error.code(), MEMORY_OFF);
-
-    let forget_error = forget(&config, ForgetParams { ids: vec!["a".into()] })
+    let learn_error = learn(&config, learn_params("a fact"), None)
         .await
         .unwrap_err();
+    assert_eq!(learn_error.code(), MEMORY_OFF);
+
+    let forget_error = forget(
+        &config,
+        ForgetParams {
+            ids: vec!["a".into()],
+        },
+    )
+    .await
+    .unwrap_err();
     assert_eq!(forget_error.code(), MEMORY_OFF);
 
     let list_error = items_list(&config, ItemsListParams::default())
@@ -74,9 +81,13 @@ async fn learn_recall_fetch_list_and_forget_round_trip() {
     let config = config_in(&tmp);
     let engine = bind_reference(&config);
 
-    let learned = learn(&config, learn_params("The user prefers dark roast coffee"), None)
-        .await
-        .unwrap();
+    let learned = learn(
+        &config,
+        learn_params("The user prefers dark roast coffee"),
+        None,
+    )
+    .await
+    .unwrap();
     assert!(!learned.id.is_empty());
 
     let answer = recall(
@@ -108,7 +119,9 @@ async fn learn_recall_fetch_list_and_forget_round_trip() {
     .unwrap();
     assert_eq!(page.hits.len(), 1);
 
-    let listed = items_list(&config, ItemsListParams::default()).await.unwrap();
+    let listed = items_list(&config, ItemsListParams::default())
+        .await
+        .unwrap();
     assert_eq!(listed.items.len(), 1);
     assert_eq!(listed.items[0].id.0, learned.id);
 
@@ -135,9 +148,14 @@ async fn forget_needs_an_id() {
     let tmp = tempfile::tempdir().unwrap();
     let config = config_in(&tmp);
     bind_reference(&config);
-    let error = forget(&config, ForgetParams { ids: vec![" ".into()] })
-        .await
-        .unwrap_err();
+    let error = forget(
+        &config,
+        ForgetParams {
+            ids: vec![" ".into()],
+        },
+    )
+    .await
+    .unwrap_err();
     assert_eq!(error.code(), INVALID_REQUEST);
 }
 
@@ -176,7 +194,11 @@ fn host_meta_wins_over_caller_meta() {
     let meta = item.meta();
     assert_eq!(meta.thread_id.as_deref(), Some("t-real"));
     assert_eq!(meta.agent_id.as_deref(), Some("orchestrator"));
-    assert_eq!(meta.repo.as_deref(), Some("owner/repo"), "caller fields kept");
+    assert_eq!(
+        meta.repo.as_deref(),
+        Some("owner/repo"),
+        "caller fields kept"
+    );
     assert_eq!(meta.source.kind, SourceKind::Agent);
     assert_eq!(meta.tags, vec!["mine".to_string(), "host".to_string()]);
     assert!(meta.observed_at.is_some());
@@ -223,7 +245,9 @@ async fn stores_are_scrubbed_of_secrets() {
     .unwrap();
     let items = stored(&engine, MetaFilter::default()).await;
     assert_eq!(items.len(), 1);
-    assert!(!items[0].text.contains("abcdefghijklmnopqrstuvwxyz0123456789"));
+    assert!(!items[0]
+        .text
+        .contains("abcdefghijklmnopqrstuvwxyz0123456789"));
 }
 
 #[test]

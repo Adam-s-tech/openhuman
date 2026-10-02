@@ -1,6 +1,6 @@
 use super::*;
-use std::sync::atomic::{AtomicBool, Ordering};
 use crate::config::schema::SchedulerGateMode;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 fn calm() -> Signals {
     Signals {

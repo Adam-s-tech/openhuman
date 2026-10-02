@@ -43,7 +43,9 @@ fn threads_are_batched_independently() {
     let mut buffer = ConversationBuffer::default();
     assert!(buffer.push(turn("a", "1", "1", 0), 0, 2).is_none());
     assert!(buffer.push(turn("b", "1", "1", 0), 0, 2).is_none());
-    let full = buffer.push(turn("a", "2", "2", 1), 1, 2).expect("a is full");
+    let full = buffer
+        .push(turn("a", "2", "2", 1), 1, 2)
+        .expect("a is full");
     assert_eq!(full.thread_id, "a");
     assert_eq!(buffer.pending("a"), 0);
     assert_eq!(buffer.pending("b"), 1);
@@ -124,7 +126,13 @@ fn into_item_carries_meta_and_keeps_tool_call_names_and_ids_only() {
     assert_eq!(meta.thread_id.as_deref(), Some("thread-9"));
     assert_eq!(meta.agent_id.as_deref(), Some("orchestrator"));
     assert_eq!(meta.workspace.as_deref(), Some("/work"));
-    assert_eq!(meta.turns, Some(TurnRange { first: 10, last: 11 }));
+    assert_eq!(
+        meta.turns,
+        Some(TurnRange {
+            first: 10,
+            last: 11
+        })
+    );
     assert_eq!(meta.source.kind, SourceKind::Conversation);
     assert_eq!(meta.source.id.as_deref(), Some("thread-9"));
     assert_eq!(meta.tags, vec!["channel:web".to_string()]);
@@ -140,7 +148,10 @@ fn into_item_carries_meta_and_keeps_tool_call_names_and_ids_only() {
     assert!(turns[0].tool_calls.is_empty());
     // The serialised item has no place for arguments.
     let json = serde_json::to_string(&turns[1].tool_calls).unwrap();
-    assert!(!json.contains("arguments") && !json.contains("args"), "{json}");
+    assert!(
+        !json.contains("arguments") && !json.contains("args"),
+        "{json}"
+    );
 }
 
 #[test]

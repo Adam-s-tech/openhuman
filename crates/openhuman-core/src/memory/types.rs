@@ -466,7 +466,11 @@ impl From<&Citation> for TurnCitation {
                 .observed_at
                 .map(|at| at.to_rfc3339())
                 .unwrap_or_default(),
-            snippet: citation.snippet.chars().take(TURN_CITATION_SNIPPET_CHARS).collect(),
+            snippet: citation
+                .snippet
+                .chars()
+                .take(TURN_CITATION_SNIPPET_CHARS)
+                .collect(),
         }
     }
 }

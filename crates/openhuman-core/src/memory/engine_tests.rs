@@ -53,7 +53,10 @@ fn tinyhumans_with_the_host_credential_binds_and_caches() {
     assert_eq!(first.id, TINYHUMANS_ENGINE);
     assert_eq!(first.endpoint, "https://memory.example.test");
     let second = resolve(&config).engine().expect("bound again");
-    assert!(Arc::ptr_eq(&first.engine, &second.engine), "cached engine reused");
+    assert!(
+        Arc::ptr_eq(&first.engine, &second.engine),
+        "cached engine reused"
+    );
 }
 
 #[test]
@@ -77,7 +80,10 @@ fn cortexdb_is_off_until_a_key_is_stored_and_rebuilds_on_a_new_key() {
     assert!(!has_key(&config, CORTEXDB_ENGINE));
 
     store_cortexdb_key(&config, "  cdb-key-one  ").unwrap();
-    assert_eq!(read_cortexdb_key(&config).unwrap().as_deref(), Some("cdb-key-one"));
+    assert_eq!(
+        read_cortexdb_key(&config).unwrap().as_deref(),
+        Some("cdb-key-one")
+    );
     assert!(has_key(&config, CORTEXDB_ENGINE));
     let first = resolve(&config).engine().expect("bound");
     assert_eq!(first.id, CORTEXDB_ENGINE);

@@ -27,10 +27,16 @@ async fn stores_buffered_turns_on_exit() {
     let engine = bind_reference(&config);
 
     conversations::record_turn(&config, turn("t-exit")).await;
-    assert_eq!(conversations::pending_turns(&config.workspace_dir, "t-exit"), 1);
+    assert_eq!(
+        conversations::pending_turns(&config.workspace_dir, "t-exit"),
+        1
+    );
 
     assert_eq!(run(&config).await, Some(1));
-    assert_eq!(conversations::pending_turns(&config.workspace_dir, "t-exit"), 0);
+    assert_eq!(
+        conversations::pending_turns(&config.workspace_dir, "t-exit"),
+        0
+    );
     let items = stored(
         &engine,
         MetaFilter {
@@ -46,5 +52,8 @@ async fn stores_buffered_turns_on_exit() {
 async fn nothing_buffered_flushes_nothing() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let config = config_in(&tmp);
-    assert_eq!(run_within(&config, Duration::from_millis(500)).await, Some(0));
+    assert_eq!(
+        run_within(&config, Duration::from_millis(500)).await,
+        Some(0)
+    );
 }

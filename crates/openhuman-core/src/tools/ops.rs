@@ -19,7 +19,6 @@ use tinytools_std::filesystem::{
 };
 use tinytools_std::network::{CurlTool, PushoverTool};
 
-
 /// Create the default tool registry
 pub fn default_tools(security: Arc<SecurityPolicy>) -> Vec<Box<dyn Tool>> {
     default_tools_with_runtime(security, Arc::new(NativeRuntime::new()))

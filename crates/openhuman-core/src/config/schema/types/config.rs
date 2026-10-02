@@ -473,7 +473,6 @@ pub struct Config {
 
     #[serde(default)]
     pub model_registry: Vec<ModelRegistryEntry>,
-
 }
 
 /// Shared default so `#[serde(default)]` and `Config::default()` stay in sync.

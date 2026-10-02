@@ -8,8 +8,14 @@ fn defaults_select_tinyhumans_with_ingest_and_context_on() {
     assert!(config.engines.is_empty());
     assert!(config.sources.is_empty());
     assert!(config.conversations.enabled);
-    assert_eq!(config.conversations.batch_turns, DEFAULT_CONVERSATION_BATCH_TURNS);
-    assert_eq!(config.conversations.idle_secs, DEFAULT_CONVERSATION_IDLE_SECS);
+    assert_eq!(
+        config.conversations.batch_turns,
+        DEFAULT_CONVERSATION_BATCH_TURNS
+    );
+    assert_eq!(
+        config.conversations.idle_secs,
+        DEFAULT_CONVERSATION_IDLE_SECS
+    );
     assert!(config.context.enabled);
     assert_eq!(config.context.interval_mins, DEFAULT_CONTEXT_INTERVAL_MINS);
     assert_eq!(config.context.budget_tokens, DEFAULT_CONTEXT_BUDGET_TOKENS);
@@ -108,7 +114,10 @@ fn endpoint_for_ignores_blank_and_missing_endpoints() {
             endpoint: Some(" https://c.example ".into()),
         },
     );
-    assert_eq!(config.endpoint_for("cortexdb").as_deref(), Some("https://c.example"));
+    assert_eq!(
+        config.endpoint_for("cortexdb").as_deref(),
+        Some("https://c.example")
+    );
 }
 
 #[test]
@@ -120,19 +129,46 @@ fn source_kind_round_trips_its_wire_names() {
             json!(kind.as_str())
         );
     }
-    assert_eq!(MemorySourceKind::parse(" FOLDER "), Some(MemorySourceKind::Folder));
+    assert_eq!(
+        MemorySourceKind::parse(" FOLDER "),
+        Some(MemorySourceKind::Folder)
+    );
     assert_eq!(MemorySourceKind::parse("twitter_query"), None);
 }
 
 #[test]
 fn migrates_every_mappable_legacy_kind() {
     let cases = [
-        (json!({"id":"a","kind":"folder","path":"/p"}), MemorySourceKind::Folder, "/p"),
-        (json!({"id":"b","kind":"file","path":"/f.md"}), MemorySourceKind::File, "/f.md"),
-        (json!({"id":"c","kind":"web_page","url":"https://w"}), MemorySourceKind::Link, "https://w"),
-        (json!({"id":"d","kind":"github_repo","url":"o/r"}), MemorySourceKind::Github, "o/r"),
-        (json!({"id":"e","kind":"rss_feed","url":"https://f"}), MemorySourceKind::Rss, "https://f"),
-        (json!({"id":"f","kind":"composio","toolkit":"gmail"}), MemorySourceKind::Composio, "gmail"),
+        (
+            json!({"id":"a","kind":"folder","path":"/p"}),
+            MemorySourceKind::Folder,
+            "/p",
+        ),
+        (
+            json!({"id":"b","kind":"file","path":"/f.md"}),
+            MemorySourceKind::File,
+            "/f.md",
+        ),
+        (
+            json!({"id":"c","kind":"web_page","url":"https://w"}),
+            MemorySourceKind::Link,
+            "https://w",
+        ),
+        (
+            json!({"id":"d","kind":"github_repo","url":"o/r"}),
+            MemorySourceKind::Github,
+            "o/r",
+        ),
+        (
+            json!({"id":"e","kind":"rss_feed","url":"https://f"}),
+            MemorySourceKind::Rss,
+            "https://f",
+        ),
+        (
+            json!({"id":"f","kind":"composio","toolkit":"gmail"}),
+            MemorySourceKind::Composio,
+            "gmail",
+        ),
     ];
     for (legacy, kind, target) in cases {
         let migrated = migrate_legacy_source(&legacy).expect("mappable kind migrates");

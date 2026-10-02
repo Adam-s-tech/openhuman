@@ -482,4 +482,3 @@ impl Default for AgentConfig {
         }
     }
 }
-

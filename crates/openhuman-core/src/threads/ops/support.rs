@@ -6,8 +6,8 @@ use crate::config::Config;
 use crate::core::runtime::context::CoreContext;
 use crate::threads::store as conversations;
 use crate::threads::store::{ConversationMessage, ConversationThread};
-use crate::threads::{ConversationMessageRecord, ConversationThreadSummary};
 use crate::threads::THREAD_TITLE_LOG_PREFIX;
+use crate::threads::{ConversationMessageRecord, ConversationThreadSummary};
 use std::path::PathBuf;
 use tinyagents_harness::title::{title_from_user_message, title_log_fingerprint};
 

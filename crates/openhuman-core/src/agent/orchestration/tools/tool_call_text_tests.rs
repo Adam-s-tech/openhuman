@@ -2,7 +2,9 @@ use super::*;
 
 #[test]
 fn prose_is_not_a_tool_call() {
-    assert!(!looks_like_unexecuted_tool_call("All done, the file is saved."));
+    assert!(!looks_like_unexecuted_tool_call(
+        "All done, the file is saved."
+    ));
     assert!(!contains_tool_call_payload("All done."));
     assert_eq!(strip_tool_calls_from_response("  plain  "), "  plain  ");
 }
@@ -23,10 +25,16 @@ fn stripping_keeps_only_the_prose() {
 
 #[test]
 fn an_unclosed_tag_drops_the_tail() {
-    assert_eq!(strip_tool_calls_from_response("Keep <tool_call>{\"a\":1"), "Keep");
+    assert_eq!(
+        strip_tool_calls_from_response("Keep <tool_call>{\"a\":1"),
+        "Keep"
+    );
 }
 
 #[test]
 fn a_pure_payload_strips_to_empty() {
-    assert_eq!(strip_tool_calls_from_response("<tool_call>{}</tool_call>"), "");
+    assert_eq!(
+        strip_tool_calls_from_response("<tool_call>{}</tool_call>"),
+        ""
+    );
 }

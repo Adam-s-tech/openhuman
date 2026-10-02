@@ -117,9 +117,15 @@ fn ensure_memory_jobs_seeds_both_jobs_and_follows_the_context_interval() {
 
     // Re-running changes nothing; a new interval reschedules only the refresh.
     ensure_memory_jobs(&config).unwrap();
-    assert_eq!(system_rows(&config, CONTEXT_REFRESH_JOB)[0].id, refresh[0].id);
+    assert_eq!(
+        system_rows(&config, CONTEXT_REFRESH_JOB)[0].id,
+        refresh[0].id
+    );
     config.memory.context.interval_mins = 120;
     ensure_memory_jobs(&config).unwrap();
-    assert_eq!(system_rows(&config, CONTEXT_REFRESH_JOB)[0].schedule, every(120));
+    assert_eq!(
+        system_rows(&config, CONTEXT_REFRESH_JOB)[0].schedule,
+        every(120)
+    );
     assert_eq!(system_rows(&config, SOURCES_SYNC_JOB)[0].id, sync[0].id);
 }

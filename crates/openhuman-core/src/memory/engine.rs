@@ -135,7 +135,11 @@ pub fn resolve(config: &Config) -> Binding {
         "" => off(None, None, "no memory engine selected"),
         other => {
             tracing::warn!(engine = %other, "[memory:engine] unknown engine id in config");
-            off(None, None, "the configured memory engine is not available in this build")
+            off(
+                None,
+                None,
+                "the configured memory engine is not available in this build",
+            )
         }
     }
 }
@@ -161,7 +165,11 @@ fn resolve_tinyhumans(config: &Config) -> Binding {
             Ok(url) => url,
             Err(error) => {
                 tracing::debug!(error = %error, "[memory:engine] no backend origin for tinyhumans");
-                return off(Some(TINYHUMANS_ENGINE), None, "no TinyHumans backend is available");
+                return off(
+                    Some(TINYHUMANS_ENGINE),
+                    None,
+                    "no TinyHumans backend is available",
+                );
             }
         },
     };
@@ -172,7 +180,10 @@ fn resolve_tinyhumans(config: &Config) -> Binding {
             "sign in to use TinyHumans memory",
         );
     }
-    let fingerprint = format!("{TINYHUMANS_ENGINE}|{endpoint}|{}", config.config_path.display());
+    let fingerprint = format!(
+        "{TINYHUMANS_ENGINE}|{endpoint}|{}",
+        config.config_path.display()
+    );
     let source: Arc<dyn BearerSource> = Arc::new(HostBearer {
         config: Arc::new(config.clone()),
     });
@@ -257,7 +268,11 @@ fn build_cached(
 /// A short, non-reversible identity of a key for the cache fingerprint.
 fn key_digest(key: &str) -> String {
     let digest = Sha256::digest(key.as_bytes());
-    digest.iter().take(8).map(|byte| format!("{byte:02x}")).collect()
+    digest
+        .iter()
+        .take(8)
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 /// Drops every cached engine, so the next [`resolve`] rebuilds.

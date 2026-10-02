@@ -95,4 +95,3 @@ async fn embedder_tool_hooks_post_use_without_pre_call_falls_back_to_null() {
     assert_eq!(post[0].1, serde_json::Value::Null);
     assert_eq!(post[0].2, Some(true));
 }
-

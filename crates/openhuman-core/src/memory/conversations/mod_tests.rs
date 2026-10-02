@@ -19,7 +19,9 @@ fn turn(thread: &str, text: &str, at: DateTime<Utc>) -> CommittedTurn {
     }
 }
 
-async fn conversations_in(engine: &tinymemory::conformance::ReferenceEngine) -> Vec<tinymemory::Hit> {
+async fn conversations_in(
+    engine: &tinymemory::conformance::ReferenceEngine,
+) -> Vec<tinymemory::Hit> {
     stored(
         engine,
         MetaFilter {
@@ -76,14 +78,23 @@ async fn idle_threads_are_flushed_without_waiting_on_a_clock() {
     let started = Utc::now();
 
     record_turn(&config, turn("t-idle", "hello", started)).await;
-    assert_eq!(flush_idle(&config, started + Duration::seconds(119)).await, 0);
+    assert_eq!(
+        flush_idle(&config, started + Duration::seconds(119)).await,
+        0
+    );
     assert!(conversations_in(&engine).await.is_empty());
     assert_eq!(pending_turns(&config.workspace_dir, "t-idle"), 1);
 
-    assert_eq!(flush_idle(&config, started + Duration::seconds(120)).await, 1);
+    assert_eq!(
+        flush_idle(&config, started + Duration::seconds(120)).await,
+        1
+    );
     assert_eq!(conversations_in(&engine).await.len(), 1);
     assert_eq!(pending_turns(&config.workspace_dir, "t-idle"), 0);
-    assert_eq!(flush_idle(&config, started + Duration::seconds(500)).await, 0);
+    assert_eq!(
+        flush_idle(&config, started + Duration::seconds(500)).await,
+        0
+    );
 }
 
 #[tokio::test]
@@ -198,7 +209,10 @@ fn thread_counters_are_pruned_oldest_first() {
     let after = read_state(ws);
     assert_eq!(after.threads.len(), THREAD_COUNTER_LIMIT);
     assert!(after.threads.contains_key("fresh"));
-    assert!(!after.threads.contains_key("old-0000"), "the oldest went first");
+    assert!(
+        !after.threads.contains_key("old-0000"),
+        "the oldest went first"
+    );
 }
 
 #[test]
@@ -229,7 +243,9 @@ async fn forget_channel_removes_only_that_channels_conversations() {
 
     let tmp_off = tempfile::tempdir().unwrap();
     assert_eq!(
-        forget_channel(&config_in(&tmp_off), "telegram").await.unwrap(),
+        forget_channel(&config_in(&tmp_off), "telegram")
+            .await
+            .unwrap(),
         0,
         "memory off forgets nothing and is not an error"
     );

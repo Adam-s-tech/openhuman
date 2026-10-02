@@ -36,7 +36,10 @@ fn legacy_workspace(workspace_dir: &Path) {
     memory_doc(&conn, "d1", "notes", "Plan", "Ship memory v2 on Friday");
     memory_doc(&conn, "d2", "notes", "Ideas", "Try oolong tea");
     memory_doc(&conn, "d3", "learning:style", "Style", "Keep answers terse");
-    for (n, (role, text)) in [("user", "hi there"), ("assistant", "hello")].iter().enumerate() {
+    for (n, (role, text)) in [("user", "hi there"), ("assistant", "hello")]
+        .iter()
+        .enumerate()
+    {
         conn.execute(
             "INSERT INTO episodic_log (session_id, timestamp, role, content) VALUES ('s1', ?1, ?2, ?3)",
             params![1_700_000_000.0 + n as f64, role, text],
@@ -117,7 +120,10 @@ async fn start_needs_memory_on_and_a_legacy_store() {
     for _ in 0..2 {
         // The claim is released, so asking again gives the same answer rather
         // than a stale "already running" status.
-        assert_eq!(start(&empty, true).await.unwrap_err().code(), INVALID_REQUEST);
+        assert_eq!(
+            start(&empty, true).await.unwrap_err().code(),
+            INVALID_REQUEST
+        );
     }
 }
 
@@ -177,7 +183,9 @@ async fn an_interrupted_import_resumes_from_its_checkpoint() {
     let items = stored(&engine, MetaFilter::default()).await;
     assert_eq!(items.len(), 4, "d1 is not sent again");
     assert!(
-        !items.iter().any(|item| item.text.contains("Ship memory v2")),
+        !items
+            .iter()
+            .any(|item| item.text.contains("Ship memory v2")),
         "the checkpointed document was skipped"
     );
 }

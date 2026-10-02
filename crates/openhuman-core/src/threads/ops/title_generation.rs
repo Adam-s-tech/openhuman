@@ -6,11 +6,11 @@ use crate::config::Config;
 use crate::core::Outcome;
 use crate::inference::provider;
 use crate::threads::store as conversations;
+use crate::threads::ThreadsError;
+use crate::threads::THREAD_TITLE_LOG_PREFIX;
 use crate::threads::{
     ApiEnvelope, ConversationThreadSummary, GenerateConversationThreadTitleRequest,
 };
-use crate::threads::ThreadsError;
-use crate::threads::THREAD_TITLE_LOG_PREFIX;
 use tinyagents_harness::title::{
     build_title_request, is_auto_generated_thread_title, sanitize_generated_title,
     title_log_fingerprint,

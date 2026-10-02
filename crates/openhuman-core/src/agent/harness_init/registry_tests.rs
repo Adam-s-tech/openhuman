@@ -4,11 +4,7 @@ use super::*;
 fn all_steps_have_stable_ids_and_are_non_required() {
     let steps = all_steps();
     let ids: Vec<_> = steps.iter().map(|s| s.id).collect();
-    let mut expected = vec![
-        "python_runtime",
-        "kompress",
-        "runtime_python_server",
-    ];
+    let mut expected = vec!["python_runtime", "kompress", "runtime_python_server"];
     // `node_runtime` is a registration-site gate: it is absent (not
     // dead-but-listed) when the managed Node runtime is compiled out. `cfg!`
     // (not `#[cfg]`) keeps `expected` mutable-and-used in both builds — same

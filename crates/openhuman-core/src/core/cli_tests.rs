@@ -335,4 +335,3 @@ fn default_build_leaves_the_generic_namespace_path_unchanged() {
         "`memory_diff` was removed and must not be listed"
     );
 }
-

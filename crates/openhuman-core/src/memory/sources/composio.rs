@@ -15,7 +15,9 @@ use tinymemory::{DocumentBody, MemoryMeta, SourceKind, SourceRef, StoreItem};
 
 use crate::config::schema::MemorySourceConfig;
 use crate::config::Config;
-use crate::integrations::composio::ops::{active_connection_ids, run_sync_pass, SYNC_PASS_MAX_ITEMS};
+use crate::integrations::composio::ops::{
+    active_connection_ids, run_sync_pass, SYNC_PASS_MAX_ITEMS,
+};
 use crate::memory::engine::BoundEngine;
 use crate::memory::error::{MemoryError, MemoryResult};
 
@@ -120,7 +122,6 @@ pub async fn sync_toolkit(
     }
     Ok(stored)
 }
-
 
 /// The memory source id a Composio sync of `toolkit` files its items under:
 /// the configured `composio` source for the toolkit when there is one, else

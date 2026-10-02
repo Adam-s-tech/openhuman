@@ -96,7 +96,10 @@ fn add_list_and_remove_round_trip_through_config() {
     assert_eq!(added.schedule_mins, Some(60));
 
     let unlabeled = apply_add(&mut config, &add_params("github", "owner/repo")).unwrap();
-    assert_eq!(unlabeled.label, "https://github.com/owner/repo", "label defaults to the target");
+    assert_eq!(
+        unlabeled.label, "https://github.com/owner/repo",
+        "label defaults to the target"
+    );
 
     let listed = list(&config);
     assert_eq!(listed.len(), 2);
@@ -120,7 +123,9 @@ fn add_validates_kind_schedule_and_target() {
     let tmp = tempfile::tempdir().unwrap();
     let mut config = config_in(&tmp);
     assert_eq!(
-        apply_add(&mut config, &add_params("twitter", "x")).unwrap_err().code(),
+        apply_add(&mut config, &add_params("twitter", "x"))
+            .unwrap_err()
+            .code(),
         INVALID_REQUEST
     );
     assert_eq!(
@@ -136,10 +141,15 @@ fn add_validates_kind_schedule_and_target() {
         INVALID_REQUEST
     );
     assert_eq!(
-        apply_add(&mut config, &add_params("link", "nope")).unwrap_err().code(),
+        apply_add(&mut config, &add_params("link", "nope"))
+            .unwrap_err()
+            .code(),
         INVALID_REQUEST
     );
-    assert!(config.memory.sources.is_empty(), "a refused add changes nothing");
+    assert!(
+        config.memory.sources.is_empty(),
+        "a refused add changes nothing"
+    );
     // A Composio source needs no reader.
     apply_add(&mut config, &add_params("composio", "Gmail")).unwrap();
     assert_eq!(config.memory.sources[0].target, "gmail");
@@ -166,7 +176,10 @@ fn view_overlays_the_sync_state() {
 fn is_due_follows_schedule_and_status() {
     let now = Utc::now();
     let scheduled = source("s", Some(60));
-    assert!(!is_due(&source("manual", None), None, now), "on demand only");
+    assert!(
+        !is_due(&source("manual", None), None, now),
+        "on demand only"
+    );
     assert!(is_due(&scheduled, None, now), "never synced");
 
     let synced = |ago_mins: i64, status| state::SourceState {
@@ -174,10 +187,25 @@ fn is_due_follows_schedule_and_status() {
         status,
         ..state::SourceState::default()
     };
-    assert!(!is_due(&scheduled, Some(&synced(59, SourceStatus::Idle)), now));
-    assert!(is_due(&scheduled, Some(&synced(60, SourceStatus::Idle)), now));
-    assert!(is_due(&scheduled, Some(&synced(500, SourceStatus::Error)), now), "errors retry");
-    assert!(!is_due(&scheduled, Some(&synced(500, SourceStatus::Syncing)), now));
+    assert!(!is_due(
+        &scheduled,
+        Some(&synced(59, SourceStatus::Idle)),
+        now
+    ));
+    assert!(is_due(
+        &scheduled,
+        Some(&synced(60, SourceStatus::Idle)),
+        now
+    ));
+    assert!(
+        is_due(&scheduled, Some(&synced(500, SourceStatus::Error)), now),
+        "errors retry"
+    );
+    assert!(!is_due(
+        &scheduled,
+        Some(&synced(500, SourceStatus::Syncing)),
+        now
+    ));
     let no_last_sync = state::SourceState::default();
     assert!(is_due(&scheduled, Some(&no_last_sync), now));
 }

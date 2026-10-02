@@ -49,9 +49,13 @@ fn reader_entry_maps_every_kind() {
         label: "L".into(),
         schedule_mins: None,
     };
-    let folder = reader_entry(&mk(MemorySourceKind::Folder, "/p")).unwrap().unwrap();
+    let folder = reader_entry(&mk(MemorySourceKind::Folder, "/p"))
+        .unwrap()
+        .unwrap();
     assert_eq!(folder.path.as_deref(), Some("/p"));
-    let file = reader_entry(&mk(MemorySourceKind::File, "/p/a.md")).unwrap().unwrap();
+    let file = reader_entry(&mk(MemorySourceKind::File, "/p/a.md"))
+        .unwrap()
+        .unwrap();
     assert_eq!(file.path.as_deref(), Some("/p/a.md"));
     for (kind, target) in [
         (MemorySourceKind::Link, "https://example.com/"),
@@ -61,7 +65,9 @@ fn reader_entry_maps_every_kind() {
         let entry = reader_entry(&mk(kind, target)).unwrap().unwrap();
         assert_eq!(entry.url.as_deref(), Some(target));
     }
-    assert!(reader_entry(&mk(MemorySourceKind::Composio, "gmail")).unwrap().is_none());
+    assert!(reader_entry(&mk(MemorySourceKind::Composio, "gmail"))
+        .unwrap()
+        .is_none());
 }
 
 #[tokio::test]
@@ -91,12 +97,16 @@ async fn sync_one_reports_memory_off_and_unreadable_sources() {
     let tmp = tempfile::tempdir().unwrap();
     let config = config_in(&tmp);
     let dir = notes(&config, 1);
-    let off = sync_one(&config, &folder_source("s", &dir, None)).await.unwrap_err();
+    let off = sync_one(&config, &folder_source("s", &dir, None))
+        .await
+        .unwrap_err();
     assert_eq!(off.code(), crate::memory::error::MEMORY_OFF);
 
     bind_reference(&config);
     let missing = config.action_dir.join("does-not-exist");
-    assert!(sync_one(&config, &folder_source("s", &missing, None)).await.is_err());
+    assert!(sync_one(&config, &folder_source("s", &missing, None))
+        .await
+        .is_err());
 }
 
 #[tokio::test]
@@ -105,7 +115,10 @@ async fn start_sync_walks_syncing_then_idle_and_records_items() {
     let mut config = config_in(&tmp);
     bind_reference(&config);
     let dir = notes(&config, 2);
-    config.memory.sources.push(folder_source("src-ok", &dir, None));
+    config
+        .memory
+        .sources
+        .push(folder_source("src-ok", &dir, None));
 
     let started = start_sync(&config, Some("src-ok")).unwrap();
     assert_eq!(started, vec!["src-ok".to_string()]);
@@ -127,7 +140,10 @@ async fn a_failing_sync_lands_in_error_with_the_message() {
     let mut config = config_in(&tmp);
     bind_reference(&config);
     let missing = config.action_dir.join("vanished");
-    config.memory.sources.push(folder_source("src-bad", &missing, None));
+    config
+        .memory
+        .sources
+        .push(folder_source("src-bad", &missing, None));
 
     start_sync(&config, None).unwrap();
     let done = wait_for_idle(&config, "src-bad").await;
@@ -149,7 +165,10 @@ fn start_sync_refuses_unknown_ids_and_memory_off() {
         start_sync(&config, Some("src-nope")).unwrap_err().code(),
         INVALID_REQUEST
     );
-    assert!(start_sync(&config, None).unwrap().is_empty(), "no sources, nothing started");
+    assert!(
+        start_sync(&config, None).unwrap().is_empty(),
+        "no sources, nothing started"
+    );
 }
 
 #[tokio::test]
@@ -158,7 +177,10 @@ async fn a_source_already_syncing_is_not_started_twice() {
     let mut config = config_in(&tmp);
     bind_reference(&config);
     let dir = notes(&config, 1);
-    config.memory.sources.push(folder_source("src-once", &dir, None));
+    config
+        .memory
+        .sources
+        .push(folder_source("src-once", &dir, None));
     let key = (config.workspace_dir.clone(), "src-once".to_string());
     RUNNING.lock().unwrap().insert(key.clone());
     assert!(start_sync(&config, Some("src-once")).unwrap().is_empty());
@@ -173,9 +195,18 @@ async fn sync_due_starts_only_scheduled_sources_that_are_due() {
     let mut config = config_in(&tmp);
     bind_reference(&config);
     let dir = notes(&config, 1);
-    config.memory.sources.push(folder_source("src-sched", &dir, Some(15)));
-    config.memory.sources.push(folder_source("src-manual", &dir, None));
-    config.memory.sources.push(folder_source("src-fresh", &dir, Some(15)));
+    config
+        .memory
+        .sources
+        .push(folder_source("src-sched", &dir, Some(15)));
+    config
+        .memory
+        .sources
+        .push(folder_source("src-manual", &dir, None));
+    config
+        .memory
+        .sources
+        .push(folder_source("src-fresh", &dir, Some(15)));
     let now = Utc::now();
     state::update(&config.workspace_dir, "src-fresh", |s| {
         s.last_sync_at = Some(now);
@@ -198,7 +229,10 @@ async fn sync_due_starts_only_scheduled_sources_that_are_due() {
 fn sync_due_with_memory_off_starts_nothing() {
     let tmp = tempfile::tempdir().unwrap();
     let mut config = config_in(&tmp);
-    config.memory.sources.push(folder_source("s", tmp.path(), Some(15)));
+    config
+        .memory
+        .sources
+        .push(folder_source("s", tmp.path(), Some(15)));
     assert!(sync_due(&config, Utc::now()).is_empty());
 }
 
@@ -221,7 +255,9 @@ async fn store_all_skips_a_bad_item_but_fails_when_nothing_stored() {
         tinymemory::MemoryMeta::default(),
     );
     assert_eq!(
-        store_all(&bound, vec![bad.clone(), good], "src").await.unwrap(),
+        store_all(&bound, vec![bad.clone(), good], "src")
+            .await
+            .unwrap(),
         1
     );
     assert!(store_all(&bound, vec![bad], "src").await.is_err());

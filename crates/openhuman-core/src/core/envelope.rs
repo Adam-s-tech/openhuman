@@ -73,7 +73,9 @@ pub(crate) fn request_id() -> String {
 }
 
 /// Named counts for an envelope's `meta.counts`.
-pub(crate) fn counts(entries: impl IntoIterator<Item = (&'static str, usize)>) -> BTreeMap<String, usize> {
+pub(crate) fn counts(
+    entries: impl IntoIterator<Item = (&'static str, usize)>,
+) -> BTreeMap<String, usize> {
     entries
         .into_iter()
         .map(|(key, value)| (key.to_string(), value))

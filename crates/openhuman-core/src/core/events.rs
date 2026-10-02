@@ -284,7 +284,6 @@ pub enum DomainEvent {
     /// A memory recall query completed.
     MemoryRecalled { query: String, hit_count: usize },
 
-
     // ── Channels ────────────────────────────────────────────────────────
     /// An inbound channel message from the transport layer, ready for processing.
     ///
@@ -957,8 +956,6 @@ pub enum DomainEvent {
         reason: String,
     },
 
-
-
     // ── Notification ────────────────────────────────────────────────────
     /// An integration notification was ingested from an embedded webview.
     NotificationIngested {
@@ -996,7 +993,6 @@ pub enum DomainEvent {
         channel_id: String,
         payload_b64: String,
     },
-
 
     // ── MCP Clients ─────────────────────────────────────────────────────
     /// A new MCP server was installed from the Smithery registry.

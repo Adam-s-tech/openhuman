@@ -49,7 +49,9 @@ pub async fn engine_get(config: &Config) -> EngineView {
             let health = bound.engine.health().await;
             let (status, reason) = match health {
                 tinymemory::EngineHealth::Ok => (EngineStatus::Ok, None),
-                tinymemory::EngineHealth::Degraded(reason) => (EngineStatus::Degraded, Some(reason)),
+                tinymemory::EngineHealth::Degraded(reason) => {
+                    (EngineStatus::Degraded, Some(reason))
+                }
                 tinymemory::EngineHealth::Down(reason) => (EngineStatus::Down, Some(reason)),
             };
             tracing::debug!(engine = %bound.id, ?status, "[memory:ops] engine_get");
@@ -233,8 +235,18 @@ fn merge_meta(meta: &mut MemoryMeta, host: MemoryMeta) {
         )*};
     }
     take!(
-        workspace, folder, file_path, language, repo, commit, url, thread_id, turns, agent_id,
-        tool_call, observed_at
+        workspace,
+        folder,
+        file_path,
+        language,
+        repo,
+        commit,
+        url,
+        thread_id,
+        turns,
+        agent_id,
+        tool_call,
+        observed_at
     );
     meta.source = host.source;
     for tag in host.tags {
@@ -252,9 +264,7 @@ pub async fn learn(
 ) -> MemoryResult<LearnView> {
     let item = learning_item(params, host_meta)?;
     let receipt = store_item(config, item).await?;
-    Ok(LearnView {
-        id: receipt.id.0,
-    })
+    Ok(LearnView { id: receipt.id.0 })
 }
 
 /// Scrubs `item` and stores it on the bound engine.

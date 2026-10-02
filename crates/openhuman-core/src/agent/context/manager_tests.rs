@@ -68,4 +68,3 @@ fn autocompact_enabled_requires_both_master_and_autocompact_flags() {
     no_autocompact.autocompact_enabled = false;
     assert!(!manager_with_config(&no_autocompact).autocompact_enabled());
 }
-

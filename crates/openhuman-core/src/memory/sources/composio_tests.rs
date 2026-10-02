@@ -21,7 +21,13 @@ fn record_item_builds_a_tagged_document() {
     rec.tags = vec!["inbox".into(), " ".into(), "gmail".into(), "inbox".into()];
 
     let item = record_item("GMail", "conn-7", "src-g", &rec).expect("an item");
-    let StoreItem::Document { title, body, mime, meta } = item else {
+    let StoreItem::Document {
+        title,
+        body,
+        mime,
+        meta,
+    } = item
+    else {
         panic!("expected a document");
     };
     assert_eq!(title.as_deref(), Some("Quarterly plan"));
@@ -32,10 +38,17 @@ fn record_item_builds_a_tagged_document() {
     assert_eq!(meta.source.id.as_deref(), Some("src-g"));
     assert_eq!(
         meta.tags,
-        vec!["gmail".to_string(), "connection:conn-7".to_string(), "inbox".to_string()],
+        vec![
+            "gmail".to_string(),
+            "connection:conn-7".to_string(),
+            "inbox".to_string()
+        ],
         "toolkit and connection first, blanks and duplicates dropped"
     );
-    assert_eq!(meta.observed_at.map(|t| t.timestamp_millis()), Some(1_700_000_000_000));
+    assert_eq!(
+        meta.observed_at.map(|t| t.timestamp_millis()),
+        Some(1_700_000_000_000)
+    );
 }
 
 #[test]
@@ -89,7 +102,12 @@ async fn store_records_with_nothing_to_store_is_zero() {
     let config = config_in(&tmp);
     bind_reference(&config);
     let bound = crate::memory::engine::resolve(&config).engine().unwrap();
-    assert_eq!(store_records(&bound, "notion", "c", "s", &[]).await.unwrap(), 0);
+    assert_eq!(
+        store_records(&bound, "notion", "c", "s", &[])
+            .await
+            .unwrap(),
+        0
+    );
 }
 
 #[test]
@@ -97,20 +115,26 @@ fn source_id_for_toolkit_prefers_the_configured_source() {
     let tmp = tempfile::tempdir().unwrap();
     let mut config = config_in(&tmp);
     assert_eq!(source_id_for_toolkit(&config, "Gmail"), "composio:gmail");
-    config.memory.sources.push(crate::config::schema::MemorySourceConfig {
-        id: "src-gmail".into(),
-        kind: MemorySourceKind::Composio,
-        target: "gmail".into(),
-        label: "Gmail".into(),
-        schedule_mins: None,
-    });
-    config.memory.sources.push(crate::config::schema::MemorySourceConfig {
-        id: "src-folder".into(),
-        kind: MemorySourceKind::Folder,
-        target: "notion".into(),
-        label: "Folder named like a toolkit".into(),
-        schedule_mins: None,
-    });
+    config
+        .memory
+        .sources
+        .push(crate::config::schema::MemorySourceConfig {
+            id: "src-gmail".into(),
+            kind: MemorySourceKind::Composio,
+            target: "gmail".into(),
+            label: "Gmail".into(),
+            schedule_mins: None,
+        });
+    config
+        .memory
+        .sources
+        .push(crate::config::schema::MemorySourceConfig {
+            id: "src-folder".into(),
+            kind: MemorySourceKind::Folder,
+            target: "notion".into(),
+            label: "Folder named like a toolkit".into(),
+            schedule_mins: None,
+        });
     assert_eq!(source_id_for_toolkit(&config, "GMAIL"), "src-gmail");
     assert_eq!(source_id_for_toolkit(&config, "notion"), "composio:notion");
 }
@@ -121,12 +145,24 @@ async fn forget_connection_removes_only_that_connections_items() {
     let config = config_in(&tmp);
     let engine = bind_reference(&config);
     let bound = crate::memory::engine::resolve(&config).engine().unwrap();
-    store_records(&bound, "gmail", "conn-a", "src", &[record("1", "A", "from a")])
-        .await
-        .unwrap();
-    store_records(&bound, "gmail", "conn-b", "src", &[record("2", "B", "from b")])
-        .await
-        .unwrap();
+    store_records(
+        &bound,
+        "gmail",
+        "conn-a",
+        "src",
+        &[record("1", "A", "from a")],
+    )
+    .await
+    .unwrap();
+    store_records(
+        &bound,
+        "gmail",
+        "conn-b",
+        "src",
+        &[record("2", "B", "from b")],
+    )
+    .await
+    .unwrap();
     assert_eq!(forget_connection(&config, "conn-a").await.unwrap(), 1);
     let left = stored(&engine, MetaFilter::default()).await;
     assert_eq!(left.len(), 1);

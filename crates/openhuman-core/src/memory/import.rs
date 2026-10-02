@@ -220,12 +220,18 @@ async fn run(workspace_dir: &Path, bound: &BoundEngine, mut file: ImportFile) {
     let _ = reader.await;
     match failure {
         Some(error) => {
-            tracing::warn!(imported = file.state.imported, "[memory:import] import stopped");
+            tracing::warn!(
+                imported = file.state.imported,
+                "[memory:import] import stopped"
+            );
             file.state.phase = ImportPhase::Error;
             file.state.error = Some(error);
         }
         None => {
-            tracing::info!(imported = file.state.imported, "[memory:import] import finished");
+            tracing::info!(
+                imported = file.state.imported,
+                "[memory:import] import finished"
+            );
             file.state.phase = ImportPhase::Done;
             file.state.error = None;
         }

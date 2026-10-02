@@ -8,6 +8,7 @@ use super::support::{
 use crate::core::Outcome;
 use crate::threads::store as conversations;
 use crate::threads::store::{ConversationMessagePatch, CrossThreadHit};
+use crate::threads::ThreadsError;
 use crate::threads::{
     ApiEnvelope, AppendConversationMessageRequest, ConversationMessageRecord,
     ConversationMessagesRequest, ConversationMessagesResponse, ConversationThreadSummary,
@@ -16,7 +17,6 @@ use crate::threads::{
     UpdateConversationMessageRequest, UpdateConversationThreadLabelsRequest,
     UpdateConversationThreadTitleRequest, UpsertConversationThreadRequest,
 };
-use crate::threads::ThreadsError;
 use crate::web_chat as web_channel;
 use std::path::PathBuf;
 use tinyagents_session::turn_state;

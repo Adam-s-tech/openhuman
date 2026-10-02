@@ -13,9 +13,9 @@ use std::sync::{Arc, OnceLock};
 use parking_lot::RwLock;
 use tokio::sync::{Notify, Semaphore};
 
-use crate::config::SchedulerGateConfig;
 use super::signals::SignalEnv;
 use super::throttle::{GateCore, SharedCore, LLM_SLOTS};
+use crate::config::SchedulerGateConfig;
 
 pub use super::decide::Signals;
 pub use super::throttle::LlmPermit;

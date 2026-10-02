@@ -495,7 +495,11 @@ fn memory_v2_capabilities_cite_live_surface_and_rpcs() {
         ("memory.engine", "engine", "memory_engine_set"),
         ("memory.ask", "ask", "memory_recall"),
         ("memory.learnings", "learnings", "memory_learn"),
-        ("memory.conversations", "conversations", "memory_conversations_set"),
+        (
+            "memory.conversations",
+            "conversations",
+            "memory_conversations_set",
+        ),
         ("memory.documents", "documents", "memory_sources_add"),
         ("memory.context", "context", "memory_context_refresh"),
     ] {
@@ -511,7 +515,10 @@ fn memory_v2_capabilities_cite_live_surface_and_rpcs() {
             cap.how_to
         );
     }
-    assert!(lookup("memory.import").expect("import").how_to.contains("memory_import_start"));
+    assert!(lookup("memory.import")
+        .expect("import")
+        .how_to
+        .contains("memory_import_start"));
 }
 
 /// The v1 memory surface is gone; no catalog entry may advertise it.
@@ -535,7 +542,13 @@ fn v1_memory_capabilities_are_not_advertised() {
     }
     for c in all_capabilities() {
         let text = format!("{} {} {}", c.name, c.description, c.how_to);
-        for dead in ["memory_tree", "MEMORY.md", "PROFILE.md", "memory_goals", "TinyCortex"] {
+        for dead in [
+            "memory_tree",
+            "MEMORY.md",
+            "PROFILE.md",
+            "memory_goals",
+            "TinyCortex",
+        ] {
             assert!(!text.contains(dead), "`{}` still mentions `{dead}`", c.id);
         }
     }

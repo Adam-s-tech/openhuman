@@ -675,9 +675,7 @@ fn print_general_help(grouped: &BTreeMap<String, Vec<ControllerSchema>>) {
     println!("  openhuman [OPTIONS]                     (show this help)");
     println!("  openhuman run [--host <addr>] [--port <u16>] [--jsonrpc-only] [--verbose]");
     println!("  openhuman call --method <name> [--params '<json>' | --params-stdin]");
-    println!(
-        "  openhuman mcp [-v|--verbose]              (stdio MCP server)"
-    );
+    println!("  openhuman mcp [-v|--verbose]              (stdio MCP server)");
     println!("  openhuman-tui [--thread <id>|--new]       (terminal UI; separate executable)");
     println!("  openhuman skills <subcommand> [options]   (skill development runtime)");
     println!("  openhuman agent <subcommand> [options]    (inspect agent definitions & prompts)");

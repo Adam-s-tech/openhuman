@@ -87,13 +87,16 @@ async fn run_system_job_starts_due_source_syncs() {
     let folder = tmp.path().join("notes");
     std::fs::create_dir_all(&folder).unwrap();
     std::fs::write(folder.join("a.md"), "# Notes\n\nthe due source says hello").unwrap();
-    config.memory.sources.push(crate::config::schema::MemorySourceConfig {
-        id: "src-due".into(),
-        kind: crate::config::schema::MemorySourceKind::Folder,
-        target: folder.display().to_string(),
-        label: "Notes".into(),
-        schedule_mins: Some(15),
-    });
+    config
+        .memory
+        .sources
+        .push(crate::config::schema::MemorySourceConfig {
+            id: "src-due".into(),
+            kind: crate::config::schema::MemorySourceKind::Folder,
+            target: folder.display().to_string(),
+            label: "Notes".into(),
+            schedule_mins: Some(15),
+        });
     run_system_job(&config, SOURCES_SYNC_JOB).await;
     // The sync runs in the background; wait for its recorded state.
     for _ in 0..200 {
@@ -129,7 +132,9 @@ async fn system_jobs_subscriber_only_reacts_to_memory_jobs() {
     let path = crate::memory::context::context_path(&config.workspace_dir);
     CoreContext::scope(ctx, async {
         subscriber
-            .handle(&DomainEvent::CronSystemJobDue { job: "other".into() })
+            .handle(&DomainEvent::CronSystemJobDue {
+                job: "other".into(),
+            })
             .await;
         assert!(!path.exists(), "a foreign job does nothing");
         subscriber
@@ -138,7 +143,9 @@ async fn system_jobs_subscriber_only_reacts_to_memory_jobs() {
             })
             .await;
         assert!(path.exists(), "the refresh job ran");
-        subscriber.handle(&turn_event(std::path::Path::new("/x"), "t")).await;
+        subscriber
+            .handle(&turn_event(std::path::Path::new("/x"), "t"))
+            .await;
     })
     .await;
 }
@@ -148,7 +155,10 @@ async fn ingest_subscriber_stores_a_committed_turn_with_names_and_ids_only() {
     let tmp = tempfile::tempdir().unwrap();
     let mut config = config_in(&tmp);
     config.memory.conversations.batch_turns = 1;
-    config.save().await.expect("config saved beside the workspace");
+    config
+        .save()
+        .await
+        .expect("config saved beside the workspace");
     let engine = bind_reference(&config);
 
     ConversationIngestSubscriber

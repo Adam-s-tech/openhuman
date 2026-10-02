@@ -42,7 +42,9 @@ pub(super) fn reader_entry(source: &MemorySourceConfig) -> MemoryResult<Option<M
     };
     let mut entry = MemorySourceEntry::new(source.id.clone(), kind, source.label.clone());
     match source.kind {
-        MemorySourceKind::Folder | MemorySourceKind::File => entry.path = Some(source.target.clone()),
+        MemorySourceKind::Folder | MemorySourceKind::File => {
+            entry.path = Some(source.target.clone())
+        }
         _ => entry.url = Some(source.target.clone()),
     }
     apply_kind_defaults(&mut entry);
@@ -59,9 +61,14 @@ pub async fn sync_one(config: &Config, source: &MemorySourceConfig) -> MemoryRes
         return super::composio::sync_toolkit(config, &bound, source).await;
     };
     let reader = reader_for_request(&entry.kind);
-    let collected = collect_items(reader.as_ref(), &entry, &config.action_dir, &NativeConverter)
-        .await
-        .map_err(|error| MemoryError::Engine(format!("reading the source failed: {error}")))?;
+    let collected = collect_items(
+        reader.as_ref(),
+        &entry,
+        &config.action_dir,
+        &NativeConverter,
+    )
+    .await
+    .map_err(|error| MemoryError::Engine(format!("reading the source failed: {error}")))?;
     if !collected.skipped.is_empty() {
         tracing::debug!(
             id = %source.id,
@@ -181,7 +188,9 @@ pub fn sync_due(config: &Config, now: DateTime<Utc>) -> Vec<String> {
     for id in due {
         match start_sync(config, Some(&id)) {
             Ok(ids) => started.extend(ids),
-            Err(error) => tracing::debug!(id = %id, code = error.code(), "[memory:sources] due sync not started"),
+            Err(error) => {
+                tracing::debug!(id = %id, code = error.code(), "[memory:sources] due sync not started")
+            }
         }
     }
     started

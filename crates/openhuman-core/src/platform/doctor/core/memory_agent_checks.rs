@@ -20,9 +20,10 @@ pub(super) fn check_memory_engine(memory: &MemoryEngineCheck, items: &mut Vec<Di
     let reason = memory.reason.as_deref().unwrap_or("no reason given");
     items.push(match memory.status.as_str() {
         "ok" => DiagnosticItem::ok(cat, format!("memory engine '{engine}' is serving")),
-        "degraded" => {
-            DiagnosticItem::warn(cat, format!("memory engine '{engine}' is degraded: {reason}"))
-        }
+        "degraded" => DiagnosticItem::warn(
+            cat,
+            format!("memory engine '{engine}' is degraded: {reason}"),
+        ),
         "off" => DiagnosticItem::warn(cat, format!("memory is off: {reason}")),
         _ => DiagnosticItem::error(cat, format!("memory engine '{engine}' is down: {reason}")),
     });

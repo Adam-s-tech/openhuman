@@ -67,7 +67,9 @@ pub fn load(workspace_dir: &Path) -> BTreeMap<String, SourceState> {
 
 /// Applies `change` to `id`'s state and persists it.
 pub fn update(workspace_dir: &Path, id: &str, change: impl FnOnce(&mut SourceState)) {
-    let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut all = read_all(workspace_dir);
     change(all.entry(id.to_string()).or_default());
     write_all(workspace_dir, &all);
@@ -75,7 +77,9 @@ pub fn update(workspace_dir: &Path, id: &str, change: impl FnOnce(&mut SourceSta
 
 /// Drops `id`'s state.
 pub fn remove(workspace_dir: &Path, id: &str) {
-    let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut all = read_all(workspace_dir);
     if all.remove(id).is_some() {
         write_all(workspace_dir, &all);
@@ -85,7 +89,9 @@ pub fn remove(workspace_dir: &Path, id: &str) {
 /// Marks every `syncing` source idle: called once at startup, when no sync
 /// can be running yet.
 pub fn reset_interrupted(workspace_dir: &Path) {
-    let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut all = read_all(workspace_dir);
     let mut changed = false;
     for state in all.values_mut() {

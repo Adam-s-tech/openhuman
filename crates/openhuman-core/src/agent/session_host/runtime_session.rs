@@ -244,8 +244,8 @@ impl OpenHumanTurnPrelude {
         })
     }
     fn begin_user_effects(&self, request: &SessionTurnRequest) {
-        let user_text = crate::agent::turn_origin::current_is_user_authored()
-            .then(|| request.input.text());
+        let user_text =
+            crate::agent::turn_origin::current_is_user_authored().then(|| request.input.text());
         self.mutable
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -721,16 +721,19 @@ impl OpenHumanTurnPrelude {
             "[session_host] conversation turn committed tool_calls={}",
             tool_calls.len()
         );
-        crate::core::bus::BUS.publish(crate::core::events::DomainEvent::ConversationTurnCommitted {
-            thread_id,
-            agent_id: Some(self.agent_definition_id.clone()).filter(|id| !id.trim().is_empty()),
-            workspace: Some(self.action_dir.display().to_string()),
-            channel: Some(self.event_channel.clone()).filter(|channel| !channel.trim().is_empty()),
-            user_text,
-            assistant_text: receipt.outcome.output.clone().unwrap_or_default(),
-            tool_calls,
-            workspace_dir: self.workspace_dir.clone(),
-        });
+        crate::core::bus::BUS.publish(
+            crate::core::events::DomainEvent::ConversationTurnCommitted {
+                thread_id,
+                agent_id: Some(self.agent_definition_id.clone()).filter(|id| !id.trim().is_empty()),
+                workspace: Some(self.action_dir.display().to_string()),
+                channel: Some(self.event_channel.clone())
+                    .filter(|channel| !channel.trim().is_empty()),
+                user_text,
+                assistant_text: receipt.outcome.output.clone().unwrap_or_default(),
+                tool_calls,
+                workspace_dir: self.workspace_dir.clone(),
+            },
+        );
     }
 
     fn mirror_transcript_after_commit(&self, receipt: &CommitReceipt<OpenHumanRunContext>) {
@@ -774,7 +777,6 @@ impl OpenHumanTurnPrelude {
             }
         });
     }
-
 }
 
 /// Reconcile visible delegate names without reopening a caller's explicit
@@ -1239,10 +1241,8 @@ impl OpenHumanSessionHost {
                             )
                             .await;
                         request.input = user_message_from_text(&enriched);
-                        let mut preparation = prelude
-                            .prepare(new_session)
-                            .await
-                            .map_err(|error| {
+                        let mut preparation =
+                            prelude.prepare(new_session).await.map_err(|error| {
                                 tinyagents_runtime::RuntimeError::Driver(error.to_string())
                             })?;
                         if overrides.suppress_tools {

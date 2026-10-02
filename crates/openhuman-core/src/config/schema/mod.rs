@@ -72,7 +72,8 @@ mod update;
 mod web_chat_config;
 
 pub use agent::{
-    AgentConfig, DelegateAgentConfig, OrchestratorModelConfig, RequiredOutputContract, TeamModelConfig, ToolSearchConfig,
+    AgentConfig, DelegateAgentConfig, OrchestratorModelConfig, RequiredOutputContract,
+    TeamModelConfig, ToolSearchConfig,
 };
 pub use autonomy::AutonomyConfig;
 pub use capability_providers::{CapabilityProviderConfig, CapabilityProviderTrustState};
@@ -89,6 +90,10 @@ pub use dashboard::{DashboardConfig, DiagramViewerConfig, EventStreamConfig, Mod
 pub use dictation::{DictationActivationMode, DictationConfig};
 pub use identity_cost::{CostConfig, ModelPricing};
 pub use local_ai::{LocalAiConfig, LocalAiUsage};
+pub use memory::{
+    migrate_legacy_source, MemoryConfig, MemoryContextConfig, MemoryConversationsConfig,
+    MemoryEngineSettings, MemorySourceConfig, MemorySourceKind, MEMORY_CORTEXDB_KEY_NAME,
+};
 pub use modules::{ModuleOverride, ModulesConfig};
 pub use node::NodeConfig;
 pub use observability::{AgentTracingBackend, AgentTracingConfig, ObservabilityConfig};
@@ -104,10 +109,6 @@ pub use runtime::{
 };
 pub use runtime_pool::{RuntimePoolConfig, RuntimePoolLangConfig};
 pub use runtime_python::RuntimePythonConfig;
-pub use memory::{
-    migrate_legacy_source, MemoryConfig, MemoryContextConfig, MemoryConversationsConfig,
-    MemoryEngineSettings, MemorySourceConfig, MemorySourceKind, MEMORY_CORTEXDB_KEY_NAME,
-};
 pub use scheduler_gate::{PauseReason, Policy, SchedulerGateConfig, SchedulerGateMode};
 pub use task_sources::TaskSourcesConfig;
 pub use tokenjuice::TokenjuiceConfig;

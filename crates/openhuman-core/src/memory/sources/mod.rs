@@ -103,7 +103,10 @@ fn http_url(target: &str) -> MemoryResult<String> {
 
 /// Builds a new source from `memory_sources_add` params and appends it to
 /// `config`; the caller persists `config`.
-pub fn apply_add(config: &mut Config, params: &SourcesAddParams) -> MemoryResult<MemorySourceConfig> {
+pub fn apply_add(
+    config: &mut Config,
+    params: &SourcesAddParams,
+) -> MemoryResult<MemorySourceConfig> {
     let kind = MemorySourceKind::parse(&params.kind).ok_or_else(|| {
         MemoryError::invalid(format!(
             "unknown source kind `{}` (folder, file, link, github, rss, composio)",
@@ -173,14 +176,19 @@ pub async fn forget_items(config: &Config, id: &str) -> MemoryResult<usize> {
 
 /// Whether `source` is due for a scheduled sync at `now`.
 #[must_use]
-pub fn is_due(source: &MemorySourceConfig, last: Option<&state::SourceState>, now: DateTime<Utc>) -> bool {
+pub fn is_due(
+    source: &MemorySourceConfig,
+    last: Option<&state::SourceState>,
+    now: DateTime<Utc>,
+) -> bool {
     let Some(mins) = source.schedule_mins else {
         return false;
     };
     match last {
         Some(state) if state.status == SourceStatus::Syncing => false,
         Some(state) => state.last_sync_at.is_none_or(|at| {
-            now.signed_duration_since(at) >= chrono::Duration::minutes(i64::from(mins.max(MIN_SCHEDULE_MINS)))
+            now.signed_duration_since(at)
+                >= chrono::Duration::minutes(i64::from(mins.max(MIN_SCHEDULE_MINS)))
         }),
         None => true,
     }

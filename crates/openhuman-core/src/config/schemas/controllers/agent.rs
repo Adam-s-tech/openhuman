@@ -7,8 +7,8 @@ use crate::core::all::ControllerFuture;
 
 use super::super::helpers::{
     deserialize_params, to_json, AgentSettingsUpdate, AutonomySettingsUpdate,
-    BrowserSettingsUpdate, ComputerSettingsUpdate, PrivacyModeUpdate,
-    SandboxSettingsUpdate, SetBrowserAllowAllParams,
+    BrowserSettingsUpdate, ComputerSettingsUpdate, PrivacyModeUpdate, SandboxSettingsUpdate,
+    SetBrowserAllowAllParams,
 };
 
 pub(crate) fn handle_get_autonomy_settings(_params: Map<String, Value>) -> ControllerFuture {

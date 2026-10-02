@@ -9,7 +9,9 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Duration, Utc};
-use tinymemory::{MemoryMeta, Role, SourceKind, SourceRef, StoreItem, ToolCallRef, Turn, TurnRange};
+use tinymemory::{
+    MemoryMeta, Role, SourceKind, SourceRef, StoreItem, ToolCallRef, Turn, TurnRange,
+};
 
 /// One committed exchange: the user's message and the assistant's reply.
 #[derive(Debug, Clone, PartialEq)]
@@ -66,7 +68,11 @@ impl Batch {
     #[must_use]
     pub fn into_item(self) -> StoreItem {
         let last = self.last();
-        let agent_id = self.turns.iter().rev().find_map(|turn| turn.agent_id.clone());
+        let agent_id = self
+            .turns
+            .iter()
+            .rev()
+            .find_map(|turn| turn.agent_id.clone());
         let workspace = self
             .turns
             .iter()

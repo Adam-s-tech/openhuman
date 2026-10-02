@@ -280,10 +280,7 @@ fn knowledge_default_off_tools_are_filtered_when_not_opted_in() {
 fn knowledge_default_off_tools_retained_when_opted_in() {
     let tmp = TempDir::new().unwrap();
     let mut tools = expansion_tools_for(&tmp);
-    filter_tools_by_user_preference(
-        &mut tools,
-        &["workflow_manage".to_string()],
-    );
+    filter_tools_by_user_preference(&mut tools, &["workflow_manage".to_string()]);
     let names = tool_names(&tools);
     let off_tools = knowledge_default_off();
     for on in &off_tools {
