@@ -4185,9 +4185,7 @@ mod tool_policy_boundary_placement {
             .build()
             .expect("complete builder should succeed");
 
-        agent
-            .build_system_prompt()
-            .expect("system prompt builds")
+        agent.build_system_prompt().expect("system prompt builds")
     }
 
     /// #5821 (closes #5704). Every line of the boundary block is session-scoped

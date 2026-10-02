@@ -119,7 +119,9 @@ impl MockBackend {
             .map(|row| {
                 format!(
                     "{} {}",
-                    row.get("method").and_then(Value::as_str).unwrap_or_default(),
+                    row.get("method")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default(),
                     row.get("url").and_then(Value::as_str).unwrap_or_default()
                 )
             })
@@ -233,11 +235,28 @@ impl Fixture {
         let error = response
             .get("error")
             .unwrap_or_else(|| panic!("{method}: expected an error, got {response}"));
-        error
-            .pointer("/data/code")
+        if let Some(code) = error.pointer("/data/code").and_then(Value::as_str) {
+            return code.to_string();
+        }
+        // The core's schema validation rejects a missing, mistyped or
+        // out-of-range param before the memory handler runs, with its own
+        // standard message and no `data.code`. That is an invalid request.
+        let message = error
+            .get("message")
             .and_then(Value::as_str)
-            .unwrap_or_else(|| panic!("{method}: error has no data.code: {error}"))
-            .to_string()
+            .unwrap_or_default();
+        let schema_rejection = [
+            "missing required param",
+            "invalid type for param",
+            "unknown param",
+        ]
+        .iter()
+        .any(|prefix| message.starts_with(prefix));
+        assert!(
+            schema_rejection,
+            "{method}: error has no data.code: {error}"
+        );
+        "INVALID_REQUEST".to_string()
     }
 
     async fn learn(&self, text: &str) -> String {
@@ -247,7 +266,10 @@ impl Fixture {
                 json!({ "text": text, "kind": "fact", "confidence": 0.9 }),
             )
             .await;
-        learned["id"].as_str().expect("learn returns an id").to_string()
+        learned["id"]
+            .as_str()
+            .expect("learn returns an id")
+            .to_string()
     }
 }
 
@@ -306,7 +328,10 @@ async fn memory_is_off_when_signed_out() {
         .iter()
         .filter_map(|e| e["id"].as_str())
         .collect();
-    assert!(listed.contains(&"tinyhumans") && listed.contains(&"cortexdb"), "{listed:?}");
+    assert!(
+        listed.contains(&"tinyhumans") && listed.contains(&"cortexdb"),
+        "{listed:?}"
+    );
     let tinyhumans = engines["engines"]
         .as_array()
         .unwrap()
@@ -322,7 +347,10 @@ async fn memory_is_off_when_signed_out() {
     assert_eq!(engine["has_key"], json!(false));
     assert_eq!(engine["fetch_modes"], json!([]));
     assert!(
-        engine["reason"].as_str().unwrap_or_default().contains("sign in"),
+        engine["reason"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("sign in"),
         "the reason explains why memory is off: {engine}"
     );
 
@@ -335,10 +363,7 @@ async fn memory_is_off_when_signed_out() {
         ("openhuman.memory_items_list", json!({})),
         ("openhuman.memory_sources_sync", json!({})),
         ("openhuman.memory_context_refresh", json!({})),
-        (
-            "openhuman.memory_import_start",
-            json!({ "consent": true }),
-        ),
+        ("openhuman.memory_import_start", json!({ "consent": true })),
     ];
     for (method, params) in off_calls {
         assert_eq!(f.code(method, params).await, "MEMORY_OFF", "{method}");
@@ -347,9 +372,18 @@ async fn memory_is_off_when_signed_out() {
     // Local settings and state still answer while memory is off.
     let conversations = f.ok("openhuman.memory_conversations_get", json!({})).await;
     assert_eq!(conversations["enabled"], json!(true));
-    assert_eq!(f.ok("openhuman.memory_sources_list", json!({})).await["sources"], json!([]));
-    assert_eq!(f.ok("openhuman.memory_context_get", json!({})).await["markdown"], json!(""));
-    assert_eq!(f.ok("openhuman.memory_import_scan", json!({})).await["found"], json!(false));
+    assert_eq!(
+        f.ok("openhuman.memory_sources_list", json!({})).await["sources"],
+        json!([])
+    );
+    assert_eq!(
+        f.ok("openhuman.memory_context_get", json!({})).await["markdown"],
+        json!("")
+    );
+    assert_eq!(
+        f.ok("openhuman.memory_import_scan", json!({})).await["found"],
+        json!(false)
+    );
     assert_eq!(
         f.ok("openhuman.memory_import_status", json!({})).await["state"]["phase"],
         json!("idle")
@@ -367,7 +401,11 @@ async fn memory_is_off_when_signed_out() {
 async fn signing_in_turns_memory_on() {
     let f = Fixture::new(false).await;
     assert_eq!(
-        f.code("openhuman.memory_learn", json!({ "text": "before sign in" })).await,
+        f.code(
+            "openhuman.memory_learn",
+            json!({ "text": "before sign in" })
+        )
+        .await,
         "MEMORY_OFF"
     );
     f.sign_in().await;
@@ -397,7 +435,10 @@ async fn engines_list_get_and_set() {
             "needs_key",
             "fetch_modes",
         ] {
-            assert!(engine.get(field).is_some(), "descriptor has `{field}`: {engine}");
+            assert!(
+                engine.get(field).is_some(),
+                "descriptor has `{field}`: {engine}"
+            );
         }
     }
 
@@ -418,7 +459,10 @@ async fn engines_list_get_and_set() {
     // Refused selections carry INVALID_REQUEST.
     for (params, why) in [
         (json!({ "engine": "nope" }), "unknown engine"),
-        (json!({ "engine": "tinyhumans", "api_key": "k" }), "tinyhumans takes no key"),
+        (
+            json!({ "engine": "tinyhumans", "api_key": "k" }),
+            "tinyhumans takes no key",
+        ),
         (
             json!({ "engine": "cortexdb", "endpoint": "not a url" }),
             "malformed endpoint",
@@ -443,17 +487,24 @@ async fn engines_list_get_and_set() {
     // Selecting CortexDB without a key is accepted but leaves memory off, and
     // the view says why.
     let selected = f
-        .ok("openhuman.memory_engine_set", json!({ "engine": "cortexdb" }))
+        .ok(
+            "openhuman.memory_engine_set",
+            json!({ "engine": "cortexdb" }),
+        )
         .await;
     assert_eq!(selected["engine"], json!("cortexdb"));
     assert_eq!(selected["status"], json!("off"));
     assert_eq!(selected["has_key"], json!(false));
     assert!(
-        selected["reason"].as_str().unwrap_or_default().contains("API key"),
+        selected["reason"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("API key"),
         "{selected}"
     );
     assert_eq!(
-        f.code("openhuman.memory_learn", json!({ "text": "no key yet" })).await,
+        f.code("openhuman.memory_learn", json!({ "text": "no key yet" }))
+            .await,
         "MEMORY_OFF"
     );
     assert!(f.ok("openhuman.memory_engines_list", json!({})).await["active"].is_null());
@@ -469,7 +520,11 @@ async fn engines_list_get_and_set() {
     assert_eq!(keyed["engine"], json!("cortexdb"));
     assert_eq!(keyed["has_key"], json!(true));
     assert_eq!(keyed["endpoint"], json!(f.mock.origin));
-    assert_ne!(keyed["status"], json!("ok"), "no /v1 surface on the mock: {keyed}");
+    assert_ne!(
+        keyed["status"],
+        json!("ok"),
+        "no /v1 surface on the mock: {keyed}"
+    );
     assert!(
         !keyed.to_string().contains("ctx-test-key"),
         "the key is never echoed: {keyed}"
@@ -484,7 +539,10 @@ async fn engines_list_get_and_set() {
         .await;
     assert_eq!(cleared["has_key"], json!(false));
     let back = f
-        .ok("openhuman.memory_engine_set", json!({ "engine": "tinyhumans" }))
+        .ok(
+            "openhuman.memory_engine_set",
+            json!({ "engine": "tinyhumans" }),
+        )
         .await;
     assert_eq!(back["status"], json!("ok"), "{back}");
     assert_eq!(
@@ -499,13 +557,18 @@ async fn engine_failures_surface_as_structured_errors() {
 
     f.mock.set_behavior("memoryForceStatus", "401").await;
     assert_eq!(
-        f.code("openhuman.memory_learn", json!({ "text": "rejected" })).await,
+        f.code("openhuman.memory_learn", json!({ "text": "rejected" }))
+            .await,
         "UNAUTHORIZED"
     );
 
     f.mock.set_behavior("memoryForceStatus", "503").await;
     let down = f.ok("openhuman.memory_engine_get", json!({})).await;
-    assert_ne!(down["status"], json!("ok"), "an unavailable engine is not ok: {down}");
+    assert_ne!(
+        down["status"],
+        json!("ok"),
+        "an unavailable engine is not ok: {down}"
+    );
 
     f.mock.set_behavior("memoryForceStatus", "").await;
     assert_eq!(
@@ -524,28 +587,45 @@ async fn learn_list_fetch_recall_and_forget_round_trip() {
 
     // Empty to begin with.
     let empty = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["learning"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["learning"] } }),
+        )
         .await;
     assert_eq!(empty["items"], json!([]));
 
     // learn: validated, then stored as a learning.
     assert_eq!(
-        f.code("openhuman.memory_learn", json!({ "text": "x", "confidence": 2.0 })).await,
+        f.code(
+            "openhuman.memory_learn",
+            json!({ "text": "x", "confidence": 2.0 })
+        )
+        .await,
         "INVALID_REQUEST"
     );
     assert_eq!(
-        f.code("openhuman.memory_learn", json!({ "text": "   " })).await,
+        f.code("openhuman.memory_learn", json!({ "text": "   " }))
+            .await,
         "INVALID_REQUEST"
     );
-    let coffee = f.learn("Alice prefers dark roast coffee in the morning").await;
+    let coffee = f
+        .learn("Alice prefers dark roast coffee in the morning")
+        .await;
     let tea = f.learn("Bob drinks green tea after lunch").await;
     assert_ne!(coffee, tea);
     // Identical content resolves to the same id: a replay, not a duplicate.
-    assert_eq!(f.learn("Alice prefers dark roast coffee in the morning").await, coffee);
+    assert_eq!(
+        f.learn("Alice prefers dark roast coffee in the morning")
+            .await,
+        coffee
+    );
 
     // items_list: kind filter + shape.
     let listed = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["learning"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["learning"] } }),
+        )
         .await;
     let mut ids = ids_of(&listed, "items");
     ids.sort();
@@ -563,7 +643,10 @@ async fn learn_list_fetch_recall_and_forget_round_trip() {
     assert!(item["meta"].is_object());
     // No documents or conversations were stored.
     let docs = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["document"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["document"] } }),
+        )
         .await;
     assert_eq!(docs["items"], json!([]));
     // Pagination: a page of one.
@@ -574,7 +657,10 @@ async fn learn_list_fetch_recall_and_forget_round_trip() {
         )
         .await;
     assert_eq!(page["items"].as_array().unwrap().len(), 1);
-    assert!(page["next_cursor"].is_string(), "a second page exists: {page}");
+    assert!(
+        page["next_cursor"].is_string(),
+        "a second page exists: {page}"
+    );
 
     // fetch: hybrid is the one declared mode; the others are UNSUPPORTED.
     let fetched = f
@@ -589,17 +675,29 @@ async fn learn_list_fetch_recall_and_forget_round_trip() {
     assert!(hit["score"].is_number());
     assert!(hit["text"].as_str().unwrap().contains("coffee"));
     // An unset mode uses the engine's first declared mode.
-    let default_mode = f.ok("openhuman.memory_fetch", json!({ "query": "tea" })).await;
+    let default_mode = f
+        .ok("openhuman.memory_fetch", json!({ "query": "tea" }))
+        .await;
     assert_eq!(ids_of(&default_mode, "hits"), vec![tea.clone()]);
     assert_eq!(
-        f.code("openhuman.memory_fetch", json!({ "query": "coffee", "mode": "keyword" })).await,
+        f.code(
+            "openhuman.memory_fetch",
+            json!({ "query": "coffee", "mode": "keyword" })
+        )
+        .await,
         "UNSUPPORTED"
     );
     assert_eq!(
-        f.code("openhuman.memory_fetch", json!({ "query": "coffee", "mode": "vector" })).await,
+        f.code(
+            "openhuman.memory_fetch",
+            json!({ "query": "coffee", "mode": "vector" })
+        )
+        .await,
         "UNSUPPORTED"
     );
-    let nothing = f.ok("openhuman.memory_fetch", json!({ "query": "submarine" })).await;
+    let nothing = f
+        .ok("openhuman.memory_fetch", json!({ "query": "submarine" }))
+        .await;
     assert_eq!(nothing["hits"], json!([]));
 
     // recall: an answer with citations drawn from the stored items.
@@ -610,7 +708,10 @@ async fn learn_list_fetch_recall_and_forget_round_trip() {
         )
         .await;
     assert!(
-        recalled["answer"].as_str().unwrap_or_default().contains("grounded answer"),
+        recalled["answer"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("grounded answer"),
         "{recalled}"
     );
     assert!(
@@ -618,11 +719,15 @@ async fn learn_list_fetch_recall_and_forget_round_trip() {
         "the answer rests on the matching learning: {recalled}"
     );
     let cited = ids_of(&recalled, "citations");
-    assert!(cited.contains(&coffee), "citations include the matching item: {recalled}");
+    assert!(
+        cited.contains(&coffee),
+        "citations include the matching item: {recalled}"
+    );
     let citation = &recalled["citations"][0];
     assert!(citation["snippet"].is_string() && citation.get("text").is_none());
     assert_eq!(
-        f.code("openhuman.memory_recall", json!({ "question": "" })).await,
+        f.code("openhuman.memory_recall", json!({ "question": "" }))
+            .await,
         "INVALID_REQUEST"
     );
 
@@ -642,19 +747,35 @@ async fn learn_list_fetch_recall_and_forget_round_trip() {
 
     // forget: by id; counts items; the item is gone everywhere.
     assert_eq!(
-        f.code("openhuman.memory_forget", json!({ "ids": [] })).await,
+        f.code("openhuman.memory_forget", json!({ "ids": [] }))
+            .await,
         "INVALID_REQUEST"
     );
-    let forgotten = f.ok("openhuman.memory_forget", json!({ "ids": [coffee.clone()] })).await;
+    let forgotten = f
+        .ok(
+            "openhuman.memory_forget",
+            json!({ "ids": [coffee.clone()] }),
+        )
+        .await;
     assert_eq!(forgotten["forgotten"], json!(1));
     let after = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["learning"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["learning"] } }),
+        )
         .await;
     assert_eq!(ids_of(&after, "items"), vec![tea.clone()]);
-    let refetch = f.ok("openhuman.memory_fetch", json!({ "query": "coffee" })).await;
+    let refetch = f
+        .ok("openhuman.memory_fetch", json!({ "query": "coffee" }))
+        .await;
     assert_eq!(refetch["hits"], json!([]));
     // Forgetting an unknown id forgets nothing.
-    let none = f.ok("openhuman.memory_forget", json!({ "ids": ["no-such-item"] })).await;
+    let none = f
+        .ok(
+            "openhuman.memory_forget",
+            json!({ "ids": ["no-such-item"] }),
+        )
+        .await;
     assert_eq!(none["forgotten"], json!(0));
 }
 
@@ -673,7 +794,10 @@ async fn memory_is_isolated_per_account() {
         .await;
     assert!(response.get("error").is_none(), "{response}");
     let other = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["learning"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["learning"] } }),
+        )
         .await;
     assert_eq!(other["items"], json!([]), "{other}");
 }
@@ -704,7 +828,10 @@ async fn conversations_get_and_set_round_trip() {
 
     // Persisted: a fresh read sees it, and a partial set keeps the rest.
     let partial = f
-        .ok("openhuman.memory_conversations_set", json!({ "enabled": true }))
+        .ok(
+            "openhuman.memory_conversations_set",
+            json!({ "enabled": true }),
+        )
         .await;
     assert_eq!(partial["enabled"], json!(true));
     assert_eq!(partial["batch_turns"], json!(2));
@@ -718,7 +845,8 @@ async fn conversations_get_and_set_round_trip() {
         json!({ "idle_secs": 10_000_000 }),
     ] {
         assert_eq!(
-            f.code("openhuman.memory_conversations_set", bad.clone()).await,
+            f.code("openhuman.memory_conversations_set", bad.clone())
+                .await,
             "INVALID_REQUEST",
             "{bad}"
         );
@@ -774,14 +902,26 @@ async fn sources_add_sync_list_and_remove() {
     let folder = write_folder(f.home.path());
     let target = folder.to_string_lossy().to_string();
 
-    assert_eq!(f.ok("openhuman.memory_sources_list", json!({})).await["sources"], json!([]));
+    assert_eq!(
+        f.ok("openhuman.memory_sources_list", json!({})).await["sources"],
+        json!([])
+    );
 
     // Validation.
     for (params, why) in [
-        (json!({ "kind": "carrier-pigeon", "target": "x" }), "unknown kind"),
+        (
+            json!({ "kind": "carrier-pigeon", "target": "x" }),
+            "unknown kind",
+        ),
         (json!({ "kind": "folder", "target": "  " }), "blank target"),
-        (json!({ "kind": "rss", "target": "not a url" }), "rss needs a URL"),
-        (json!({ "kind": "github", "target": "only-one-part" }), "github needs owner/repo"),
+        (
+            json!({ "kind": "rss", "target": "not a url" }),
+            "rss needs a URL",
+        ),
+        (
+            json!({ "kind": "github", "target": "only-one-part" }),
+            "github needs owner/repo",
+        ),
         (
             json!({ "kind": "folder", "target": target, "schedule_mins": 5 }),
             "schedule below the minimum",
@@ -811,7 +951,11 @@ async fn sources_add_sync_list_and_remove() {
     assert!(source["last_sync_at"].is_null());
     // The same source twice is refused.
     assert_eq!(
-        f.code("openhuman.memory_sources_add", json!({ "kind": "folder", "target": target })).await,
+        f.code(
+            "openhuman.memory_sources_add",
+            json!({ "kind": "folder", "target": target })
+        )
+        .await,
         "INVALID_REQUEST"
     );
     // A link and a GitHub repo register without syncing.
@@ -823,9 +967,15 @@ async fn sources_add_sync_list_and_remove() {
         .await;
     assert_eq!(link["source"]["label"], json!("https://example.com/docs"));
     let repo = f
-        .ok("openhuman.memory_sources_add", json!({ "kind": "github", "target": "acme/widgets" }))
+        .ok(
+            "openhuman.memory_sources_add",
+            json!({ "kind": "github", "target": "acme/widgets" }),
+        )
         .await;
-    assert_eq!(repo["source"]["target"], json!("https://github.com/acme/widgets"));
+    assert_eq!(
+        repo["source"]["target"],
+        json!("https://github.com/acme/widgets")
+    );
     let listed = f.ok("openhuman.memory_sources_list", json!({})).await;
     assert_eq!(listed["sources"].as_array().unwrap().len(), 3);
     // Drop the two network sources so a sync-all below only reads the folder.
@@ -838,10 +988,16 @@ async fn sources_add_sync_list_and_remove() {
 
     // sync: unknown id is refused; a real one starts, then finishes.
     assert_eq!(
-        f.code("openhuman.memory_sources_sync", json!({ "id": "src-missing" })).await,
+        f.code(
+            "openhuman.memory_sources_sync",
+            json!({ "id": "src-missing" })
+        )
+        .await,
         "INVALID_REQUEST"
     );
-    let started = f.ok("openhuman.memory_sources_sync", json!({ "id": id })).await;
+    let started = f
+        .ok("openhuman.memory_sources_sync", json!({ "id": id }))
+        .await;
     assert_eq!(started["started"], json!([id]));
     let synced = wait_for_source(&f, &id, 2).await;
     assert_eq!(synced["status"], json!("idle"), "{synced}");
@@ -849,7 +1005,10 @@ async fn sources_add_sync_list_and_remove() {
 
     // The folder's files are now documents tagged with the source.
     let docs = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["document"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["document"] } }),
+        )
         .await;
     let items = docs["items"].as_array().unwrap();
     assert!(items.len() >= 2, "both files stored: {docs}");
@@ -861,7 +1020,9 @@ async fn sources_add_sync_list_and_remove() {
     let texts: String = items.iter().filter_map(|i| i["text"].as_str()).collect();
     assert!(texts.contains("first Tuesday of March") && texts.contains("forty thousand"));
     assert!(
-        items.iter().any(|i| i["meta"]["file_path"].as_str().is_some_and(|p| p.ends_with("launch.md"))),
+        items.iter().any(|i| i["meta"]["file_path"]
+            .as_str()
+            .is_some_and(|p| p.ends_with("launch.md"))),
         "meta.file_path is filled: {docs}"
     );
 
@@ -889,31 +1050,54 @@ async fn sources_add_sync_list_and_remove() {
     f.ok("openhuman.memory_sources_sync", json!({})).await;
     let resynced = wait_for_source(&f, &id, 2).await;
     let after = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["document"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["document"] } }),
+        )
         .await;
-    assert_eq!(after["items"].as_array().unwrap().len(), items.len(), "{resynced}");
+    assert_eq!(
+        after["items"].as_array().unwrap().len(),
+        items.len(),
+        "{resynced}"
+    );
 
     // remove, keeping then forgetting items.
     let kept = f
-        .ok("openhuman.memory_sources_remove", json!({ "id": id, "forget_items": false }))
+        .ok(
+            "openhuman.memory_sources_remove",
+            json!({ "id": id, "forget_items": false }),
+        )
         .await;
     assert_eq!(kept["removed"], json!(true));
-    assert_eq!(f.ok("openhuman.memory_sources_list", json!({})).await["sources"], json!([]));
+    assert_eq!(
+        f.ok("openhuman.memory_sources_list", json!({})).await["sources"],
+        json!([])
+    );
     let still = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["document"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["document"] } }),
+        )
         .await;
     assert_eq!(still["items"].as_array().unwrap().len(), items.len());
     let gone = f
-        .ok("openhuman.memory_sources_remove", json!({ "id": id, "forget_items": true }))
+        .ok(
+            "openhuman.memory_sources_remove",
+            json!({ "id": id, "forget_items": true }),
+        )
         .await;
     assert_eq!(gone["removed"], json!(false), "already removed");
 
     // Re-add and remove with forget_items: the source's documents are forgotten.
     let again = f
-        .ok("openhuman.memory_sources_add", json!({ "kind": "folder", "target": target }))
+        .ok(
+            "openhuman.memory_sources_add",
+            json!({ "kind": "folder", "target": target }),
+        )
         .await;
     let again_id = again["source"]["id"].as_str().unwrap().to_string();
-    f.ok("openhuman.memory_sources_sync", json!({ "id": again_id })).await;
+    f.ok("openhuman.memory_sources_sync", json!({ "id": again_id }))
+        .await;
     wait_for_source(&f, &again_id, 2).await;
     let removed = f
         .ok(
@@ -923,9 +1107,16 @@ async fn sources_add_sync_list_and_remove() {
         .await;
     assert_eq!(removed["removed"], json!(true));
     let empty = f
-        .ok("openhuman.memory_items_list", json!({ "filter": { "kinds": ["document"] } }))
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "kinds": ["document"] } }),
+        )
         .await;
-    assert_eq!(empty["items"], json!([]), "forget_items removed the documents: {empty}");
+    assert_eq!(
+        empty["items"],
+        json!([]),
+        "forget_items removed the documents: {empty}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -956,7 +1147,8 @@ async fn context_get_set_and_refresh() {
         .await;
     assert_eq!(partial["enabled"], json!(false));
     assert_eq!(partial["interval_mins"], json!(30));
-    f.ok("openhuman.memory_context_set", json!({ "enabled": true })).await;
+    f.ok("openhuman.memory_context_set", json!({ "enabled": true }))
+        .await;
 
     for bad in [
         json!({ "interval_mins": 1 }),
@@ -976,7 +1168,10 @@ async fn context_get_set_and_refresh() {
     assert!(refreshed["generated_at"].is_string(), "{refreshed}");
     assert!(refreshed["tokens"].as_u64().unwrap_or(0) > 0, "{refreshed}");
     let markdown = refreshed["markdown"].as_str().unwrap_or_default();
-    assert!(!markdown.trim().is_empty(), "context.md has content: {refreshed}");
+    assert!(
+        !markdown.trim().is_empty(),
+        "context.md has content: {refreshed}"
+    );
 
     let read_back = f.ok("openhuman.memory_context_get", json!({})).await;
     assert_eq!(read_back["markdown"], refreshed["markdown"]);
@@ -1001,7 +1196,8 @@ async fn import_scan_finds_nothing_and_start_needs_consent() {
 
     // Importing uploads local data: refused without consent, signed in or not.
     assert_eq!(
-        f.code("openhuman.memory_import_start", json!({ "consent": false })).await,
+        f.code("openhuman.memory_import_start", json!({ "consent": false }))
+            .await,
         "INVALID_REQUEST"
     );
     assert_eq!(
@@ -1010,7 +1206,8 @@ async fn import_scan_finds_nothing_and_start_needs_consent() {
     );
     // With consent but no v1 store there is nothing to import.
     assert_eq!(
-        f.code("openhuman.memory_import_start", json!({ "consent": true })).await,
+        f.code("openhuman.memory_import_start", json!({ "consent": true }))
+            .await,
         "INVALID_REQUEST"
     );
     assert_eq!(
@@ -1021,7 +1218,9 @@ async fn import_scan_finds_nothing_and_start_needs_consent() {
     // And nothing was uploaded.
     let paths = f.mock.request_paths().await;
     assert!(
-        !paths.iter().any(|p| p.starts_with("POST /memory/experience")),
+        !paths
+            .iter()
+            .any(|p| p.starts_with("POST /memory/experience")),
         "a refused import stores nothing: {paths:?}"
     );
 }
