@@ -44,8 +44,6 @@ pub struct ModelSettingsPatch {
 
 #[derive(Debug, Clone, Default)]
 pub struct MemorySettingsPatch {
-    pub backend: Option<String>,
-    pub auto_save: Option<bool>,
     pub embedding_provider: Option<String>,
     pub embedding_model: Option<String>,
     pub embedding_dimensions: Option<usize>,
@@ -405,36 +403,11 @@ pub async fn apply_model_settings(
     complete_byok_route(config, &explicit_role_pins);
 
     config.save().await.map_err(|e| e.to_string())?;
-    // #1574 §4: the AIPanel workload matrix changes the embedder via THIS
-    // (model-settings) path — `embeddings_provider` above — not the
-    // memory-settings path. Trigger the same idempotent re-embed backfill
-    // so a UI embedder switch recovers prior memory under the new
-    // signature. Coverage-gated + non-fatal: if the active signature did
-    // not actually change, this enqueues nothing.
-    crate::memory::ops::maintenance::reembed_best_effort(config, "model settings").await;
-    // #5324: the embedder may have just moved off the exhausted managed
-    // budget onto local Ollama / a BYO provider. Give the jobs that parked as
-    // `unrecoverable` under the old provider a fresh attempt budget — but ONLY
-    // when the embedder selection actually changed, so a chat/vision/etc. model
-    // save leaves terminally-failed jobs parked instead of re-failing them.
-    let embedder_changed = config.embeddings_provider != prev_embeddings_provider;
-    // #5324: the save has already succeeded, so a failed un-park must NOT fail
-    // the RPC — but it must not be reported as `requeued_failed=0` either, which
-    // would read identically to "nothing was parked" and hide that the parked
-    // jobs are still stuck. Surface the error in the outcome line instead.
-    let requeued_note = if embedder_changed {
-        match crate::memory::ops::maintenance::retry_failed(config).await {
-            Ok(n) => n.to_string(),
-            Err(e) => format!("error ({e})"),
-        }
-    } else {
-        "0".to_string()
-    };
     let snapshot = snapshot_config_json(config)?;
     Ok(Outcome::new(
         snapshot,
         vec![format!(
-            "model settings saved to {} (requeued_failed={requeued_note})",
+            "model settings saved to {}",
             config.config_path.display()
         )],
     ))
@@ -448,24 +421,12 @@ pub async fn load_and_apply_model_settings(
     apply_model_settings(&mut config, update).await
 }
 
-/// Updates the memory-related settings in the configuration.
+/// Updates the embedding settings kept under `[memory]` and the agent's
+/// memory-context window.
 pub async fn apply_memory_settings(
     config: &mut Config,
     update: MemorySettingsPatch,
 ) -> Result<Outcome<serde_json::Value>, String> {
-    // #5324: snapshot the embedding signature BEFORE applying the patch. This
-    // path also saves `backend` / `auto_save` / `memory_window`, none of which
-    // remediate a budget-exhausted embedder — so the failed-job un-park below
-    // must fire only when the provider/model/dimensions actually changed.
-    let prev_embedding_provider = config.memory.embedding_provider.clone();
-    let prev_embedding_model = config.memory.embedding_model.clone();
-    let prev_embedding_dimensions = config.memory.embedding_dimensions;
-    if let Some(backend) = update.backend {
-        config.memory.backend = backend;
-    }
-    if let Some(auto_save) = update.auto_save {
-        config.memory.auto_save = auto_save;
-    }
     if let Some(provider) = update.embedding_provider {
         config.memory.embedding_provider = provider;
     }
@@ -498,35 +459,11 @@ pub async fn apply_memory_settings(
         }
     }
     config.save().await.map_err(|e| e.to_string())?;
-    // #1574 §4: the embedder may have just changed (provider/model/dims).
-    // Ensure a re-embed backfill chain exists for the new active signature
-    // so prior memory becomes retrievable again instead of silently going
-    // dark. Idempotent + non-fatal (covered space enqueues nothing; errors
-    // are logged, never fail the settings save). §7's migration is
-    // one-shot so it does not cover a later switch — this does.
-    crate::memory::ops::maintenance::reembed_best_effort(config, "memory settings").await;
-    // #5324: same rationale as the model-settings path — a switch away from
-    // the exhausted managed budget must un-park the jobs that failed under it,
-    // but a `memory_window` / `auto_save` / `backend` save must not. Gate on a
-    // real embedder change (provider/model/dimensions).
-    let embedder_changed = config.memory.embedding_provider != prev_embedding_provider
-        || config.memory.embedding_model != prev_embedding_model
-        || config.memory.embedding_dimensions != prev_embedding_dimensions;
-    // #5324: same as the model-settings path — keep the save successful but
-    // report an un-park failure instead of a misleading `requeued_failed=0`.
-    let requeued_note = if embedder_changed {
-        match crate::memory::ops::maintenance::retry_failed(config).await {
-            Ok(n) => n.to_string(),
-            Err(e) => format!("error ({e})"),
-        }
-    } else {
-        "0".to_string()
-    };
     let snapshot = snapshot_config_json(config)?;
     Ok(Outcome::new(
         snapshot,
         vec![format!(
-            "memory settings saved to {} (requeued_failed={requeued_note})",
+            "memory settings saved to {}",
             config.config_path.display()
         )],
     ))
