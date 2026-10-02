@@ -5,35 +5,9 @@
 //! slice that pares the surface down to a useful subset and tags every action
 //! with a [`ToolScope`], so per-user scope preferences can gate execution.
 //!
-//! # Why the catalogs are here and not in the engine crate
-//!
-//! [`super`]'s module docs used to end with "the curated catalogs and the
-//! provider registry ... are the engine's", and the catalogs half of that is no
-//! longer true. The registry still is — it is a process-global map of trait
-//! objects that reach `reqwest` and the chunk store, and none of that may enter
-//! this crate.
-//!
-//! The catalogs are the opposite: several thousand `&'static str` action slugs
-//! and a `match` over them, with no dependency of any kind. And the *host* is
-//! their heaviest reader — it filters the agent's visible tool list, renders
-//! the `gated_tools` unlock hints, and decides which connected toolkits get the
-//! "agent-ready" badge. While they lived in the engine crate, every one of
-//! those host reads was a compile-time link to `tinymemory-core`, which is the
-//! link OpenHuman#5560 removes. Same argument [`super::scopes`] already makes
-//! for the verdict functions: the *same answer* has to be reachable on both
-//! sides of the module boundary, so the data has to be nameable from the
-//! contract.
-//!
-//! # `get_provider(..).curated_tools()` is not a separate source
-//!
-//! The lookups here consult [`catalog_for_toolkit`] alone. The engine's
-//! versions walked the registered provider's `curated_tools()` first and fell
-//! back to the static map, which read as two sources of truth; it was one.
-//! Every native provider's `curated_tools()` returns exactly the slice
-//! `catalog_for_toolkit` returns for the same toolkit — verified against all
-//! six (`gmail`, `notion`, `github`, `linear`, `clickup`, `slack`) — so the
-//! provider hop was pure indirection, and dropping it is what lets a host
-//! answer "may this action run" without a provider registry at all.
+//! The host is their only reader: it filters the agent's visible tool list,
+//! renders the `gated_tools` unlock hints, and decides which connected
+//! toolkits get the "agent-ready" badge.
 
 pub mod business;
 pub mod clickup;
