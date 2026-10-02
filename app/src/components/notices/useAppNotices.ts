@@ -75,7 +75,7 @@ const ACTION_ROUTE: Record<Exclude<UserErrorAction, 'dismiss'>, string> = {
   // openhuman#5820: after a corrupt-store quarantine the rebuilt tree is
   // empty; the per-source Sync and All In controls that repopulate it live on
   // Brain's Sources tab (the Sync tab only shows status and history).
-  open_memory_sync: '/brain?tab=sources',
+  open_memory_sync: '/connections?tab=brain&brain=sources',
 };
 
 const ACTION_LABEL_KEY: Record<Exclude<UserErrorAction, 'dismiss'>, string> = {

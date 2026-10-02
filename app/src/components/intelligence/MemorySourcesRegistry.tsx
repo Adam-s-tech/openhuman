@@ -575,7 +575,7 @@ export function MemorySourcesRegistry({
               onToast={onToast}
               onViewHealth={() => {
                 console.debug('[ui-flow][memory-sources] view memory health from source row');
-                navigate('/brain?tab=sync');
+                navigate('/connections?tab=brain&brain=sync');
               }}
               onSignIn={() => {
                 console.debug(

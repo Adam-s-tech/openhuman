@@ -128,7 +128,7 @@ export function settingsRouteElements(): ReactNode {
 
       {/* ── Data ────────────────────────────────────────────────── */}
       {/* Data Sync is a first-class surface on the Brain page now. */}
-      <Route path="memory-sync" element={<Navigate to="/brain?tab=sync" replace />} />
+      <Route path="memory-sync" element={<Navigate to="/connections?tab=brain&brain=sync" replace />} />
       {/* Wallet balances moved to the Connections page (Integrations group). */}
       <Route path="wallet-balances" element={<Navigate to="/connections?tab=wallet" replace />} />
       <Route path="recovery-phrase" element={wrapSettingsPage(<RecoveryPhrasePanel />)} />
@@ -169,7 +169,7 @@ export function settingsRouteElements(): ReactNode {
       {/* Schedules live on the Workflows page now (`/flows?view=schedules`). */}
       <Route path="cron-jobs" element={<Navigate to="/flows?view=schedules" replace />} />
       {/* Tasks are represented by goals on the Brain page. */}
-      <Route path="tasks" element={<Navigate to="/brain?tab=goals" replace />} />
+      <Route path="tasks" element={<Navigate to="/connections?tab=brain&brain=goals" replace />} />
       {/* Workflows is a first-level module now — /settings/automations bounces
           to /flows (the Workflows page). */}
       <Route path="automations" element={<Navigate to="/flows" replace />} />
@@ -192,8 +192,8 @@ export function settingsRouteElements(): ReactNode {
       <Route path="memory-data" element={wrapSettingsPage(<MemoryDataPanel />)} />
       <Route path="memory-debug" element={wrapSettingsPage(<MemoryDebugPanel />)} />
       <Route path="memory-engine" element={wrapSettingsPage(<MemoryEnginePanel />)} />
-      <Route path="analysis-views" element={<Navigate to="/brain" replace />} />
-      <Route path="intelligence" element={<Navigate to="/brain" replace />} />
+      <Route path="analysis-views" element={<Navigate to="/connections?tab=brain" replace />} />
+      <Route path="intelligence" element={<Navigate to="/connections?tab=brain" replace />} />
       {/* Composio trigger-triage config merged into the Connections Composio page. */}
       <Route
         path="composio-triggers"

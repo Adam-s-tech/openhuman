@@ -64,6 +64,7 @@ import type { ToastNotification } from '../types/intelligence';
 import { IS_DEV } from '../utils/config';
 import { isLocalSessionToken } from '../utils/localSession';
 import { openhumanComposioGetMode } from '../utils/tauriCommands';
+import Brain from './Brain';
 
 /** Small inline icon helper for the Connections sidebar nav. */
 const navIcon = (d: string) => (
