@@ -49,7 +49,7 @@ export type UserErrorKind =
    * empty (openhuman#5820). Mirrors the core-side `STORE_CORRUPT_KIND`
    * token. The damaged file is preserved on disk beside the store; the
    * rebuilt tree repopulates by re-syncing sources, which is why the action
-   * deep-links to Brain's sync tab rather than any settings screen.
+   * deep-links to the Memory page's Documents chip, not a settings screen.
    */
   | 'memory_store_corrupt'
   /**
@@ -79,7 +79,7 @@ export type UserErrorAction =
   | 'open_embeddings_settings'
   /** The connections screen — where integration health is polled and re-read. */
   | 'open_connections'
-  /** Brain's sync tab — where memory sources are re-synced after a store rebuild. */
+  /** Memory → Documents — where memory sources are re-synced after a store rebuild. */
   | 'open_memory_sync'
   | 'dismiss';
 
