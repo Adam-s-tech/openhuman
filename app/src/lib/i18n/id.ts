@@ -4671,6 +4671,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Lampirkan file',
   'composer.modelSelector': 'Model',
+  'composer.reasoning.label': 'Tingkat penalaran',
+  'composer.reasoning.default': 'Penalaran: otomatis',
+  'composer.reasoning.none': 'Penalaran: mati',
+  'composer.reasoning.low': 'Penalaran: rendah',
+  'composer.reasoning.medium': 'Penalaran: sedang',
+  'composer.reasoning.high': 'Penalaran: tinggi',
+  'composer.reasoning.xhigh': 'Penalaran: maksimum',
   'composer.settings.model': 'Model',
   'composer.settings.temperature': 'Suhu',
   'composer.settings.chooseModel': 'Pilih model lain…',
@@ -5204,6 +5211,18 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'Persetujuan',
   'settings.agentAccess.group.fileSystem': 'Sistem berkas',
   'settings.agentAccess.group.limits': 'Batas',
+  'settings.agentAccess.toolFormat.label': 'Format panggilan alat',
+  'settings.agentAccess.toolFormat.desc':
+    'Cara agen menulis panggilan alat ke model. JSON paling andal di berbagai model; format bergaya kode bersifat eksperimental dan dapat salah dibaca oleh beberapa model. Berlaku untuk percakapan baru.',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (disarankan)',
+  'settings.agentAccess.toolFormat.option.native':
+    'JSON native (panggilan terstruktur dari penyedia)',
+  'settings.agentAccess.toolFormat.option.xml': 'JSON dalam tag',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (eksperimental)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (eksperimental)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (eksperimental)',
+  'settings.agentAccess.toolFormat.envOverride':
+    'Variabel lingkungan OPENHUMAN_TOOL_DISPATCHER menimpa pengaturan ini, sehingga perubahan di sini tidak berlaku selama variabel itu diatur.',
   'settings.sandbox.backendName.docker': 'Docker',
   'settings.sandbox.backendName.landlock': 'Landlock',
   'settings.sandbox.backendName.firejail': 'Firejail',

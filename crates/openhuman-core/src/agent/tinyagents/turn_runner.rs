@@ -280,6 +280,10 @@ async fn run_turn_via_tinyagents_inner(
             .thread_id
             .as_deref()
             .map(crate::agent::tinyagents::run_mode::handle_for_thread),
+        crate::agent::tinyagents::reasoning::turn_reasoning_for(
+            &run_context,
+            hosted_root.as_ref().map(|(base, _)| base.config.as_ref()),
+        ),
     );
 
     // Fail-closed registry validation gate (issue #4249, Workstream 10 — registry).

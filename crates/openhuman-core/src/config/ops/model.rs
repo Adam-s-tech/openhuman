@@ -61,6 +61,8 @@ pub struct MemorySettingsPatch {
 pub struct RuntimeSettingsPatch {
     pub kind: Option<String>,
     pub reasoning_enabled: Option<bool>,
+    /// `Some("")` clears the effort back to the provider default.
+    pub reasoning_effort: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -548,6 +550,16 @@ pub async fn apply_runtime_settings(
     }
     if let Some(reasoning_enabled) = update.reasoning_enabled {
         config.runtime.reasoning_enabled = Some(reasoning_enabled);
+    }
+    if let Some(effort) = update.reasoning_effort {
+        let effort = effort.trim();
+        if effort.is_empty() {
+            config.runtime.reasoning_effort = None;
+        } else {
+            let parsed = crate::agent::tinyagents::parse_reasoning_effort(effort)
+                .ok_or_else(|| format!("unknown reasoning_effort '{effort}'"))?;
+            config.runtime.reasoning_effort = Some(parsed.as_str().to_string());
+        }
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;

@@ -262,12 +262,11 @@ pub struct AgentConfig {
     #[serde(default = "default_max_parallel_tools")]
     pub max_parallel_tools: usize,
     /// How the agent formats tool calls to its provider.
-    /// - `"python"` (default): code-style calls against Python signatures in
-    ///   the prompt (`def read_file(path: str, limit: int = None) -> str`,
-    ///   called as `read_file(path="x")`). The cheapest catalogue on the wire
-    ///   and a syntax every code-trained model already writes.
-    /// - `"auto"`: native structured tool-calling when the provider supports
-    ///   it, otherwise JSON-in-tag (`<tool_call>{…}</tool_call>`).
+    /// - `"auto"` (default): native structured tool-calling when the provider
+    ///   supports it, otherwise JSON-in-tag (`<tool_call>{…}</tool_call>`).
+    /// - `"python"`: code-style calls against Python signatures in the prompt
+    ///   (`def read_file(path: str, limit: int = None) -> str`, called as
+    ///   `read_file(path="x")`). Opt-in; mis-parses on some models.
     /// - `"native"`: force provider-native structured tool calls.
     /// - `"xml"`: force JSON-in-tag.
     /// - `"pformat"`: force compact positional P-Format (`tool[a|b]`); it
@@ -514,7 +513,7 @@ fn default_max_parallel_tools() -> usize {
 }
 
 fn default_agent_tool_dispatcher() -> String {
-    "python".into()
+    "auto".into()
 }
 
 fn default_max_memory_context_chars() -> usize {

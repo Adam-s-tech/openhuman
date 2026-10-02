@@ -4727,6 +4727,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Adjuntar archivo',
   'composer.modelSelector': 'Modelo',
+  'composer.reasoning.label': 'Nivel de razonamiento',
+  'composer.reasoning.default': 'Razonamiento: automático',
+  'composer.reasoning.none': 'Razonamiento: desactivado',
+  'composer.reasoning.low': 'Razonamiento: bajo',
+  'composer.reasoning.medium': 'Razonamiento: medio',
+  'composer.reasoning.high': 'Razonamiento: alto',
+  'composer.reasoning.xhigh': 'Razonamiento: máximo',
   'composer.settings.model': 'Modelo',
   'composer.settings.temperature': 'Temperatura',
   'composer.settings.chooseModel': 'Elegir otro modelo…',
@@ -5281,6 +5288,18 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'Aprobaciónes',
   'settings.agentAccess.group.fileSystem': 'Sistema de archivos',
   'settings.agentAccess.group.limits': 'Limits',
+  'settings.agentAccess.toolFormat.label': 'Formato de llamadas a herramientas',
+  'settings.agentAccess.toolFormat.desc':
+    'Cómo escribe el agente las llamadas a herramientas para el modelo. JSON es lo más fiable entre modelos; los formatos tipo código son experimentales y algunos modelos pueden interpretarlos mal. Se aplica a las conversaciones nuevas.',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (recomendado)',
+  'settings.agentAccess.toolFormat.option.native':
+    'JSON nativo (llamadas estructuradas del proveedor)',
+  'settings.agentAccess.toolFormat.option.xml': 'JSON en etiquetas',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (en pruebas)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (en pruebas)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (en pruebas)',
+  'settings.agentAccess.toolFormat.envOverride':
+    'La variable de entorno OPENHUMAN_TOOL_DISPATCHER anula este ajuste, por lo que los cambios aquí no surten efecto mientras esté definida.',
   'settings.sandbox.backendName.docker': 'Docker',
   'settings.sandbox.backendName.landlock': 'Landlock',
   'settings.sandbox.backendName.firejail': 'Firejail',

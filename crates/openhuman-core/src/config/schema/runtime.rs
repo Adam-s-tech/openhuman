@@ -14,6 +14,13 @@ pub struct RuntimeConfig {
     pub docker: DockerRuntimeConfig,
     #[serde(default)]
     pub reasoning_enabled: Option<bool>,
+    /// Reasoning ("thinking") effort for agent turns: `none`, `minimal`,
+    /// `low`, `medium`, `high` or `xhigh` (`off` and `max` are accepted
+    /// aliases). Unset leaves the provider's own default. A chat turn's
+    /// `reasoning_effort` overrides it for that thread. When this is unset and
+    /// `reasoning_enabled = false`, turns ask for no reasoning.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -92,6 +99,7 @@ impl Default for RuntimeConfig {
             kind: default_runtime_kind(),
             docker: DockerRuntimeConfig::default(),
             reasoning_enabled: None,
+            reasoning_effort: None,
         }
     }
 }
