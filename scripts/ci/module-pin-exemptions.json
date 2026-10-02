@@ -33,11 +33,6 @@
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
     },
     {
-      "id": "tinymemory",
-      "expect": "v1.22.3-3-ge5e2cbbc",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
       "id": "tinyjuice",
       "expect": "v0.5.1-2-gb2f7172",
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
