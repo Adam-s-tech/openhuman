@@ -60,7 +60,15 @@ export function bundledAssets(source, hostKey) {
     if (!urls.has(record.id)) throw new Error(`missing release URL for ${record.id}`);
     return record.id;
   });
-  const assets = resolveTestModuleAssets(source, hostKey, ids);
+  // A module that publishes nothing for this OS (tinycomputer has no Linux
+  // build) is not bundled there; one that publishes the OS but not this key is
+  // a registry hole and fails below.
+  const osPrefix = hostKey.split("-")[0];
+  const byId = new Map([...records.values()].map((r) => [r.id, r]));
+  const wanted = ids.filter((id) =>
+    byId.get(id).assets.some((a) => a.hostKey.startsWith(`${osPrefix}-`)),
+  );
+  const assets = resolveTestModuleAssets(source, hostKey, wanted);
   return assets.map((asset) => {
     const record = [...records.values()].find((r) => r.id === asset.id);
     for (const component of [record.id, record.version, hostKey, asset.archive]) {
