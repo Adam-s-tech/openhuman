@@ -21,7 +21,10 @@
 //! Aggressive/Normal, sleeps in Throttled, and re-polls in Paused so the
 //! caller resumes the moment the user toggles the gate back on.
 
+mod decide;
 pub mod gate;
+mod signals;
+mod throttle;
 
 pub use gate::{
     current_policy, init_global, is_signed_out, set_signed_out, wait_for_capacity, LlmPermit,

@@ -1,8 +1,8 @@
 //! Process-wide singleton: cached policy + cooperative throttling.
 //!
 //! The machinery (sampling, the cached [`GateCore`], the sampler task and the
-//! cooperative wait) is `tinymemory-gate`'s. This file is the host's wiring of
-//! it: the process-wide state, the signed-out override, the resume
+//! cooperative wait) is [`super::throttle`] and [`super::signals`]. This file
+//! is the wiring of it: the process-wide state, the signed-out override, the resume
 //! notification, and the per-runtime state that keeps unit tests from sharing
 //! any of it.
 
@@ -14,13 +14,15 @@ use parking_lot::RwLock;
 use tokio::sync::{Notify, Semaphore};
 
 use crate::config::SchedulerGateConfig;
-use tinymemory_gate::{GateCore, SharedCore, SignalEnv, LLM_SLOTS};
+use super::signals::SignalEnv;
+use super::throttle::{GateCore, SharedCore, LLM_SLOTS};
 
-pub use tinymemory_gate::LlmPermit;
-pub use tinymemory_gate::{PauseReason, Policy, Signals};
+pub use super::decide::Signals;
+pub use super::throttle::LlmPermit;
+pub use crate::config::schema::{PauseReason, Policy};
 
 /// The environment variables that override what the hardware reports. The names
-/// are user-facing configuration, so they stay the host's; the gate crate only
+/// are user-facing configuration, so they stay the host's; the sampler only
 /// reads whichever names it is handed.
 const SIGNAL_ENV: SignalEnv = SignalEnv {
     on_ac_power: "OPENHUMAN_ON_AC_POWER",
@@ -109,10 +111,10 @@ static SIGNED_OUT: AtomicBool = AtomicBool::new(false);
 /// reloads should call [`update_config`] instead.
 pub fn init_global(cfg: SchedulerGateConfig) {
     STARTED.call_once(|| {
-        let signals = tinymemory_gate::sample(&SIGNAL_ENV);
+        let signals = super::signals::sample(&SIGNAL_ENV);
         let state: SharedCore = Arc::new(RwLock::new(GateCore::new(cfg, signals)));
         let _ = STATE.set(state.clone());
-        tinymemory_gate::spawn_sampler(state, SIGNAL_ENV);
+        super::throttle::spawn_sampler(state, SIGNAL_ENV);
     });
 }
 
@@ -294,7 +296,7 @@ impl Drop for SignedOutTestGuard {
 /// work, then hand back an [`LlmPermit`] that holds a slot in the global
 /// LLM semaphore.
 ///
-/// See [`tinymemory_gate::wait_for_capacity`] for the per-policy behaviour. The
+/// See [`super::throttle::wait_for_capacity`] for the per-policy behaviour. The
 /// signed-out override is only honoured once the gate has been initialised by
 /// [`init_global`]: in unit tests where it never was, there is no
 /// background-worker pool to stand down, but the per-runtime `signed_out` flag
@@ -306,7 +308,7 @@ impl Drop for SignedOutTestGuard {
 /// (never happens in production). Callers can safely treat `None` as "skip the
 /// gate" rather than propagating an error.
 pub async fn wait_for_capacity() -> Option<LlmPermit> {
-    tinymemory_gate::wait_for_capacity(STATE.get(), is_signed_out, &llm_permits()).await
+    super::throttle::wait_for_capacity(STATE.get(), is_signed_out, &llm_permits()).await
 }
 
 /// Test/diagnostic hook: try to grab a permit without consulting the
@@ -315,7 +317,7 @@ pub async fn wait_for_capacity() -> Option<LlmPermit> {
 /// [`wait_for_capacity`] so the policy backoff applies.
 #[cfg(test)]
 pub fn try_acquire_llm_permit() -> Option<LlmPermit> {
-    tinymemory_gate::try_acquire_llm_permit(&llm_permits())
+    super::throttle::try_acquire_llm_permit(&llm_permits())
 }
 
 /// Number of permits currently available. Test-only diagnostic.
