@@ -142,8 +142,7 @@ impl ContextManager {
 
     // ─── Budget tracking ──────────────────────────────────────────
 
-    /// Feed the latest provider [`BilledUsage`] into utilisation stats and the
-    /// session-memory state.
+    /// Feed the latest provider [`BilledUsage`] into utilisation stats.
     pub fn record_usage(&mut self, usage: &BilledUsage) {
         self.stats_state.record_usage(usage);
     }
