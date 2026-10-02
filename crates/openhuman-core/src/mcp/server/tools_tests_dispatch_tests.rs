@@ -1,6 +1,7 @@
 use super::*;
 
 #[tokio::test]
+#[allow(clippy::await_holding_lock)]
 async fn call_tool_records_write_argument_rejection() {
     let _env_lock = crate::config::TEST_ENV_LOCK
         .lock()
