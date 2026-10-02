@@ -18,3 +18,23 @@ pub fn normalize_tool_dispatcher(raw: &str) -> Result<String, String> {
     }
     Ok(normalized)
 }
+
+/// [`normalize_tool_dispatcher`] over an optional patch field.
+pub fn normalize_optional(raw: Option<&str>) -> Result<Option<String>, String> {
+    raw.map(normalize_tool_dispatcher).transpose()
+}
+
+/// Store a validated dispatcher on the agent config; `None` leaves it alone.
+pub fn apply_tool_dispatcher(config: &mut crate::config::Config, value: Option<String>) {
+    if let Some(value) = value {
+        log::debug!("[config][agent] tool_dispatcher -> {value}");
+        config.agent.tool_dispatcher = value;
+    }
+}
+
+/// True when `OPENHUMAN_TOOL_DISPATCHER` overrides the persisted setting.
+pub fn tool_dispatcher_env_override() -> bool {
+    std::env::var("OPENHUMAN_TOOL_DISPATCHER")
+        .map(|v| !v.trim().is_empty())
+        .unwrap_or(false)
+}
