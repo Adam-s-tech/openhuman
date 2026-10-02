@@ -2,7 +2,6 @@
 
 use async_trait::async_trait;
 use tinybus::EventHandler;
-use tinymemory_api::host::COMPOSIO_MODE_DIRECT;
 
 use crate::agent::triage::{
     apply_decision, remote_trigger_origin, run_triage, TriageOutcome, TriggerEnvelope,
@@ -77,15 +76,14 @@ impl EventHandler<DomainEvent> for ComposioTriggerSubscriber {
         // user doesn't see triage runs or history entries originating
         // from a tenant they've moved away from. Real-time triggers
         // for direct-mode users are tracked as a follow-up — see the
-        // `composio.direct_mode_triggers_gap` capability and
-        // `periodic.rs` docstring.
+        // `composio.direct_mode_triggers_gap` capability.
         //
         // Fail-open on config load error: if config is unreadable, we
         // let the event through rather than silently dropping it. The
         // existing env-var / config triage flags below remain the
         // backend-mode gates.
         if let Ok(config) = config_rpc::load_config_with_timeout().await {
-            if config.composio.mode == COMPOSIO_MODE_DIRECT {
+            if config.composio.mode == crate::config::schema::COMPOSIO_MODE_DIRECT {
                 tracing::info!(
                     toolkit = %toolkit,
                     trigger = %trigger,
@@ -261,16 +259,6 @@ impl EventHandler<DomainEvent> for ComposioTriggerSubscriber {
                         "[composio][triage] run_triage failed (label={}): {e:#}",
                         envelope.display_label
                     );
-                    // The classifier named here is the host's own. The
-                    // engine crate exposes a `report_error_or_expected` of its
-                    // own, but that is a global slot for *extracted* code to
-                    // report through — installed by whichever process embeds
-                    // the engine, which since #5560 is the loaded TinyMemory
-                    // module and no longer this one (`memory/host_impls.rs`,
-                    // the host's installer, is deleted; `modules/memory_host.rs`
-                    // is the bus-served twin). This subscriber is host code, so
-                    // the detour buys nothing and only costs an engine
-                    // dependency the seam is trying to shed.
                     crate::core::observability::report_error_or_expected(
                         detail.as_str(),
                         "composio",

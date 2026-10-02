@@ -75,20 +75,8 @@ impl EventHandler<DomainEvent> for ComposioConfigChangedSubscriber {
 
             match ops::fetch_connected_integrations_status(&config).await {
                 FetchConnectedIntegrationsStatus::Authoritative(entries) => {
-                    let mut toolkits: Vec<String> = entries
-                        .iter()
-                        .filter(|entry| entry.connected)
-                        .map(|entry| entry.toolkit.clone())
-                        .collect();
-                    toolkits.sort();
-                    toolkits.dedup();
-                    tinymemory_api::events::publish(
-                        tinymemory_api::events::MemoryEvent::ComposioIntegrationsChanged {
-                            toolkits: toolkits.clone(),
-                        },
-                    );
+                    super::publish_integrations_changed(&entries);
                     tracing::debug!(
-                        active_toolkits = ?toolkits,
                         "[composio-cache] config changed eager warm complete; published integrations changed"
                     );
                 }
