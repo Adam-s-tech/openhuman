@@ -4312,7 +4312,6 @@ const messages: TranslationMap = {
   'harnessInit.subtitle':
     'OpenHuman prépare les composants dont il a besoin lors du premier lancement.',
   'harnessInit.stepPython': "Environnement d'exécution Python",
-  'harnessInit.stepSpacy': 'Modèle de langage',
   'harnessInit.stepNode': "Environnement d'exécution Node.js",
   'harnessInit.statePending': 'En attente',
   'harnessInit.stateRunning': 'Installation…',
@@ -4467,7 +4466,6 @@ const messages: TranslationMap = {
     "Une intégration connectée renvoie des erreurs, l'état des connexions affiché dans l'application peut donc être obsolète.",
   'userErrors.action.openBilling': 'Ouvrir la facturation',
   'userErrors.action.openProviderSettings': 'Paramètres du fournisseur',
-  'userErrors.action.openEmbeddingsSettings': 'Configurer les embeddings',
   'userErrors.budgetExceeded.title': 'Budget géré atteint',
   'userErrors.budgetExceeded.body':
     'Votre budget IA géré est épuisé. Ajoutez du budget ou changez de forfait.',
@@ -4484,22 +4482,8 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'Impossible d’afficher la réponse',
   'userErrors.replyDeliveryFailed.body':
     'L’agent a terminé ce tour, mais sa réponse n’a pas pu être enregistrée ni récupérée. Redemande-lui de la répéter.',
-  'userErrors.memoryStoreCorrupt.title': 'L’index mémoire a été corrompu',
-  'userErrors.memoryStoreCorrupt.body':
-    'La base de données de l’arbre mémoire était endommagée. Le fichier endommagé a été conservé à côté de vos données mémoire et un index vide a été reconstruit. Resynchronisez vos sources mémoire pour le remplir à nouveau.',
-  'userErrors.action.openMemorySync': 'Resynchroniser la mémoire',
   'userErrors.scope.cron': 'Tâche planifiée',
   'userErrors.scope.workspace': 'Espace de travail',
-  'userErrors.memoryBudgetExhausted.title': 'La mémoire a cessé de grandir',
-  'userErrors.memoryBudgetExhausted.body':
-    "Votre budget d'embeddings est épuisé, les nouveaux contenus ne sont donc plus ajoutés à la mémoire. Configurez des embeddings locaux ou ajoutez votre propre clé API pour reprendre.",
-  'memoryBudget.approachingTitle': "La mémoire approche de la limite de son budget d'embeddings",
-  'memoryBudget.approachingMessage':
-    "Vous avez utilisé {pct}% de votre budget d'embeddings. Configurez des embeddings locaux ou ajoutez votre propre clé API pour que la mémoire continue de croître sans interruption.",
-  'memoryBudget.exhaustedTitle': 'La mémoire a cessé de grandir',
-  'memoryBudget.exhaustedMessage':
-    "Votre budget d'embeddings est épuisé, les nouveaux contenus ne sont donc plus ajoutés à la mémoire. Configurez des embeddings locaux ou ajoutez votre propre clé API pour reprendre.",
-  'memoryBudget.cta': 'Configurer les embeddings',
   'userErrors.scope.memory': 'Mémoire',
 
   // Code block chrome

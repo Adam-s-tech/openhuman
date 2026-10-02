@@ -4223,7 +4223,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': 'समझ गया',
   'harnessInit.subtitle': 'OpenHuman पहली बार शुरू होने पर आवश्यक घटक तैयार कर रहा है।',
   'harnessInit.stepPython': 'Python रनटाइम',
-  'harnessInit.stepSpacy': 'भाषा मॉडल',
   'harnessInit.stepNode': 'Node.js रनटाइम',
   'harnessInit.statePending': 'प्रतीक्षारत',
   'harnessInit.stateRunning': 'इंस्टॉल हो रहा है…',
@@ -4371,7 +4370,6 @@ const messages: TranslationMap = {
     'एक जुड़ा हुआ इंटीग्रेशन त्रुटियां लौटा रहा है, इसलिए ऐप में दिख रही कनेक्शन स्थिति पुरानी हो सकती है।',
   'userErrors.action.openBilling': 'बिलिंग खोलें',
   'userErrors.action.openProviderSettings': 'प्रदाता सेटिंग्स',
-  'userErrors.action.openEmbeddingsSettings': 'एम्बेडिंग सेट करें',
   'userErrors.budgetExceeded.title': 'प्रबंधित बजट समाप्त',
   'userErrors.budgetExceeded.body': 'प्रबंधित AI बजट समाप्त। बजट जोड़ें या प्लान बदलें।',
   'userErrors.insufficientCredits.title': 'प्रदाता क्रेडिट आवश्यक',
@@ -4386,23 +4384,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'उत्तर दिखाया नहीं जा सका',
   'userErrors.replyDeliveryFailed.body':
     'एजेंट ने यह बारी पूरी कर ली, लेकिन उसका उत्तर न सहेजा जा सका और न दोबारा पढ़ा जा सका। दोबारा पूछें ताकि वह उत्तर फिर से दे।',
-  'userErrors.memoryStoreCorrupt.title': 'मेमोरी इंडेक्स खराब हो गया',
-  'userErrors.memoryStoreCorrupt.body':
-    'आपकी मेमोरी ट्री का डेटाबेस खराब हो गया था। खराब फाइल आपके मेमोरी डेटा के पास सुरक्षित रखी गई है, और एक खाली इंडेक्स फिर से बनाया गया है। इसे दोबारा भरने के लिए अपने मेमोरी स्रोतों को फिर से सिंक करें।',
-  'userErrors.action.openMemorySync': 'मेमोरी फिर से सिंक करें',
   'userErrors.scope.chat': 'चैट',
   'userErrors.scope.cron': 'निर्धारित कार्य',
   'userErrors.scope.workspace': 'वर्कस्पेस',
-  'userErrors.memoryBudgetExhausted.title': 'मेमोरी बढ़ना बंद हो गई है',
-  'userErrors.memoryBudgetExhausted.body':
-    'आपका एम्बेडिंग बजट खत्म हो गया है, इसलिए नई सामग्री अब मेमोरी में नहीं जुड़ रही। दोबारा शुरू करने के लिए लोकल एम्बेडिंग सेट करें या अपनी API कुंजी जोड़ें।',
-  'memoryBudget.approachingTitle': 'मेमोरी अपनी एम्बेडिंग सीमा के पास पहुंच रही है',
-  'memoryBudget.approachingMessage':
-    'आपने अपने एम्बेडिंग बजट का {pct}% इस्तेमाल कर लिया है। मेमोरी बिना रुकावट बढ़ती रहे, इसके लिए लोकल एम्बेडिंग सेट करें या अपनी API कुंजी जोड़ें।',
-  'memoryBudget.exhaustedTitle': 'मेमोरी बढ़ना बंद हो गई है',
-  'memoryBudget.exhaustedMessage':
-    'आपका एम्बेडिंग बजट खत्म हो गया है, इसलिए नई सामग्री अब मेमोरी में नहीं जुड़ रही। दोबारा शुरू करने के लिए लोकल एम्बेडिंग सेट करें या अपनी API कुंजी जोड़ें।',
-  'memoryBudget.cta': 'एम्बेडिंग सेट करें',
   'userErrors.scope.memory': 'मेमोरी',
 
   // Code block chrome

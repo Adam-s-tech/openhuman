@@ -4287,7 +4287,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': 'Ho capito',
   'harnessInit.subtitle': 'OpenHuman sta preparando i componenti necessari al primo avvio.',
   'harnessInit.stepPython': 'Ambiente di esecuzione Python',
-  'harnessInit.stepSpacy': 'Modello linguistico',
   'harnessInit.stepNode': 'Ambiente di esecuzione Node.js',
   'harnessInit.statePending': 'In attesa',
   'harnessInit.stateRunning': 'Installazione…',
@@ -4441,7 +4440,6 @@ const messages: TranslationMap = {
     "Un'integrazione collegata restituisce errori, quindi lo stato delle connessioni mostrato nell'app potrebbe non essere aggiornato.",
   'userErrors.action.openBilling': 'Apri fatturazione',
   'userErrors.action.openProviderSettings': 'Impostazioni del provider',
-  'userErrors.action.openEmbeddingsSettings': 'Configura gli embedding',
   'userErrors.budgetExceeded.title': 'Budget gestito esaurito',
   'userErrors.budgetExceeded.body':
     'Il tuo budget IA gestito è esaurito. Aggiungi budget o cambia piano.',
@@ -4458,22 +4456,8 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'Impossibile mostrare la risposta',
   'userErrors.replyDeliveryFailed.body':
     'L’agente ha completato questo turno, ma la sua risposta non è stata salvata né riletta. Chiedi di nuovo per fartela ripetere.',
-  'userErrors.memoryStoreCorrupt.title': 'L’indice della memoria era corrotto',
-  'userErrors.memoryStoreCorrupt.body':
-    'Il database dell’albero della memoria era danneggiato. Il file danneggiato è stato conservato accanto ai tuoi dati di memoria ed è stato ricostruito un indice vuoto. Risincronizza le tue fonti di memoria per riempirlo di nuovo.',
-  'userErrors.action.openMemorySync': 'Risincronizza la memoria',
   'userErrors.scope.cron': 'Attività pianificata',
   'userErrors.scope.workspace': 'Spazio di lavoro',
-  'userErrors.memoryBudgetExhausted.title': 'La memoria ha smesso di crescere',
-  'userErrors.memoryBudgetExhausted.body':
-    'Il tuo budget di embedding è esaurito, quindi i nuovi contenuti non vengono più aggiunti alla memoria. Configura embedding locali o aggiungi la tua chiave API per riprendere.',
-  'memoryBudget.approachingTitle': 'La memoria si sta avvicinando al limite di embedding',
-  'memoryBudget.approachingMessage':
-    'Hai usato il {pct}% del tuo budget di embedding. Configura embedding locali o aggiungi la tua chiave API per far crescere la memoria senza interruzioni.',
-  'memoryBudget.exhaustedTitle': 'La memoria ha smesso di crescere',
-  'memoryBudget.exhaustedMessage':
-    'Il tuo budget di embedding è esaurito, quindi i nuovi contenuti non vengono più aggiunti alla memoria. Configura embedding locali o aggiungi la tua chiave API per riprendere.',
-  'memoryBudget.cta': 'Configura gli embedding',
   'userErrors.scope.memory': 'Memoria',
 
   // Code block chrome

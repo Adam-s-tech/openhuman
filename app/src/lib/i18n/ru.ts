@@ -4262,7 +4262,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': 'Понятно',
   'harnessInit.subtitle': 'OpenHuman готовит компоненты, необходимые при первом запуске.',
   'harnessInit.stepPython': 'Среда выполнения Python',
-  'harnessInit.stepSpacy': 'Языковая модель',
   'harnessInit.stepNode': 'Среда выполнения Node.js',
   'harnessInit.statePending': 'Ожидание',
   'harnessInit.stateRunning': 'Установка…',
@@ -4415,7 +4414,6 @@ const messages: TranslationMap = {
     'Подключенная интеграция возвращает ошибки, поэтому отображаемый статус подключений может быть неактуальным.',
   'userErrors.action.openBilling': 'Открыть оплату',
   'userErrors.action.openProviderSettings': 'Настройки провайдера',
-  'userErrors.action.openEmbeddingsSettings': 'Настроить эмбеддинги',
   'userErrors.budgetExceeded.title': 'Управляемый бюджет исчерпан',
   'userErrors.budgetExceeded.body': 'Управляемый бюджет ИИ исчерпан. Измените план.',
   'userErrors.insufficientCredits.title': 'Требуются кредиты провайдера',
@@ -4429,23 +4427,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'Не удалось показать ответ',
   'userErrors.replyDeliveryFailed.body':
     'Агент завершил этот ход, но его ответ не удалось сохранить или прочитать заново. Спросите ещё раз, чтобы он повторил.',
-  'userErrors.memoryStoreCorrupt.title': 'Индекс памяти был повреждён',
-  'userErrors.memoryStoreCorrupt.body':
-    'База данных дерева памяти была повреждена. Повреждённый файл сохранён рядом с данными памяти, а пустой индекс создан заново. Заново синхронизируйте источники памяти, чтобы заполнить его.',
-  'userErrors.action.openMemorySync': 'Пересинхронизировать память',
   'userErrors.scope.chat': 'Чат',
   'userErrors.scope.cron': 'Запланированная задача',
   'userErrors.scope.workspace': 'Рабочая область',
-  'userErrors.memoryBudgetExhausted.title': 'Память перестала расти',
-  'userErrors.memoryBudgetExhausted.body':
-    'Бюджет эмбеддингов израсходован, поэтому новые данные больше не добавляются в память. Настройте локальные эмбеддинги или добавьте свой ключ API, чтобы продолжить.',
-  'memoryBudget.approachingTitle': 'Память приближается к лимиту эмбеддингов',
-  'memoryBudget.approachingMessage':
-    'Вы израсходовали {pct}% бюджета эмбеддингов. Настройте локальные эмбеддинги или добавьте свой ключ API, чтобы память продолжала расти без перерывов.',
-  'memoryBudget.exhaustedTitle': 'Память перестала расти',
-  'memoryBudget.exhaustedMessage':
-    'Бюджет эмбеддингов израсходован, поэтому новые данные больше не добавляются в память. Настройте локальные эмбеддинги или добавьте свой ключ API, чтобы продолжить.',
-  'memoryBudget.cta': 'Настроить эмбеддинги',
   'userErrors.scope.memory': 'Память',
 
   // Code block chrome

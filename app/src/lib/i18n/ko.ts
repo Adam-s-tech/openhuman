@@ -4188,7 +4188,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': '확인',
   'harnessInit.subtitle': 'OpenHuman이 처음 실행에 필요한 구성 요소를 준비하고 있습니다.',
   'harnessInit.stepPython': 'Python 런타임',
-  'harnessInit.stepSpacy': '언어 모델',
   'harnessInit.stepNode': 'Node.js 런타임',
   'harnessInit.statePending': '대기 중',
   'harnessInit.stateRunning': '설치 중…',
@@ -4337,7 +4336,6 @@ const messages: TranslationMap = {
     '연결된 통합에서 오류가 발생하고 있어 앱에 표시된 연결 상태가 최신이 아닐 수 있습니다.',
   'userErrors.action.openBilling': '결제 열기',
   'userErrors.action.openProviderSettings': '제공업체 설정',
-  'userErrors.action.openEmbeddingsSettings': '임베딩 설정',
   'userErrors.budgetExceeded.title': '관리형 예산 소진',
   'userErrors.budgetExceeded.body': '관리형 AI 예산이 모두 소진되었습니다.',
   'userErrors.insufficientCredits.title': '제공업체 크레딧 필요',
@@ -4351,23 +4349,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': '답변을 표시하지 못했습니다',
   'userErrors.replyDeliveryFailed.body':
     '에이전트가 이 턴을 마쳤지만 답변을 저장하거나 다시 읽어올 수 없었습니다. 다시 물어보면 답변을 되풀이합니다.',
-  'userErrors.memoryStoreCorrupt.title': '메모리 인덱스가 손상되었습니다',
-  'userErrors.memoryStoreCorrupt.body':
-    '메모리 트리의 데이터베이스가 손상되었습니다. 손상된 파일은 메모리 데이터 옆에 보존되었고 빈 인덱스가 다시 생성되었습니다. 메모리 소스를 다시 동기화하여 채워 주세요.',
-  'userErrors.action.openMemorySync': '메모리 다시 동기화',
   'userErrors.scope.chat': '채팅',
   'userErrors.scope.cron': '예약된 작업',
   'userErrors.scope.workspace': '작업 공간',
-  'userErrors.memoryBudgetExhausted.title': '메모리가 더 이상 늘어나지 않습니다',
-  'userErrors.memoryBudgetExhausted.body':
-    '임베딩 예산을 모두 사용해 새 콘텐츠가 메모리에 추가되지 않습니다. 로컬 임베딩을 설정하거나 본인의 API 키를 추가하면 다시 시작됩니다.',
-  'memoryBudget.approachingTitle': '메모리가 임베딩 한도에 근접했습니다',
-  'memoryBudget.approachingMessage':
-    '임베딩 예산의 {pct}%를 사용했습니다. 로컬 임베딩을 설정하거나 본인의 API 키를 추가하면 메모리가 끊김 없이 계속 쌓입니다.',
-  'memoryBudget.exhaustedTitle': '메모리가 더 이상 늘어나지 않습니다',
-  'memoryBudget.exhaustedMessage':
-    '임베딩 예산을 모두 사용해 새 콘텐츠가 메모리에 추가되지 않습니다. 로컬 임베딩을 설정하거나 본인의 API 키를 추가하면 다시 시작됩니다.',
-  'memoryBudget.cta': '임베딩 설정',
   'userErrors.scope.memory': '메모리',
 
   // Code block chrome

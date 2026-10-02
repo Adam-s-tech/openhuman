@@ -4143,7 +4143,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': 'حسناً',
   'harnessInit.subtitle': 'يقوم OpenHuman بتجهيز المكونات التي يحتاجها عند التشغيل الأول.',
   'harnessInit.stepPython': 'بيئة تشغيل Python',
-  'harnessInit.stepSpacy': 'النموذج اللغوي',
   'harnessInit.stepNode': 'بيئة تشغيل Node.js',
   'harnessInit.statePending': 'في الانتظار',
   'harnessInit.stateRunning': 'جارٍ التثبيت…',
@@ -4290,7 +4289,6 @@ const messages: TranslationMap = {
     'أحد التكاملات المتصلة يعيد أخطاء، لذا قد تكون حالة الاتصال المعروضة في التطبيق غير محدثة.',
   'userErrors.action.openBilling': 'فتح الفوترة',
   'userErrors.action.openProviderSettings': 'إعدادات المزود',
-  'userErrors.action.openEmbeddingsSettings': 'إعداد التضمينات',
   'userErrors.budgetExceeded.title': 'تم استنفاد الميزانية المُدارة',
   'userErrors.budgetExceeded.body': 'نفدت الميزانية المُدارة. أضف ميزانية أو غيّر خطتك.',
   'userErrors.insufficientCredits.title': 'مطلوب رصيد المزود',
@@ -4304,23 +4302,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'تعذّر عرض الرد',
   'userErrors.replyDeliveryFailed.body':
     'أنهى الوكيل هذه الجولة، لكن تعذّر حفظ ردّه أو قراءته مجددًا. اطلب منه تكرار الرد.',
-  'userErrors.memoryStoreCorrupt.title': 'تلف فهرس الذاكرة',
-  'userErrors.memoryStoreCorrupt.body':
-    'كانت قاعدة بيانات شجرة الذاكرة تالفة. تم الاحتفاظ بالملف التالف بجوار بيانات الذاكرة وأعيد إنشاء فهرس فارغ. أعد مزامنة مصادر الذاكرة لإعادة تعبئته.',
-  'userErrors.action.openMemorySync': 'إعادة مزامنة الذاكرة',
   'userErrors.scope.chat': 'الدردشة',
   'userErrors.scope.cron': 'مهمة مجدوَلة',
   'userErrors.scope.workspace': 'مساحة العمل',
-  'userErrors.memoryBudgetExhausted.title': 'توقفت الذاكرة عن النمو',
-  'userErrors.memoryBudgetExhausted.body':
-    'انتهت ميزانية التضمينات لديك، لذلك لم يعد المحتوى الجديد يُضاف إلى الذاكرة. أعدّ تضمينات محلية أو أضف مفتاح API الخاص بك للمتابعة.',
-  'memoryBudget.approachingTitle': 'الذاكرة تقترب من حد التضمينات',
-  'memoryBudget.approachingMessage':
-    'لقد استخدمت {pct}% من ميزانية التضمينات. أعدّ تضمينات محلية أو أضف مفتاح API الخاص بك كي تستمر الذاكرة في النمو دون انقطاع.',
-  'memoryBudget.exhaustedTitle': 'توقفت الذاكرة عن النمو',
-  'memoryBudget.exhaustedMessage':
-    'انتهت ميزانية التضمينات لديك، لذلك لم يعد المحتوى الجديد يُضاف إلى الذاكرة. أعدّ تضمينات محلية أو أضف مفتاح API الخاص بك للمتابعة.',
-  'memoryBudget.cta': 'إعداد التضمينات',
   'userErrors.scope.memory': 'الذاكرة',
 
   // Code block chrome

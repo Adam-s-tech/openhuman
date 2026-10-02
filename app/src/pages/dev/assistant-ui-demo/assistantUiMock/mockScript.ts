@@ -387,7 +387,7 @@ export const MOCK_COMMANDS_LIST: CoreCommand[] = [
 ];
 
 /**
- * A `openhuman.memory_tree_recall` response for the composer's `@` picker
+ * An `openhuman.memory_fetch` response for the composer's `@` picker
  * (Memory category), plus the thread files it lists beside it.
  */
 export const MOCK_MEMORY_FETCH: FetchPage = {

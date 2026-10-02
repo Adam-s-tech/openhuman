@@ -4223,7 +4223,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': 'বুঝেছি',
   'harnessInit.subtitle': 'প্রথম চালুর সময় OpenHuman প্রয়োজনীয় উপাদানগুলো প্রস্তুত করছে।',
   'harnessInit.stepPython': 'Python রানটাইম',
-  'harnessInit.stepSpacy': 'ভাষা মডেল',
   'harnessInit.stepNode': 'Node.js রানটাইম',
   'harnessInit.statePending': 'অপেক্ষমাণ',
   'harnessInit.stateRunning': 'ইনস্টল করা হচ্ছে…',
@@ -4372,7 +4371,6 @@ const messages: TranslationMap = {
     'একটি সংযুক্ত ইন্টিগ্রেশন ত্রুটি ফেরত দিচ্ছে, তাই অ্যাপে দেখানো সংযোগের অবস্থা পুরনো হতে পারে।',
   'userErrors.action.openBilling': 'বিলিং খুলুন',
   'userErrors.action.openProviderSettings': 'প্রদানকারী সেটিংস',
-  'userErrors.action.openEmbeddingsSettings': 'এমবেডিং সেট আপ করুন',
   'userErrors.budgetExceeded.title': 'পরিচালিত বাজেট শেষ',
   'userErrors.budgetExceeded.body': 'পরিচালিত AI বাজেট শেষ। বাজেট যোগ করুন বা প্ল্যান বদলান।',
   'userErrors.insufficientCredits.title': 'প্রদানকারীর ক্রেডিট প্রয়োজন',
@@ -4387,23 +4385,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'উত্তরটি দেখানো যায়নি',
   'userErrors.replyDeliveryFailed.body':
     'এজেন্ট এই দফাটি শেষ করেছে, কিন্তু তার উত্তর সংরক্ষণ বা পুনরায় পড়া যায়নি। আবার জিজ্ঞাসা করলে সে উত্তরটি আবার দেবে।',
-  'userErrors.memoryStoreCorrupt.title': 'মেমোরি ইনডেক্স নষ্ট হয়ে গেছে',
-  'userErrors.memoryStoreCorrupt.body':
-    'আপনার মেমোরি ট্রির ডেটাবেস নষ্ট হয়ে গিয়েছিল। নষ্ট ফাইলটি মেমোরি ডেটার পাশে সংরক্ষিত আছে এবং একটি খালি ইনডেক্স নতুন করে তৈরি হয়েছে। আবার পূরণ করতে মেমোরি উৎসগুলি পুনরায় সিঙ্ক করুন।',
-  'userErrors.action.openMemorySync': 'মেমোরি আবার সিঙ্ক করুন',
   'userErrors.scope.chat': 'চ্যাট',
   'userErrors.scope.cron': 'নির্ধারিত কাজ',
   'userErrors.scope.workspace': 'ওয়ার্কস্পেস',
-  'userErrors.memoryBudgetExhausted.title': 'মেমরি আর বাড়ছে না',
-  'userErrors.memoryBudgetExhausted.body':
-    'আপনার এমবেডিং বাজেট শেষ, তাই নতুন কনটেন্ট আর মেমরিতে যুক্ত হচ্ছে না। আবার শুরু করতে লোকাল এমবেডিং সেট আপ করুন বা নিজের API কী যোগ করুন।',
-  'memoryBudget.approachingTitle': 'মেমরি এমবেডিং সীমার কাছাকাছি',
-  'memoryBudget.approachingMessage':
-    'আপনি এমবেডিং বাজেটের {pct}% ব্যবহার করেছেন। মেমরি নিরবচ্ছিন্নভাবে বাড়তে থাকুক, তার জন্য লোকাল এমবেডিং সেট আপ করুন বা নিজের API কী যোগ করুন।',
-  'memoryBudget.exhaustedTitle': 'মেমরি আর বাড়ছে না',
-  'memoryBudget.exhaustedMessage':
-    'আপনার এমবেডিং বাজেট শেষ, তাই নতুন কনটেন্ট আর মেমরিতে যুক্ত হচ্ছে না। আবার শুরু করতে লোকাল এমবেডিং সেট আপ করুন বা নিজের API কী যোগ করুন।',
-  'memoryBudget.cta': 'এমবেডিং সেট আপ করুন',
   'userErrors.scope.memory': 'মেমরি',
 
   // Code block chrome

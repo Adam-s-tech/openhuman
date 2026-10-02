@@ -4250,7 +4250,6 @@ const messages: TranslationMap = {
   'harnessInit.subtitle':
     'OpenHuman sedang menyiapkan komponen yang dibutuhkan saat pertama kali dijalankan.',
   'harnessInit.stepPython': 'Runtime Python',
-  'harnessInit.stepSpacy': 'Model bahasa',
   'harnessInit.stepNode': 'Runtime Node.js',
   'harnessInit.statePending': 'Menunggu',
   'harnessInit.stateRunning': 'Memasang…',
@@ -4400,7 +4399,6 @@ const messages: TranslationMap = {
     'Sebuah integrasi yang terhubung mengembalikan galat, sehingga status koneksi yang ditampilkan mungkin sudah tidak akurat.',
   'userErrors.action.openBilling': 'Buka penagihan',
   'userErrors.action.openProviderSettings': 'Pengaturan penyedia',
-  'userErrors.action.openEmbeddingsSettings': 'Siapkan embedding',
   'userErrors.budgetExceeded.title': 'Anggaran terkelola habis',
   'userErrors.budgetExceeded.body':
     'Anggaran AI terkelola Anda sudah habis. Tambahkan anggaran atau ubah paket.',
@@ -4416,23 +4414,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'Balasan tidak dapat ditampilkan',
   'userErrors.replyDeliveryFailed.body':
     'Agen menyelesaikan giliran ini, tetapi balasannya tidak dapat disimpan atau dibaca ulang. Tanyakan lagi agar diulangi.',
-  'userErrors.memoryStoreCorrupt.title': 'Indeks memori rusak',
-  'userErrors.memoryStoreCorrupt.body':
-    'Basis data pohon memori mengalami kerusakan. Berkas yang rusak disimpan di samping data memori Anda, dan indeks kosong telah dibangun ulang. Sinkronkan ulang sumber memori untuk mengisinya kembali.',
-  'userErrors.action.openMemorySync': 'Sinkronkan ulang memori',
   'userErrors.scope.chat': 'Obrolan',
   'userErrors.scope.cron': 'Tugas terjadwal',
   'userErrors.scope.workspace': 'Ruang kerja',
-  'userErrors.memoryBudgetExhausted.title': 'Memori berhenti bertambah',
-  'userErrors.memoryBudgetExhausted.body':
-    'Anggaran embedding Anda sudah habis, sehingga konten baru tidak lagi ditambahkan ke memori. Siapkan embedding lokal atau tambahkan kunci API Anda sendiri untuk melanjutkan.',
-  'memoryBudget.approachingTitle': 'Memori hampir mencapai batas embedding',
-  'memoryBudget.approachingMessage':
-    'Anda telah memakai {pct}% anggaran embedding. Siapkan embedding lokal atau tambahkan kunci API Anda sendiri agar memori terus bertambah tanpa gangguan.',
-  'memoryBudget.exhaustedTitle': 'Memori berhenti bertambah',
-  'memoryBudget.exhaustedMessage':
-    'Anggaran embedding Anda sudah habis, sehingga konten baru tidak lagi ditambahkan ke memori. Siapkan embedding lokal atau tambahkan kunci API Anda sendiri untuk melanjutkan.',
-  'memoryBudget.cta': 'Siapkan embedding',
   'userErrors.scope.memory': 'Memori',
 
   // Code block chrome

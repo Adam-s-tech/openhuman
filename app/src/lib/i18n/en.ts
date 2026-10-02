@@ -4872,7 +4872,6 @@ const en: TranslationMap = {
   'announcement.gotIt': 'Got it',
   'harnessInit.subtitle': 'OpenHuman is preparing components it needs on first launch.',
   'harnessInit.stepPython': 'Python runtime',
-  'harnessInit.stepSpacy': 'Language model',
   'harnessInit.stepNode': 'Node.js runtime',
   'harnessInit.statePending': 'Waiting',
   'harnessInit.stateRunning': 'Installing…',
@@ -4977,7 +4976,6 @@ const en: TranslationMap = {
     'A connected integration is returning errors, so the connection state shown in the app may be out of date.',
   'userErrors.action.openBilling': 'Open billing',
   'userErrors.action.openProviderSettings': 'Provider settings',
-  'userErrors.action.openEmbeddingsSettings': 'Set up embeddings',
   'userErrors.budgetExceeded.title': 'Managed budget reached',
   'userErrors.budgetExceeded.body':
     'Your managed AI budget is used up. Add budget or change your plan to continue.',
@@ -4987,32 +4985,18 @@ const en: TranslationMap = {
   'userErrors.apiKeyMissing.title': 'API key required',
   'userErrors.apiKeyMissing.body':
     'Your AI provider has no API key set. Add one in provider settings to continue.',
-  'userErrors.memoryBudgetExhausted.title': 'Memory has stopped growing',
-  'userErrors.memoryBudgetExhausted.body':
-    'Your embedding budget is used up, so new content is no longer being added to memory. Set up local embeddings or add your own API key to resume.',
   'userErrors.localModelUnavailable.title': 'Local model unavailable',
   'userErrors.localModelUnavailable.body':
     'Ollama is not reachable at the configured endpoint, or the required model is not installed there. Start Ollama and pull the model at that endpoint, or switch this workload to a cloud provider.',
   'userErrors.replyDeliveryFailed.title': 'Reply could not be shown',
   'userErrors.replyDeliveryFailed.body':
     'The agent finished this turn, but its reply could not be saved or read back. Ask again to have it repeated.',
-  'userErrors.memoryStoreCorrupt.title': 'Memory index was corrupted',
-  'userErrors.memoryStoreCorrupt.body':
-    'The database behind your memory tree was damaged. The damaged file was preserved next to your memory data, and an empty index was rebuilt. Re-sync your memory sources to fill it again.',
-  'userErrors.action.openMemorySync': 'Re-sync memory',
   'userErrors.scope.chat': 'Chat',
   'userErrors.scope.cron': 'Scheduled job',
   'userErrors.scope.workspace': 'Workspace',
   'userErrors.scope.memory': 'Memory',
 
   // Memory embedding budget banners (#5324)
-  'memoryBudget.approachingTitle': 'Memory is approaching its embedding limit',
-  'memoryBudget.approachingMessage':
-    "You've used {pct}% of your embedding budget. Set up local embeddings or add your own API key to keep building memory without interruption.",
-  'memoryBudget.exhaustedTitle': 'Memory has stopped growing',
-  'memoryBudget.exhaustedMessage':
-    'Your embedding budget is used up, so new content is no longer being added to memory. Set up local embeddings or add your own API key to resume.',
-  'memoryBudget.cta': 'Set up embeddings',
   'notifications.configRecovered.title': 'Settings file recovered',
   'notifications.configRecovered.body':
     'Your settings file could not be read, so it was restored from a backup or reset to defaults. The unreadable file was kept with a ".corrupted" suffix in case you need it.',

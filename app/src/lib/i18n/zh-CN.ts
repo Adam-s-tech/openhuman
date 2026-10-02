@@ -3984,7 +3984,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': '知道了',
   'harnessInit.subtitle': 'OpenHuman 正在准备首次启动所需的组件。',
   'harnessInit.stepPython': 'Python 运行时',
-  'harnessInit.stepSpacy': '语言模型',
   'harnessInit.stepNode': 'Node.js 运行时',
   'harnessInit.statePending': '等待中',
   'harnessInit.stateRunning': '正在安装…',
@@ -4129,7 +4128,6 @@ const messages: TranslationMap = {
     '某个已连接的集成正在返回错误，因此应用中显示的连接状态可能不是最新的。',
   'userErrors.action.openBilling': '打开账单',
   'userErrors.action.openProviderSettings': '提供商设置',
-  'userErrors.action.openEmbeddingsSettings': '设置嵌入',
   'userErrors.budgetExceeded.title': '托管预算已用尽',
   'userErrors.budgetExceeded.body': '托管 AI 预算已用尽，请增加预算或更改套餐。',
   'userErrors.insufficientCredits.title': '需要提供商额度',
@@ -4142,23 +4140,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': '无法显示回复',
   'userErrors.replyDeliveryFailed.body':
     '智能体已完成这一轮，但它的回复既没能保存也没能重新读取。再问一次即可让它重复回复。',
-  'userErrors.memoryStoreCorrupt.title': '记忆索引已损坏',
-  'userErrors.memoryStoreCorrupt.body':
-    '记忆树使用的数据库已损坏。受损文件已保留在记忆数据旁边，并已重建一个空索引。请重新同步记忆来源以重新填充。',
-  'userErrors.action.openMemorySync': '重新同步记忆',
   'userErrors.scope.chat': '聊天',
   'userErrors.scope.cron': '定时任务',
   'userErrors.scope.workspace': '工作区',
-  'userErrors.memoryBudgetExhausted.title': '记忆已停止增长',
-  'userErrors.memoryBudgetExhausted.body':
-    '你的嵌入额度已用尽，新内容不会再加入记忆。设置本地嵌入或添加你自己的 API 密钥即可恢复。',
-  'memoryBudget.approachingTitle': '记忆即将达到嵌入额度上限',
-  'memoryBudget.approachingMessage':
-    '你已使用 {pct}% 的嵌入额度。设置本地嵌入或添加你自己的 API 密钥，让记忆不中断地继续增长。',
-  'memoryBudget.exhaustedTitle': '记忆已停止增长',
-  'memoryBudget.exhaustedMessage':
-    '你的嵌入额度已用尽，新内容不会再加入记忆。设置本地嵌入或添加你自己的 API 密钥即可恢复。',
-  'memoryBudget.cta': '设置嵌入',
   'userErrors.scope.memory': '记忆',
 
   // Code block chrome

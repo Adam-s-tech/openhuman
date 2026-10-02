@@ -4277,7 +4277,6 @@ const messages: TranslationMap = {
   'harnessInit.subtitle':
     'OpenHuman przygotowuje komponenty potrzebne przy pierwszym uruchomieniu.',
   'harnessInit.stepPython': 'Środowisko uruchomieniowe Python',
-  'harnessInit.stepSpacy': 'Model językowy',
   'harnessInit.stepNode': 'Środowisko uruchomieniowe Node.js',
   'harnessInit.statePending': 'Oczekiwanie',
   'harnessInit.stateRunning': 'Instalowanie…',
@@ -4428,7 +4427,6 @@ const messages: TranslationMap = {
     'Podłączona integracja zwraca błędy, więc stan połączeń widoczny w aplikacji może być nieaktualny.',
   'userErrors.action.openBilling': 'Otwórz rozliczenia',
   'userErrors.action.openProviderSettings': 'Ustawienia dostawcy',
-  'userErrors.action.openEmbeddingsSettings': 'Skonfiguruj osadzenia',
   'userErrors.budgetExceeded.title': 'Wyczerpano zarządzany budżet',
   'userErrors.budgetExceeded.body':
     'Twój zarządzany budżet AI został wyczerpany. Dodaj budżet lub zmień plan.',
@@ -4444,23 +4442,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'Nie udało się pokazać odpowiedzi',
   'userErrors.replyDeliveryFailed.body':
     'Agent zakończył tę turę, ale jego odpowiedzi nie udało się zapisać ani odczytać ponownie. Zapytaj jeszcze raz, aby ją powtórzył.',
-  'userErrors.memoryStoreCorrupt.title': 'Indeks pamięci był uszkodzony',
-  'userErrors.memoryStoreCorrupt.body':
-    'Baza danych drzewa pamięci była uszkodzona. Uszkodzony plik zachowano obok danych pamięci i odbudowano pusty indeks. Zsynchronizuj ponownie źródła pamięci, aby go wypełnić.',
-  'userErrors.action.openMemorySync': 'Zsynchronizuj pamięć ponownie',
   'userErrors.scope.chat': 'Czat',
   'userErrors.scope.cron': 'Zaplanowane zadanie',
   'userErrors.scope.workspace': 'Obszar roboczy',
-  'userErrors.memoryBudgetExhausted.title': 'Pamięć przestała rosnąć',
-  'userErrors.memoryBudgetExhausted.body':
-    'Twój budżet osadzeń został wyczerpany, więc nowe treści nie są już dodawane do pamięci. Skonfiguruj lokalne osadzenia lub dodaj własny klucz API, aby wznowić.',
-  'memoryBudget.approachingTitle': 'Pamięć zbliża się do limitu osadzeń',
-  'memoryBudget.approachingMessage':
-    'Wykorzystano {pct}% budżetu osadzeń. Skonfiguruj lokalne osadzenia lub dodaj własny klucz API, aby pamięć rosła bez przerw.',
-  'memoryBudget.exhaustedTitle': 'Pamięć przestała rosnąć',
-  'memoryBudget.exhaustedMessage':
-    'Twój budżet osadzeń został wyczerpany, więc nowe treści nie są już dodawane do pamięci. Skonfiguruj lokalne osadzenia lub dodaj własny klucz API, aby wznowić.',
-  'memoryBudget.cta': 'Skonfiguruj osadzenia',
   'userErrors.scope.memory': 'Pamięć',
 
   // Code block chrome

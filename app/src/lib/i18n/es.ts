@@ -4295,7 +4295,6 @@ const messages: TranslationMap = {
   'harnessInit.subtitle':
     'OpenHuman está preparando los componentes que necesita en el primer inicio.',
   'harnessInit.stepPython': 'Entorno de ejecución de Python',
-  'harnessInit.stepSpacy': 'Modelo de lenguaje',
   'harnessInit.stepNode': 'Entorno de ejecución de Node.js',
   'harnessInit.statePending': 'En espera',
   'harnessInit.stateRunning': 'Instalando…',
@@ -4449,7 +4448,6 @@ const messages: TranslationMap = {
     'Una integración conectada está devolviendo errores, por lo que el estado de conexión que ves puede estar desactualizado.',
   'userErrors.action.openBilling': 'Abrir facturación',
   'userErrors.action.openProviderSettings': 'Configuración del proveedor',
-  'userErrors.action.openEmbeddingsSettings': 'Configurar embeddings',
   'userErrors.budgetExceeded.title': 'Presupuesto gestionado agotado',
   'userErrors.budgetExceeded.body':
     'Tu presupuesto de IA gestionado se ha agotado. Añade presupuesto o cambia de plan.',
@@ -4465,23 +4463,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'No se pudo mostrar la respuesta',
   'userErrors.replyDeliveryFailed.body':
     'El agente terminó este turno, pero su respuesta no se pudo guardar ni volver a leer. Vuelve a preguntar para que la repita.',
-  'userErrors.memoryStoreCorrupt.title': 'El índice de memoria se dañó',
-  'userErrors.memoryStoreCorrupt.body':
-    'La base de datos del árbol de memoria estaba dañada. El archivo dañado se conservó junto a tus datos de memoria y se reconstruyó un índice vacío. Vuelve a sincronizar tus fuentes de memoria para rellenarlo.',
-  'userErrors.action.openMemorySync': 'Resincronizar memoria',
   'userErrors.scope.chat': 'Chat',
   'userErrors.scope.cron': 'Tarea programada',
   'userErrors.scope.workspace': 'Espacio de trabajo',
-  'userErrors.memoryBudgetExhausted.title': 'La memoria dejó de crecer',
-  'userErrors.memoryBudgetExhausted.body':
-    'Tu presupuesto de embeddings se agotó, así que el contenido nuevo ya no se añade a la memoria. Configura embeddings locales o añade tu propia clave de API para reanudar.',
-  'memoryBudget.approachingTitle': 'La memoria se acerca a su límite de embeddings',
-  'memoryBudget.approachingMessage':
-    'Has usado el {pct}% de tu presupuesto de embeddings. Configura embeddings locales o añade tu propia clave de API para que la memoria siga creciendo sin interrupciones.',
-  'memoryBudget.exhaustedTitle': 'La memoria dejó de crecer',
-  'memoryBudget.exhaustedMessage':
-    'Tu presupuesto de embeddings se agotó, así que el contenido nuevo ya no se añade a la memoria. Configura embeddings locales o añade tu propia clave de API para reanudar.',
-  'memoryBudget.cta': 'Configurar embeddings',
   'userErrors.scope.memory': 'Memoria',
 
   // Code block chrome

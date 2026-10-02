@@ -4327,7 +4327,6 @@ const messages: TranslationMap = {
   'announcement.gotIt': 'Verstanden',
   'harnessInit.subtitle': 'OpenHuman bereitet beim ersten Start benötigte Komponenten vor.',
   'harnessInit.stepPython': 'Python-Laufzeitumgebung',
-  'harnessInit.stepSpacy': 'Sprachmodell',
   'harnessInit.stepNode': 'Node.js-Laufzeitumgebung',
   'harnessInit.statePending': 'Wartet',
   'harnessInit.stateRunning': 'Wird installiert…',
@@ -4485,7 +4484,6 @@ const messages: TranslationMap = {
     'Eine verbundene Integration liefert Fehler, daher ist der in der App angezeigte Verbindungsstatus möglicherweise nicht aktuell.',
   'userErrors.action.openBilling': 'Abrechnung öffnen',
   'userErrors.action.openProviderSettings': 'Anbietereinstellungen',
-  'userErrors.action.openEmbeddingsSettings': 'Embeddings einrichten',
   'userErrors.budgetExceeded.title': 'Verwaltetes Budget erreicht',
   'userErrors.budgetExceeded.body':
     'Dein verwaltetes KI-Budget ist aufgebraucht. Füge Budget hinzu oder ändere deinen Tarif.',
@@ -4501,23 +4499,9 @@ const messages: TranslationMap = {
   'userErrors.replyDeliveryFailed.title': 'Antwort konnte nicht angezeigt werden',
   'userErrors.replyDeliveryFailed.body':
     'Der Agent hat diese Runde beendet, seine Antwort ließ sich aber weder speichern noch erneut lesen. Frag noch einmal, damit er sie wiederholt.',
-  'userErrors.memoryStoreCorrupt.title': 'Gedächtnisindex war beschädigt',
-  'userErrors.memoryStoreCorrupt.body':
-    'Die Datenbank des Gedächtnisbaums war beschädigt. Die beschädigte Datei wurde neben deinen Gedächtnisdaten aufbewahrt und ein leerer Index neu aufgebaut. Synchronisiere deine Gedächtnisquellen erneut, um ihn wieder zu füllen.',
-  'userErrors.action.openMemorySync': 'Gedächtnis neu synchronisieren',
   'userErrors.scope.chat': 'Chat',
   'userErrors.scope.cron': 'Geplante Aufgabe',
   'userErrors.scope.workspace': 'Arbeitsbereich',
-  'userErrors.memoryBudgetExhausted.title': 'Das Gedächtnis wächst nicht mehr',
-  'userErrors.memoryBudgetExhausted.body':
-    'Dein Embedding-Budget ist aufgebraucht, daher werden keine neuen Inhalte mehr ins Gedächtnis aufgenommen. Richte lokale Embeddings ein oder hinterlege deinen eigenen API-Schlüssel, um fortzufahren.',
-  'memoryBudget.approachingTitle': 'Das Gedächtnis nähert sich seinem Embedding-Limit',
-  'memoryBudget.approachingMessage':
-    'Du hast {pct} % deines Embedding-Budgets verbraucht. Richte lokale Embeddings ein oder hinterlege deinen eigenen API-Schlüssel, damit das Gedächtnis ohne Unterbrechung weiterwächst.',
-  'memoryBudget.exhaustedTitle': 'Das Gedächtnis wächst nicht mehr',
-  'memoryBudget.exhaustedMessage':
-    'Dein Embedding-Budget ist aufgebraucht, daher werden keine neuen Inhalte mehr ins Gedächtnis aufgenommen. Richte lokale Embeddings ein oder hinterlege deinen eigenen API-Schlüssel, um fortzufahren.',
-  'memoryBudget.cta': 'Embeddings einrichten',
   'userErrors.scope.memory': 'Speicher',
 
   // Code block chrome
