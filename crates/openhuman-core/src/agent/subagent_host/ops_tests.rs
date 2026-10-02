@@ -278,10 +278,6 @@ fn make_parent(
     }
 }
 
-fn noop_memory() -> Arc<dyn crate::memory::Memory> {
-    crate::memory::test_support::noop_memory()
-}
-
 // ── Runtime spawn-hierarchy (tier) gate (issue #4098) ───────────────────────
 // `tier_gate_decision` is the pure decision the runtime gate in `run_subagent`
 // applies to each delegation hop. Tested directly so the deny/allow/skip
