@@ -106,9 +106,9 @@ mod active_user_and_dirs_tests;
 mod backup_tests;
 #[path = "load_corruption_recovery_tests.rs"]
 mod corruption_recovery_tests;
-#[path = "load_env_overlay_tests.rs"]
-mod env_overlay_tests;
 #[path = "load_env_overlay_runtime_tests.rs"]
 mod env_overlay_runtime_tests;
+#[path = "load_env_overlay_tests.rs"]
+mod env_overlay_tests;
 #[path = "load_migration_tests.rs"]
 mod migration_tests;
