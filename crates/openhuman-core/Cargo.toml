@@ -171,19 +171,6 @@ tinyinference-voice = { path = "../../vendor/tinyagents/vendor/tinyinference/cra
 tinytools = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools" }
 tinytools-agent = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools-agent" }
 tinytools-std = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools-std" }
-# The memory *contract* — value types, the thirteen capability families, the
-# `MemoryProvider` driver trait, and the null reference driver. A direct path
-# dependency rather than a re-export, because `tinycortex::memory` aliases back
-# only `{error, traits, types}`; `capabilities`, `provider`, `null`, `health`,
-# `recall`, and `version` are reachable only through the api crate itself.
-# Deliberately dependency-light (no rusqlite/git2/reqwest/regex/async runtime)
-# so a third-party driver can compile against the contract without pulling in
-# the embedded engine. No `[patch.crates-io]` entry is needed: cargo unifies
-# this with the `path = "api"` dependency the engine crate already declares.
-# `tinycortex-api` is gone with it. It had become a deprecated re-export of
-# `tinymemory-bus`, so its one host use (`goals::GoalsDoc`) resolves to the
-# identical item through the contract. Its `[patch]` entry stays too, for the
-# reason given above.
 
 # tinyruntime — the runtime router
 # (https://github.com/tinyhumansai/tinyruntime). Only the *contract* crate is
@@ -435,7 +422,7 @@ tempfile = "3"
 fs2 = "0.4"
 # The scheduler gate's battery/AC probe (`cron::scheduler_gate::signals`),
 # behind the `scheduler-gate` feature. CPU sampling uses `sysinfo` above.
-starship-battery = { version = "0.10", optional = true }
+starship-battery = { version = "0.12", optional = true }
 
 # The WhatsApp Web provider (and its `whatsapp-rust` / `wacore` / `serde-big-array`
 # stack) now lives in the tinychannels crate; the `whatsapp-web` feature forwards
@@ -712,7 +699,7 @@ proptest = "1"
 # (`modules`: Contrib=ON, Product=ON) and with `scripts/ci/product-features.txt`,
 # which already lists it. This does NOT move the kernel floor: that profile is
 # `--no-default-features --features flows` and never reads this list.
-default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules", "memory-remote"]
+default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules"]
 # The core's domain-owned HTTP surfaces (#5048): the `/v1` OpenAI-compatible
 # router (`inference::http`), the WebSocket dictation handler
 # (`voice::streaming`), the `openhuman text-input run` dev server, and the MCP
@@ -854,12 +841,6 @@ voice = [
 # `curve25519-dalek` is gone from this list: the Solana off-curve check that
 # derives an Associated Token Account is address arithmetic that now lives in
 # `tinywallet-web3` (and `tinywallet-x402`), which own their own copy.
-# Remote memory engines: bind an External memory driver (`tinyhumans`,
-# `supermemory`, `mem0`, `cognee`, `cortex`, `agentmemory`) through
-# `tinymemory::factory`, plus the `memory.engine*` RPCs and migration. Off, an
-# External driver is refused at admission and the engine RPCs answer with the
-# module engine only.
-memory-remote = ["dep:tinymemory"]
 web3 = [
     "dep:tinywallet-bus",
     "dep:tinywallet-x402",
@@ -895,51 +876,6 @@ web3 = [
 # prepends a managed bin dir — identical to today's `node.enabled = false` path.
 runtime-node = []
 
-# macOS Contacts seeding for the people domain: `memory::people::address_book`
-# reads CNContactStore to seed handles. Default-ON. Slim / headless builds opt
-# out via `--no-default-features --features "<list without contacts>"`, which
-# sheds the exclusive `objc2` / `objc2-foundation` / `objc2-contacts` / `block2`
-# cohort on macOS. Leaf gate with a pre-existing off-state: `address_book.rs`
-# already carries a non-macOS `imp` stub returning an empty contact list, so the
-# gate simply widens that stub's cfg — `read()`, `read_with()`,
-# `AddressBookError` and `SystemContactsSource` stay compiled in every build and
-# the `people` RPC surface is unchanged. Off ⇒ address-book refresh seeds
-# nothing instead of failing.
-#
-# NOTE: no-op on Linux/Windows, where these crates were never in the graph.
-# Verify the shed cross-target from any host:
-#   cargo tree --target aarch64-apple-darwin -e normal -i objc2-contacts \
-#     --no-default-features
-#
-# ── This gate is FORWARDED, and it was silently broken before it was ─────────
-# The reader has never lived in this crate. It sits in the memory engine, and
-# this feature used to enable four `objc2` crates *here* — which no file in
-# `src/` names — while never reaching the crate that holds the `#[cfg]`. So the
-# macOS arm of `address_book.rs` was always compiled out: `SystemContactsSource`
-# returned the empty stub, `people.refresh_address_book` reported success having
-# seeded nothing, and macOS paid to compile four unused crates for the trouble.
-#
-# That is the exact soft-failure shape as `voice` (#4901) and
-# `tokenjuice-treesitter` (#4918): a gate that is not forwarded does not fail
-# the build, it just quietly does nothing.
-#
-# The guard that used to catch it here, `contacts_feature_reaches_the_engine_
-# reader`, is gone with the engine (openhuman#6161) and could not have been
-# kept: it linked `tinycortex` from `#[cfg(test)]` to call the reader directly,
-# which proves nothing about this crate's forwarding once this crate does not
-# depend on the crate being forwarded to. The forward it guarded had already
-# moved into the module's own manifest, which is where the equivalent
-# assertion now belongs.
-# Nothing host-side is gated on `contacts` any more — its whole job was
-# forwarding into the engine so tinycortex's macOS CNContactStore reader
-# compiled. That reader now lives in the `tinymemory` module, whose own
-# manifest enables `tinycortex/contacts`, and `people.refresh_address_book`
-# reaches it through `MemoryPeople::seed_from_address_book` over the bus.
-#
-# The gate name is kept because `scripts/ci/product-features.txt` and the
-# shell's forwarded list are asserted equal by the Feature Forwarding Gate,
-# and removing it from one without the other fails that lane.
-contacts = []
 # Media-generation + image domains: the `media_generate_*` agent tools
 # (image/video via OpenRouter through the backend's
 # `/agent-integrations/openrouter` proxy) and the `openhuman::image` tool
@@ -1091,19 +1027,6 @@ e2e-test-support = []
 # `rss-bench` / `library-profile` binaries and the `rss-bench-dhat` profiling
 # variant live in `crates/openhuman-cli`.
 rss-bench = []
-# Compiles `memory::host_impls`, the host side of the seam traits the memory
-# ENGINE declares, for builds that embed that engine in-process.
-#
-# The shipped product does not: its driver is the loaded TinyMemory module,
-# which installs its own seams and calls back over the bus through
-# `modules::memory_host`. What still embeds the engine is the test suite, which
-# binds the in-process TinyCortex driver directly — legitimate there, because
-# `tinymemory-core` is a dev-dependency and dev-dependency features are not
-# linked into the shipped binary.
-#
-# Unit tests get it from `cfg(test)`. Integration tests under `tests/` are
-# separate crates and `cfg(test)` does NOT reach them, which is the whole reason
-# this feature exists rather than a bare `#[cfg(test)]`.
 # Battery/AC probe feeding the scheduler's throttle decision. Default-ON.
 # When off there is no hardware probe: `sample_power` reports "on AC, no charge
 # signal", which is the same answer the real probe gives on a server or
@@ -1120,7 +1043,7 @@ rss-bench = []
 # `tracing` and `tracing-subscriber` are NOT part of this gate and stay always-on.
 file-logging = ["dep:tracing-appender", "dep:tracing-log"]
 
-scheduler-gate = ["tinymemory-gate/battery"]
+scheduler-gate = ["dep:starship-battery"]
 
 
 [lints.rust]
