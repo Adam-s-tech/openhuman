@@ -56,7 +56,7 @@ const ROUTES: RouteCheck[] = [
   { hash: '/settings', markers: ['Settings', 'Account', 'Billing', 'Advanced'] },
   // Brain page (the old /activity & /intelligence pages were retired; memory
   // lives here now). Tabs: Graph, Memory, Sources, Sync.
-  { hash: '/brain', markers: ['Graph', 'Memory', 'Sources'] },
+  { hash: '/connections?tab=brain', markers: ['Graph', 'Memory', 'Sources'] },
   {
     hash: '/home',
     markers: [

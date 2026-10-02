@@ -146,7 +146,7 @@ async function clickFirstMatch(candidates, timeout = 5_000) {
 const HASH_TO_SIDEBAR_LABEL = {
   '/chat': 'Chat',
   '/human': 'Human',
-  '/brain': 'Brain',
+  '/brain': 'Connections',
   '/connections': 'Connections',
   '/settings': 'Settings',
 };

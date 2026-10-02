@@ -76,15 +76,6 @@ export default function Brain() {
     const raw = new URLSearchParams(location.search).get('brain');
     return (BRAIN_TABS as readonly string[]).includes(raw ?? '') ? (raw as BrainTab) : 'graph';
   }, [location.search]);
-  const setActiveTab = useCallback(
-    (tab: BrainTab) => {
-      const params = new URLSearchParams(location.search);
-      params.set('brain', tab);
-      params.delete('view');
-      navigate({ pathname: location.pathname, search: `?${params.toString()}` });
-    },
-    [location.pathname, location.search, navigate]
-  );
   const syncView: SyncView =
     new URLSearchParams(location.search).get('view') === 'history' ? 'history' : 'status';
   const setChip = useCallback(

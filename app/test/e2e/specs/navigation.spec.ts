@@ -47,7 +47,7 @@ const ROUTES: Route[] = [
   // `/brain?tab=orchestration`, so we assert the Brain destination instead
   // (the bare `/orchestration` hash would settle on the redirect target and
   // fail the `^#/orchestration` match, same reasoning as /home above).
-  { hash: '/brain' },
+  { hash: '/connections?tab=brain' },
 ];
 
 async function rootTextLength(): Promise<number> {
