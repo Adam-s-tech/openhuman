@@ -251,6 +251,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "list_connectable_toolkits",
             ],
         ),
+        ("memory", &["retrieve_memory"]),
         (
             "web3",
             &[

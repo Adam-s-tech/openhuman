@@ -345,6 +345,17 @@ pub const PACKS: &[ToolPack] = &[
         guide: include_str!("guides/scheduling.md"),
     },
     ToolPack {
+        id: "memory",
+        summary: "Deep recall over the memory tree: multi-hop questions across past conversations and documents.",
+        // `memory_recall` stays a direct tool and answers most lookups. The
+        // `retrieve_memory` delegate is the escalation for when it is not
+        // enough, so it rides behind `use_skill` instead of sitting beside it
+        // as a second, near-identical way to search memory.
+        tools: &["retrieve_memory"],
+        owners: &[],
+        guide: "",
+    },
+    ToolPack {
         id: "profile",
         summary: "The user's profile: record preferences, edit persona and people graph.",
         // The delegate and the two raw tools belong together because they are
