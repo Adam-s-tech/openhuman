@@ -13,9 +13,18 @@ export const KIND_VARIANT: Record<ItemKind, BadgeVariant> = {
   learning: 'success',
 };
 
-/** i18n key of an item kind's badge label. */
-export function kindLabelKey(kind: ItemKind): string {
-  return `memoryPage.kind.${kind}`;
+/** An item kind's badge label. Literal keys so the i18n scanner sees them. */
+export function kindLabel(kind: ItemKind, t: Translate): string {
+  switch (kind) {
+    case 'document':
+      return t('memoryPage.kind.document');
+    case 'conversation':
+      return t('memoryPage.kind.conversation');
+    case 'learning':
+      return t('memoryPage.kind.learning');
+    default:
+      return String(kind);
+  }
 }
 
 /** Replace `{name}` placeholders in a translated string. */
