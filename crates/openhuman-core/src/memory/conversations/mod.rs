@@ -230,6 +230,27 @@ async fn store_batch(config: &Config, batch: Batch) {
     }
 }
 
+/// Forgets every conversation stored from `channel` (used when a channel is
+/// disconnected with `clear_memory`). Memory off forgets nothing.
+pub async fn forget_channel(config: &Config, channel: &str) -> MemoryResult<usize> {
+    let bound = match engine::resolve(config).engine() {
+        Ok(bound) => bound,
+        Err(MemoryError::Off(_)) => return Ok(0),
+        Err(error) => return Err(error),
+    };
+    let filter = tinymemory::MetaFilter {
+        kinds: vec![tinymemory::ItemKind::Conversation],
+        tags_any: vec![buffer::channel_tag(channel)],
+        ..tinymemory::MetaFilter::default()
+    };
+    let report = bound
+        .engine
+        .forget(tinymemory::ForgetTarget::Filter(filter))
+        .await?;
+    tracing::debug!(forgotten = report.forgotten, "[memory:conversations] channel forgotten");
+    Ok(report.forgotten)
+}
+
 /// `memory_conversations_get`.
 #[must_use]
 pub fn view(config: &Config) -> ConversationsView {

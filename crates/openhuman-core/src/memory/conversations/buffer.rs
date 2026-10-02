@@ -20,6 +20,8 @@ pub struct CommittedTurn {
     pub agent_id: Option<String>,
     /// The agent's working folder.
     pub workspace: Option<String>,
+    /// The channel the turn arrived on.
+    pub channel: Option<String>,
     /// What the user said.
     pub user: String,
     /// What the assistant replied.
@@ -28,6 +30,12 @@ pub struct CommittedTurn {
     pub tool_calls: Vec<ToolCallRef>,
     /// When the turn committed.
     pub at: DateTime<Utc>,
+}
+
+/// The tag a conversation item from `channel` carries.
+#[must_use]
+pub fn channel_tag(channel: &str) -> String {
+    format!("channel:{}", channel.to_ascii_lowercase())
 }
 
 /// Turns of one thread ready to be stored as one `Conversation` item.
@@ -51,7 +59,8 @@ impl Batch {
     /// The `Conversation` item this batch stores.
     ///
     /// Meta carries `thread_id`, `agent_id` and `workspace` (from the latest
-    /// turn that has them), `turns`, and `source = conversation:<thread_id>`.
+    /// turn that has them), `turns`, a `channel:<name>` tag, and
+    /// `source = conversation:<thread_id>`.
     /// Tool calls ride on each assistant turn by name and id; arguments never
     /// enter the item.
     #[must_use]
@@ -64,6 +73,13 @@ impl Batch {
             .rev()
             .find_map(|turn| turn.workspace.clone());
         let observed_at = self.turns.last().map(|turn| turn.at);
+        let tags: Vec<String> = self
+            .turns
+            .iter()
+            .rev()
+            .find_map(|turn| turn.channel.as_deref())
+            .map(|channel| vec![channel_tag(channel)])
+            .unwrap_or_default();
         let mut turns = Vec::with_capacity(self.turns.len() * 2);
         for turn in self.turns {
             if !turn.user.trim().is_empty() {
@@ -103,6 +119,7 @@ impl Batch {
                     id: Some(self.thread_id),
                 },
                 observed_at,
+                tags,
                 ..MemoryMeta::default()
             },
         }

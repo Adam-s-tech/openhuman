@@ -70,6 +70,8 @@ pub enum DomainEvent {
         agent_id: Option<String>,
         /// The agent's working folder (`action_dir`).
         workspace: Option<String>,
+        /// The channel the turn arrived on (`web`, `telegram`, …).
+        channel: Option<String>,
         user_text: String,
         assistant_text: String,
         tool_calls: Vec<ConversationToolCall>,

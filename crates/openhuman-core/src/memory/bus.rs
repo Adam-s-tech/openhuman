@@ -38,6 +38,7 @@ pub fn committed_turn(event: &DomainEvent) -> Option<CommittedTurn> {
         thread_id,
         agent_id,
         workspace,
+        channel,
         user_text,
         assistant_text,
         tool_calls,
@@ -50,6 +51,7 @@ pub fn committed_turn(event: &DomainEvent) -> Option<CommittedTurn> {
         thread_id: thread_id.clone(),
         agent_id: agent_id.clone(),
         workspace: workspace.clone(),
+        channel: channel.clone(),
         user: user_text.clone(),
         assistant: assistant_text.clone(),
         tool_calls: tool_calls
