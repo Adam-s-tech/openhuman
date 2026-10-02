@@ -443,7 +443,6 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         usage: openhuman_core::config::schema::LocalAiUsage {
             embeddings: true,
             heartbeat: true,
-            learning_reflection: true,
             subconscious: true,
         },
         ..Default::default()
@@ -456,7 +455,6 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         assert!(local_ai.is_active());
         assert!(local_ai.use_local_for_embeddings());
         assert!(local_ai.use_local_for_heartbeat());
-        assert!(local_ai.use_local_for_learning());
         assert!(local_ai.use_local_for_subconscious());
     }
 
