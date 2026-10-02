@@ -9,8 +9,7 @@ fn enforce_local_only_inference_errors_on_external_when_local_only() {
     // same lock before mutating the process-global live policy so parallel
     // cloud-model construction cannot observe this temporary LocalOnly mode.
     let _inference = crate::inference::inference_test_guard();
-    let _env = crate::config::TEST_ENV_LOCK
-        .blocking_lock();
+    let _env = crate::config::TEST_ENV_LOCK.blocking_lock();
     use crate::config::PrivacyMode;
     use crate::security::SecurityPolicy;
     let ws = std::env::temp_dir().join("openhuman_factory_privacy_test");

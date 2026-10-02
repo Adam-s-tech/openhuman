@@ -7,7 +7,9 @@ use std::sync::OnceLock;
 
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| tokio::sync::Mutex::new(())).lock().await
+    LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock()
+        .await
 }
 
 fn parse_keyring_payload(json: &str) -> serde_json::Value {

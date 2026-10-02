@@ -538,8 +538,7 @@ async fn direct_reads_go_through_the_hosts_runtime_proxy() {
     use crate::config::{runtime_proxy_config, set_runtime_proxy_config};
 
     let _module = module_guard().await;
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env = crate::config::TEST_ENV_LOCK.lock().await;
     let tmp = tempfile::tempdir().unwrap();
     let config = module_test_config(&tmp);
     let (proxy, proxied) = connect_proxy();

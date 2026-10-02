@@ -180,8 +180,7 @@ fn title_log_prefix_is_grep_friendly_and_stable() {
 
 #[tokio::test]
 async fn message_append_returns_typed_not_found_for_stale_thread() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
     let thread_id = "thread-missing";
@@ -211,8 +210,7 @@ async fn message_append_returns_typed_not_found_for_stale_thread() {
 
 #[tokio::test]
 async fn generate_title_returns_typed_not_found_for_stale_thread() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
     let thread_id = "thread-missing";
@@ -235,8 +233,7 @@ async fn generate_title_returns_typed_not_found_for_stale_thread() {
 
 #[tokio::test]
 async fn generate_title_leaves_custom_title_unchanged() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
     let thread_id = "thread-custom";
@@ -275,8 +272,7 @@ async fn generate_title_leaves_custom_title_unchanged() {
 
 #[tokio::test]
 async fn generate_title_returns_existing_title_when_no_user_message_exists() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
     let thread_id = "thread-no-user";
@@ -297,8 +293,7 @@ async fn generate_title_returns_existing_title_when_no_user_message_exists() {
 
 #[tokio::test]
 async fn generate_title_falls_back_to_first_user_message_when_assistant_missing() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
     let thread_id = "thread-fallback";
@@ -337,8 +332,7 @@ async fn generate_title_falls_back_to_first_user_message_when_assistant_missing(
 
 #[tokio::test]
 async fn thread_delete_removes_persisted_turn_state_snapshot() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
     let thread_id = "thread-delete";
@@ -389,8 +383,7 @@ async fn thread_delete_removes_persisted_turn_state_snapshot() {
 
 #[tokio::test]
 async fn threads_purge_removes_valid_and_corrupted_turn_state_files() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
     create_thread_with_title(&workspace, "thread-a", "Chat Jan 1 1:00 AM").await;
@@ -448,8 +441,7 @@ async fn threads_purge_removes_valid_and_corrupted_turn_state_files() {
 
 #[tokio::test]
 async fn turn_state_clear_reports_false_when_snapshot_is_absent() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
 
@@ -466,8 +458,7 @@ async fn turn_state_clear_reports_false_when_snapshot_is_absent() {
 
 #[tokio::test]
 async fn thread_update_title_rejects_empty_and_whitespace_only_titles() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("workspace");
     let _workspace_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", workspace.path());
 

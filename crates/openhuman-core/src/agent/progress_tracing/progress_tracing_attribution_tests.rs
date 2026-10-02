@@ -329,8 +329,12 @@ fn zero_reasoning_turn_leaves_root_without_reasoning_attr() {
     ]);
     c.finish(20);
     let turn = find(c.spans(), "agent.turn");
-    assert!(!turn.attributes.contains_key("gen_ai.usage.reasoning_tokens"));
-    assert!(!turn.attributes.contains_key("gen_ai.usage.cache_creation_tokens"));
+    assert!(!turn
+        .attributes
+        .contains_key("gen_ai.usage.reasoning_tokens"));
+    assert!(!turn
+        .attributes
+        .contains_key("gen_ai.usage.cache_creation_tokens"));
 }
 
 // ── run-type classification ─────────────────────────────────────────────────

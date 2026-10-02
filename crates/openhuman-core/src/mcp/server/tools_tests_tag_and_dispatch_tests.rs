@@ -164,8 +164,7 @@ fn tree_tag_accepts_max_size_tags() {
 
 #[tokio::test]
 async fn call_tool_records_write_argument_rejection() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
         std::env::set_var("OPENHUMAN_WORKSPACE", tmp.path());

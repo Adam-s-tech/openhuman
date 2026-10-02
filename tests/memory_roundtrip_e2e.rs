@@ -58,7 +58,10 @@ static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_ROOT: OnceLock<tempfile::TempDir> = OnceLock::new();
 
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
-    ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(())).lock().await
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock()
+        .await
 }
 
 /// This integration target calls memory operations without constructing a core

@@ -260,7 +260,8 @@ async fn authorize_in_direct_mode_refuses_with_app_composio_dev_hint() {
     // Also hold the composio cache lock so we don't race against ops_tests
     // that mutate INTEGRATIONS_CACHE at the same time as we reload config.
     let _cache_guard =
-        crate::integrations::composio::connected_integrations::composio_cache_test_lock_async().await;
+        crate::integrations::composio::connected_integrations::composio_cache_test_lock_async()
+            .await;
     let _env_guard = TEST_ENV_LOCK.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");

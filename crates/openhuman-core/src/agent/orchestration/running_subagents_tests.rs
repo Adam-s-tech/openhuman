@@ -12,9 +12,7 @@ use std::time::Duration;
 use tinyagents_graph::orchestration::OrchestrationTaskStatus;
 use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::{QueueLane, RunQueue};
-use tinyagents_harness::steering::{
-    SteeringCommand, SteeringHandle,
-};
+use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
 use tinyagents_orchestration::subagent::FinishedOutcome;
 use tinyagents_orchestration::subagent::{
     DetachedSubagentStatus, WaitError, WaitOutcome, DETACHED_LEDGER_TIMEOUT_MS,
@@ -35,14 +33,12 @@ mod wire_tests;
 /// wiping entries a test here is mid-way through.
 fn test_guard() -> tokio::sync::MutexGuard<'static, ()> {
     // Recover from a poisoned guard so one panicking test doesn't cascade.
-    crate::config::TEST_ENV_LOCK
-        .blocking_lock()
+    crate::config::TEST_ENV_LOCK.blocking_lock()
 }
 
 async fn test_guard_async() -> tokio::sync::MutexGuard<'static, ()> {
     // Recover from a poisoned guard so one panicking test doesn't cascade.
-    crate::config::TEST_ENV_LOCK
-        .lock().await
+    crate::config::TEST_ENV_LOCK.lock().await
 }
 
 fn dummy_abort() -> AbortHandle {

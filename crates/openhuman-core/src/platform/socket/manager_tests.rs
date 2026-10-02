@@ -255,7 +255,9 @@ async fn emit_cannot_send_past_a_concurrent_teardown_drain() {
     let teardown_gate = Arc::clone(&gate);
     let teardown = std::thread::spawn(move || {
         let mut teardown_guard = teardown_gate.lock();
-        locked_tx.send(()).expect("test task is waiting for the lock");
+        locked_tx
+            .send(())
+            .expect("test task is waiting for the lock");
         release_rx
             .recv()
             .expect("test task releases teardown after the pending-while-locked check");

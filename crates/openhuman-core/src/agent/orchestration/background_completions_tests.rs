@@ -6,8 +6,7 @@ use tokio::sync::MutexGuard;
 /// `threads::ops` purge test (which holds the same lock); a module-local
 /// mutex wouldn't prevent that cross-module race.
 fn test_guard() -> MutexGuard<'static, ()> {
-    crate::config::TEST_ENV_LOCK
-        .blocking_lock()
+    crate::config::TEST_ENV_LOCK.blocking_lock()
 }
 
 fn c(task: &str, agent: &str, summary: &str) -> CompletedBackgroundAgent {

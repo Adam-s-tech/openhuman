@@ -41,12 +41,7 @@ fn approval_subscriber(channels: &[Arc<RecordingChannel>]) -> ChannelApprovalSur
     ChannelApprovalSurfaceSubscriber::new(Arc::new(map))
 }
 
-fn received(
-    channel: &str,
-    reply_target: &str,
-    thread_ts: Option<&str>,
-    ws: &Path,
-) -> DomainEvent {
+fn received(channel: &str, reply_target: &str, thread_ts: Option<&str>, ws: &Path) -> DomainEvent {
     DomainEvent::ChannelMessageReceived {
         channel: channel.into(),
         message_id: "m1".into(),

@@ -68,13 +68,11 @@ use std::sync::Arc;
 const CACHE_DIR_ENV: &str = "OPENHUMAN_SKILL_REGISTRY_CACHE_DIR";
 
 fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    crate::skills::catalog::TEST_ENV_LOCK
-        .blocking_lock()
+    crate::skills::catalog::TEST_ENV_LOCK.blocking_lock()
 }
 
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
-    crate::skills::catalog::TEST_ENV_LOCK
-        .lock().await
+    crate::skills::catalog::TEST_ENV_LOCK.lock().await
 }
 
 fn sample_entry() -> CatalogEntry {

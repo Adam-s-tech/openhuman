@@ -320,8 +320,7 @@ struct DefaultFilesDir {
 
 impl DefaultFilesDir {
     async fn under(tmp: &TempDir) -> Self {
-        let lock = crate::config::TEST_ENV_LOCK
-            .lock().await;
+        let lock = crate::config::TEST_ENV_LOCK.lock().await;
         let previous = std::env::var_os("OPENHUMAN_PROJECTS_DIR");
         let projects = tmp.path().join("projects");
         unsafe {

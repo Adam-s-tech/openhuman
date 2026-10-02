@@ -171,8 +171,7 @@ async fn auto_approve_tool_skips_prompt() {
     // live policy. Serialize with the other tests that install/reload it
     // (the `live_policy` module test + the autonomy `ops` tests, which all
     // take this same lock) so a parallel install can't clobber ours mid-test.
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env = crate::config::TEST_ENV_LOCK.lock().await;
     let (gate, dir) = test_gate();
 
     // A tool name unique to this test so leaving it in the global allowlist
@@ -212,8 +211,7 @@ async fn auto_approve_tool_skips_prompt() {
 /// is never consulted, proving the short-circuit fires above the park.
 #[tokio::test]
 async fn auto_approve_all_resolves_allow() {
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env = crate::config::TEST_ENV_LOCK.lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,
@@ -246,8 +244,7 @@ async fn auto_approve_all_resolves_allow() {
 /// until a decision is sent on the oneshot.
 #[tokio::test]
 async fn auto_approve_all_off_still_parks() {
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env = crate::config::TEST_ENV_LOCK.lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: false,
@@ -298,8 +295,7 @@ async fn auto_approve_all_off_still_parks() {
 /// gate still fails closed for unlabelled call sites.
 #[tokio::test]
 async fn auto_approve_all_does_not_override_unknown() {
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env = crate::config::TEST_ENV_LOCK.lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,
@@ -336,8 +332,7 @@ async fn auto_approve_all_does_not_override_unknown() {
 /// a park, but the blanket bypass sits above that check too.
 #[tokio::test]
 async fn auto_approve_all_overrides_require_approval_workflow() {
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env = crate::config::TEST_ENV_LOCK.lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,
@@ -391,8 +386,7 @@ async fn auto_approve_all_overrides_require_approval_workflow() {
 async fn auto_approve_all_allows_a_remote_triage_dispatch_without_an_audit_row() {
     use crate::agent::triage::{remote_trigger_origin, TriggerEnvelope};
 
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env = crate::config::TEST_ENV_LOCK.lock().await;
     let (gate, dir) = test_gate();
     let policy = crate::security::SecurityPolicy {
         auto_approve_all: true,

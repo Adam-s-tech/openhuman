@@ -39,8 +39,7 @@ static ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 
 async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     let mutex = ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    mutex
-        .lock().await
+    mutex.lock().await
 }
 
 /// A core RPC stack over a throwaway `HOME`, with no registry overrides.

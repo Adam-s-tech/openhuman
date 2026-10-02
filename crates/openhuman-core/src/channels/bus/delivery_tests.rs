@@ -13,8 +13,7 @@ fn outbound_body_has_stable_idempotency_key() {
 
 #[tokio::test]
 async fn sender_methods_report_unavailable_without_a_hosted_session() {
-    let _env_lock = crate::config::TEST_ENV_LOCK
-        .lock().await;
+    let _env_lock = crate::config::TEST_ENV_LOCK.lock().await;
     let workspace = tempfile::tempdir().expect("temporary workspace");
     let _workspace_env = EnvVarGuard::workspace_unlocked(workspace.path());
     let sender = BackendProgressiveSender;

@@ -85,9 +85,11 @@ fn validate_registry_rejects_duplicate_required_inputs() {
 
 #[test]
 fn validate_registry_accepts_valid_registry() {
-    let declared = [schema("ns1", "fn1", vec![]),
+    let declared = [
+        schema("ns1", "fn1", vec![]),
         schema("ns1", "fn2", vec![]),
-        schema("ns2", "fn1", vec![])];
+        schema("ns2", "fn1", vec![]),
+    ];
     let registered = declared
         .iter()
         .map(|s| RegisteredController {
