@@ -148,7 +148,7 @@ pub(super) fn assemble_turn_harness(
     // `None` for a caller with no thread identity (a sub-agent child, most
     // notably), which never runs in plan mode.
     run_mode: Option<RunModeHandle>,
-    // The turn's reasoning choice (`OpenHumanRunContext::reasoning`), attached
+    // The turn's reasoning choice (`reasoning::turn_reasoning_for`), attached
     // to every model request this harness builds.
     reasoning: Option<tinyinference_llm::model::ReasoningConfig>,
 ) -> AssembledTurnHarness {
