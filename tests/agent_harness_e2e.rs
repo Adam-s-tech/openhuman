@@ -918,7 +918,7 @@ async fn multi_turn_state_persistence_inner() {
 // ─── Task 3: Subagent delegation happy path ───────────────────────────────────
 //
 // Tool surface (crates/openhuman-core/src/tools/orchestrator_tools.rs,
-//   crates/openhuman-core/src/memory/agent/agent/agent.toml):
+//   crates/openhuman-core/src/agent/registry/agents/vision_agent/agent.toml):
 //   - vision_agent has `delegate_name = "analyze_image"`, so the
 //     orchestrator LLM sees a tool named "analyze_image" synthesised by collect_orchestrator_tools.
 //   - The tool takes { "prompt": string, ... } per ArchetypeDelegationTool schema.
@@ -1861,10 +1861,10 @@ async fn provider_error_retry_inner() {
 //     request[3]  = orchestrator synthesis with both canaries
 //
 // multi_hop_delegation_chain:
-//   Depth-1 subagents (vision_agent, vision_agent, etc.) do NOT have spawn
-//   tools in their named lists. Verified: vision_agent's agent.toml
-//   (memory/agent/agent/agent.toml) has only read-only memory tools plus
-//   ask_user_clarification. It contains no
+//   Depth-1 subagents (vision_agent, task_manager_agent, etc.) do NOT have
+//   spawn tools in their named lists. Verified: vision_agent's agent.toml
+//   (agent/registry/agents/vision_agent/agent.toml) names only `file_read` and
+//   `image_info`. It contains no
 //   spawn_subagent, spawn_worker_thread, or spawn_parallel_agents. The only
 //   agents with spawn tools are orchestrator and trigger_reactor (loader.rs:383,
 //   527). trigger_reactor is not in the orchestrator's subagents.allowlist.
@@ -2037,18 +2037,16 @@ async fn parallel_subagent_fanout_inner() {
 /// returns error); vision_agent loops and returns DEPTH2_CANARY;
 /// dispatch_subagent forwards the result; orchestrator synthesizes.
 ///
-/// Depth behavior discovered: vision_agent's agent.toml has only read-only
-/// memory tools plus ask_user_clarification (no spawn_subagent,
+/// Depth behavior discovered: vision_agent's agent.toml names only `file_read`
+/// and `image_info` (no spawn_subagent,
 /// spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
 /// (spawn_depth_context.rs:16) is unreachable with built-in agents; it guards
 /// runtime/workspace agents. The three-level synthesis (user-turn root →
 /// vision_agent subagent → orchestrator synthesis) is the deepest path
 /// available without src/ changes. Documented per plan Task 9 step 9.2 fallback.
 ///
-/// The out-of-scope call is `file_write`, not `ask_user_clarification`:
-/// vision_agent owns `ask_user_clarification`, so that call would park the
-/// child (the `delegated_clarification_flow` mechanic) instead of being
-/// refused and letting the inner loop continue.
+/// The out-of-scope call is `file_write`: it is not on vision_agent's belt, so
+/// it is refused and the inner loop continues.
 #[test]
 fn multi_hop_delegation_chain() {
     run_on_agent_stack(
