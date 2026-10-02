@@ -286,6 +286,18 @@ pub async fn agent_chat_for(
     // explicitly-set sink wins because it is applied to the agent it owns.
     if let Some(tx) = crate::agent::progress_sink::current_progress_sink() {
         agent.set_on_progress(Some(tx));
+    } else {
+        // The turn runner streams model calls only when a progress sink is
+        // attached (`streaming = on_progress.is_some()`). With none, a bare RPC
+        // turn fell back to unary `invoke`, so time-to-first-token equalled the
+        // full completion latency. Attach a drain-only sink so the call streams;
+        // the task ends when the agent drops its sender.
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<crate::agent::progress::AgentProgress>(256);
+        tokio::spawn(async move { while rx.recv().await.is_some() {} });
+        agent.set_on_progress(Some(tx));
+        log::debug!(
+            "[inference] agent_chat no progress sink; attached drain sink to stream model calls"
+        );
     }
     // Direct `agent_chat` RPC — invoked by trusted clients (desktop UI,
     // operator CLI). Label as CLI so the approval gate doesn't fail

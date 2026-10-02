@@ -345,3 +345,56 @@ fn load_errors_render_for_callers_that_cannot_wait_again() {
     let message = ops::LoadError::StillLoading.into_message();
     assert!(message.contains("still loading"), "{message}");
 }
+
+#[test]
+fn bundled_dir_prefers_registered_then_env_then_exe_sibling() {
+    let root = tempfile::tempdir().unwrap();
+    let registered = root.path().join("registered");
+    let from_env = root.path().join("env");
+    let exe_dir = root.path().join("bin");
+    std::fs::create_dir_all(&registered).unwrap();
+    std::fs::create_dir_all(&from_env).unwrap();
+    std::fs::create_dir_all(exe_dir.join("bundled-modules")).unwrap();
+
+    assert_eq!(
+        ops::resolve_bundled_dir(
+            Some(registered.clone()),
+            Some(from_env.clone()),
+            Some(exe_dir.clone())
+        ),
+        Some(registered)
+    );
+    assert_eq!(
+        ops::resolve_bundled_dir(None, Some(from_env.clone()), Some(exe_dir.clone())),
+        Some(from_env)
+    );
+    assert_eq!(
+        ops::resolve_bundled_dir(None, None, Some(exe_dir.clone())),
+        Some(exe_dir.join("bundled-modules"))
+    );
+}
+
+#[test]
+fn bundled_dir_ignores_paths_that_do_not_exist() {
+    let root = tempfile::tempdir().unwrap();
+    assert_eq!(
+        ops::resolve_bundled_dir(None, Some(root.path().join("missing")), None),
+        None
+    );
+    assert_eq!(ops::resolve_bundled_dir(None, None, Some(root.path().into())), None);
+}
+
+#[test]
+fn bundled_dir_skips_a_missing_candidate_for_a_valid_later_one() {
+    let root = tempfile::tempdir().unwrap();
+    let exe_dir = root.path().join("bin");
+    std::fs::create_dir_all(exe_dir.join("bundled-modules")).unwrap();
+    assert_eq!(
+        ops::resolve_bundled_dir(
+            Some(root.path().join("stale")),
+            Some(root.path().join("typo")),
+            Some(exe_dir.clone())
+        ),
+        Some(exe_dir.join("bundled-modules"))
+    );
+}
