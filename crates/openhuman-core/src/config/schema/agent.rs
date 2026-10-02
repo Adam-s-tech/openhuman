@@ -434,6 +434,26 @@ pub struct ToolSearchConfig {
     ///   alongside it in the `tool.searched` telemetry, so the two can be
     ///   judged on live traffic without changing what the model sees.
     pub ranker: String,
+    /// Where the Jev ranker's decision calls go and what authenticates them.
+    /// Jev is reachable three ways, and which one a process uses is the
+    /// operator's call, not something to infer from whatever credential
+    /// happens to be stored:
+    ///
+    /// - `"auto"` (default): the TinyHumans credential when the process has
+    ///   one, else `TYPESAFE_API_KEY` (direct), else an OpenRouter key
+    ///   (`OPENROUTER_API_KEY`, or the stored `openrouter` BYOK key).
+    /// - `"tinyhumans"`: the TinyHumans backend's proxy, TinyHumans credential only.
+    /// - `"typesafe"`: TypeSafe's own API, `TYPESAFE_API_KEY` only.
+    /// - `"openrouter"`: OpenRouter's System One API, OpenRouter key only.
+    ///
+    /// `OPENHUMAN_JEV_ROUTE` overrides this for one launch.
+    pub jev_route: String,
+    /// Replaces the API origin of the `"typesafe"` / `"openrouter"` routes
+    /// (a metering proxy, a regional mirror, a test double). Remote origins
+    /// must be HTTPS; plain HTTP is accepted for literal loopback IPs only,
+    /// which the Jev client enforces. `OPENHUMAN_JEV_BASE_URL` overrides this
+    /// for one launch. Has no effect on the `"tinyhumans"` route.
+    pub jev_base_url: Option<String>,
     /// Matches a search returns when the model does not ask for a number.
     /// Three: enough for the model to choose, few enough that the schemas
     /// returned do not undo the saving deferral made.
@@ -444,6 +464,8 @@ impl Default for ToolSearchConfig {
     fn default() -> Self {
         Self {
             ranker: "jev".into(),
+            jev_route: "auto".into(),
+            jev_base_url: None,
             top_k: 3,
         }
     }
