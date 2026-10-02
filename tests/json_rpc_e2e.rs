@@ -11164,8 +11164,6 @@ async fn json_rpc_voice_server_settings_roundtrip_always_on_and_wake_word() {
     rpc_join.abort();
 }
 
-// ── Memory sources: active-connection filtering over JSON-RPC ────────────────
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Workflow run execution engine (#3375 PR2)
 //
