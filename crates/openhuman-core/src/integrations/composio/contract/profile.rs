@@ -28,7 +28,7 @@
 //!
 //! Persisting a profile, loading the identities back and deleting a
 //! connection's rows: those are `identity_store`'s, over a JSON file in the
-//! workspace. The `PROFILE.md` markdown bridge is `profile_md`'s.
+//! workspace.
 
 use serde::{Deserialize, Serialize};
 
@@ -64,7 +64,7 @@ pub struct ProviderUserProfile {
 
 /// Shape of an identifier persisted against a connection.
 ///
-/// Mirrors the matching dimensions of the memory tree's entity index, so the
+/// A closed set of identifier dimensions, so the
 /// self-check is a direct `(toolkit, kind, value)` lookup. The string form is
 /// the last segment of the stored facet key, which makes every variant name a
 /// durable value rather than a label.
