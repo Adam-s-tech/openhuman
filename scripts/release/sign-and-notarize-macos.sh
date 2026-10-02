@@ -123,6 +123,14 @@ for bin in "$APP_PATH/Contents/Resources/"openhuman-core-*; do
   codesign_hardened "$bin"
 done
 
+# Bundled native modules: notarization rejects unsigned Mach-O under Resources/.
+# tinybus pins the module *archive* digest, not the extracted dylib, so signing
+# the extracted library in place does not break admission.
+while IFS= read -r -d '' lib; do
+  echo "[sign]   Signing bundled module: ${lib#"$APP_PATH/Contents/Resources/"}"
+  codesign_hardened "$lib"
+done < <(find "$APP_PATH/Contents/Resources/bundled-modules" -name '*.dylib' -type f -print0 2>/dev/null)
+
 # ── Outer .app bundle ───────────────────────────────────────────────────────
 echo "[sign]   Signing .app bundle..."
 codesign_hardened "$APP_PATH"
