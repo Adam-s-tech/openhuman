@@ -182,7 +182,7 @@ describe('AppRoutes — the whole route table stays classified', () => {
     '/onboarding/*': 'protected',
     '/home': 'redirect',
     '/human': 'protected',
-    '/brain': 'protected',
+    '/brain': 'redirect',
     '/flows': 'protected',
     '/flows/draft': 'protected',
     '/flows/:id': 'protected',

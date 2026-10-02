@@ -606,7 +606,6 @@ describe('createWalkthroughSteps', () => {
       '[data-walkthrough="skills-channels"]',
       '[data-walkthrough="settings-menu"]',
       '[data-walkthrough="tab-chat"]',
-      '[data-walkthrough="tab-brain"]',
       '[data-walkthrough="tab-connections"]',
       '[data-walkthrough="chat-agent-panel"]',
     ]);
