@@ -259,7 +259,34 @@ async fn emit_cannot_send_past_a_concurrent_teardown_drain() {
         release_rx
             .recv()
             .expect("test task releases teardown after the pending-while-locked check");
-        release_tx.send(()).expect("teardown thread is waiting");
+        // Teardown's clear + drain, under the held lock. `drain_pending_emits` lives
+        // in the sibling `ws_loop` module; the loop replicates its try_recv sweep.
+        *teardown_guard = false;
+        let mut drained = 0usize;
+        while rx.try_recv().is_ok() {
+            drained += 1;
+        }
+        drop(teardown_guard);
+        (drained, rx)
+    });
+    locked_rx.await.expect("teardown thread took the gate");
+
+    // A concurrent emit starts while teardown holds the gate.
+    let emit_mgr = Arc::clone(&mgr);
+    let mut emit_task =
+        tokio::spawn(async move { emit_mgr.emit("test.event", json!({ "k": "v" })).await });
+
+    // While the gate is held, `emit` must not be able to complete: it is blocked
+    // at its readiness check on the same lock teardown holds. A bare atomic flag
+    // would let it read `true` and send here, past the drain below.
+    assert!(
+        tokio::time::timeout(Duration::from_millis(200), &mut emit_task)
+            .await
+            .is_err(),
+        "emit must block on the readiness gate while teardown holds it"
+    );
+
+    release_tx.send(()).expect("teardown thread is waiting");
     let (drained, mut rx) = teardown.join().expect("teardown thread must not panic");
     assert_eq!(drained, 0, "nothing was queued before teardown began");
 
