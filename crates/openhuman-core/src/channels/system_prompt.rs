@@ -195,10 +195,7 @@ fn render(inputs: &ChannelPromptInputs, _identity: &ChannelIdentity) -> String {
         .iter()
         .map(|(name, desc)| (name.as_str(), desc.as_str()))
         .collect();
-    let identity_override = PromptIdentityOverride {
-        soul_md: None,
-        memory_md: None,
-    };
+    let identity_override = PromptIdentityOverride { soul_md: None };
     // `channel_name = None`: the runtime wires up several providers at once,
     // so the capability block keeps its platform-agnostic phrasing.
     let mut prompt = build_system_prompt_with_identity(

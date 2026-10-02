@@ -756,8 +756,6 @@ async fn run_typed_mode(
     let render_options = SubagentRenderOptions::from_definition_flags(
         definition.omit_identity,
         definition.omit_safety_preamble,
-        definition.omit_profile,
-        definition.omit_memory_md,
     );
 
     let connected_integrations_for_prompt: Vec<crate::agent::prompts::ConnectedIntegration> =

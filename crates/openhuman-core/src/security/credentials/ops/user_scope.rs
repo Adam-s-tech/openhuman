@@ -126,11 +126,11 @@ pub(super) fn rebind_after_credential_change(
 ) -> Result<Vec<String>, String> {
     let mut logs = Vec::new();
     crate::cron::seed::prune_retired_jobs(config).map_err(|error| error.to_string())?;
-    crate::core::runtime::context::CoreContext::rebind_default_workspace(
-        &config.workspace_dir,
-        config.subsystems.memory.clone(),
-    )
-    .map_err(|error| error.to_string())?;
+    crate::core::runtime::context::CoreContext::rebind_default_workspace(&config.workspace_dir)
+        .map_err(|error| error.to_string())?;
+    if let Err(error) = crate::cron::system_jobs::ensure_memory_jobs(config) {
+        logs.push(format!("memory cron jobs not seeded: {error}"));
+    }
     logs.push(format!(
         "core context bound to workspace {}",
         config.workspace_dir.display()
