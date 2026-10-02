@@ -70,8 +70,10 @@ impl ChatModel<()> for MockCalendarModel {
 }
 
 fn calendar_model(captured_messages: Arc<Mutex<Vec<Message>>>) -> Arc<MockCalendarModel> {
-    let mut profile = ModelProfile::default();
-    profile.tool_calling = true;
+    let profile = ModelProfile {
+        tool_calling: true,
+        ..Default::default()
+    };
     Arc::new(MockCalendarModel {
         captured_messages,
         iter_count: Arc::new(Mutex::new(0)),

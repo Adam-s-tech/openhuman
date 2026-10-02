@@ -345,8 +345,10 @@ fn composio_list_tools_via_subagent_runs_on_small_worker_stack() {
 async fn drive_subagent() {
     let _ = AgentDefinitionRegistry::init_global_builtins();
 
-    let mut profile = ModelProfile::default();
-    profile.tool_calling = true;
+    let profile = ModelProfile {
+        tool_calling: true,
+        ..Default::default()
+    };
     let model = Arc::new(StubModel {
         iter: Arc::new(Mutex::new(0)),
         profile,

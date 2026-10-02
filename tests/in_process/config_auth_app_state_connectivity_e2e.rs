@@ -476,9 +476,11 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         assert!(local_ai.use_local_for_subconscious());
     }
 
-    let mut search = openhuman_core::config::schema::SearchConfig::default();
-    search.brave = openhuman_core::config::schema::SearchEngineCredentials {
-        api_key: Some(" brave-key ".into()),
+    let search = openhuman_core::config::schema::SearchConfig {
+        brave: openhuman_core::config::schema::SearchEngineCredentials {
+            api_key: Some(" brave-key ".into()),
+        },
+        ..Default::default()
     };
     assert_eq!(
         search.brave.key(),
@@ -1375,9 +1377,11 @@ async fn config_save_and_load_encrypts_channel_secret_fields() {
         .expect("config parent")
         .join("workspace");
 
-    let mut config = Config::default();
-    config.config_path = config_path.clone();
-    config.workspace_dir = workspace_dir.clone();
+    let mut config = Config {
+        config_path: config_path.clone(),
+        workspace_dir: workspace_dir.clone(),
+        ..Default::default()
+    };
     config.secrets.encrypt = true;
     config.api_key = Some("api-secret".into());
     config.search.brave.api_key = Some("brave-secret".into());
@@ -1618,9 +1622,11 @@ fn auth_service_direct_paths_cover_profile_selection_and_validation() {
 async fn auth_provider_prefix_listing_sorts_filters_and_excludes_app_session() {
     let _lock = env_lock();
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let mut config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     config.secrets.encrypt = false;
     std::fs::create_dir_all(config.config_path.parent().expect("config parent"))
         .expect("create config parent");
@@ -1687,9 +1693,11 @@ async fn auth_provider_prefix_listing_sorts_filters_and_excludes_app_session() {
 async fn composio_direct_credentials_helpers_trim_store_and_clear_key() {
     let _lock = env_lock();
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let mut config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     config.secrets.encrypt = false;
     std::fs::create_dir_all(config.config_path.parent().expect("config parent"))
         .expect("create config parent");
@@ -1751,9 +1759,11 @@ async fn composio_direct_credentials_helpers_trim_store_and_clear_key() {
 async fn credentials_public_ops_cover_service_and_missing_session_error_paths() {
     let _lock = env_lock();
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let mut config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     config.secrets.encrypt = false;
     config.local_ai.runtime_enabled = false;
     config.voice_server.auto_start = false;
@@ -1824,9 +1834,11 @@ async fn credentials_secret_helpers_round_trip_with_file_keyring_backend() {
     let _lock = env_lock();
     let _keyring_guard = EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file");
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let mut config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     std::fs::create_dir_all(config.config_path.parent().expect("config parent"))
         .expect("create config parent");
 
