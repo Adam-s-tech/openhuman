@@ -23,7 +23,7 @@ struct WorkspaceGuard {
 }
 
 impl WorkspaceGuard {
-    fn new() -> Self {
+    async fn new() -> Self {
         let lock = TEST_ENV_LOCK.blocking_lock();
         let tmp = tempfile::tempdir().expect("tempdir");
         unsafe {
@@ -49,7 +49,7 @@ impl Drop for WorkspaceGuard {
 /// one is set.
 #[tokio::test]
 async fn goal_get_reads_back_a_stored_goal() {
-    let _ws = WorkspaceGuard::new();
+    let _ws = WorkspaceGuard::new().await;
 
     let empty = goal_get(ThreadLiveStateRequest {
         thread_id: "thread-goal-live".to_string(),
@@ -82,7 +82,7 @@ async fn goal_get_reads_back_a_stored_goal() {
 /// wrote for the same thread.
 #[tokio::test]
 async fn todos_get_reads_back_what_the_todo_tool_wrote() {
-    let _ws = WorkspaceGuard::new();
+    let _ws = WorkspaceGuard::new().await;
     let dir = crate::config::Config::load_or_init()
         .await
         .unwrap()
