@@ -133,7 +133,7 @@ fn solana_challenge_headers() -> HeaderMap {
 /// as it did before the flow moved into the crate.
 #[tokio::test]
 async fn a_payment_reaches_the_host_wallet_through_the_crate() {
-    let _wallet_lock = crate::web3::wallet::test_support::TEST_LOCK.lock();
+    let _wallet_lock = crate::web3::wallet::test_support::TEST_LOCK.lock().await;
     let temp = tempfile::tempdir().unwrap();
     let _workspace = crate::web3::wallet::test_support::set_workspace_env_for_test(&temp).await;
     super::super::init_ledger(temp.path(), "seam-test");
@@ -157,7 +157,7 @@ async fn a_payment_reaches_the_host_wallet_through_the_crate() {
 
 #[tokio::test]
 async fn the_signer_reports_a_missing_wallet_for_either_chain() {
-    let _wallet_lock = crate::web3::wallet::test_support::TEST_LOCK.lock();
+    let _wallet_lock = crate::web3::wallet::test_support::TEST_LOCK.lock().await;
     let temp = tempfile::tempdir().unwrap();
     let _workspace = crate::web3::wallet::test_support::set_workspace_env_for_test(&temp).await;
 

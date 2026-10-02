@@ -17,7 +17,7 @@ use super::ops::{setup, WalletAccount, WalletChain, WalletSetupParams, WalletSet
 use crate::config::rpc as config_rpc;
 use crate::config::test_env::EnvVarGuard;
 
-pub(crate) static TEST_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) static TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// Standard BIP-39 test mnemonic — produces deterministic accounts per chain.
 pub(crate) const TEST_MNEMONIC: &str =
