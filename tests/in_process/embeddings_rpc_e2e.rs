@@ -12,7 +12,7 @@ use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use axum::extract::State;
