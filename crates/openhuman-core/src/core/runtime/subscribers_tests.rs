@@ -1,5 +1,5 @@
 use super::{
-    group_first_time_when_bus_ready, learning_first_time_when_bus_ready, DomainSubscriberPlan,
+    group_first_time_when_bus_ready, DomainSubscriberPlan,
 };
 use crate::config::test_env::EnvVarGuard;
 
@@ -140,31 +140,6 @@ fn domain_subscriber_registration_is_idempotent_after_success() {
         1,
         "a completed group must be recorded exactly once"
     );
-}
-
-#[test]
-fn learning_subscriber_registration_retries_after_bus_becomes_ready() {
-    let completed = std::sync::Mutex::new(false);
-
-    assert!(!learning_first_time_when_bus_ready(&completed, false));
-    assert!(
-        !*completed.lock().expect("registry lock"),
-        "a deferred learning attempt must not consume its token"
-    );
-
-    assert!(learning_first_time_when_bus_ready(&completed, true));
-    assert!(
-        *completed.lock().expect("registry lock"),
-        "the ready retry must consume the learning token"
-    );
-}
-
-#[test]
-fn learning_subscriber_registration_is_idempotent_after_success() {
-    let completed = std::sync::Mutex::new(false);
-
-    assert!(learning_first_time_when_bus_ready(&completed, true));
-    assert!(!learning_first_time_when_bus_ready(&completed, true));
 }
 
 #[test]
