@@ -157,5 +157,3 @@ pub struct PurgeConversationThreadsResponse {
     pub agent_threads_deleted: usize,
     pub agent_messages_deleted: usize,
 }
-
-/// Request payload for `openhuman.list_documents`.
