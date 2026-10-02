@@ -62,7 +62,6 @@ triggers) from a real transport failure.
 | `crates/openhuman-core/src/integrations/composio/identity.rs` | Resolves the connected account username for a toolkit via the connector module profile-fetch path (used by skill preflight identity gate). |
 | `crates/openhuman-core/src/integrations/composio/identity_store.rs` | Persists connected-account identities in `<workspace>/integrations/composio_identities.json`. |
 | `crates/openhuman-core/src/integrations/composio/file_store.rs` | Atomic JSON file helpers for the identity and user-scope files under `<workspace>/integrations/`. |
-| `crates/openhuman-core/src/integrations/composio/profile_md.rs` | Mirrors managed identity facet blocks into `{workspace_dir}/PROFILE.md` between `<!-- openhuman:<block>:start/end -->` markers, ported verbatim from the deleted engine's `profile_md`. |
 | `crates/openhuman-core/src/integrations/composio/direct_auth/mod.rs` | Direct-mode API-key health tracking: a process-local consecutive-401-failure counter (keyed by a non-logged key fingerprint) that short-circuits repeated invalid-key polling. |
 | `crates/openhuman-core/src/integrations/composio/trigger_history.rs` | Process-global `OnceLock` handle to `tinyconnectors::triggers::TriggerArchive` (`init_global`/`global`). |
 | `crates/openhuman-core/src/integrations/composio/bus.rs` + `bus/` | Trigger, connection-created and config-changed subscribers, and their registration. |
@@ -154,7 +153,7 @@ Published from `ops/` via `crate::core::bus::BUS.publish` (`crate::core::events:
 
 - **Trigger history** (`trigger_history.rs`): JSONL records under `<workspace>/state/triggers/YYYY-MM-DD.jsonl`, partitioned by UTC day, written by `tinyconnectors::triggers::TriggerArchive` (exclusive file lock on append) behind a process-global `OnceLock` handle. Exposed via `composio.list_trigger_history`.
 - **Direct-mode API key**: stored in the encrypted keychain (via `credentials`); never logged/returned. `direct_auth/mod.rs` additionally tracks a process-local (non-persisted) consecutive-401 counter for the same key.
-- **Connected identities**: `<workspace>/integrations/composio_identities.json` (`identity_store.rs`), mirrored into `PROFILE.md` by `profile_md.rs`. **User scope prefs**: `<workspace>/integrations/composio_user_scopes.json` (`ops::user_scopes`). Both written atomically (temp file + rename) under one process-wide lock (`file_store.rs`).
+- **Connected identities**: `<workspace>/integrations/composio_identities.json` (`identity_store.rs`). **User scope prefs**: `<workspace>/integrations/composio_user_scopes.json` (`ops::user_scopes`). Both written atomically (temp file + rename) under one process-wide lock (`file_store.rs`).
 - **Synced memory**: stored by `memory::sources::composio` with a `connection:<id>` tag; `delete_connection` with `clear_memory` forgets by that tag (`forget_connection`). Memory off forgets nothing.
 - **Integrations cache**: warmed in the background after app startup/sign-in, then kept for the process lifetime. Connection create/delete, config changes, and a divergent `list_connections` response invalidate it; the change paths eagerly re-warm it. Idle time does not trigger a backend fetch on a chat turn (`connected_integrations.rs`).
 
@@ -182,7 +181,6 @@ Published from `ops/` via `crate::core::bus::BUS.publish` (`crate::core::events:
 - `crates/openhuman-core/src/core/runtime/subscribers.rs`: at startup initializes trigger history and registers the three bus subscribers.
 - `crates/openhuman-core/src/agent/**`: session-host tool assembly (deferred per-action tools, recorded-tool rebuild), triage escalation and debug (e.g. `agent/subagent_host/`, `agent/orchestration/tools/`, `agent/debug/mod.rs`).
 - `crates/openhuman-core/src/platform/socket/event_handlers.rs`: parses `composio:trigger` and publishes `ComposioTriggerReceived`.
-- `crates/openhuman-core/src/agent/learning/linkedin_enrichment*.rs`, `agent/learning/profile_md_renderer.rs`: connected-identity enrichment consumers.
 - `crates/openhuman-core/src/agent/prompts/connected_identities.rs`: renders connected identities into the agent prompt.
 - `crates/openhuman-core/src/skills/preflight.rs`: identity gate via `connection_identity`.
 - `crates/openhuman-core/src/security/credentials/ops/composio.rs`: direct-mode API key storage.
