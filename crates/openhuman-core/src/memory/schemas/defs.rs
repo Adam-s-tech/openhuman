@@ -68,11 +68,8 @@ fn cursor() -> FieldSchema {
     opt("cursor", TypeSchema::String, "Engine cursor from a previous page.")
 }
 
-/// The schema of `function`.
-///
-/// # Panics
-///
-/// On a function not in [`FUNCTIONS`] (a programming error).
+/// The schema of `function`; an unknown function gets the namespace's
+/// `unknown` placeholder, as every namespace does.
 pub fn schema(function: &str) -> ControllerSchema {
     let (function, description, inputs, outputs): (&'static str, &'static str, Vec<FieldSchema>, Vec<FieldSchema>) =
         match function {
@@ -187,7 +184,12 @@ pub fn schema(function: &str) -> ControllerSchema {
                 out("{state: ImportState}"),
             ),
             "import_status" => ("import_status", "Progress of the v1 import.", vec![], out("{state: ImportState}")),
-            other => panic!("unknown memory function `{other}`"),
+            _ => (
+                "unknown",
+                "Unknown memory controller function.",
+                vec![],
+                vec![req("error", TypeSchema::String, "Lookup error details.")],
+            ),
         };
     ControllerSchema {
         namespace: "memory",
