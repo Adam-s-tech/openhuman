@@ -105,6 +105,28 @@ impl Config {
             }
         }
 
+        // One-launch override of how the Jev tool ranker is reached
+        // (`agent.tool_search.jev_route`): `auto | tinyhumans | typesafe |
+        // openrouter`. The ranker validates the spelling and falls back to
+        // `auto` with a warning on an unknown one.
+        if let Some(raw) = env.get("OPENHUMAN_JEV_ROUTE") {
+            let trimmed = raw.trim();
+            if !trimmed.is_empty() {
+                tracing::debug!(
+                    route = trimmed,
+                    "OPENHUMAN_JEV_ROUTE overrides agent.tool_search.jev_route"
+                );
+                self.agent.tool_search.jev_route = trimmed.to_ascii_lowercase();
+            }
+        }
+        if let Some(raw) = env.get("OPENHUMAN_JEV_BASE_URL") {
+            let trimmed = raw.trim();
+            if !trimmed.is_empty() {
+                tracing::debug!("OPENHUMAN_JEV_BASE_URL overrides agent.tool_search.jev_base_url");
+                self.agent.tool_search.jev_base_url = Some(trimmed.to_string());
+            }
+        }
+
         if let Some(workspace) = env.get("OPENHUMAN_WORKSPACE") {
             if !workspace.is_empty() {
                 let (_, workspace_dir) =

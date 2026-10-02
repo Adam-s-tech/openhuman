@@ -39,6 +39,7 @@ fn settings_select_the_mode_and_clamp_top_k() {
         apply_tool_search_config(&ToolSearchConfig {
             ranker: setting.into(),
             top_k: 500,
+            ..ToolSearchConfig::default()
         });
         let policy = discovery_policy();
         assert_eq!(policy.rank_mode, mode, "{setting}");
