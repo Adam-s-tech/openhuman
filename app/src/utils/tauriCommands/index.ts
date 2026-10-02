@@ -6,8 +6,6 @@ export * from './auth';
 export * from './window';
 export * from './core';
 export * from './memory';
-export * from './memoryTree';
-export * from './memoryEngine';
 export * from './composio';
 export * from './conscious';
 export * from './localAi';
