@@ -10,7 +10,26 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 
-import { memoryTreeBackfillStatus } from '../../../utils/tauriCommands/memoryTree';
+import { callCoreRpc } from '../../../services/coreRpcClient';
+
+/** `openhuman.memory_tree_backfill_status` — the core's re-embed progress. */
+interface BackfillStatus {
+  in_progress: boolean;
+  pending_jobs: number;
+}
+
+/**
+ * Read the core's re-embed backfill progress. Kept local to this hook: it is
+ * the embeddings panel's only consumer, and the v1 memory-tree client that
+ * used to wrap it was retired with Memory v2. A core without the method makes
+ * this reject, which `handleSave` treats as "nothing to surface".
+ */
+async function memoryTreeBackfillStatus(): Promise<BackfillStatus> {
+  const raw = await callCoreRpc<BackfillStatus | { result: BackfillStatus }>({
+    method: 'openhuman.memory_tree_backfill_status',
+  });
+  return raw && typeof raw === 'object' && 'result' in raw ? raw.result : raw;
+}
 
 interface ReembedState {
   open: boolean;
