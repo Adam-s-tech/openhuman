@@ -4577,7 +4577,7 @@ fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_route_
 
 async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_route_change_inner()
 {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
