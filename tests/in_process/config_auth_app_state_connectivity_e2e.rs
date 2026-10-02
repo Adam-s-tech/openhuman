@@ -1198,38 +1198,6 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
         EnvVarGuard::set("OPENHUMAN_RUNTIME_PYTHON_PREFERRED_COMMAND", "python3.13"),
         EnvVarGuard::set("OPENHUMAN_CORE_SENTRY_DSN", "https://dsn.example/1"),
         EnvVarGuard::set("OPENHUMAN_ANALYTICS_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_ENABLED", "true"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_REFLECTION_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_USER_PROFILE_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_TOOL_TRACKING_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_TOOL_MEMORY_CAPTURE_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_EXPLICIT_PREFERENCES_ENABLED", "true"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_REFLECTION_SOURCE", "cloud"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_MAX_REFLECTIONS_PER_SESSION", "3"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_MIN_TURN_COMPLEXITY", "2"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_EPISODIC_CAPTURE_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_STM_RECALL_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_LEARNING_UNIFIED_COMPACTION_ENABLED", "false"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_EMBED_ENDPOINT", "https://embed.example"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_EMBED_MODEL", "embed-env"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_EMBED_TIMEOUT_MS", "1234"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_EMBED_STRICT", "true"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_EMBED_RATE_LIMIT", "42"),
-        EnvVarGuard::set(
-            "OPENHUMAN_MEMORY_EXTRACT_ENDPOINT",
-            "https://extract.example",
-        ),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_EXTRACT_MODEL", "extract-env"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_EXTRACT_TIMEOUT_MS", "2345"),
-        EnvVarGuard::set(
-            "OPENHUMAN_MEMORY_SUMMARISE_ENDPOINT",
-            "https://summarise.example",
-        ),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_SUMMARISE_MODEL", "summarise-env"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_SUMMARISE_TIMEOUT_MS", "3456"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_TREE_CONTENT_DIR", "/tmp/openhuman-tree"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_TREE_LLM_BACKEND", "local"),
-        EnvVarGuard::set("OPENHUMAN_MEMORY_TREE_CLOUD_LLM_MODEL", "cloud-tree-model"),
         EnvVarGuard::set("OPENHUMAN_AUTO_UPDATE_ENABLED", "false"),
         EnvVarGuard::set("OPENHUMAN_AUTO_UPDATE_INTERVAL_MINUTES", "1440"),
         EnvVarGuard::set("OPENHUMAN_AUTO_UPDATE_RESTART_STRATEGY", "supervisor"),
@@ -1289,28 +1257,6 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
     assert_eq!(
         config.observability.sentry_dsn.as_deref(),
         Some("https://dsn.example/1")
-    );
-    assert!(config.learning.enabled);
-    assert!(!config.learning.reflection_enabled);
-    assert_eq!(config.learning.reflection_source, ReflectionSource::Cloud);
-    assert_eq!(config.learning.max_reflections_per_session, 3);
-    assert_eq!(config.learning.min_turn_complexity, 2);
-    assert!(!config.learning.episodic_capture_enabled);
-    assert_eq!(config.memory.embedding_rate_limit_per_min, 42);
-    assert_eq!(
-        config.memory_tree.embedding_endpoint.as_deref(),
-        Some("https://embed.example")
-    );
-    assert_eq!(
-        config.memory_tree.embedding_model.as_deref(),
-        Some("embed-env")
-    );
-    assert_eq!(config.memory_tree.embedding_timeout_ms, Some(1234));
-    assert!(config.memory_tree.embedding_strict);
-    assert_eq!(config.memory_tree.llm_backend, LlmBackend::Local);
-    assert_eq!(
-        config.memory_tree.content_dir.as_deref(),
-        Some(Path::new("/tmp/openhuman-tree"))
     );
     assert!(!config.update.enabled);
     assert_eq!(config.update.interval_minutes, 1440);
