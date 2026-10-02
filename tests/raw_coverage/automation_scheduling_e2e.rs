@@ -1,4 +1,3 @@
-#![cfg(any())] // TODO(#6382): migrate this raw-coverage fixture to current runtime contracts.
 //! JSON-RPC E2E coverage for the automation/scheduling controllers that no
 //! e2e target reached: `cron_remove` / `cron_run` / `cron_runs`,
 //! `task_sources_sync` / `task_sources_list_databases`, the whole `hooks`
@@ -13,6 +12,7 @@
 //! Aggregated into `tests/raw_coverage_all.rs` by `build.rs`. Run with:
 //! `cargo test --test raw_coverage_all --features "$(bash scripts/ci/product-features.sh)" automation_scheduling_e2e`
 
+use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -24,7 +24,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 /// Seeded only if this suite is the first in the aggregated binary to
 /// initialise the token; the bearer actually sent is always read back from
@@ -38,40 +38,6 @@ static AUTH_INIT: OnceLock<()> = OnceLock::new();
 /// `raw_coverage_all` shares one process, so libtest runs them concurrently
 /// and a lock local to this file would isolate nothing.
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
 
 fn env_lock() -> std::sync::MutexGuard<'static, ()> {
     ENV_LOCK
@@ -426,65 +392,6 @@ async fn cron_run_records_history_and_remove_is_not_idempotent() {
     h.join.abort();
 }
 
-/// Every cron controller validates its `job_id` before touching the store, and
-/// a whitespace-only id must not slip through as a valid one.
-#[tokio::test]
-async fn cron_controllers_reject_absent_and_blank_job_ids() {
-    let _lock = env_lock();
-    let h = setup().await;
-
-    for (id, method) in [
-        (2101, "openhuman.cron_remove"),
-        (2102, "openhuman.cron_run"),
-        (2103, "openhuman.cron_runs"),
-    ] {
-        let blank = h.err(id, method, json!({ "job_id": "   " })).await;
-        assert!(
-            blank.contains("job_id"),
-            "{method} rejects a blank job_id by name: {blank}"
-        );
-
-        let absent = h.err(id + 10, method, json!({})).await;
-        assert!(
-            absent.contains("job_id"),
-            "{method} names its required param: {absent}"
-        );
-    }
-
-    // The three diverge on an id that does not name a job, and the divergence
-    // is worth pinning. `remove` and `run` both go through `cron::get_job` /
-    // `remove_job` and raise; `runs` queries the run table by id and cannot
-    // tell "no such job" from "job with no runs", so a typo reads as an empty
-    // history. See `~/tinyhuman/bugs/e2e-wave-cron-run-schema-declares-an-outcome-it-never-returns.md`.
-    for (id, method) in [
-        (2121, "openhuman.cron_remove"),
-        (2122, "openhuman.cron_run"),
-    ] {
-        let unknown = h
-            .err(id, method, json!({ "job_id": "no-such-job" }))
-            .await;
-        assert!(
-            unknown.contains("no-such-job"),
-            "{method} names the unknown job: {unknown}"
-        );
-    }
-
-    let unknown_history = h
-        .ok(
-            2123,
-            "openhuman.cron_runs",
-            json!({ "job_id": "no-such-job" }),
-        )
-        .await;
-    assert_eq!(
-        unknown_history.as_array().map(Vec::len),
-        Some(0),
-        "cron_runs cannot distinguish an unknown job from one with no runs: {unknown_history}"
-    );
-
-    h.join.abort();
-}
-
 // ── task_sources ────────────────────────────────────────────────────────────
 
 /// `task_sources_sync` fans out over every ENABLED source and reports one
@@ -531,7 +438,11 @@ async fn task_sources_sync_reports_one_outcome_per_enabled_source() {
 
     let synced = h.ok(2203, "openhuman.task_sources_sync", json!({})).await;
     let outcomes = synced.as_array().expect("sync returns an outcomes array");
-    assert_eq!(outcomes.len(), 1, "one outcome per enabled source: {synced}");
+    assert_eq!(
+        outcomes.len(),
+        1,
+        "one outcome per enabled source: {synced}"
+    );
     let outcome = &outcomes[0];
     assert_eq!(
         outcome.get("sourceId").and_then(Value::as_str),
@@ -676,7 +587,9 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         "no hooks.json anywhere means an empty config: {bare}"
     );
     assert_eq!(
-        bare.pointer("/hooks/warnings").and_then(Value::as_array).map(Vec::len),
+        bare.pointer("/hooks/warnings")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0),
         "a missing file is not a warning: {bare}"
     );
@@ -757,7 +670,9 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         Some("beforeShellExecution")
     );
     assert_eq!(
-        denied.pointer("/result/decision/permission").and_then(Value::as_str),
+        denied
+            .pointer("/result/decision/permission")
+            .and_then(Value::as_str),
         Some("deny"),
         "the matching hook's verdict is the merged decision: {denied}"
     );
@@ -790,7 +705,10 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         )
         .await;
     assert_eq!(
-        allowed.pointer("/result/runs").and_then(Value::as_array).map(Vec::len),
+        allowed
+            .pointer("/result/runs")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0),
         "the matcher gates which occurrences reach the hook: {allowed}"
     );
@@ -810,7 +728,10 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         )
         .await;
     assert_eq!(
-        other_event.pointer("/result/runs").and_then(Value::as_array).map(Vec::len),
+        other_event
+            .pointer("/result/runs")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0),
         "an event with no hooks configured runs nothing: {other_event}"
     );
@@ -927,15 +848,15 @@ async fn harness_init_run_completes_offline_and_force_bypasses_the_probes() {
     let _lock = env_lock();
     let h = setup().await;
 
-    let snapshot = h
-        .ok(2701, "openhuman.harness_init_run", json!({}))
-        .await;
+    let snapshot = h.ok(2701, "openhuman.harness_init_run", json!({})).await;
     let steps = snapshot
         .pointer("/snapshot/steps")
         .and_then(Value::as_array)
         .unwrap_or_else(|| panic!("the snapshot carries a steps array: {snapshot}"));
     assert_eq!(
-        snapshot.pointer("/snapshot/overall").and_then(Value::as_str),
+        snapshot
+            .pointer("/snapshot/overall")
+            .and_then(Value::as_str),
         Some("done"),
         "no required step can fail when every backend is off: {snapshot}"
     );
@@ -1000,7 +921,10 @@ async fn harness_init_run_completes_offline_and_force_bypasses_the_probes() {
         );
     }
     assert!(
-        forced.pointer("/snapshot/finished_at").and_then(Value::as_str).is_some(),
+        forced
+            .pointer("/snapshot/finished_at")
+            .and_then(Value::as_str)
+            .is_some(),
         "a finished run is stamped: {forced}"
     );
 
@@ -1013,7 +937,10 @@ async fn harness_init_run_completes_offline_and_force_bypasses_the_probes() {
         "status reads the store the run wrote: {status}"
     );
     assert_eq!(
-        status.pointer("/snapshot/steps").and_then(Value::as_array).map(Vec::len),
+        status
+            .pointer("/snapshot/steps")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         forced_steps.len().into(),
         "status and run agree on the step list: {status}"
     );

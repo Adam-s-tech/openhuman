@@ -2,7 +2,29 @@
 
 use std::collections::BTreeMap;
 
-use crate::agent::progress_tracing::types::{SpanStatus, TraceContext, TraceSpan};
+use tinyagents_harness::observability::trace_export::{SpanStatus, TraceContext, TraceSpan};
+
+/// When the in-flight model call streamed its first delta, for
+/// time-to-first-token. Reset when a new iteration (model call) starts and
+/// consumed when that call's usage is recorded.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(super) struct FirstDeltas {
+    /// First delta of any kind: reasoning, text or tool-call arguments.
+    pub(super) any_unix_ms: Option<u64>,
+    /// First visible text delta.
+    pub(super) text_unix_ms: Option<u64>,
+}
+
+impl FirstDeltas {
+    /// Stamp `now_unix_ms` as the first delta (and first text, when `is_text`)
+    /// unless an earlier one is already recorded.
+    pub(super) fn observe(&mut self, now_unix_ms: u64, is_text: bool) {
+        self.any_unix_ms.get_or_insert(now_unix_ms);
+        if is_text {
+            self.text_unix_ms.get_or_insert(now_unix_ms);
+        }
+    }
+}
 
 /// Per-subagent bookkeeping so child iterations / tool calls nest correctly.
 #[derive(Debug)]
@@ -13,6 +35,8 @@ pub(super) struct SubagentState {
     pub(super) current_iteration_span_id: Option<String>,
     /// Open child tool spans keyed by `call_id` → span index.
     pub(super) open_tools: BTreeMap<String, usize>,
+    /// First streamed delta of the child's in-flight model call.
+    pub(super) first_deltas: FirstDeltas,
 }
 
 /// Pure state machine that folds an [`crate::agent::progress::AgentProgress`]
@@ -42,6 +66,8 @@ pub struct SpanCollector {
     pub(super) open_tools: BTreeMap<String, usize>,
     /// Live subagents keyed by `task_id`.
     pub(super) subagents: BTreeMap<String, SubagentState>,
+    /// First streamed delta of the parent turn's in-flight model call.
+    pub(super) first_deltas: FirstDeltas,
 }
 
 impl SpanCollector {
@@ -57,6 +83,7 @@ impl SpanCollector {
             current_iteration_index: None,
             open_tools: BTreeMap::new(),
             subagents: BTreeMap::new(),
+            first_deltas: FirstDeltas::default(),
         }
     }
 
@@ -98,7 +125,7 @@ impl SpanCollector {
 
     pub(super) fn open_span(
         &mut self,
-        kind: crate::agent::progress_tracing::types::SpanKind,
+        kind: tinyagents_harness::observability::trace_export::SpanKind,
         name: impl Into<String>,
         parent_span_id: Option<String>,
         start_unix_ms: u64,

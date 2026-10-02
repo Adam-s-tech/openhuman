@@ -3,7 +3,6 @@
 //! delivering the draft/final reply.
 
 use crate::agent::bus::{AgentTurnRequest, AgentTurnResponse, AGENT_RUN_TURN_METHOD};
-use crate::agent::messages::ChatMessage;
 use crate::agent::progress::AgentProgress;
 use crate::channels::context::{
     build_memory_context, compact_sender_history, conversation_history_key,
@@ -19,6 +18,7 @@ use crate::core::events::DomainEvent;
 use crate::util::truncate_with_ellipsis;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinybus::NativeRequestError;
 use tinymemory_api::provider::MemoryCore as _;
 use tokio_util::sync::CancellationToken;
@@ -30,7 +30,7 @@ use super::super::helpers::{
 };
 use super::super::routing::resolve_target_agent;
 use super::approval::{channel_has_approval_surface, try_route_approval_reply};
-use super::message::RuntimeChannelMessage;
+use super::RuntimeChannelMessage;
 
 pub(crate) async fn process_channel_message(
     ctx: Arc<ChannelRuntimeContext>,
@@ -200,9 +200,9 @@ pub(crate) async fn process_channel_runtime_message(
     // identity file changed since the last message (#6028); otherwise the
     // same bytes as the previous turn.
     let system_prompt = ctx.system_prompt.current();
-    let mut history = vec![ChatMessage::system(system_prompt.as_str())];
+    let mut history = vec![TranscriptMessage::system(system_prompt.as_str())];
     history.append(&mut prior_turns);
-    history.push(ChatMessage::user(&enriched_message));
+    history.push(TranscriptMessage::user(&enriched_message));
 
     // Determine if this channel supports streaming draft updates
     let use_streaming = target_channel
@@ -435,13 +435,11 @@ pub(crate) async fn process_channel_runtime_message(
             })
     };
     // Sub-issue 2 of #3098: scope the agent turn in an `ApprovalChatContext`
-    // for channels that have a registered approval surface — currently
-    // Telegram only via `TelegramApprovalSurfaceSubscriber`. Without this
-    // scope the gate's "no chat context → allow straight through" branch
+    // for every channel with the `chat_approvals` capability (served by
+    // `ChannelApprovalSurfaceSubscriber`). Without this scope the gate's
+    // "no chat context → allow straight through" branch
     // (`approval/gate.rs:219-231`) silently bypasses every `Prompt`-class
     // tool call, voiding the `supervised` autonomy tier on the channel.
-    // Discord / Slack / iMessage / Mattermost stay in the legacy bypass
-    // until each gets its own approval surface in a follow-up PR.
     let llm_result = tokio::time::timeout(Duration::from_secs(ctx.message_timeout_secs), async {
         if channel_has_approval_surface(&msg.channel) {
             let approval_ctx = crate::security::approval::ApprovalChatContext {
@@ -488,8 +486,8 @@ pub(crate) async fn process_channel_runtime_message(
                     .lock()
                     .unwrap_or_else(|e| e.into_inner());
                 let turns = histories.entry(history_key).or_default();
-                turns.push(ChatMessage::user(&enriched_message));
-                turns.push(ChatMessage::assistant(&response_text));
+                turns.push(TranscriptMessage::user(&enriched_message));
+                turns.push(TranscriptMessage::assistant(&response_text));
                 // Trim to MAX_CHANNEL_HISTORY (keep recent turns)
                 while turns.len() > crate::channels::context::MAX_CHANNEL_HISTORY {
                     turns.remove(0);

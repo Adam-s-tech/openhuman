@@ -12,7 +12,7 @@ use tinychannels_bus::controllers::{
 
 use openhuman_core::config::app_env::{app_env_from_env, is_staging_app_env};
 use openhuman_core::config::Config;
-use openhuman_core::rpc::RpcOutcome;
+use openhuman_core::core::Outcome;
 use openhuman_core::security::credentials;
 
 use super::ops::link_token_payload;
@@ -109,7 +109,7 @@ async fn store_managed_marker(
 /// Step 1: create a Telegram link token and return the deep link URL.
 pub async fn telegram_login_start(
     config: &Config,
-) -> Result<RpcOutcome<TelegramLoginStartResult>, String> {
+) -> Result<Outcome<TelegramLoginStartResult>, String> {
     let client = HostedClient::from_config(config)?;
     log::debug!("[telegram-login] creating channel link token");
     let payload = link_token_payload(&client, "telegram")
@@ -122,7 +122,7 @@ pub async fn telegram_login_start(
         "[telegram-login] link token created, length={}",
         link_token.len()
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         TelegramLoginStartResult {
             link_token,
             telegram_url,
@@ -138,7 +138,7 @@ pub async fn telegram_login_start(
 pub async fn telegram_login_check(
     config: &Config,
     _link_token: &str,
-) -> Result<RpcOutcome<TelegramLoginCheckResult>, String> {
+) -> Result<Outcome<TelegramLoginCheckResult>, String> {
     let client = HostedClient::from_config(config)?;
     log::debug!("[telegram-login] checking if user profile has telegramId via GET /auth/me");
     let profile = fetch_profile(&client)
@@ -153,7 +153,7 @@ pub async fn telegram_login_check(
             .map_err(|e| format!("failed to store managed channel credentials: {e}"))?;
         log::info!("[telegram-login] Telegram managed DM linked; credentials stored as {key}");
     }
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         TelegramLoginCheckResult {
             linked,
             details: linked.then_some(profile),
@@ -166,7 +166,7 @@ pub async fn telegram_login_check(
 /// `!start <token>`.
 pub async fn discord_link_start(
     config: &Config,
-) -> Result<RpcOutcome<DiscordLinkStartResult>, String> {
+) -> Result<Outcome<DiscordLinkStartResult>, String> {
     let client = HostedClient::from_config(config)?;
     log::debug!("[discord-link] creating channel link token");
     let payload = link_token_payload(&client, "discord")
@@ -179,7 +179,7 @@ pub async fn discord_link_start(
         "[discord-link] link token created, length={}",
         link_token.len()
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         DiscordLinkStartResult {
             link_token,
             instructions,
@@ -193,7 +193,7 @@ pub async fn discord_link_start(
 pub async fn discord_link_check(
     config: &Config,
     _link_token: &str,
-) -> Result<RpcOutcome<DiscordLinkCheckResult>, String> {
+) -> Result<Outcome<DiscordLinkCheckResult>, String> {
     let client = HostedClient::from_config(config)?;
     log::debug!("[discord-link] checking if user profile has discordId via GET /auth/me");
     let profile = fetch_profile(&client)
@@ -208,7 +208,7 @@ pub async fn discord_link_check(
             .map_err(|e| format!("failed to store Discord managed channel credentials: {e}"))?;
         log::info!("[discord-link] Discord managed DM linked; credentials stored as {key}");
     }
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         DiscordLinkCheckResult {
             linked,
             details: linked.then_some(profile),

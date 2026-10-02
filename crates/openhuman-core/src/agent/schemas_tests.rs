@@ -165,6 +165,6 @@ async fn triage_handler_rejects_unknown_source_and_to_json_maps_outcome() {
     .expect_err("unsupported source should fail before runtime dispatch");
     assert!(err.contains("unsupported trigger source"));
 
-    let value = to_json(RpcOutcome::new(json!({ "ok": true }), Vec::new())).expect("json outcome");
+    let value = to_json(Outcome::new(json!({ "ok": true }), Vec::new())).expect("json outcome");
     assert_eq!(value["ok"], json!(true));
 }

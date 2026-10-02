@@ -11,8 +11,8 @@
 //! alphabetical, with the `rpc` re-export sitting between `platform` and
 //! `runtime` — keep new modules sorted the same way): `agent`, `api`,
 //! `channels`, `config`, `core`, `cron`, `desktop`, `flows` (feature
-//! `flows`), `hooks`, `hosting` (feature `hosting`), `http_host`
-//! (feature `http-server`), `inference`, `integrations`, `json_schema`,
+//! `flows`), `hooks`, `hosting` (feature `hosting`),
+//! `inference`, `integrations`,
 //! `mcp`, `media` (feature `media`), `memory`, `modules` (feature
 //! `modules`), `platform`, `runtime`, `sandbox`, `search`, `security`,
 //! `skills`, `test_support` (feature `e2e-test-support`), `threads`, `tools`,
@@ -24,10 +24,11 @@
 //! composition (`core::runtime`). See `README.md` and AGENTS.md ("Rust domain
 //! structure") for the preferred per-domain module shape.
 //!
-//! `pub use openhuman_rpc as rpc;` re-exports the `openhuman-rpc` crate, so
-//! `crate::rpc::{RpcOutcome, StructuredRpcError, ...}` are the same types the
-//! app and TUI decode responses with — there is no separate RPC contract
-//! layer in this crate.
+//! The controller contract lives in `core`: every domain operation returns
+//! [`core::Outcome`], controllers are described by `core::ControllerSchema`,
+//! and `core::invoke::invoke_method` dispatches them in-process. The JSON-RPC
+//! protocol and server that expose them live in `openhuman-rpc`, which depends
+//! on this crate.
 //!
 //! [`CoreBuilder`], [`CoreRuntime`], [`DomainSet`], [`ServiceSet`],
 //! [`TokenSource`] and [`HostKind`] are the embeddable composition API;
@@ -64,11 +65,8 @@ pub mod flows;
 pub mod hooks;
 #[cfg(feature = "hosting")]
 pub mod hosting;
-#[cfg(feature = "http-server")]
-pub mod http_host;
 pub mod inference;
 pub mod integrations;
-pub mod json_schema;
 pub mod mcp;
 #[cfg(feature = "media")]
 pub mod media;
@@ -76,7 +74,6 @@ pub mod memory;
 #[cfg(feature = "modules")]
 pub mod modules;
 pub mod platform;
-pub use openhuman_rpc as rpc;
 pub mod runtime;
 pub mod sandbox;
 pub mod search;

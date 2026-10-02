@@ -18,7 +18,6 @@ use tokio::sync::mpsc::Sender;
 
 use crate::agent::harness::definition::SandboxMode;
 use crate::agent::harness::fork_context::{AgentContextPreparedSource, ParentExecutionContext};
-use crate::agent::harness::tool_result_artifacts::ToolResultArtifactIndexStore;
 use crate::agent::progress::AgentProgress;
 use crate::agent::stop_hooks::StopHook;
 use crate::agent::subagent_host::SubagentUsage;
@@ -27,6 +26,7 @@ use crate::agent::tinyagents::{
     turn_outcome::ToolCallOutcome, turn_policy::ToolPolicyEnforcement, TurnContextMiddleware,
 };
 use crate::agent::turn_origin::AgentTurnOrigin;
+use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 use tinyinference_llm::model::ResolvedModelRoute;
 
 /// Allocate a durable-unique root [`RunConfig`](tinyagents_harness::context::RunConfig).
@@ -288,6 +288,12 @@ pub struct OpenHumanRunContext {
     /// Exact executable dynamic/delegation tools selected with
     /// [`Self::current_tools`] for this turn.
     pub(crate) current_synthesized_tools: Option<Arc<Vec<Box<dyn tinytools::Tool>>>>,
+    /// Tools the session serves through `tool_search` for this turn although
+    /// their own exposure is `Direct` (the agent definition's
+    /// `deferred_tools`). Turn assembly registers them as `Deferred`, so the
+    /// harness keeps them off the wire, indexes them for search and still
+    /// admits a call by name. Empty for every turn without such a list.
+    pub(crate) deferred_tool_names: Arc<std::collections::HashSet<String>>,
     /// Context middleware snapshot prepared for this exact turn.
     pub(crate) context_middleware: Option<TurnContextMiddleware>,
     /// Model/harness sidecars consumed only after a durable commit.
@@ -301,9 +307,6 @@ pub struct OpenHumanRunContext {
     /// the registry that recovers positional / code-style calls; `Auto`
     /// (the default) leaves the harness to choose from the model profile.
     pub(crate) tool_dialect: tinyagents_harness::config::ToolDispatcher,
-    /// Number of frozen system tiers restored from the session prefix. A
-    /// later System compaction summary remains outside this cacheable prefix.
-    pub(crate) cacheable_system_prefix_len: Option<usize>,
 }
 
 impl Default for OpenHumanRunContext {
@@ -340,11 +343,11 @@ impl OpenHumanRunContext {
             tool_policy: None,
             current_tools: None,
             current_synthesized_tools: None,
+            deferred_tool_names: Arc::new(std::collections::HashSet::new()),
             context_middleware: None,
             session_sidecar: Arc::new(Mutex::new(SessionTurnSidecar::default())),
             required_output: None,
             tool_dialect: tinyagents_harness::config::ToolDispatcher::Auto,
-            cacheable_system_prefix_len: None,
         }
     }
 
@@ -435,7 +438,6 @@ impl OpenHumanRunContext {
         child.parent_subagent_usage = Some(self.subagent_usage.clone());
         child.subagent_usage = Arc::new(Mutex::new(Vec::new()));
         child.resolved_route = Arc::new(Mutex::new(None));
-        child.cacheable_system_prefix_len = None;
         child
     }
 
@@ -477,11 +479,6 @@ impl OpenHumanRunContext {
             Some(workspace) => context.with_workspace(workspace),
             None => context,
         }
-    }
-
-    /// Returns this context's file-state identity for explicit tool plumbing.
-    pub fn file_state_scope(&self) -> Option<&str> {
-        self.file_state_agent_id.as_deref()
     }
 
     /// Records a child usage entry without relying on a task-local collector.

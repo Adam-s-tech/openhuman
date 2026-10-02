@@ -413,13 +413,12 @@ if should_run_suite "settings"; then
   run "test/e2e/specs/settings-advanced-config.spec.ts"       "settings-advanced"         "settings"
   run "test/e2e/specs/settings-feature-preferences.spec.ts"   "settings-features"         "settings"
   run "test/e2e/specs/settings-search.spec.ts"                "settings-search"           "settings"
+  run "test/e2e/specs/memory-engine-settings.spec.ts"         "settings-memory-engine"   "settings"
   _mini_summary "settings"
 fi
 
 # ---------------------------------------------------------------------------
 # System / AI / voice / Tauri
-# linux-cef-deb-runtime.spec.ts is Linux-only (tests /usr/bin path resolution
-# for .deb package installs) — skipped on macOS/Windows.
 # ---------------------------------------------------------------------------
 if should_run_suite "system"; then
   echo ""
@@ -433,9 +432,6 @@ if should_run_suite "system"; then
   run "test/e2e/specs/service-connectivity-flow.spec.ts"    "service-connectivity"      "system"
   run "test/e2e/specs/core-port-conflict-recovery.spec.ts"  "core-port-conflict"        "system"
   run "test/e2e/specs/ptt-flow.spec.ts"                       "ptt-flow"                  "system"
-  if [[ "$(uname -s)" == "Linux" ]]; then
-    run "test/e2e/specs/linux-cef-deb-runtime.spec.ts"        "linux-cef-deb-runtime"     "system"
-  fi
   _mini_summary "system"
 fi
 

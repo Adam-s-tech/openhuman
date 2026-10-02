@@ -9,9 +9,9 @@ use serde_json::{Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
+use crate::core::Outcome;
 use crate::memory::read_rpc;
 use crate::memory::tree::tree::rpc;
-use crate::rpc::RpcOutcome;
 
 // ── Write-side handlers (rpc::*) ─────────────────────────────────────────
 
@@ -355,7 +355,7 @@ pub(super) fn handle_smart_walk(params: Map<String, Value>) -> ControllerFuture 
 
         let result = serde_json::to_value(&resp)
             .map_err(|e| format!("smart_walk: serialize response failed: {e}"))?;
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
@@ -379,6 +379,6 @@ pub(super) fn parse_value<T: DeserializeOwned>(v: Value) -> Result<T, String> {
     serde_json::from_value(v).map_err(|e| format!("invalid params: {e}"))
 }
 
-pub(super) fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+pub(super) fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

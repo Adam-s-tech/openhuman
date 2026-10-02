@@ -13,7 +13,7 @@ icon: diagram-project
 > (`tinymemory-core`, with `tinycortex` vendored beneath it) and are reached
 > through the `tinymemory-api` contract. `crates/openhuman-core/src/memory/tree/`
 > is OpenHuman's **host layer** over that engine: RPC handlers and controller
-> schemas that name OpenHuman's `RpcOutcome` and `ControllerSchema`, which the
+> schemas that name OpenHuman's `Outcome` and `ControllerSchema`, which the
 > engine crate cannot see. Nothing here opens SQLite or branches on tree kind.
 
 The user-facing feature is described in [Memory Tree](../../features/obsidian-wiki/memory-tree.md).
@@ -44,7 +44,7 @@ vendor/tinymemory         (engine: tinymemory-core / tinycortex, persistence, se
 
 ## Layer rules
 
-- **No tree mechanics here.** Seal cascades, summarisation, scoring, embedding and entity extraction happen inside the engine. This directory converts RPC requests into contract calls and contract results into `RpcOutcome`.
+- **No tree mechanics here.** Seal cascades, summarisation, scoring, embedding and entity extraction happen inside the engine. This directory converts RPC requests into contract calls and contract results into `Outcome`.
 - **No persistence here.** The engine owns the tree tables; the host never opens them directly.
 - **Scope is explicit.** Task-local state does not cross the module boundary, so every scoped call passes its source scope and self-echo exclusions as arguments.
 

@@ -49,100 +49,6 @@ fn resolve_model_normalizes_blank_and_trims_non_empty_values() {
     assert_eq!(resolve_model("hint:reasoning"), "hint:reasoning");
 }
 
-/// The managed `openhuman.{billing,usage}` envelope on `raw` must re-project
-/// into the host `UsageInfo` the cost bridge reads — charged USD, cached
-/// tokens, and context window — exactly as the legacy legacy model-adapter path did.
-#[test]
-fn project_managed_usage_recovers_charged_and_cached() {
-    use crate::agent::tinyagents::model::usage_info_from_response;
-    use tinyinference_llm::message::AssistantMessage;
-    use tinyinference_llm::usage::Usage;
-
-    let raw = serde_json::json!({
-        "openhuman": {
-            "usage": { "cached_input_tokens": 128, "context_window": 200000 },
-            "billing": { "charged_amount_usd": 0.0042 }
-        }
-    });
-    let response = ModelResponse {
-        message: AssistantMessage {
-            id: None,
-            content: vec![],
-            tool_calls: vec![],
-            usage: None,
-            origin: None,
-        },
-        usage: Some(Usage {
-            input_tokens: 1000,
-            output_tokens: 50,
-            ..Usage::default()
-        }),
-        finish_reason: None,
-        raw: Some(raw),
-        resolved_model: None,
-        continue_turn: None,
-        served_from_cache: false,
-        correlation: None,
-        resolved_route: None,
-    };
-
-    let projected = project_managed_usage(response);
-    let usage = usage_info_from_response(&projected).expect("usage recovered");
-    assert!(
-        (usage.charged_amount_usd - 0.0042).abs() < 1e-9,
-        "charged={}",
-        usage.charged_amount_usd
-    );
-    assert_eq!(usage.cached_input_tokens, 128, "cached tokens backfilled");
-    assert_eq!(usage.context_window, 200_000);
-    assert_eq!(usage.input_tokens, 1000);
-    assert_eq!(usage.output_tokens, 50);
-}
-
-/// A response with no `openhuman` envelope stays untouched — no meta key, no
-/// charged USD — so non-managed/billing-free responses aren't fabricated.
-#[test]
-fn project_managed_usage_is_noop_without_envelope() {
-    use crate::agent::tinyagents::model::usage_info_from_response;
-    use tinyinference_llm::message::AssistantMessage;
-    use tinyinference_llm::usage::Usage;
-
-    let response = ModelResponse {
-        message: AssistantMessage {
-            id: None,
-            content: vec![],
-            tool_calls: vec![],
-            usage: None,
-            origin: None,
-        },
-        usage: Some(Usage {
-            input_tokens: 10,
-            output_tokens: 5,
-            cache_read_tokens: 3,
-            ..Usage::default()
-        }),
-        finish_reason: None,
-        raw: Some(serde_json::json!({ "id": "resp_1" })),
-        resolved_model: None,
-        continue_turn: None,
-        served_from_cache: false,
-        correlation: None,
-        resolved_route: None,
-    };
-
-    let projected = project_managed_usage(response);
-    // raw keeps only the wire fields — no meta key injected.
-    assert!(projected
-        .raw
-        .as_ref()
-        .unwrap()
-        .get("openhuman_usage_meta")
-        .is_none());
-    let usage = usage_info_from_response(&projected).expect("usage present");
-    assert_eq!(usage.charged_amount_usd, 0.0);
-    assert_eq!(usage.cached_input_tokens, 3, "crate cached count preserved");
-}
-
 // ── probe_readiness (B45 — flows provider-connectivity author gate) ────
 
 #[test]
@@ -408,6 +314,230 @@ async fn probe_readiness_fails_open_on_timeout_or_5xx() {
     );
 }
 
+// ── reasoning-off hint ───────────────────────────────────────────────────
+
+#[test]
+fn reasoning_hint_becomes_disabled_reasoning_on_the_managed_wire() {
+    let request = apply_reasoning_hint(without_reasoning(ModelRequest::new(vec![Message::user(
+        "hi",
+    )])));
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+}
+
+#[test]
+fn no_hint_leaves_provider_options_untouched() {
+    let request = apply_reasoning_hint(ModelRequest::new(vec![Message::user("hi")]));
+    assert!(request.provider_options.get("reasoning").is_none());
+}
+
+#[test]
+fn request_reasoning_effort_becomes_the_managed_reasoning_object() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(
+        ModelRequest::new(vec![Message::user("hi")])
+            .with_reasoning(ReasoningConfig::effort(ReasoningEffort::High)),
+    );
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "effort": "high" })
+    );
+    assert!(
+        request.reasoning.is_none(),
+        "the neutral field is consumed so the transport sends no second `reasoning_effort`"
+    );
+}
+
+#[test]
+fn request_reasoning_none_disables_reasoning_on_the_managed_wire() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(
+        ModelRequest::new(vec![Message::user("hi")])
+            .with_reasoning(ReasoningConfig::effort(ReasoningEffort::None)),
+    );
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+}
+
+#[test]
+fn request_reasoning_budget_becomes_max_tokens() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(
+        ModelRequest::new(vec![Message::user("hi")]).with_reasoning(ReasoningConfig {
+            effort: Some(ReasoningEffort::High),
+            budget_tokens: Some(8_000),
+            summary: None,
+        }),
+    );
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "max_tokens": 8000 })
+    );
+}
+
+#[test]
+fn suggestion_off_hint_wins_over_request_reasoning() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(
+        without_reasoning(ModelRequest::new(vec![Message::user("hi")]))
+            .with_reasoning(ReasoningConfig::effort(ReasoningEffort::Low)),
+    );
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+}
+
+#[test]
+fn explicit_reasoning_option_wins_over_the_hint() {
+    let request = without_reasoning(ModelRequest::new(vec![Message::user("hi")]))
+        .with_provider_options(serde_json::json!({ "reasoning": { "effort": "high" } }));
+    let request = apply_reasoning_hint(request);
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "effort": "high" })
+    );
+}
+
+/// Captures the JSON body of every chat-completions request it receives.
+async fn spawn_capturing_chat_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<Value>>>) {
+    let bodies = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let seen = bodies.clone();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind");
+    let addr = listener.local_addr().expect("local_addr").to_string();
+    let app = axum::Router::new().route(
+        "/openai/v1/chat/completions",
+        axum::routing::post(move |axum::Json(body): axum::Json<Value>| {
+            let seen = seen.clone();
+            async move {
+                seen.lock().unwrap().push(body);
+                axum::Json(serde_json::json!({
+                    "id": "chatcmpl-capture",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "reasoning-v1",
+                    "choices": [{
+                        "index": 0,
+                        "message": { "role": "assistant", "content": "[]" },
+                        "finish_reason": "stop"
+                    }],
+                    "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 }
+                }))
+            }
+        }),
+    );
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.expect("serve");
+    });
+    (addr, bodies)
+}
+
+#[tokio::test]
+async fn managed_call_sends_reasoning_disabled_only_when_hinted() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    seed_app_session(tmp.path());
+    let (addr, bodies) = spawn_capturing_chat_server().await;
+    let backend = backend_pointed_at(&addr, tmp.path());
+
+    backend
+        .invoke(
+            &(),
+            without_reasoning(ModelRequest::new(vec![Message::user("suggest")])),
+        )
+        .await
+        .expect("hinted call");
+    backend
+        .invoke(&(), ModelRequest::new(vec![Message::user("chat")]))
+        .await
+        .expect("plain call");
+
+    let bodies = bodies.lock().unwrap();
+    assert_eq!(bodies.len(), 2);
+    assert_eq!(
+        bodies[0]["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+    assert!(
+        bodies[1].get("reasoning").is_none(),
+        "an unhinted call must not change reasoning: {}",
+        bodies[1]
+    );
+    // The hint itself never reaches the wire.
+    assert!(!bodies[0].to_string().contains("openhuman_reasoning_off"));
+}
+
+// ── shared pooled client (time to first token) ──────────────────────────
+
+/// A TCP relay in front of `upstream` that counts the connections it accepts.
+async fn spawn_counting_relay(
+    upstream: String,
+) -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+    let accepted = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind relay");
+    let addr = listener.local_addr().expect("relay addr").to_string();
+    let counter = accepted.clone();
+    tokio::spawn(async move {
+        while let Ok((mut inbound, _)) = listener.accept().await {
+            counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let upstream = upstream.clone();
+            tokio::spawn(async move {
+                if let Ok(mut outbound) = tokio::net::TcpStream::connect(&upstream).await {
+                    let _ = tokio::io::copy_bidirectional(&mut inbound, &mut outbound).await;
+                }
+            });
+        }
+    });
+    (addr, accepted)
+}
+
+/// Every managed call used to build its own `reqwest::Client`, so each call
+/// opened a new connection (a fresh TCP + TLS handshake against the real
+/// backend) before its first token. Consecutive calls must now reuse one.
+#[tokio::test]
+async fn consecutive_managed_calls_reuse_one_connection() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    seed_app_session(tmp.path());
+    let upstream = spawn_static_chat_server(
+        axum::http::StatusCode::OK,
+        serde_json::json!({
+            "id": "chatcmpl-pool",
+            "object": "chat.completion",
+            "created": 1,
+            "model": "reasoning-v1",
+            "choices": [{
+                "index": 0,
+                "message": { "role": "assistant", "content": "ok" },
+                "finish_reason": "stop"
+            }],
+            "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 }
+        }),
+    )
+    .await;
+    let (relay, accepted) = spawn_counting_relay(upstream).await;
+    let backend = backend_pointed_at(&relay, tmp.path());
+
+    for call in 0..3 {
+        backend
+            .probe_readiness()
+            .await
+            .unwrap_or_else(|error| panic!("managed call {call} failed: {error}"));
+    }
+
+    assert_eq!(
+        accepted.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "three consecutive managed calls must share one pooled connection"
+    );
+}
+
 // ── resolve_bearer local-expiry precheck (#5503, part e) ───────────────
 
 #[test]
@@ -535,62 +665,5 @@ fn resolve_bearer_returns_token_for_exp_less_offline_session() {
         .expect("an exp-less offline session must resolve (presence-only)");
     assert_eq!(token, "test.session.jwt");
 }
-#[test]
-fn api_key_endpoint_is_bound_to_tinyhumans_or_loopback() {
-    use super::is_managed_endpoint_for_api_key;
-
-    assert!(is_managed_endpoint_for_api_key(
-        "https://api.tinyhumans.ai/openai/v1"
-    ));
-    assert!(is_managed_endpoint_for_api_key(
-        "http://127.0.0.1:18765/openai/v1"
-    ));
-    assert!(is_managed_endpoint_for_api_key(
-        "http://[::1]:18765/openai/v1"
-    ));
-    assert!(!is_managed_endpoint_for_api_key(
-        "https://example.com/openai/v1"
-    ));
-    assert!(!is_managed_endpoint_for_api_key(
-        "http://api.tinyhumans.ai/openai/v1"
-    ));
-}
-
-/// #6724 (review): a 401 reported *inside* a stream must start re-auth just
-/// like a failed `stream()` call does.
-#[tokio::test]
-async fn an_in_band_401_publishes_session_expired() {
-    use crate::core::events::DomainEvent;
-
-    crate::core::bus::init().await.expect("bus init");
-    let mut rx = crate::core::bus::BUS
-        .get()
-        .expect("event bus initialized")
-        .receiver();
-
-    observe_in_band_failure(&ModelStreamItem::ProviderFailed(ProviderError {
-        provider: PROVIDER_LABEL.to_string(),
-        status: Some(401),
-        message: "TEST_MARKER_IN_BAND token expired".to_string(),
-        ..ProviderError::default()
-    }));
-
-    let mut source_seen = None;
-    loop {
-        match rx.try_recv() {
-            Ok(DomainEvent::SessionExpired { source, reason })
-                if reason.contains("TEST_MARKER_IN_BAND") =>
-            {
-                source_seen = Some(source);
-                break;
-            }
-            Ok(_) | Err(tinybus::TryRecvError::Lagged(_)) => continue,
-            Err(_) => break,
-        }
-    }
-    assert_eq!(
-        source_seen.as_deref(),
-        Some("openhuman_backend_model.stream(401)"),
-        "an in-band 401 must publish SessionExpired"
-    );
-}
+#[path = "openhuman_backend_model_endpoint_tests.rs"]
+mod endpoint_tests;

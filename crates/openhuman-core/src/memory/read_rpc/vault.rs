@@ -14,15 +14,15 @@
 use anyhow::Result;
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::obsidian_registry;
-use crate::rpc::RpcOutcome;
 
 use super::types::{ObsidianVaultStatusResponse, VaultHealthCheckResponse};
 
 pub async fn obsidian_vault_status_rpc(
     config: &Config,
     obsidian_config_dir: Option<String>,
-) -> Result<RpcOutcome<ObsidianVaultStatusResponse>, String> {
+) -> Result<Outcome<ObsidianVaultStatusResponse>, String> {
     let cfg = config.clone();
     let resp = tokio::task::spawn_blocking(move || -> ObsidianVaultStatusResponse {
         let content_root = cfg.memory_tree_content_root();
@@ -48,13 +48,13 @@ pub async fn obsidian_vault_status_rpc(
         resp.config_found,
         crate::util::redact::redact(&resp.content_root_abs),
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 pub async fn vault_health_check_rpc(
     config: &Config,
     obsidian_config_dir: Option<String>,
-) -> Result<RpcOutcome<VaultHealthCheckResponse>, String> {
+) -> Result<Outcome<VaultHealthCheckResponse>, String> {
     let cfg = config.clone();
     let fs_probe = tokio::task::spawn_blocking(move || {
         let content_root = cfg.memory_tree_content_root();
@@ -111,7 +111,7 @@ pub async fn vault_health_check_rpc(
         resp.last_sync_ms,
         crate::util::redact::redact(&resp.content_root_abs),
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 /// Whether the memory pipeline status counts as "healthy" for the Vault setup

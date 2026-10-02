@@ -7,11 +7,8 @@ and whether a tool needs host access (elevated ops, also owned here). The
 gateway/core process itself always runs on the host; only selected tool
 families (shell, filesystem, process) execute through a sandbox backend.
 
-This is a distinct layer from `crate::security::traits::Sandbox` (the older
-`Command`-wrapping backends in `security/{docker,bubblewrap,firejail,landlock}.rs`,
-used by `security::create_sandbox`). That trait wraps a `Command` in place;
-this domain resolves a per-session `SandboxPolicy`, owns its own Docker
-backend, and delegates local OS-level confinement to `cwd_jail`.
+This domain resolves a per-session `SandboxPolicy`, owns its own Docker
+backend, and delegates local OS-level confinement to `tinybox-jail`.
 
 ## Public surface
 
@@ -47,8 +44,9 @@ backend, and delegates local OS-level confinement to `cwd_jail`.
   sandboxed tool call uses to run on the host, with an audited reason.
 - `pub mod docker`: Docker-specific container execution (`docker_exec`,
   `docker_backend_handle`, orphan cleanup).
-- `pub mod cwd_jail`: the OS-level path-confinement backend used by `Local`.
-  See [`cwd_jail/README.md`](cwd_jail/README.md).
+- `pub use tinybox_jail as cwd_jail`: the OS-level path-confinement backend
+  used by `Local`, owned by `vendor/tinybox/crates/tinybox-jail` (see its
+  README). This module keeps only the policy of when to jail.
 - `sandbox` RPC namespace (`schemas.rs`): `status`, `resolve_policy`,
   `cleanup_orphans`, `validate_policy`, wired through
   `all_sandbox_registered_controllers()` in
@@ -66,7 +64,7 @@ backend, and delegates local OS-level confinement to `cwd_jail`.
   captured by redirecting stdout/stderr to temp files inside the jail root,
   because some backends (macOS Seatbelt) rebuild the command and drop piped
   stdio.
-- Docker: `docker::docker_exec` runs `docker run --rm` with the host
+- Docker: `docker::docker_exec` maps the policy onto `tinybox_docker::OneShot`, which runs `docker run --rm` with the host
   `action_dir` mounted read/write at `/workspace`, network `none` by default,
   `--cap-drop ALL` (plus policy-specified extra drops),
   `--security-opt no-new-privileges`, a read-only rootfs with `/tmp` and

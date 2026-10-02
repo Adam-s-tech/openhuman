@@ -27,6 +27,8 @@
 //! Env is process-global and every aggregated suite shares one process, so
 //! each case takes the **crate-wide** [`env_lock`] for its whole body.
 
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::payload;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -38,8 +40,8 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::inference::auth_error_registry;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "inference-provider-auth-e2e-token";
 
@@ -56,41 +58,7 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<std::ffi::OsString>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var_os(key);
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var_os(key);
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var_os(key);
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
-
-/// See the note in `sandbox_runtime_platform_e2e.rs`: `core::auth::RPC_TOKEN`
+/// `core::auth::RPC_TOKEN`
 /// is a process-global `OnceLock` and `init_rpc_token` is idempotent, so inside
 /// the aggregated binary the first suite to initialise pins the bearer. Use the
 /// token this process actually validates rather than assuming ours won.
@@ -239,15 +207,6 @@ async fn setup(extra: &str) -> TestHarness {
     }
 }
 
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
 fn err_message(value: &Value, context: &str) -> String {
     let error = value
         .get("error")
@@ -257,11 +216,6 @@ fn err_message(value: &Value, context: &str) -> String {
         .and_then(Value::as_str)
         .unwrap_or_else(|| panic!("{context}: error without message: {error}"))
         .to_string()
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
 }
 
 /// Write an executable stub `claude` and return its path. `body` is a POSIX

@@ -55,40 +55,23 @@
 
 use serde::{Deserialize, Serialize};
 
+pub use tinymemory_tools::requests::{
+    CoverWindowRequest, DrillDownRequest, FetchLeavesRequest, QuerySourceRequest,
+    SearchEntitiesRequest,
+};
+
 use crate::config::Config;
 // The contract's retrieval vocabulary, not the engine's: these handlers return
 // what the driver handed back. The two encode identically (see the module
 // docs), so this is a Rust-type change and not a wire one.
+use crate::core::Outcome;
 use crate::memory::api::provider::retrieval::{
     CoverWindowQuery, EntityMatch, RetrievalHit, RetrievalResponse, SourceRetrievalQuery,
 };
 use crate::memory::source_scope::as_bus_scope;
-use crate::rpc::RpcOutcome;
 use tinymemory_api::chunks::SourceKind;
 
 // ── query_source ──────────────────────────────────────────────────────
-
-/// Request body for `memory_tree_query_source`. All fields are optional;
-/// see [`MemoryRetrieval::retrieve_source`] for selection semantics.
-///
-/// [`MemoryRetrieval::retrieve_source`]: crate::memory::api::provider::retrieval::MemoryRetrieval::retrieve_source
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct QuerySourceRequest {
-    #[serde(default)]
-    pub source_id: Option<String>,
-    #[serde(default)]
-    pub source_kind: Option<String>,
-    #[serde(default)]
-    pub time_window_days: Option<u32>,
-    /// Phase 4 (#710) — optional natural-language query string. When
-    /// provided, candidates are reranked by cosine similarity to the
-    /// query's embedding rather than sorted by recency. Legacy rows
-    /// with no stored embedding fall to the bottom.
-    #[serde(default)]
-    pub query: Option<String>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
 
 /// JSON-RPC handler body for `memory_tree_query_source`. Parses the request,
 /// reads through the bound driver's `MemoryRetrieval` family, and wraps the
@@ -96,7 +79,7 @@ pub struct QuerySourceRequest {
 pub async fn query_source_rpc(
     config: &Config,
     req: QuerySourceRequest,
-) -> Result<RpcOutcome<RetrievalResponse>, String> {
+) -> Result<Outcome<RetrievalResponse>, String> {
     // Parsed before the driver is resolved, so an unknown kind stays a caller
     // error naming the offending value rather than a driver round trip that
     // matches nothing and reads as an empty store.
@@ -137,7 +120,7 @@ pub async fn query_source_rpc(
     };
     let n = resp.hits.len();
     // Omit scope / source_id from the log — can carry PII. Log counts only.
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         resp,
         format!(
             "memory_tree: query_source has_source_id={} source_kind={:?} has_query={} hits={}",
@@ -151,23 +134,6 @@ pub async fn query_source_rpc(
 
 // ── cover_window ──────────────────────────────────────────────────────
 
-/// Request body for `memory_tree_cover_window`. `since_ms`/`until_ms` are the
-/// inclusive window bounds in epoch-milliseconds; the source filter mirrors
-/// `query_source`. See [`MemoryRetrieval::cover_window`] for cover semantics.
-///
-/// [`MemoryRetrieval::cover_window`]: crate::memory::api::provider::retrieval::MemoryRetrieval::cover_window
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct CoverWindowRequest {
-    pub since_ms: i64,
-    pub until_ms: i64,
-    #[serde(default)]
-    pub source_id: Option<String>,
-    #[serde(default)]
-    pub source_kind: Option<String>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
-
 /// JSON-RPC handler body for `memory_tree_cover_window`. Parses the request,
 /// reads through the bound driver, logs PII-redacted counts.
 ///
@@ -177,7 +143,7 @@ pub struct CoverWindowRequest {
 pub async fn cover_window_rpc(
     config: &Config,
     req: CoverWindowRequest,
-) -> Result<RpcOutcome<RetrievalResponse>, String> {
+) -> Result<Outcome<RetrievalResponse>, String> {
     log::debug!(
         "[rpc][memory_tree] cover_window enter since_ms={} until_ms={} has_source_id={} has_source_kind={} has_limit={}",
         req.since_ms,
@@ -232,7 +198,7 @@ pub async fn cover_window_rpc(
         resp.total
     );
     // Omit scope / source_id from the log — can carry PII. Counts only.
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         resp,
         format!(
             "memory_tree: cover_window since_ms={} until_ms={} has_source_id={} source_kind={:?} hits={}",
@@ -247,16 +213,6 @@ pub async fn cover_window_rpc(
 
 // ── search_entities ───────────────────────────────────────────────────
 
-/// Request body for `memory_tree_search_entities`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SearchEntitiesRequest {
-    pub query: String,
-    #[serde(default)]
-    pub kinds: Option<Vec<String>>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
-
 /// Response envelope for `memory_tree_search_entities`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SearchEntitiesResponse {
@@ -269,7 +225,7 @@ pub struct SearchEntitiesResponse {
 pub async fn search_entities_rpc(
     config: &Config,
     req: SearchEntitiesRequest,
-) -> Result<RpcOutcome<SearchEntitiesResponse>, String> {
+) -> Result<Outcome<SearchEntitiesResponse>, String> {
     // Capture logging-friendly summary BEFORE we move fields out of `req`.
     let query_len = req.query.len();
     let has_kinds = req.kinds.is_some();
@@ -314,30 +270,13 @@ pub async fn search_entities_rpc(
     let n = matches.len();
     // Don't log the raw search query — can be an email, handle, etc. Log
     // only its length and the kind filter.
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         SearchEntitiesResponse { matches },
         format!("memory_tree: search_entities query_len={query_len} has_kinds={has_kinds} n={n}"),
     ))
 }
 
 // ── drill_down ────────────────────────────────────────────────────────
-
-/// Request body for `memory_tree_drill_down`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DrillDownRequest {
-    pub node_id: String,
-    #[serde(default)]
-    pub max_depth: Option<u32>,
-    /// When set, visited children are reranked by cosine similarity between
-    /// the query embedding and each child's stored embedding. Legacy children
-    /// without an embedding sort to the bottom.
-    #[serde(default)]
-    pub query: Option<String>,
-    /// Optional cap on the returned hit count, applied AFTER rerank so the
-    /// top-K is relevance-based when `query` is provided.
-    #[serde(default)]
-    pub limit: Option<usize>,
-}
 
 /// Response envelope for `memory_tree_drill_down`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -353,7 +292,7 @@ pub struct DrillDownResponse {
 pub async fn drill_down_rpc(
     config: &Config,
     req: DrillDownRequest,
-) -> Result<RpcOutcome<DrillDownResponse>, String> {
+) -> Result<Outcome<DrillDownResponse>, String> {
     let depth = req.max_depth.unwrap_or(1);
     // The explicit scope, never `None` — see the module docs.
     let scope = as_bus_scope();
@@ -389,7 +328,7 @@ pub async fn drill_down_rpc(
         .split_once(':')
         .map(|(k, _)| k)
         .unwrap_or("unknown");
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         DrillDownResponse { hits },
         format!(
             "memory_tree: drill_down node_kind={} depth={} has_query={} limit={:?} n={}",
@@ -403,12 +342,6 @@ pub async fn drill_down_rpc(
 }
 
 // ── fetch_leaves ──────────────────────────────────────────────────────
-
-/// Request body for `memory_tree_fetch_leaves`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct FetchLeavesRequest {
-    pub chunk_ids: Vec<String>,
-}
 
 /// Response envelope for `memory_tree_fetch_leaves`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -425,7 +358,7 @@ pub struct FetchLeavesResponse {
 pub async fn fetch_leaves_rpc(
     config: &Config,
     req: FetchLeavesRequest,
-) -> Result<RpcOutcome<FetchLeavesResponse>, String> {
+) -> Result<Outcome<FetchLeavesResponse>, String> {
     // The explicit scope, never `None` — see the module docs. It matters most
     // here: this member takes ids the caller chose.
     let scope = as_bus_scope();
@@ -447,7 +380,7 @@ pub async fn fetch_leaves_rpc(
         }
     };
     let n = hits.len();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         FetchLeavesResponse { hits },
         format!("memory_tree: fetch_leaves n={n}"),
     ))

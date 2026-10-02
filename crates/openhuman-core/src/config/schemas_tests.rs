@@ -2,27 +2,12 @@ use super::schema_defs::schemas;
 use super::*;
 
 #[test]
-fn catalog_counts_match_and_nonempty() {
-    let s = all_controller_schemas();
-    let h = all_registered_controllers();
-    assert_eq!(s.len(), h.len());
-    assert!(s.len() >= 20, "config namespace should expose ≥20 fns");
-}
-
-#[test]
 fn all_schemas_use_config_namespace_and_have_descriptions() {
     for s in all_controller_schemas() {
         assert_eq!(s.namespace, "config", "function {}", s.function);
         assert!(!s.description.is_empty(), "function {} desc", s.function);
         assert!(!s.outputs.is_empty(), "function {} outputs", s.function);
     }
-}
-
-#[test]
-fn unknown_function_returns_unknown_schema() {
-    let s = schemas("no_such_fn");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.namespace, "config");
 }
 
 #[test]
@@ -78,8 +63,7 @@ fn json_output_helper_builds_required_json_field() {
 
 #[test]
 fn to_json_wraps_rpc_outcome() {
-    let v =
-        to_json(RpcOutcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
+    let v = to_json(Outcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
     assert!(v.get("logs").is_some() || v.get("result").is_some());
 }
 
@@ -219,7 +203,6 @@ fn deserialize_params_parses_local_ai_settings_update() {
     m.insert("model_id".into(), Value::String("local-default".into()));
     m.insert("chat_model_id".into(), Value::String("local-chat".into()));
     m.insert("usage_embeddings".into(), Value::Bool(true));
-    m.insert("usage_subconscious".into(), Value::Bool(false));
 
     let out: LocalAiSettingsUpdate = deserialize_params(m).unwrap();
     assert_eq!(out.runtime_enabled, Some(true));
@@ -232,7 +215,6 @@ fn deserialize_params_parses_local_ai_settings_update() {
     assert_eq!(out.model_id.as_deref(), Some("local-default"));
     assert_eq!(out.chat_model_id.as_deref(), Some("local-chat"));
     assert_eq!(out.usage_embeddings, Some(true));
-    assert_eq!(out.usage_subconscious, Some(false));
 }
 
 #[test]

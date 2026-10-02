@@ -94,6 +94,13 @@ pub struct McpHost {
     audit: AuditStore,
 }
 
+/// Lets `tinymcp::Supervisor::run_many` reach the registry inside a host.
+impl AsRef<McpRegistry> for McpHost {
+    fn as_ref(&self) -> &McpRegistry {
+        &self.dynamic
+    }
+}
+
 impl McpHost {
     /// Builds a host from `config`, without installing it as the process one.
     ///
@@ -335,7 +342,7 @@ pub fn client_config(config: &Config) -> McpClientConfig {
             .servers
             .iter()
             .filter(|server| credentialed_endpoint_transport_allowed(server))
-            .map(server_config)
+            .map(|server| server.server.clone())
             .collect(),
         proxy: proxy_for_mcp(),
         ..McpClientConfig::default()
@@ -345,18 +352,7 @@ pub fn client_config(config: &Config) -> McpClientConfig {
     client.client_identity.title = config.mcp_client.client_identity.title.clone();
     client.client_identity.version = config.mcp_client.client_identity.version.clone();
 
-    client
-        .registry_auth
-        .smithery_api_key
-        .clone_from(&config.mcp_client.registry_auth.smithery_api_key);
-    client
-        .registry_auth
-        .mcp_official_base
-        .clone_from(&config.mcp_client.registry_auth.mcp_official_base);
-    client
-        .registry_auth
-        .mcp_official_token
-        .clone_from(&config.mcp_client.registry_auth.mcp_official_token);
+    client.registry_auth = config.mcp_client.registry_auth.clone();
 
     // The documentation server is seeded here rather than by the module: it is
     // this application's own, and `tinymcp` has no business knowing about it.
@@ -427,61 +423,6 @@ fn credentialed_endpoint_transport_allowed(server: &crate::config::McpServerConf
         server.name
     );
     false
-}
-
-/// Converts one declared server.
-fn server_config(server: &crate::config::McpServerConfig) -> McpServerConfig {
-    McpServerConfig {
-        name: server.name.clone(),
-        endpoint: server.endpoint.clone(),
-        command: server.command.clone(),
-        args: server.args.clone(),
-        // Ordered on the way across, so the serialized form does not depend on
-        // hash iteration order.
-        env: server
-            .env
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect(),
-        cwd: server.cwd.clone(),
-        description: server.description.clone(),
-        enabled: server.enabled,
-        allowed_tools: server.allowed_tools.clone(),
-        disallowed_tools: server.disallowed_tools.clone(),
-        timeout_secs: server.timeout_secs,
-        auth: auth_config(&server.auth),
-    }
-}
-
-/// Converts one server's credentials.
-fn auth_config(auth: &crate::config::McpAuthConfig) -> tinymcp::McpAuthConfig {
-    use crate::config::McpAuthConfig as Host;
-    use tinymcp::McpAuthConfig as Module;
-
-    match auth {
-        Host::None => Module::None,
-        Host::BearerToken { token } => Module::BearerToken {
-            token: token.clone(),
-        },
-        Host::Basic { username, password } => Module::Basic {
-            username: username.clone(),
-            password: password.clone(),
-        },
-        Host::Header { name, value } => Module::Header {
-            name: name.clone(),
-            value: value.clone(),
-        },
-        Host::Headers { headers } => Module::Headers {
-            headers: headers
-                .iter()
-                .map(|header| tinymcp::HttpHeader::new(&header.name, &header.value))
-                .collect(),
-        },
-        Host::QueryParam { name, value } => Module::QueryParam {
-            name: name.clone(),
-            value: value.clone(),
-        },
-    }
 }
 
 /// The statically declared server set, built from this application's

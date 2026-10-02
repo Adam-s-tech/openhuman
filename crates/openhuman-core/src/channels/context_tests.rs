@@ -48,7 +48,7 @@ fn runtime_context() -> ChannelRuntimeContext {
         channels_by_name: Arc::new(HashMap::new()),
         turn_model_source: Some(crate::agent::tinyagents::TurnModelSource::from_model(model)),
         default_provider: Arc::new("default".into()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![Box::new(DummyTool) as Box<dyn Tool>]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("prompt"),
         model: Arc::new("model".into()),
@@ -106,10 +106,12 @@ fn clear_and_compact_sender_history_update_cached_messages() {
     let ctx = runtime_context();
     let sender = "discord_alice_reply_thread:thread-1";
     let mut history = Vec::new();
-    history.push(crate::agent::messages::ChatMessage::user("short"));
-    history.extend(
-        (0..20).map(|idx| crate::agent::messages::ChatMessage::assistant("x".repeat(700 + idx))),
-    );
+    history.push(tinyagents_session::transcript::TranscriptMessage::user(
+        "short",
+    ));
+    history.extend((0..20).map(|idx| {
+        tinyagents_session::transcript::TranscriptMessage::assistant("x".repeat(700 + idx))
+    }));
     ctx.conversation_histories
         .lock()
         .unwrap()
@@ -152,7 +154,7 @@ fn skip_and_overflow_detection_cover_edge_cases() {
 
 #[tokio::test]
 async fn build_memory_context_filters_entries_and_truncates_content() {
-    let mem = crate::memory::guard::in_memory::FixedRecallProvider::guarded(vec![
+    let mem = crate::memory::guard::in_memory::guarded_fixed_recall(vec![
         memory_entry("keep", "v", Some(0.9)),
         memory_entry("drop_history", "ignored", Some(0.9)),
         memory_entry("low", "too low", Some(0.1)),
@@ -177,7 +179,7 @@ async fn build_memory_context_honors_total_budget_and_entry_limit() {
     let entries = (0..10)
         .map(|idx| memory_entry(&format!("k{idx}"), &"x".repeat(700), Some(0.9)))
         .collect();
-    let mem = crate::memory::guard::in_memory::FixedRecallProvider::guarded(entries);
+    let mem = crate::memory::guard::in_memory::guarded_fixed_recall(entries);
 
     let rendered = build_memory_context(&mem, "hello", 0.4).await;
     assert!(rendered.chars().count() <= MEMORY_CONTEXT_MAX_CHARS + 32);

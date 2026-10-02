@@ -41,14 +41,11 @@ use crate::memory::conversations::{
 #[cfg(test)]
 use crate::memory::{
     AppendConversationMessageRequest, ConversationMessageRecord, DeleteConversationThreadRequest,
-    EmptyRequest, GenerateConversationThreadTitleRequest, PaginationMeta,
+    EmptyRequest, GenerateConversationThreadTitleRequest,
 };
 #[cfg(test)]
-use crate::threads::title::{
-    is_auto_generated_thread_title, title_from_user_message, THREAD_TITLE_LOG_PREFIX,
-};
+use crate::threads::THREAD_TITLE_LOG_PREFIX;
 #[cfg(test)]
-use support::{
-    counts, envelope, message_to_record, record_to_message, request_id, run_to_completion,
-    thread_to_summary,
-};
+use support::{message_to_record, record_to_message, run_to_completion, thread_to_summary};
+#[cfg(test)]
+use tinyagents_harness::title::{is_auto_generated_thread_title, title_from_user_message};

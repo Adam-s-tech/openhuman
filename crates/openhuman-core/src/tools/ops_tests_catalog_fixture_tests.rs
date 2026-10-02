@@ -41,6 +41,7 @@ fn full_product_features_enabled() -> bool {
         ("contacts", cfg!(feature = "contacts")),
         ("runtime-node", cfg!(feature = "runtime-node")),
         ("hosting", cfg!(feature = "hosting")),
+        ("memory-remote", cfg!(feature = "memory-remote")),
     ];
     let declared: std::collections::BTreeSet<_> = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),

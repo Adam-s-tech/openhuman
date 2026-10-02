@@ -594,17 +594,6 @@ async fn thread_summary_is_none_and_never_synthesized_from_recall() {
         .is_none());
 }
 
-#[tokio::test]
-async fn usable_behind_a_trait_object() {
-    let (mem, _) = adapter(StubMemory::default());
-    let boxed: Box<dyn AgentMemory> = Box::new(mem);
-    boxed.remember(NewMemory::new("dyn safe")).await.unwrap();
-    assert_eq!(
-        boxed.recall(RecallRequest::new("dyn")).await.unwrap().len(),
-        1
-    );
-}
-
 #[test]
 fn a_blank_namespace_is_refused_rather_than_silently_widening_scope() {
     let (mem, _) = adapter(StubMemory::default());

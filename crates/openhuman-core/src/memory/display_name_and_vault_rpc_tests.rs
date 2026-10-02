@@ -9,12 +9,25 @@ async fn read_chunk_row_returns_none_for_missing_chunk() {
 }
 
 #[test]
-fn display_name_unslugs_email_thread_with_user_hint() {
-    let name = display_name_for_source(
-        "gmail:alice@example.com|bob@example.com",
-        Some("alice@example.com"),
-    );
-    assert_eq!(name, "bob@example.com");
+fn display_name_unslugs_sources_for_display() {
+    // (source id, user hint, expected display name)
+    let cases = [
+        (
+            "gmail:alice@example.com|bob@example.com",
+            Some("alice@example.com"),
+            "bob@example.com",
+        ),
+        ("slack:#engineering", None, "#engineering"),
+        (
+            "gmail:Alice@Example.com|bob@example.com|carol@example.com",
+            Some(" alice@example.com "),
+            "bob@example.com, carol@example.com",
+        ),
+        ("loose-id", None, "loose-id"),
+    ];
+    for (source, hint, expected) in cases {
+        assert_eq!(display_name_for_source(source, hint), expected, "{source}");
+    }
 }
 
 #[test]
@@ -26,45 +39,12 @@ fn display_name_falls_back_to_arrow_when_user_unknown() {
 }
 
 #[test]
-fn display_name_strips_platform_prefix() {
-    assert_eq!(
-        display_name_for_source("slack:#engineering", None),
-        "#engineering"
-    );
-}
-
-#[test]
-fn display_name_handles_multiple_participants_and_trimmed_hint() {
-    let name = display_name_for_source(
-        "gmail:Alice@Example.com|bob@example.com|carol@example.com",
-        Some(" alice@example.com "),
-    );
-    assert_eq!(name, "bob@example.com, carol@example.com");
-}
-
-#[test]
-fn display_name_handles_no_prefix() {
-    assert_eq!(display_name_for_source("loose-id", None), "loose-id");
-}
-
-#[test]
 fn sanitize_basename_replaces_windows_illegal_characters() {
     assert_eq!(
         sanitize_basename(r#"chat:slack/#eng\name*?"<>|"#),
         "chat-slack-#eng-name------"
     );
     assert_eq!(sanitize_basename("safe-name.md"), "safe-name.md");
-}
-
-#[test]
-fn parse_source_kind_str_accepts_known_values_only() {
-    assert_eq!(parse_source_kind_str("chat"), Some(SourceKind::Chat));
-    assert_eq!(parse_source_kind_str("email"), Some(SourceKind::Email));
-    assert_eq!(
-        parse_source_kind_str("document"),
-        Some(SourceKind::Document)
-    );
-    assert_eq!(parse_source_kind_str("unknown"), None);
 }
 
 #[tokio::test]

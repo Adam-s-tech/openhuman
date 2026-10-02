@@ -168,7 +168,7 @@ fn default_max_depth() -> u32 {
 /// frequently omit it, leaving those consumers with nothing. When this contract
 /// is set on [`AgentConfig::required_output`], the turn engine validates the
 /// reply and repairs an omitted block before the turn is accepted (see
-/// `crate::agent::harness::required_output`), so consumers always get
+/// `tinyagents_harness::config`), so consumers always get
 /// a well-formed block.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
@@ -247,6 +247,13 @@ pub struct AgentConfig {
     /// seam.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub chat_agent_id: Option<String>,
+    /// Deprecated and ignored: the session driver no longer trims history by
+    /// message count. Context size is bounded by the token-aware context
+    /// ladder (microcompaction, message trimming and summarisation, sized to
+    /// the model's window), which cuts rarely. A count cut dropped the oldest
+    /// messages on every turn past the bound, which moved the head of the
+    /// provider's cached prompt prefix and made each such turn a full cache
+    /// miss. Still parsed so existing `config.toml` files keep loading.
     #[serde(default = "default_agent_max_history_messages")]
     pub max_history_messages: usize,
     #[serde(default)]
@@ -255,12 +262,11 @@ pub struct AgentConfig {
     #[serde(default = "default_max_parallel_tools")]
     pub max_parallel_tools: usize,
     /// How the agent formats tool calls to its provider.
-    /// - `"python"` (default): code-style calls against Python signatures in
-    ///   the prompt (`def read_file(path: str, limit: int = None) -> str`,
-    ///   called as `read_file(path="x")`). The cheapest catalogue on the wire
-    ///   and a syntax every code-trained model already writes.
-    /// - `"auto"`: native structured tool-calling when the provider supports
-    ///   it, otherwise JSON-in-tag (`<tool_call>{…}</tool_call>`).
+    /// - `"auto"` (default): native structured tool-calling when the provider
+    ///   supports it, otherwise JSON-in-tag (`<tool_call>{…}</tool_call>`).
+    /// - `"python"`: code-style calls against Python signatures in the prompt
+    ///   (`def read_file(path: str, limit: int = None) -> str`, called as
+    ///   `read_file(path="x")`). Opt-in; mis-parses on some models.
     /// - `"native"`: force provider-native structured tool calls.
     /// - `"xml"`: force JSON-in-tag.
     /// - `"pformat"`: force compact positional P-Format (`tool[a|b]`); it
@@ -360,7 +366,7 @@ pub struct AgentConfig {
     /// legacy transcript read path (`session/turn/session_io.rs` →
     /// `try_load_session_transcript`), also read the same session back from the
     /// TinyAgents journal (`{workspace}/tinyagents_store/journal`), normalize
-    /// both sides through the importer's `session_import::convert` machinery,
+    /// both sides through the importer's `tinyagents_session::transcript::import::convert` machinery,
     /// compare, and log any divergence (`[session_shadow_read]`, issue #4249,
     /// sessions 04.2 phase 2).
     ///
@@ -419,14 +425,35 @@ pub struct ToolSearchConfig {
     ///
     /// - `"jev"` (default): the installed decision-model ranker (Jev, via
     ///   `openhuman-tinyhumans`), falling back to BM25 only when it fails or
-    ///   the process has no TinyHumans credential.
+    ///   the process has no credential for the configured Jev route
+    ///   ([`ToolSearchConfig::jev_route`]).
     /// - `"auto"`: the installed ranker when the process has one and a
-    ///   TinyHumans credential; BM25 otherwise.
+    ///   credential for the Jev route; BM25 otherwise.
     /// - `"bm25"`: the built-in lexical ranker alone, no network.
     /// - `"compare"`: serve the installed ranker and record the BM25 ranking
     ///   alongside it in the `tool.searched` telemetry, so the two can be
     ///   judged on live traffic without changing what the model sees.
     pub ranker: String,
+    /// Where the Jev ranker's decision calls go and what authenticates them.
+    /// Jev is reachable three ways, and which one a process uses is the
+    /// operator's call, not something to infer from whatever credential
+    /// happens to be stored:
+    ///
+    /// - `"auto"` (default): the TinyHumans credential when the process has
+    ///   one, else `TYPESAFE_API_KEY` (direct), else an OpenRouter key
+    ///   (`OPENROUTER_API_KEY`, or the stored `openrouter` BYOK key).
+    /// - `"tinyhumans"`: the TinyHumans backend's proxy, TinyHumans credential only.
+    /// - `"typesafe"`: TypeSafe's own API, `TYPESAFE_API_KEY` only.
+    /// - `"openrouter"`: OpenRouter's System One API, OpenRouter key only.
+    ///
+    /// `OPENHUMAN_JEV_ROUTE` overrides this for one launch.
+    pub jev_route: String,
+    /// Replaces the API origin of the `"typesafe"` / `"openrouter"` routes
+    /// (a metering proxy, a regional mirror, a test double). Remote origins
+    /// must be HTTPS; plain HTTP is accepted for literal loopback IPs only,
+    /// which the Jev client enforces. `OPENHUMAN_JEV_BASE_URL` overrides this
+    /// for one launch. Has no effect on the `"tinyhumans"` route.
+    pub jev_base_url: Option<String>,
     /// Matches a search returns when the model does not ask for a number.
     /// Three: enough for the model to choose, few enough that the schemas
     /// returned do not undo the saving deferral made.
@@ -437,6 +464,8 @@ impl Default for ToolSearchConfig {
     fn default() -> Self {
         Self {
             ranker: "jev".into(),
+            jev_route: "auto".into(),
+            jev_base_url: None,
             top_k: 3,
         }
     }
@@ -484,7 +513,7 @@ fn default_max_parallel_tools() -> usize {
 }
 
 fn default_agent_tool_dispatcher() -> String {
-    "python".into()
+    "auto".into()
 }
 
 fn default_max_memory_context_chars() -> usize {

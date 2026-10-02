@@ -76,7 +76,7 @@ async fn run_role_tool_with(
         response.results.len(),
         response.fallback_from.len()
     )];
-    crate::rpc::RpcOutcome::new(payload, log).into_cli_compatible_json()
+    crate::core::Outcome::new(payload, log).into_cli_compatible_json()
 }
 
 /// Refuse early, without loading the module, when nothing can serve the call.

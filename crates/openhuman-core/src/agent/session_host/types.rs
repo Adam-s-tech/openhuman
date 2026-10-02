@@ -63,6 +63,45 @@ pub struct TurnOverrides {
     pub suppress_transcript_autoload: bool,
 }
 
+impl OpenHumanSessionHost {
+    /// How this turn resumes its history.
+    ///
+    /// `suppress_transcript_autoload` is decided here, BEFORE `turn()` runs its
+    /// explicit identity-keyed resume. `begin_turn_resume` applies the same
+    /// override later, inside the lifecycle's resume hook, which is too late for
+    /// a thread-bound session: that resume has already loaded the thread's own
+    /// transcript into the history, so the override suppressed nothing (#6377).
+    pub(super) fn turn_resume_mode(&self) -> tinyagents_runtime::ResumeMode {
+        use tinyagents_runtime::ResumeMode;
+        let suppressed = self
+            .runtime_state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .pending_turn_overrides
+            .suppress_transcript_autoload;
+        if suppressed {
+            tracing::debug!(
+                thread_id = ?self.thread_id,
+                "[session_host] transcript autoload suppressed for this turn"
+            );
+            ResumeMode::Never
+        } else if self.session.is_some() {
+            // Exact, identity-keyed resume. Unlike `LatestForAgent` it cannot
+            // splice a different thread's transcript into this turn, and the
+            // file it reads is the file the turn appends to.
+            ResumeMode::Session
+        } else if self
+            .runtime_session
+            .as_ref()
+            .is_some_and(|session| session.history().is_empty())
+        {
+            ResumeMode::LatestForAgent
+        } else {
+            ResumeMode::Never
+        }
+    }
+}
+
 /// An autonomous or semi-autonomous AI agent.
 ///
 /// The `OpenHumanSessionHost` is the central component that manages conversation state,
@@ -164,6 +203,10 @@ pub struct OpenHumanSessionHost {
     /// Fixed at build; the refresh paths use it to recompute
     /// [`Self::deferred_tool_names`] when the synthesised set changes.
     pub(super) discovery_enabled: bool,
+    /// The agent definition's `deferred_tools`: `Direct` tools this agent
+    /// reaches through `tool_search` instead of its wire. Kept so every
+    /// recompute of [`Self::deferred_tool_names`] applies it again.
+    pub(super) requested_deferred_tools: Arc<[String]>,
     /// Explicit profile/channel ceiling inherited by delegated agents.
     ///
     /// This is deliberately separate from [`Self::visible_tool_names`]: a
@@ -240,7 +283,7 @@ pub struct OpenHumanSessionHost {
     /// necessarily user conversation threads.
     pub(super) thread_id: Option<String>,
     /// Human-readable agent definition name (e.g. `"main"`,
-    /// `"code_executor"`). Used as the `{agent}` component in session
+    /// `"task_manager_agent"`). Used as the `{agent}` component in session
     /// transcript paths: `sessions/DDMMYYYY/{agent}_{index}.md`.
     ///
     /// May be rewritten mid-session by
@@ -506,6 +549,8 @@ pub struct SessionHostBuilder {
     pub(super) synthesized_tools: Option<Vec<Box<dyn Tool>>>,
     /// When set, restricts which tools the main agent sees/calls.
     pub(super) visible_tool_names: Option<std::collections::HashSet<String>>,
+    /// See [`SessionHostBuilder::deferred_tools`].
+    pub(super) deferred_tools: Vec<String>,
     /// Optional explicit profile ceiling for tools delegated agents may inherit.
     /// Channel-policy restrictions are intersected during [`Self::build`].
     pub(super) subagent_tool_ceiling_names: Option<std::collections::HashSet<String>>,

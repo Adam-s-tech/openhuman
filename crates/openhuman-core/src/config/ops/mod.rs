@@ -2,11 +2,11 @@
 
 mod agent;
 mod loader;
-pub mod local_ai_presets;
 mod model;
 mod privacy;
 mod sandbox;
 mod search;
+mod tool_dispatcher;
 mod ui;
 
 // ── Public re-exports (preserving the flat external API) ─────────────────────

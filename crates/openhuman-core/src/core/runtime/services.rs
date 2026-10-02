@@ -1,12 +1,12 @@
 //! Background service spawns.
 //!
 //! Extracted (Phase 0 — pure motion) from the inline `tokio::spawn` blocks that
-//! used to live in `run_server_inner` (`crates/openhuman-core/src/core/jsonrpc.rs`, ~lines 2050-2191).
+//! used to live in `run_server_inner` (later in the since-split `core/jsonrpc.rs`).
 //! Each function spawns one long-lived background service as a detached task,
 //! preserving the exact gating and behavior of the original inline block.
 //!
 //! Today these are launched unconditionally from `run_server_inner`; the
-//! per-service *config* gates (`config.cron.enabled`, `config.heartbeat.enabled`,
+//! per-service *config* gates (`config.cron.enabled`,
 //! `OPENHUMAN_DISABLE_CHANNEL_LISTENERS`, `has_listening_integrations()`) stay
 //! inside each function. Phase 1 lifts the *selection* (should this service be
 //! spawned at all) up to a `ServiceSet` chosen by the embedder, while these
@@ -20,7 +20,7 @@ use crate::config::Config;
 use crate::core::runtime::ServiceSet;
 
 /// Background bootstrap for login-gated services (local AI, voice, screen
-/// intelligence, autocomplete) plus the subconscious engine + heartbeat.
+/// intelligence, autocomplete).
 ///
 /// Heavy services are only started when a user is logged in. If no user session
 /// exists on disk, startup is deferred until the login handler in

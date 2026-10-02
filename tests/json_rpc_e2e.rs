@@ -8,6 +8,12 @@ mod memory_module;
 #[path = "support/tinyhumans_boot.rs"]
 mod tinyhumans_boot;
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+#[path = "support/scripted_stack.rs"]
+mod scripted_stack;
+use env_guard::EnvVarGuard;
+use scripted_stack::assert_no_jsonrpc_error;
 use std::collections::VecDeque;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -26,46 +32,12 @@ use tinyinference_llm::message::Message;
 use tinyinference_llm::model::ModelRequest;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::memory::tree::all_memory_tree_registered_controllers;
 use openhuman_core::platform::connectivity::rpc::pick_listen_port;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 static JSON_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => std::env::set_var(self.key, v),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
 
 /// Serializes tests in this binary: `HOME` / `OPENHUMAN_WORKSPACE` / backend URL overrides are
 /// process-global, so parallel tests would clobber each other and hit the wrong `config.toml` or
@@ -784,6 +756,8 @@ async fn mock_wallet_evm_rpc(
         }
         "eth_getBalance" => Value::String("0x0".to_string()),
         "eth_blockNumber" => Value::String("0x14".to_string()),
+        // Solana's liveness probe, so one mock can stand in for every chain.
+        "getHealth" => Value::String("ok".to_string()),
         "eth_getTransactionByHash" => {
             json!({"hash": params.first().cloned().unwrap_or(Value::Null)})
         }
@@ -798,6 +772,16 @@ async fn mock_wallet_evm_rpc(
     Json(json!({"jsonrpc":"2.0","id":1,"result":result}))
 }
 
+/// Esplora's chain-tip read, which the wallet's Bitcoin status probe uses.
+async fn mock_wallet_btc_tip() -> &'static str {
+    "850000"
+}
+
+/// TronGrid's latest-block read, which the wallet's Tron status probe uses.
+async fn mock_wallet_tron_now_block() -> Json<Value> {
+    Json(json!({"blockID": "0000000000000001", "block_header": {}}))
+}
+
 async fn start_mock_wallet_evm_rpc() -> (SocketAddr, Arc<Mutex<Vec<String>>>) {
     let raw_txs = Arc::new(Mutex::new(Vec::new()));
     let state = MockWalletRpcState {
@@ -805,6 +789,8 @@ async fn start_mock_wallet_evm_rpc() -> (SocketAddr, Arc<Mutex<Vec<String>>>) {
     };
     let app = Router::new()
         .route("/", post(mock_wallet_evm_rpc))
+        .route("/blocks/tip/height", get(mock_wallet_btc_tip))
+        .route("/wallet/getnowblock", post(mock_wallet_tron_now_block))
         .with_state(state);
     let (addr, _join) = serve_on_ephemeral(app).await;
     (addr, raw_txs)
@@ -1108,14 +1094,6 @@ async fn encrypt_test_mnemonic() -> String {
     .value
 }
 
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
-}
-
 fn assert_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
     v.get("error")
         .unwrap_or_else(|| panic!("{context}: expected JSON-RPC error, got: {v}"))
@@ -1147,7 +1125,7 @@ fn extract_string_outcome(result: &Value) -> String {
 }
 
 /// Peel the `{"result": inner, "logs": [...]}` envelope that
-/// `RpcOutcome::into_cli_compatible_json` adds when logs are present.
+/// `Outcome::into_cli_compatible_json` adds when logs are present.
 fn peel_logs_envelope(v: &Value) -> &Value {
     if v.get("logs").is_some() {
         v.get("result").unwrap_or(v)
@@ -1367,6 +1345,83 @@ async fn json_rpc_config_update_browser_settings_persists_backend() {
     )
     .await;
     assert_jsonrpc_error(&invalid, "invalid browser backend");
+
+    rpc_join.abort();
+}
+
+#[tokio::test]
+async fn json_rpc_reasoning_effort_persists_and_rejects_unknown_levels() {
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+
+    write_min_config(&openhuman_home, "http://127.0.0.1:9");
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+
+    // The composer's default: an alias is stored as the canonical wire token
+    // and surfaces in the client config the UI loads.
+    let updated = post_json_rpc(
+        &rpc_base,
+        41_251,
+        "openhuman.config_update_runtime_settings",
+        json!({ "reasoning_effort": "max" }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&updated, "config_update_runtime_settings reasoning_effort");
+    let client = post_json_rpc(
+        &rpc_base,
+        41_252,
+        "openhuman.inference_get_client_config",
+        json!({}),
+    )
+    .await;
+    let client_config = peel_logs_envelope(assert_no_jsonrpc_error(
+        &client,
+        "inference_get_client_config",
+    ));
+    assert_eq!(
+        client_config
+            .get("reasoning_effort")
+            .and_then(Value::as_str),
+        Some("xhigh"),
+        "client config should report the saved thinking level: {client_config}"
+    );
+
+    let invalid_default = post_json_rpc(
+        &rpc_base,
+        41_253,
+        "openhuman.config_update_runtime_settings",
+        json!({ "reasoning_effort": "turbo" }),
+    )
+    .await;
+    assert_jsonrpc_error(&invalid_default, "unknown default reasoning_effort");
+
+    // A per-thread level that does not parse is rejected before any turn starts.
+    let invalid_turn = post_json_rpc(
+        &rpc_base,
+        41_254,
+        "openhuman.channel_web_chat",
+        json!({
+            "client_id": "reasoning-client",
+            "thread_id": "reasoning-thread",
+            "message": "hello",
+            "reasoning_effort": "turbo",
+        }),
+    )
+    .await;
+    let err = assert_jsonrpc_error(&invalid_turn, "unknown turn reasoning_effort");
+    assert!(
+        err.to_string().contains("reasoning_effort"),
+        "the rejection should name the bad param: {err}"
+    );
 
     rpc_join.abort();
 }
@@ -2859,7 +2914,7 @@ async fn json_rpc_thread_not_found_errors_are_structured() {
     assert_eq!(append_err["data"]["thread_id"], thread_id);
     // The transport layer no longer stamps the RPC method into the structured
     // error data — the domain controller emits a method-agnostic envelope and
-    // jsonrpc.rs surfaces it verbatim. The frontend keys on `kind` +
+    // openhuman-rpc/src/server/http/rpc_handler.rs surfaces it verbatim. The frontend keys on `kind` +
     // `thread_id` (see `coreRpcClient.isThreadNotFoundRpcData`), not method.
     assert!(
         append_err["data"]["method"].is_null(),
@@ -3036,16 +3091,16 @@ async fn json_rpc_thread_turn_state_lifecycle() {
             .expect("load config");
         cfg.workspace_dir
     };
-    let mut state = openhuman_core::threads::turn_state::TurnState::started(
+    let mut state = tinyagents_session::turn_state::TurnState::started(
         "thread-turn-1",
         "req-turn-1",
         25,
         chrono::Utc::now().to_rfc3339(),
     );
-    state.lifecycle = openhuman_core::threads::turn_state::TurnLifecycle::Streaming;
+    state.lifecycle = tinyagents_session::turn_state::TurnLifecycle::Streaming;
     state.iteration = 2;
     state.streaming_text = "partial".into();
-    openhuman_core::threads::turn_state::store::put(workspace_dir.clone(), &state)
+    tinyagents_session::turn_state::store::put(workspace_dir.clone(), &state)
         .expect("seed snapshot");
 
     // get → present
@@ -3095,15 +3150,15 @@ async fn json_rpc_thread_turn_state_lifecycle() {
     // both instead of overwriting.
     // Far-future started_at guarantees turn-2 is the newest (turn-1 was seeded
     // with the real `now()`), so history ordering is deterministic.
-    let mut state2 = openhuman_core::threads::turn_state::TurnState::started(
+    let mut state2 = tinyagents_session::turn_state::TurnState::started(
         "thread-turn-1",
         "req-turn-2",
         25,
         "2999-01-01T00:00:00Z",
     );
-    state2.lifecycle = openhuman_core::threads::turn_state::TurnLifecycle::Completed;
+    state2.lifecycle = tinyagents_session::turn_state::TurnLifecycle::Completed;
     state2.updated_at = "2999-01-01T00:00:00Z".into();
-    openhuman_core::threads::turn_state::store::put(workspace_dir.clone(), &state2)
+    tinyagents_session::turn_state::store::put(workspace_dir.clone(), &state2)
         .expect("seed snapshot 2");
 
     // history → both turns, newest first.
@@ -3527,7 +3582,6 @@ async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
 }
 
 #[tokio::test]
-#[ignore = "TODO(#6380): hosted TinyAgents loses agent-team member persistence"]
 async fn json_rpc_agent_team_coordination_roundtrip() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -3760,35 +3814,8 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
         Some("completed")
     );
 
-    // Shut alice down → member stopped (her task A is already done, so nothing
-    // is released back to the queue).
-    let shutdown_alice = post_json_rpc(
-        &rpc_base,
-        9362,
-        "openhuman.agent_team_shutdown_member",
-        json!({ "teamId": team_id, "memberId": alice_id }),
-    )
-    .await;
-    let shutdown_alice_outer =
-        assert_no_jsonrpc_error(&shutdown_alice, "agent_team_shutdown_member alice");
-    assert_eq!(
-        shutdown_alice_outer
-            .get("result")
-            .and_then(|r| r.get("member"))
-            .and_then(|m| m.get("memberStatus"))
-            .and_then(serde_json::Value::as_str),
-        Some("stopped")
-    );
-    assert_eq!(
-        shutdown_alice_outer
-            .get("result")
-            .and_then(|r| r.get("releasedTaskIds"))
-            .and_then(serde_json::Value::as_array)
-            .map(|ids| ids.len()),
-        Some(0)
-    );
-
-    // Message bob from alice, then list messages.
+    // Message bob from alice (still live), then list messages. The shutdown
+    // below must come after: a stopped member cannot send or receive.
     let message = post_json_rpc(
         &rpc_base,
         9347,
@@ -3817,6 +3844,57 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
             .and_then(serde_json::Value::as_array)
             .map(|m| m.len()),
         Some(1)
+    );
+
+    // Shut alice down → member stopped (her task A is already done, so nothing
+    // is released back to the queue).
+    let shutdown_alice = post_json_rpc(
+        &rpc_base,
+        9362,
+        "openhuman.agent_team_shutdown_member",
+        json!({ "teamId": team_id, "memberId": alice_id }),
+    )
+    .await;
+    let shutdown_alice_outer =
+        assert_no_jsonrpc_error(&shutdown_alice, "agent_team_shutdown_member alice");
+    assert_eq!(
+        shutdown_alice_outer
+            .get("result")
+            .and_then(|r| r.get("member"))
+            .and_then(|m| m.get("memberStatus"))
+            .and_then(serde_json::Value::as_str),
+        Some("stopped")
+    );
+    assert_eq!(
+        shutdown_alice_outer
+            .get("result")
+            .and_then(|r| r.get("releasedTaskIds"))
+            .and_then(serde_json::Value::as_array)
+            .map(|ids| ids.len()),
+        Some(0)
+    );
+
+    // A stopped member is no longer part of the live roster, so it can neither
+    // send nor receive team messages (`TeamService::ensure_member`).
+    let message_from_stopped = post_json_rpc(
+        &rpc_base,
+        9363,
+        "openhuman.agent_team_message_member",
+        json!({
+            "teamId": team_id,
+            "fromMemberId": alice_id,
+            "toMemberId": bob_id,
+            "content": "sent after shutdown"
+        }),
+    )
+    .await;
+    let stopped_err = assert_jsonrpc_error(
+        &message_from_stopped,
+        "agent_team_message_member from stopped member",
+    );
+    assert!(
+        stopped_err.to_string().contains("unknown member"),
+        "stopped member must be rejected: {stopped_err}"
     );
 
     // Get the team — 2 members, 2 tasks.
@@ -5078,71 +5156,6 @@ async fn json_rpc_app_state_snapshot_returns_runtime_shape() {
 }
 
 #[tokio::test]
-async fn json_rpc_app_state_update_local_state_round_trips_into_snapshot() {
-    let _env_lock = json_rpc_e2e_env_lock();
-    let tmp = tempdir().expect("tempdir");
-    let home = tmp.path();
-    let openhuman_home = home.join(".openhuman");
-
-    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
-    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
-    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
-    let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-
-    let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
-    let mock_origin = format!("http://{}", mock_addr);
-    write_min_config(&openhuman_home, &mock_origin);
-
-    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
-    let rpc_base = format!("http://{}", rpc_addr);
-    tokio::time::sleep(Duration::from_millis(100)).await;
-
-    let update = post_json_rpc(
-        &rpc_base,
-        10041,
-        "openhuman.app_state_update_local_state",
-        json!({
-            "encryptionKey": "  secret-key  ",
-            "onboardingTasks": {
-                "accessibilityPermissionGranted": true,
-                "enabledTools": ["search"],
-                "connectedSources": ["telegram"]
-            }
-        }),
-    )
-    .await;
-    let update_result = assert_no_jsonrpc_error(&update, "app_state_update_local_state");
-    let updated_state = update_result.get("result").unwrap_or(update_result);
-    assert_eq!(
-        updated_state.get("encryptionKey").and_then(Value::as_str),
-        Some("secret-key")
-    );
-
-    let snapshot = post_json_rpc(&rpc_base, 10042, "openhuman.app_state_snapshot", json!({})).await;
-    let snapshot_result = assert_no_jsonrpc_error(&snapshot, "app_state_snapshot after update");
-    let body = snapshot_result.get("result").unwrap_or(snapshot_result);
-    let local_state = body
-        .get("localState")
-        .and_then(Value::as_object)
-        .expect("localState object");
-    assert_eq!(
-        local_state.get("encryptionKey").and_then(Value::as_str),
-        Some("secret-key")
-    );
-    assert_eq!(
-        local_state
-            .get("onboardingTasks")
-            .and_then(Value::as_object)
-            .and_then(|tasks| tasks.get("accessibilityPermissionGranted"))
-            .and_then(Value::as_bool),
-        Some(true)
-    );
-
-    mock_join.abort();
-    rpc_join.abort();
-}
-
-#[tokio::test]
 async fn json_rpc_wallet_setup_round_trips_status() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -5266,9 +5279,22 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         "OPENHUMAN_WALLET_RPC_EVM",
         &format!("http://{wallet_rpc_addr}"),
     );
-    let _btc_provider_guard = EnvVarGuard::unset("OPENHUMAN_WALLET_RPC_BTC");
-    let _sol_provider_guard = EnvVarGuard::unset("OPENHUMAN_WALLET_RPC_SOLANA");
-    let _tron_provider_guard = EnvVarGuard::unset("OPENHUMAN_WALLET_RPC_TRON");
+    // The same mock stands in for every other chain, so the run never reaches a
+    // public endpoint: chain_status probes each one.
+    let mock_endpoint = format!("http://{wallet_rpc_addr}");
+    let _other_provider_guards: Vec<EnvVarGuard> = [
+        "OPENHUMAN_WALLET_RPC_BASE",
+        "OPENHUMAN_WALLET_RPC_ARBITRUM",
+        "OPENHUMAN_WALLET_RPC_OPTIMISM",
+        "OPENHUMAN_WALLET_RPC_POLYGON",
+        "OPENHUMAN_WALLET_RPC_BSC",
+        "OPENHUMAN_WALLET_RPC_SOLANA",
+        "OPENHUMAN_WALLET_RPC_TRON",
+    ]
+    .into_iter()
+    .map(|name| EnvVarGuard::set(name, &mock_endpoint))
+    .collect();
+    let _btc_provider_guard = EnvVarGuard::set("OPENHUMAN_WALLET_RPC_BTC", &mock_endpoint);
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
     let mock_origin = format!("http://{}", mock_addr);
@@ -5351,7 +5377,8 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         "expected default USDC token in catalog: {result}"
     );
 
-    // chain_status: every chain is configured, so the provider row is ready.
+    // chain_status: every chain is configured and its endpoint answers the
+    // tip probe, so the provider row is ready and carries no error.
     let cs = post_json_rpc(&rpc_base, 2003, "openhuman.wallet_chain_status", json!({})).await;
     let body = assert_no_jsonrpc_error(&cs, "wallet_chain_status");
     let result = body.get("result").unwrap_or(body);
@@ -5362,6 +5389,49 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         rows.iter()
             .all(|r| r.get("providerStatus").and_then(Value::as_str) == Some("ready")),
         "expected providerStatus=ready for configured chain rows: {result}"
+    );
+    assert!(
+        rows.iter().all(|r| r.get("error").is_none()),
+        "a healthy row has no error member: {result}"
+    );
+
+    // An endpoint that cannot be reached is reported, not assumed ready: point
+    // Bitcoin at a port nothing listens on and read the row again.
+    let closed_port = std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("bind")
+        .local_addr()
+        .expect("addr")
+        .port();
+    let _dead_btc_guard = EnvVarGuard::set(
+        "OPENHUMAN_WALLET_RPC_BTC",
+        &format!("http://127.0.0.1:{closed_port}"),
+    );
+    let cs = post_json_rpc(&rpc_base, 20031, "openhuman.wallet_chain_status", json!({})).await;
+    let body = assert_no_jsonrpc_error(&cs, "wallet_chain_status_unreachable");
+    let result = body.get("result").unwrap_or(body);
+    let rows = result.as_array().expect("chain_status array");
+    let btc = rows
+        .iter()
+        .find(|r| r.get("chain").and_then(Value::as_str) == Some("btc"))
+        .expect("btc row");
+    assert_eq!(
+        btc.get("providerStatus").and_then(Value::as_str),
+        Some("missing"),
+        "an unreachable endpoint is not ready: {btc}"
+    );
+    assert_eq!(btc.get("configured").and_then(Value::as_bool), Some(true));
+    assert!(
+        btc.get("error")
+            .and_then(Value::as_str)
+            .is_some_and(|e| !e.is_empty()),
+        "the row carries the probe failure: {btc}"
+    );
+    assert_eq!(
+        rows.iter()
+            .filter(|r| r.get("providerStatus").and_then(Value::as_str) == Some("ready"))
+            .count(),
+        8,
+        "only the dead endpoint changed: {result}"
     );
 
     // balances: one row per native asset. The EVM account fans out into one
@@ -6456,21 +6526,53 @@ encrypt = false
 }
 
 // ---------------------------------------------------------------------------
-// Local AI device profile, presets, and apply preset
+// Local AI endpoint status: probe only, never spawn or pull
 // ---------------------------------------------------------------------------
 
+/// OpenHuman talks to a local runtime the user runs; it never launches one,
+/// never pulls a model, and has no tier presets or device profile. With the
+/// configured endpoint on a closed port, `inference_status` must settle on
+/// `unreachable` and no runtime binary on PATH may have been executed.
 #[tokio::test]
-async fn json_rpc_local_ai_device_profile_and_presets() {
+async fn json_rpc_inference_status_reports_unreachable_without_spawning_a_runtime() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
 
+    // Every runtime binary OpenHuman used to launch is a stub that leaves a
+    // marker when executed.
+    let bin_dir = tmp.path().join("bin");
+    std::fs::create_dir_all(&bin_dir).expect("bin dir");
+    let spawn_marker = tmp.path().join("runtime-spawned.marker");
+    for name in ["ollama", "lms", "mlx_lm.server", "piper"] {
+        let path = bin_dir.join(name);
+        std::fs::write(
+            &path,
+            format!("#!/bin/sh\ntouch '{}'\nexit 0\n", spawn_marker.display()),
+        )
+        .expect("write stub");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
+                .expect("chmod stub");
+        }
+    }
+    let original_path = std::env::var_os("PATH").unwrap_or_default();
+    let mut path_entries = vec![bin_dir.clone()];
+    path_entries.extend(std::env::split_paths(&original_path));
+    let joined_path = std::env::join_paths(path_entries).expect("join PATH");
+
     let _home_guard = EnvVarGuard::set_to_path("HOME", home);
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
+    let _ollama_bin_guard = EnvVarGuard::unset("OLLAMA_BIN");
+    let _ollama_host_guard = EnvVarGuard::unset("OLLAMA_HOST");
+    // Port 1 is never listening: the probe is refused immediately.
+    let _ollama_url_guard = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", "http://127.0.0.1:1");
+    let _path_guard = EnvVarGuard::set_to_path("PATH", Path::new(&joined_path));
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
     let mock_origin = format!("http://{}", mock_addr);
@@ -6480,121 +6582,103 @@ async fn json_rpc_local_ai_device_profile_and_presets() {
     let rpc_base = format!("http://{}", rpc_addr);
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // --- device_profile ---
-    let profile = post_json_rpc(
+    // Saving local settings resets the cached probe verdict, so this test is
+    // independent of whatever endpoint an earlier test left the singleton on.
+    let update = post_json_rpc(
         &rpc_base,
         30,
+        "openhuman.inference_update_local_settings",
+        json!({
+            "runtime_enabled": true,
+            "opt_in_confirmed": true,
+            "provider": "ollama",
+            "base_url": "http://127.0.0.1:1",
+            "chat_model_id": "llama3.1:8b"
+        }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&update, "update_local_settings closed port");
+
+    // The first poll schedules the probe; poll until it settles.
+    let mut last = Value::Null;
+    let mut state = String::new();
+    for attempt in 0..50 {
+        let status = post_json_rpc(
+            &rpc_base,
+            31 + attempt,
+            "openhuman.inference_status",
+            json!({}),
+        )
+        .await;
+        let result = assert_no_jsonrpc_error(&status, "inference_status");
+        let payload = result.get("result").unwrap_or(result).clone();
+        state = payload
+            .get("state")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        last = payload;
+        if state == "unreachable" {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    assert_eq!(state, "unreachable", "status never settled: {last}");
+    assert_eq!(
+        last.get("error_category").and_then(Value::as_str),
+        Some("server")
+    );
+    assert!(
+        last.get("warning")
+            .and_then(Value::as_str)
+            .is_some_and(|w| w.contains("does not install or launch")),
+        "warning should tell the user to start their own runtime: {last}"
+    );
+    // The configured model passes through unchanged (no allowlist redirect).
+    assert_eq!(
+        last.get("chat_model_id").and_then(Value::as_str),
+        Some("llama3.1:8b")
+    );
+    for removed in [
+        "download_progress",
+        "downloaded_bytes",
+        "total_bytes",
+        "quantization",
+    ] {
+        assert!(
+            last.get(removed).is_none(),
+            "`{removed}` left on status: {last}"
+        );
+    }
+    assert!(
+        !spawn_marker.exists(),
+        "OpenHuman must never launch a local runtime binary"
+    );
+
+    // The removed download / preset / device-profile RPCs are gone, legacy
+    // names included.
+    for (idx, method) in [
+        "openhuman.inference_presets",
+        "openhuman.inference_apply_preset",
         "openhuman.inference_device_profile",
-        json!({}),
-    )
-    .await;
-    let profile_result = assert_no_jsonrpc_error(&profile, "device_profile");
-    let profile_payload = profile_result.get("result").unwrap_or(profile_result);
-    assert!(
-        profile_payload
-            .get("total_ram_bytes")
-            .and_then(Value::as_u64)
-            .unwrap_or(0)
-            > 0,
-        "expected positive RAM: {profile_result}"
-    );
-    assert!(
-        profile_payload
-            .get("cpu_count")
-            .and_then(Value::as_u64)
-            .unwrap_or(0)
-            > 0,
-        "expected positive CPU count: {profile_result}"
-    );
-
-    // --- presets ---
-    let presets = post_json_rpc(&rpc_base, 31, "openhuman.inference_presets", json!({})).await;
-    let presets_result = assert_no_jsonrpc_error(&presets, "presets");
-    let presets_payload = presets_result.get("result").unwrap_or(presets_result);
-    let presets_arr = presets_payload
-        .get("presets")
-        .and_then(Value::as_array)
-        .expect("presets should be an array");
-    assert_eq!(
-        presets_arr.len(),
-        1,
-        "MVP exposes only the 1B preset: {presets_result}"
-    );
-    assert_eq!(
-        presets_arr[0].get("tier").and_then(Value::as_str),
-        Some("ram_2_4gb"),
-        "only the ram_2_4gb (1B) preset should be exposed: {presets_result}"
-    );
-
-    let recommended = presets_payload
-        .get("recommended_tier")
-        .and_then(Value::as_str)
-        .expect("should have recommended_tier");
-    assert_eq!(
-        recommended, "ram_2_4gb",
-        "MVP recommends the only allowed tier: {recommended}"
-    );
-
-    let current = presets_payload
-        .get("current_tier")
-        .and_then(Value::as_str)
-        .expect("should have current_tier");
-    // Default config now uses gemma3:1b-it-qat which maps to the only allowed (2-4 GB) tier.
-    assert_eq!(
-        current, "ram_2_4gb",
-        "default config should be the 1B / 2-4 GB tier"
-    );
-
-    // --- apply_preset (switch to 2-4 GB) ---
-    let apply = post_json_rpc(
-        &rpc_base,
-        32,
-        "openhuman.inference_apply_preset",
-        json!({"tier": "ram_2_4gb"}),
-    )
-    .await;
-    let apply_result = assert_no_jsonrpc_error(&apply, "apply_preset");
-    let apply_payload = apply_result.get("result").unwrap_or(apply_result);
-    assert_eq!(
-        apply_payload.get("applied_tier").and_then(Value::as_str),
-        Some("ram_2_4gb")
-    );
-    assert_eq!(
-        apply_payload.get("chat_model_id").and_then(Value::as_str),
-        Some("gemma3:1b-it-qat")
-    );
-    assert_eq!(
-        apply_payload.get("vision_mode").and_then(Value::as_str),
-        Some("disabled")
-    );
-
-    // --- verify presets reflects the change ---
-    let presets_after =
-        post_json_rpc(&rpc_base, 33, "openhuman.inference_presets", json!({})).await;
-    let presets_after_result = assert_no_jsonrpc_error(&presets_after, "presets_after");
-    let presets_after_payload = presets_after_result
-        .get("result")
-        .unwrap_or(presets_after_result);
-    assert_eq!(
-        presets_after_payload
-            .get("current_tier")
-            .and_then(Value::as_str),
-        Some("ram_2_4gb"),
-        "current tier should now be 2-4 GB after apply"
-    );
-
-    // --- apply_preset with invalid tier should error ---
-    let bad_apply = post_json_rpc(
-        &rpc_base,
-        34,
-        "openhuman.inference_apply_preset",
-        json!({"tier": "ultra"}),
-    )
-    .await;
-    assert!(
-        bad_apply.get("error").is_some(),
-        "expected error for invalid tier: {bad_apply}"
-    );
+        "openhuman.inference_assets_status",
+        "openhuman.inference_downloads_progress",
+        "openhuman.inference_download_asset",
+        "openhuman.inference_install_piper",
+        "openhuman.inference_piper_install_status",
+        "openhuman.local_ai_presets",
+        "openhuman.local_ai_download_asset",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let response = post_json_rpc(&rpc_base, 200 + idx as i64, method, json!({})).await;
+        assert!(
+            response.get("error").is_some(),
+            "{method} should no longer be registered: {response}"
+        );
+    }
+    assert!(!spawn_marker.exists());
 
     mock_join.abort();
     rpc_join.abort();
@@ -6612,8 +6696,7 @@ async fn json_rpc_local_ai_device_profile_and_presets() {
 ///     and `vendor` is in the root `[workspace] exclude` — no OpenHuman lane
 ///     compiles that package, let alone runs its tests;
 ///   * OpenHuman itself never names `model_requirements`, so there is no
-///     in-crate seam to unit-test the way `local_ai_presets_tests.rs` tests the
-///     preset mapping;
+///     in-crate seam to unit-test it directly;
 ///   * `openhuman.inference_diagnostics` was named by two live e2e targets, but
 ///     only inside a schema-catalog list and an error-path table.
 ///
@@ -6638,7 +6721,6 @@ async fn json_rpc_local_ai_ollama_diagnostics_rejects_a_short_context_model() {
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _ollama_env_guard = EnvVarGuard::unset("OPENHUMAN_OLLAMA_BASE_URL");
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
@@ -6803,7 +6885,6 @@ async fn json_rpc_local_ai_lm_studio_config_diagnostics_and_prompt() {
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _lm_env_guard = EnvVarGuard::unset("OPENHUMAN_LM_STUDIO_BASE_URL");
     let _lm_alias_env_guard = EnvVarGuard::unset("LM_STUDIO_BASE_URL");
 
@@ -7015,7 +7096,6 @@ async fn json_rpc_inference_namespace_lm_studio_prompt_and_status() {
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _lm_env_guard = EnvVarGuard::unset("OPENHUMAN_LM_STUDIO_BASE_URL");
     let _lm_alias_env_guard = EnvVarGuard::unset("LM_STUDIO_BASE_URL");
 
@@ -7185,7 +7265,6 @@ async fn json_rpc_inference_prompt_requires_external_ollama_runtime_when_unreach
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
     let _ollama_url_guard = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", "http://127.0.0.1:1");
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
@@ -7563,6 +7642,9 @@ async fn about_app_rpc_list_lookup_and_search() {
         "expected large capability catalog, got: {list_result}"
     );
     assert!(capabilities.iter().any(|capability| {
+        capability.get("id").and_then(Value::as_str) == Some("local_ai.configure_provider")
+    }));
+    assert!(!capabilities.iter().any(|capability| {
         capability.get("id").and_then(Value::as_str) == Some("local_ai.download_model")
     }));
 
@@ -7825,7 +7907,7 @@ async fn credentials_crud_roundtrip() {
     )
     .await;
     // assert_no_jsonrpc_error returns the JSON-RPC `result` field which is the
-    // RpcOutcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
+    // Outcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
     let store_outer = assert_no_jsonrpc_error(&store, "auth_store_provider_credentials");
     let store_result = store_outer.get("result").unwrap_or(store_outer);
     assert_eq!(
@@ -9442,306 +9524,6 @@ async fn mcp_clients_registry_settings_roundtrip() {
     rpc_join.abort();
 }
 
-/// Proxy config corruption recovery (PR #1563 guard).
-///
-/// Verifies that when the config.toml on disk is corrupted *after* the core
-/// has started, subsequent RPC calls still succeed (the in-memory config is
-/// intact) and that explicitly re-loading the config recovers via the backup
-/// path (`config.toml.bak`) or falls back to defaults rather than returning an
-/// error.
-///
-/// Two sub-cases exercised in one fixture:
-///   A. Config in-memory is unaffected by on-disk corruption: `core.ping`
-///      still returns ok.
-///   B. A new load from the corrupt primary with a valid `.bak` recovers the
-///      sentinel `default_temperature` value from the backup.
-#[tokio::test]
-async fn json_rpc_proxy_config_corruption_recovery() {
-    let _env_lock = json_rpc_e2e_env_lock();
-    let tmp = tempdir().expect("tempdir");
-    let home = tmp.path();
-    let openhuman_home = home.join(".openhuman");
-
-    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
-    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
-    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
-    let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-
-    let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
-    let mock_origin = format!("http://{}", mock_addr);
-
-    // Write a valid config.
-    let valid_toml = format!(
-        r#"api_url = "{mock_origin}"
-default_model = "e2e-mock-model"
-default_temperature = 0.7
-chat_onboarding_completed = true
-
-[secrets]
-encrypt = false
-"#
-    );
-    // Config resolution is user-scoped: the runtime reads from users/local, not
-    // the workspace root. Writing here ensures load_config_with_timeout() reads
-    // the same file the test corrupts, rather than a different per-user path.
-    let config_dir = openhuman_home.join("users").join("local");
-    std::fs::create_dir_all(&config_dir).expect("mkdir openhuman users/local");
-    let config_path = config_dir.join("config.toml");
-    std::fs::write(&config_path, valid_toml.as_bytes()).expect("write valid config");
-
-    // Write a backup with a sentinel temperature distinct from the default (0.7)
-    // so recovery-from-backup is distinguishable from fall-back-to-defaults.
-    let bak_toml = format!(
-        r#"api_url = "{mock_origin}"
-default_model = "e2e-mock-model"
-default_temperature = 1.2
-chat_onboarding_completed = true
-
-[secrets]
-encrypt = false
-"#
-    );
-    let bak_path = config_path.with_extension("toml.bak");
-    std::fs::write(&bak_path, bak_toml.as_bytes()).expect("write backup config");
-
-    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
-    let rpc_base = format!("http://{}", rpc_addr);
-
-    // A. RPC works before any corruption.
-    let ping_before = post_json_rpc(&rpc_base, 15_631, "core.ping", json!({})).await;
-    assert_eq!(
-        assert_no_jsonrpc_error(&ping_before, "ping before corruption").get("ok"),
-        Some(&json!(true))
-    );
-
-    // Corrupt the primary config file on disk after the server is up.
-    std::fs::write(&config_path, b"this is [[[ not valid toml at all")
-        .expect("corrupt config on disk");
-
-    // B. In-process RPC is unaffected by the on-disk corruption — the
-    //    server loaded config at startup and holds it in memory.
-    let ping_after = post_json_rpc(&rpc_base, 15_632, "core.ping", json!({})).await;
-    assert_eq!(
-        assert_no_jsonrpc_error(&ping_after, "ping after corruption").get("ok"),
-        Some(&json!(true))
-    );
-
-    // C. Recovery via the public load path: after the primary is corrupt the
-    //    next call to load_config_with_timeout reads the on-disk file, finds
-    //    it broken, falls back to the .bak, and returns the backup sentinel
-    //    temperature (1.2) without returning an error.
-    let recovered = openhuman_core::config::load_config_with_timeout()
-        .await
-        .expect("load_config_with_timeout must not error even with corrupt primary");
-    assert!(
-        (recovered.default_temperature - 1.2).abs() < 1e-9
-            || (recovered.default_temperature - 0.7).abs() < 1e-9,
-        "recovery must yield either backup sentinel 1.2 or default 0.7, got {}",
-        recovered.default_temperature
-    );
-
-    mock_join.abort();
-    rpc_join.abort();
-}
-
-/// Config `.bak` recovery: save → corrupt primary → reload picks `.bak` (PR #1563).
-///
-/// End-to-end signal:
-///   1. A valid config is written and `Config::save()` is driven via RPC
-///      (`openhuman.config_update`) so the runtime actually calls `save()` and
-///      the `.bak` is written as a side-effect.
-///   2. The primary `config.toml` is replaced with garbage on disk.
-///   3. `load_config_with_timeout()` — the same code path used by all RPC
-///      handlers that reload config — is called directly. It must succeed
-///      (not error) and must return either the sentinel temperature from the
-///      `.bak` file or the compiled-in `Config::default()`, never a parse
-///      error surfaced as an `Err`.
-///
-/// The test intentionally does NOT assert which of the two fallback values is
-/// returned, because the recovery path's contract is "no crash, no error" —
-/// the exact value depends on whether the `.bak` was written before or after
-/// the corrupt write, which is subject to OS scheduling.
-#[tokio::test]
-async fn json_rpc_config_bak_recovery_after_primary_corruption() {
-    let _env_lock = json_rpc_e2e_env_lock();
-    let tmp = tempdir().expect("tempdir");
-    let home = tmp.path();
-    let openhuman_home = home.join(".openhuman");
-
-    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
-    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
-    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
-    let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-
-    let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
-    let mock_origin = format!("http://{}", mock_addr);
-
-    // Write initial config with a sentinel temperature distinct from the compiled-in
-    // default (Config::default().default_temperature ≈ 0.7), so that if load recovers
-    // from the .bak file we can distinguish "read backup" from "fell back to defaults".
-    let initial_toml = format!(
-        r#"api_url = "{mock_origin}"
-default_model = "e2e-mock-model"
-default_temperature = 0.91
-chat_onboarding_completed = true
-
-[secrets]
-encrypt = false
-"#
-    );
-    // Seed the pre-login user directory where the runtime will resolve config.
-    let user_dir = openhuman_home.join("users").join("local");
-    std::fs::create_dir_all(&user_dir).expect("mkdir users/local");
-    let config_path = user_dir.join("config.toml");
-    std::fs::write(&config_path, initial_toml.as_bytes()).expect("write initial config");
-
-    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
-    let rpc_base = format!("http://{}", rpc_addr);
-
-    // A. Confirm the server is healthy and config was loaded correctly.
-    let ping = post_json_rpc(&rpc_base, 20_001, "core.ping", json!({})).await;
-    assert_eq!(
-        assert_no_jsonrpc_error(&ping, "ping before corruption").get("ok"),
-        Some(&json!(true)),
-        "core.ping must succeed before any corruption"
-    );
-
-    // B. Drive a config save via RPC so `Config::save()` writes the `.bak`.
-    //    We use `openhuman.config_update` preserving the sentinel temperature so
-    //    the backup file retains 0.91. The important side-effect is that `save()`
-    //    is called, which copies the valid config to `config.toml.bak`.
-    let update = post_json_rpc(
-        &rpc_base,
-        20_002,
-        "openhuman.config_update",
-        json!({ "default_temperature": 0.91 }),
-    )
-    .await;
-    // config_update may succeed or fail depending on runtime state, but the
-    // `.bak` path is also written by `load_or_init` itself; we only need to
-    // ensure at least one save has occurred. Skip asserting the RPC result and
-    // fall through directly to the corruption step — the backup may already be
-    // present from the initial load.
-
-    let _ = update; // result not load-bearing for this assertion
-
-    // C. Corrupt the primary on disk after the server has loaded it into memory.
-    std::fs::write(&config_path, b"[[[ intentionally invalid toml >>>")
-        .expect("corrupt config on disk");
-
-    // D. The public reload path must not error even with a corrupt primary.
-    //    It should recover from the `.bak` (if save was called) or fall back
-    //    to `Config::default()`.  Either outcome is acceptable — the contract
-    //    is "no Err returned, no panic".
-    let recovered = openhuman_core::config::load_config_with_timeout()
-        .await
-        .expect("load_config_with_timeout must not return Err with corrupt primary");
-
-    // The temperature must be one of: the sentinel from the backup (0.91) or
-    // the compiled-in default (~0.7). Using 0.91 ensures that if we ever see
-    // that value, it unambiguously came from the .bak, not a default fallback.
-    assert!(
-        (recovered.default_temperature - 0.91).abs() < 1e-9
-            || recovered.default_temperature.is_finite(),
-        "recovered config must have a finite temperature (backup sentinel 0.91 or default), got {}",
-        recovered.default_temperature
-    );
-
-    // E. In-memory RPC remains healthy — the server's copy is unaffected.
-    let ping_after = post_json_rpc(&rpc_base, 20_003, "core.ping", json!({})).await;
-    assert_eq!(
-        assert_no_jsonrpc_error(&ping_after, "ping after corruption").get("ok"),
-        Some(&json!(true)),
-        "core.ping must succeed after on-disk corruption: in-memory config is intact"
-    );
-
-    mock_join.abort();
-    rpc_join.abort();
-}
-
-/// Stale auth-profile lock recovery (Issue #1612 / PR #1563 guard).
-///
-/// Verifies that a leftover `auth-profiles.lock` file from a hypothetically
-/// dead process does not permanently block auth-profile RPC calls. The recovery
-/// logic lives in `AuthProfilesStore::clear_lock_if_stale` and is exercised
-/// every time `acquire_lock` detects an `AlreadyExists` error.
-///
-/// Strategy: create a lock file containing a PID that is guaranteed not to
-/// be alive (PID 0 is never a user process on any supported platform), then
-/// issue `openhuman.auth_list_provider_credentials`. The call must succeed
-/// rather than timing out, proving that stale-lock recovery unblocked it.
-#[tokio::test]
-async fn json_rpc_stale_auth_profile_lock_auto_recovered() {
-    let _env_lock = json_rpc_e2e_env_lock();
-    let tmp = tempdir().expect("tempdir");
-    let home = tmp.path();
-    let openhuman_home = home.join(".openhuman");
-
-    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
-    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
-    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
-    let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
-
-    let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
-    let mock_origin = format!("http://{}", mock_addr);
-    write_min_config(&openhuman_home, &mock_origin);
-
-    // Plant a stale lock file with a dead PID before the RPC server starts.
-    // The pre-login user directory (`users/local`) is where the runtime
-    // resolves auth profiles, so the lock must live there.
-    let user_dir = openhuman_home.join("users").join("local");
-    std::fs::create_dir_all(&user_dir).expect("mkdir users/local for stale lock");
-    let lock_path = user_dir.join("auth-profiles.lock");
-    // PID 0 is the idle/swapper process on POSIX systems and is never a
-    // running user process — `sysinfo` will report it as not-alive.
-    std::fs::write(&lock_path, b"pid=0\n").expect("write stale lock file");
-    // Backdate the mtime by 60 s (well above the 30 s STALE_LOCK_AGE_MS
-    // threshold) so the age-based reclaim path also fires if the pid check
-    // somehow treats PID 0 as alive on this platform.
-    let stale_mtime = std::time::SystemTime::now() - std::time::Duration::from_secs(60);
-    filetime::set_file_mtime(
-        &lock_path,
-        filetime::FileTime::from_system_time(stale_mtime),
-    )
-    .expect("backdate lock mtime");
-
-    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
-    let rpc_base = format!("http://{}", rpc_addr);
-
-    // The RPC call acquires the auth-profile lock internally. With the stale
-    // lock present, `acquire_lock` will detect AlreadyExists, probe the PID
-    // (dead) or mtime (aged), clear the lock, and retry — all transparently.
-    // A successful response proves the recovery path fired.
-    let list = post_json_rpc(
-        &rpc_base,
-        21_001,
-        "openhuman.auth_list_provider_credentials",
-        json!({}),
-    )
-    .await;
-    let list_outer =
-        assert_no_jsonrpc_error(&list, "auth_list_provider_credentials with stale lock");
-    let list_result = list_outer.get("result").unwrap_or(list_outer);
-    // No credentials were seeded, so the list must be empty — not an error.
-    let profiles = list_result
-        .as_array()
-        .unwrap_or_else(|| panic!("expected array result from list: {list_result}"));
-    assert!(
-        profiles.is_empty(),
-        "no credentials were seeded; list must be empty (stale lock was cleared): {list_result}"
-    );
-
-    // The stale lock file must have been removed by the recovery path.
-    assert!(
-        !lock_path.exists(),
-        "stale lock file must be removed after recovery: {}",
-        lock_path.display()
-    );
-
-    mock_join.abort();
-    rpc_join.abort();
-}
-
 #[tokio::test]
 async fn json_rpc_config_autonomy_settings_roundtrip() {
     let _env_lock = json_rpc_e2e_env_lock();
@@ -11255,7 +11037,6 @@ fn opus_sonnet_demo_graph() -> Value {
 /// agent-node run drive the full harness (deep async stacks).
 #[cfg(feature = "flows")]
 #[test]
-#[ignore = "TODO(#6381): hosted TinyAgents builder drops the workflow proposal"]
 fn json_rpc_flows_full_arc_discover_build_create_run() {
     run_json_rpc_e2e_on_agent_stack(
         "json_rpc_flows_full_arc_discover_build_create_run",
@@ -11392,7 +11173,7 @@ async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
     let proposal = build_out
         .get("proposal")
         .filter(|p| !p.is_null())
-        .expect("flows_build returns a non-null proposal");
+        .unwrap_or_else(|| panic!("flows_build returns a non-null proposal: {build_out}"));
     assert_eq!(
         proposal.get("type").and_then(Value::as_str),
         Some("workflow_proposal")

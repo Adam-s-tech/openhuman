@@ -34,6 +34,7 @@ use tinyinference_llm::model::{
     ProviderError,
 };
 use tinyinference_llm::providers::openai::OpenAiModel;
+use tinyinference_llm::providers::ProviderRequestOptions;
 use tinyinference_llm::Error as TiError;
 
 use super::ProviderRuntimeOptions;
@@ -248,7 +249,9 @@ impl OpenHumanBackendModel {
     }
 
     /// Resolve the current JWT + base URL and build a fresh crate `OpenAiModel`
-    /// (Bearer). Rebuilt per call because the session JWT rotates.
+    /// (Bearer). Rebuilt per call because the session JWT rotates, but every
+    /// build shares one pooled HTTP client ([`managed_inference_http_client`]),
+    /// so consecutive calls reuse a warm TLS connection to the backend.
     fn build_wire_model(&self) -> tinyinference_llm::Result<OpenAiModel> {
         let token = self
             .resolve_bearer()
@@ -259,7 +262,11 @@ impl OpenHumanBackendModel {
         // resolves — the baked default only applies when a request omits it.
         Ok(
             OpenAiModel::compatible_provider(PROVIDER_LABEL, token, base_url, &self.default_model)
-                .with_native_tool_calling(self.native_tool_calling),
+                .with_native_tool_calling(self.native_tool_calling)
+                .with_request_options(ProviderRequestOptions {
+                    http: Some(managed_inference_http_client()),
+                    ..ProviderRequestOptions::default()
+                }),
         )
     }
 
@@ -409,74 +416,80 @@ fn resolve_model(model: &str) -> String {
     }
 }
 
-/// The subset of the managed backend's `openhuman` response envelope the crate
-/// `Usage`/`ModelResponse` can't carry — billing + cache tokens — so it can be
-/// re-projected for the host cost bridge.
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelope {
-    #[serde(default)]
-    usage: Option<ManagedEnvelopeUsage>,
-    #[serde(default)]
-    billing: Option<ManagedEnvelopeBilling>,
-}
+/// Request-metadata key a caller sets (to `true`) to ask for no reasoning on
+/// a call — see [`without_reasoning`].
+const REASONING_OFF_METADATA_KEY: &str = "openhuman_reasoning_off";
 
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelopeUsage {
-    #[serde(default)]
-    cached_input_tokens: Option<u64>,
-    #[serde(default)]
-    context_window: Option<u64>,
-}
-
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelopeBilling {
-    #[serde(default)]
-    charged_amount_usd: f64,
-}
-
-/// Re-project the managed `openhuman.{billing,usage}` envelope — which the crate
-/// `OpenAiModel` leaves only on `ModelResponse.raw` — into the metadata the host
-/// cost bridge reads: `openhuman_usage_meta` (charged USD + context window) plus a
-/// crate `Usage.cache_read_tokens` reconciliation when the crate missed the
-/// envelope's cached count. Parity with the legacy model-adapter path's
-/// `usage_info_from_response`; without it the crate-native managed turn reports
-/// `$0` charged and drops backend-reported cached tokens.
-fn project_managed_usage(mut response: ModelResponse) -> ModelResponse {
-    let envelope: ManagedEnvelope = response
-        .raw
-        .as_ref()
-        .and_then(|raw| raw.get("openhuman"))
-        .and_then(|oh| serde_json::from_value(oh.clone()).ok())
-        .unwrap_or_default();
-
-    let charged_amount_usd = envelope
-        .billing
-        .map(|b| b.charged_amount_usd)
-        .unwrap_or(0.0);
-    let context_window = envelope
-        .usage
-        .as_ref()
-        .and_then(|u| u.context_window)
-        .unwrap_or(0);
-
-    // The `openhuman.usage` cached count is authoritative (the legacy `extract_usage`
-    // preferred it over the standard block); backfill it when the crate's standard
-    // parse produced none.
-    if let (Some(usage), Some(cached)) = (
-        response.usage.as_mut(),
-        envelope.usage.as_ref().and_then(|u| u.cached_input_tokens),
-    ) {
-        if usage.cache_read_tokens == 0 {
-            usage.cache_read_tokens = cached;
-        }
+/// Mark `request` as not needing the model to reason first. Provider-neutral:
+/// `ModelRequest.metadata` never reaches the wire, so a BYOK or local provider
+/// ignores it. The managed backend model turns it into `reasoning: { enabled:
+/// false }` ([`apply_reasoning_hint`]), which the backend forwards to OpenRouter
+/// only. For short structured helper calls (follow-up suggestions) reasoning
+/// adds seconds and more tokens than the answer itself, for no quality gain.
+pub(crate) fn without_reasoning(mut request: ModelRequest) -> ModelRequest {
+    if !request.metadata.is_object() {
+        request.metadata = Value::Object(serde_json::Map::new());
     }
+    if let Some(map) = request.metadata.as_object_mut() {
+        map.insert(REASONING_OFF_METADATA_KEY.to_string(), Value::Bool(true));
+    }
+    request
+}
 
-    response.raw = crate::agent::tinyagents::model::merge_openhuman_usage_meta(
-        response.raw,
-        charged_amount_usd,
-        context_window,
-    );
-    response
+/// Translate the request's reasoning choice into the managed backend's wire
+/// field: the OpenRouter-style `reasoning` object, which the backend forwards
+/// upstream.
+///
+/// Sources, highest first: a `reasoning` object the caller already put in
+/// provider options (left alone); the [`without_reasoning`] hint, which marks
+/// one helper call specifically; the request's provider-neutral
+/// `ModelRequest::reasoning` (the user's thinking level, from the harness
+/// `RunPolicy::default_reasoning`). The
+/// neutral field is consumed here, so the OpenAI-compatible transport does not
+/// also emit a top-level `reasoning_effort` for the same choice.
+fn apply_reasoning_hint(mut request: ModelRequest) -> ModelRequest {
+    if request.provider_options.get("reasoning").is_some() {
+        return request;
+    }
+    let wants_off = request
+        .metadata
+        .get(REASONING_OFF_METADATA_KEY)
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let neutral = request.reasoning.take();
+    let wire = if wants_off {
+        Some(serde_json::json!({ "enabled": false }))
+    } else {
+        neutral.as_ref().and_then(managed_reasoning_wire)
+    };
+    let Some(wire) = wire else {
+        return request;
+    };
+    let mut options = request.provider_options.clone();
+    if !options.is_object() {
+        options = Value::Object(serde_json::Map::new());
+    }
+    if let Some(map) = options.as_object_mut() {
+        map.insert("reasoning".to_string(), wire.clone());
+    }
+    log::debug!("[inference][managed] reasoning for this call: {wire}");
+    request.with_provider_options(options)
+}
+
+/// The OpenRouter `reasoning` object for a provider-neutral config: `none`
+/// disables reasoning, an explicit budget becomes `max_tokens`, and any other
+/// effort is sent by name. An empty config sends nothing.
+fn managed_reasoning_wire(reasoning: &tinyinference_llm::model::ReasoningConfig) -> Option<Value> {
+    use tinyinference_llm::model::ReasoningEffort;
+    if reasoning.effort == Some(ReasoningEffort::None) {
+        return Some(serde_json::json!({ "enabled": false }));
+    }
+    if let Some(budget) = reasoning.budget_tokens {
+        return Some(serde_json::json!({ "max_tokens": budget }));
+    }
+    reasoning
+        .effort
+        .map(|effort| serde_json::json!({ "effort": effort.as_str() }))
 }
 
 /// Inject this managed model's explicitly owned thread into provider options.
@@ -586,75 +599,58 @@ fn observe_in_band_failure(item: &ModelStreamItem) {
     }
 }
 
-#[async_trait]
-impl ChatModel<()> for OpenHumanBackendModel {
-    fn profile(&self) -> Option<&ModelProfile> {
-        Some(&self.profile)
-    }
+#[path = "openhuman_backend_model_calls.rs"]
+mod calls;
 
-    /// Identity for harness response-cache scoping: the backend base URL and
-    /// the default tier/model. The session JWT is deliberately absent — it
-    /// rotates, and a key derived from it would never hit twice — and the
-    /// backend resolves the tier per account anyway, so two accounts sharing
-    /// a cache would need their own namespace, not a credential in the key.
-    fn cache_identity(&self) -> Option<String> {
-        self.base_url()
-            .ok()
-            .map(|base| format!("openhuman:{base}:{}", self.default_model))
-    }
+/// Connect timeout for the shared managed-inference client; matches the
+/// adapter's own default.
+const MANAGED_INFERENCE_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
-    async fn invoke(
-        &self,
-        state: &(),
-        request: ModelRequest,
-    ) -> tinyinference_llm::Result<ModelResponse> {
-        let model = self.build_wire_model()?;
-        let response = match model
-            .invoke(state, with_thread_id(request, self.thread_id.as_deref()))
-            .await
-        {
-            Ok(response) => response,
-            Err(e) => {
-                log_managed_dispatch_error(&e, "invoke");
-                maybe_publish_session_expired(&e, "invoke");
-                return Err(e);
-            }
-        };
-        Ok(project_managed_usage(response))
-    }
+/// How long an idle pooled connection is kept. Below the AWS ALB's default 60s
+/// idle timeout in front of the backend, so the pool never hands out a
+/// connection the load balancer has already closed.
+const MANAGED_INFERENCE_POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(50);
 
-    async fn stream(
-        &self,
-        state: &(),
-        request: ModelRequest,
-    ) -> tinyinference_llm::Result<ModelStream> {
-        let model = self.build_wire_model()?;
-        // NOTE (streaming billing parity): the crate SSE parser sets `raw: None`
-        // on the terminal `Completed` response, so the `openhuman.billing` envelope
-        // is not available to `project_managed_usage` here — a streaming managed
-        // turn's charged USD falls back to the catalog cost estimate (token counts
-        // survive via `UsageDelta`). The authoritative charged amount is recovered
-        // on the non-streaming `invoke` path above. Restoring it for streaming
-        // needs the crate to preserve the final chunk's raw JSON (tracked upstream).
-        match model
-            .stream(state, with_thread_id(request, self.thread_id.as_deref()))
-            .await
-        {
-            // A failure can also arrive *inside* an HTTP 200 stream as an SSE
-            // `{"error":…}` payload; it never reaches the `Err` arm (#6724).
-            Ok(stream) => Ok(stream.map_items(|item| {
-                observe_in_band_failure(&item);
-                item
-            })),
-            Err(e) => {
-                log_managed_dispatch_error(&e, "stream");
-                maybe_publish_session_expired(&e, "stream");
-                Err(e)
-            }
-        }
-    }
+/// The one HTTP client every managed-inference call in the process shares.
+///
+/// `OpenAiModel` otherwise builds its own `reqwest::Client` per instance, and
+/// [`OpenHumanBackendModel::build_wire_model`] builds an instance per model
+/// call, so each call paid a fresh TCP + TLS handshake to the backend (about
+/// 150-300 ms measured to `api.tinyhumans.ai`) before its first token. A
+/// `reqwest::Client` is a cheap handle over a shared connection pool, so
+/// cloning it keeps connections warm across calls, turns and threads.
+fn managed_inference_http_client() -> reqwest::Client {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    CLIENT
+        .get_or_init(|| {
+            tracing::debug!(
+                idle_timeout_secs = MANAGED_INFERENCE_POOL_IDLE_TIMEOUT.as_secs(),
+                "[inference][managed] building shared pooled HTTP client"
+            );
+            reqwest::Client::builder()
+                .connect_timeout(MANAGED_INFERENCE_CONNECT_TIMEOUT)
+                .pool_idle_timeout(MANAGED_INFERENCE_POOL_IDLE_TIMEOUT)
+                .tcp_keepalive(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|error| {
+                    tracing::warn!(
+                        error = %error,
+                        "[inference][managed] pooled client build failed; using reqwest defaults"
+                    );
+                    reqwest::Client::new()
+                })
+        })
+        .clone()
 }
+
+#[path = "openhuman_backend_model_usage.rs"]
+mod usage;
+use usage::project_managed_usage;
 
 #[cfg(test)]
 #[path = "openhuman_backend_model_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "openhuman_backend_model_usage_tests.rs"]
+mod usage_tests;

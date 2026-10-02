@@ -2,14 +2,15 @@
 //!
 //! The agent uses these to introspect what rules / learnings exist for a
 //! specific tool and to record new ones discovered mid-session. They are
-//! the user-facing read/write surface on top of [`ToolMemoryStore`].
+//! `tinymemory-tools`' (`tool_memory`); these aliases run them under this host.
 
-mod list;
-mod put;
+use crate::memory::tools::host::HostMemoryTools;
 
-pub use list::MemoryToolsListTool;
-pub use put::MemoryToolsPutTool;
+/// `memory_tools_list` over this host.
+pub type MemoryToolsListTool = tinymemory_tools::tool_memory::MemoryToolsListTool<HostMemoryTools>;
+/// `memory_tools_put` over this host.
+pub type MemoryToolsPutTool = tinymemory_tools::tool_memory::MemoryToolsPutTool<HostMemoryTools>;
 
 #[cfg(test)]
-#[path = "mod_tests.rs"]
+#[path = "guard_tests.rs"]
 mod tests;

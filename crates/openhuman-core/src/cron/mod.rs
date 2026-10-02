@@ -11,22 +11,18 @@ pub mod scheduler_gate;
 
 pub mod bus;
 pub mod ops;
-mod schedule;
 mod schemas;
 pub mod seed;
 mod store;
 pub mod tools;
-mod types;
 
 pub mod scheduler;
 
 pub use ops as rpc;
 pub use ops::{add_once, add_once_at, parse_human_delay, pause_job, resume_job, update_cron_job};
-#[allow(unused_imports)]
-pub use schedule::{
-    next_run_for_schedule, normalize_expression, runs_closer_than, schedule_cron_expression,
-    validate_agent_schedule, validate_schedule, TooFrequent, MIN_AGENT_JOB_INTERVAL,
-};
+// Pure scheduling logic (schedule model, next-run computation) lives in
+// `tinyflows-schedule`; the host keeps the scheduler runtime, store, config
+// and RPC, and re-exports the upstream names so `cron::Schedule` etc. hold.
 pub use schemas::{
     all_controller_schemas as all_cron_controller_schemas,
     all_registered_controllers as all_cron_registered_controllers, schemas as cron_schemas,
@@ -38,6 +34,11 @@ pub use store::{
     get_job, list_jobs, list_runs, record_last_run, record_run, remove_job, reschedule_after_run,
     update_job,
 };
-pub use types::{
+#[allow(unused_imports)]
+pub use tinyflows_schedule::schedule::{
+    next_run_for_schedule, normalize_expression, runs_closer_than, schedule_cron_expression,
+    validate_agent_schedule, validate_schedule, TooFrequent, MIN_AGENT_JOB_INTERVAL,
+};
+pub use tinyflows_schedule::types::{
     ActiveHours, CronJob, CronJobPatch, CronRun, DeliveryConfig, JobType, Schedule, SessionTarget,
 };

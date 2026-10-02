@@ -17,21 +17,8 @@ use super::{canonical_linkedin_url, LINKEDIN_SCRAPER_ACTOR, LINKEDIN_USERNAME_RE
 /// `payload.parts[].body.data`. We must decode those parts before
 /// regex-matching; searching the raw JSON alone misses them.
 pub(super) async fn search_gmail_for_linkedin(config: &Config) -> anyhow::Result<Option<String>> {
-    use crate::integrations::composio::client::{
-        create_composio_client, direct_execute, ComposioClientKind,
-    };
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::Engine;
-
-    // Resolve through the mode-aware factory so a direct-mode user
-    // with a stored API key can still drive Gmail enrichment from the
-    // personal Composio tenant (#1710 Wave 2). Pre-fix this path used
-    // `build_composio_client` and returned early for any user without
-    // a backend session, silently disabling LinkedIn enrichment for
-    // direct-mode users even when their LinkedIn/Gmail connections
-    // were healthy on app.composio.dev.
-    let client_kind = create_composio_client(config)
-        .map_err(|e| anyhow::anyhow!("composio client unavailable: {e}"))?;
 
     // `comm/in/<username>` — LinkedIn's own notification emails always use
     // this form to refer to the email *recipient's* profile.
@@ -42,26 +29,17 @@ pub(super) async fn search_gmail_for_linkedin(config: &Config) -> anyhow::Result
         "query": "from:linkedin.com",
         "max_results": 10,
     });
-    let resp = match &client_kind {
-        ComposioClientKind::Backend(client) => client
-            .execute_tool("GMAIL_FETCH_EMAILS", Some(args))
-            .await
-            .map_err(|e| anyhow::anyhow!("GMAIL_FETCH_EMAILS failed: {e:#}"))?,
-        ComposioClientKind::Direct(direct) => {
-            tracing::debug!(
-                "[linkedin_enrichment][composio-direct] GMAIL_FETCH_EMAILS via direct tenant"
-            );
-            direct_execute(
-                direct,
-                "GMAIL_FETCH_EMAILS",
-                Some(args),
-                &config.composio.entity_id,
-                None,
-            )
-            .await
-            .map_err(|e| anyhow::anyhow!("GMAIL_FETCH_EMAILS (direct) failed: {e:#}"))?
-        }
-    };
+    // The connector module owns the backend/direct split (#1710 Wave 2), so a
+    // direct-mode user with a stored key still drives enrichment from their
+    // personal tenant.
+    let resp = crate::integrations::composio::execute_dispatch::execute_composio_action(
+        config,
+        "GMAIL_FETCH_EMAILS",
+        Some(args),
+        None,
+    )
+    .await
+    .map_err(|e| anyhow::anyhow!("GMAIL_FETCH_EMAILS failed: {e}"))?;
 
     if !resp.successful {
         let err = resp.error.unwrap_or_else(|| "unknown error".into());

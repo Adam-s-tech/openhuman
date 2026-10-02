@@ -1,6 +1,6 @@
 use super::{
-    backend_api_body_shape, flatten_authed_error, is_unmatched_route_404, parse_message_path,
-    BackendApiError, BackendClient, BACKEND_API_BODY_SHAPE_MAX_BYTES,
+    backend_api_body_shape, flatten_authed_error, BackendApiError, BackendClient,
+    BACKEND_API_BODY_SHAPE_MAX_BYTES,
 };
 use crate::backend::transport::plain::TEST_PRODUCT_HEADER as PRODUCT_IDENTITY_HEADER;
 use axum::extract::State;
@@ -144,122 +144,22 @@ async fn authed_json_sends_a_session_credential_as_a_bearer_only() {
     assert!(request_headers.get("x-api-key").is_none());
 }
 
-#[tokio::test]
-async fn authed_json_sends_bearer_and_host_headers() {
-    let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendClient::new(&base_url).unwrap();
-
-    let response = client
-        .authed_json("sdk-cutover-token", Method::GET, "/probe", None)
-        .await
-        .unwrap();
-    assert_eq!(response, json!({ "ok": true }));
-
-    let headers = captured.take();
-    let request_headers = headers.last().unwrap();
-    assert_eq!(
-        request_headers
-            .get("authorization")
-            .and_then(|value| value.to_str().ok()),
-        Some("Bearer sdk-cutover-token")
-    );
-    assert!(request_headers.get(PRODUCT_IDENTITY_HEADER).is_some());
-}
-
 // Regression: OPENHUMAN-TAURI-8K / Sentry issue 7473650958.
 // When config.api_url is a full LLM completions URL (e.g. /v1/chat/completions),
 // Url::join used to produce wrong paths like /v1/chat/teams/me/usage instead of
 // /teams/me/usage — BackendClient::new must strip the path to prevent this.
 #[test]
 fn new_strips_path_from_completions_url() {
-    let client = BackendClient::new("https://api.tinyhumans.ai/v1/chat/completions").unwrap();
-    let url = client.url_for("/teams/me/usage").unwrap();
-    assert_eq!(url.path(), "/teams/me/usage");
-}
-
-#[test]
-fn new_strips_path_from_openai_style_url() {
-    let client = BackendClient::new("https://api.openai.com/v1/chat/completions").unwrap();
-    let url = client.url_for("/teams/me/usage").unwrap();
-    assert_eq!(url.path(), "/teams/me/usage");
-    assert_eq!(url.host_str(), Some("api.openai.com"));
-}
-
-#[test]
-fn new_works_with_bare_origin() {
-    let client = BackendClient::new("https://api.tinyhumans.ai").unwrap();
-    let url = client.url_for("/teams/me/usage").unwrap();
-    assert_eq!(url.path(), "/teams/me/usage");
-}
-
-#[test]
-fn new_works_with_trailing_slash() {
-    let client = BackendClient::new("https://api.tinyhumans.ai/").unwrap();
-    let url = client.url_for("/teams/me/usage").unwrap();
-    assert_eq!(url.path(), "/teams/me/usage");
-}
-
-#[tokio::test]
-async fn authed_json_surfaces_message_not_found_on_404() {
-    let app = Router::new()
-        .route(
-            "/channels/telegram/messages/1103",
-            post(|| async { (axum::http::StatusCode::NOT_FOUND, "Not Found") }),
-        )
-        .route(
-            "/channels/discord/messages/abc",
-            post(|| async { (axum::http::StatusCode::NOT_FOUND, "Not Found") }),
-        );
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
-    });
-
-    let base_url = format!("http://{addr}");
-    let client = BackendClient::new(&base_url).unwrap();
-
-    // Telegram path — matches OPENHUMAN-TAURI-2Y shape.
-    let err = client
-        .authed_json(
-            "mock-jwt",
-            Method::POST,
-            "/channels/telegram/messages/1103",
-            None,
-        )
-        .await
-        .unwrap_err();
-    let typed = err.downcast_ref::<BackendApiError>().unwrap();
-    let BackendApiError::MessageNotFound {
-        provider,
-        message_id,
-    } = typed
-    else {
-        panic!("expected MessageNotFound, got {typed:?}");
-    };
-    assert_eq!(provider, "telegram");
-    assert_eq!(message_id, "1103");
-
-    // Discord path — proves the helper is provider-agnostic.
-    let err = client
-        .authed_json(
-            "mock-jwt",
-            Method::POST,
-            "/channels/discord/messages/abc",
-            None,
-        )
-        .await
-        .unwrap_err();
-    let typed = err.downcast_ref::<BackendApiError>().unwrap();
-    let BackendApiError::MessageNotFound {
-        provider,
-        message_id,
-    } = typed
-    else {
-        panic!("expected MessageNotFound, got {typed:?}");
-    };
-    assert_eq!(provider, "discord");
-    assert_eq!(message_id, "abc");
+    for base in [
+        "https://api.tinyhumans.ai/v1/chat/completions",
+        "https://api.openai.com/v1/chat/completions",
+        "https://api.tinyhumans.ai",
+        "https://api.tinyhumans.ai/",
+    ] {
+        let client = BackendClient::new(base).unwrap();
+        let url = client.url_for("/teams/me/usage").unwrap();
+        assert_eq!(url.path(), "/teams/me/usage", "{base}");
+    }
 }
 
 #[tokio::test]

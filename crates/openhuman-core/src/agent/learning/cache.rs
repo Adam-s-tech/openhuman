@@ -4,9 +4,11 @@
 //! The stability detector uses this to persist the result of each rebuild cycle.
 //! Prompt sections use [`FacetCache::list_active`] to read the ambient cache.
 
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::agent::learning::candidate::FacetClass;
+use crate::config::schema::MemorySubsystemConfig;
 use crate::memory::guard::MemoryGuard;
 use tinymemory_api::provider::{MemoryProfile, MemoryProvider, ProfileFacet, UserState};
 
@@ -30,21 +32,69 @@ pub struct FacetCache {
 
 /// Where a cache reads its facets from.
 ///
-/// Production always takes [`Source::Guard`] — the bound driver, policy layer
-/// included. [`Source::Direct`] exists for tests, which need somewhere to put
-/// facets without standing up a driver; see
+/// Production takes [`Source::Guard`] or [`Source::Workspace`] — the bound
+/// driver, policy layer included. [`Source::Direct`] exists for tests, which
+/// need somewhere to put facets without standing up a driver; see
 /// [`super::test_profile`] for why that is the right trade rather than parking
 /// the learning tests on a module artifact.
 enum Source {
     Guard(Arc<MemoryGuard>),
+    /// Resolved again on every call; see [`FacetCache::for_workspace`].
+    Workspace {
+        dir: PathBuf,
+        memory: MemorySubsystemConfig,
+    },
     Direct(Arc<dyn MemoryProfile>),
 }
 
+/// The driver one call reads through, held for that call.
+enum Resolved<'a> {
+    Guard(Arc<MemoryGuard>),
+    Direct(&'a dyn MemoryProfile),
+}
+
+impl Resolved<'_> {
+    /// The profile family, or a caller-facing error.
+    fn profile(&self) -> anyhow::Result<&dyn MemoryProfile> {
+        match self {
+            Resolved::Guard(guard) => guard.as_profile().ok_or_else(|| {
+                anyhow::anyhow!("memory driver does not support the profile family")
+            }),
+            Resolved::Direct(profile) => Ok(*profile),
+        }
+    }
+}
+
 impl FacetCache {
+    /// A cache over one resolved driver, for the length of a request.
     #[must_use]
     pub fn new(guard: Arc<MemoryGuard>) -> Self {
         Self {
             source: Source::Guard(guard),
+        }
+    }
+
+    /// A cache over whichever driver serves `workspace_dir`, resolved again on
+    /// every call.
+    ///
+    /// For a cache that outlives a request: the rebuild loop and the PROFILE.md
+    /// renderer hold theirs for the whole process. A cache over one resolved
+    /// guard keeps that driver after an engine switch, since a switch re-points
+    /// the workspace's context and only a new resolution sees the new engine
+    /// (`memory::binding_rebind`). Each call goes through the context serving
+    /// the workspace when there is one, so it follows a switch. Without one it
+    /// resolves the config the workspace is bound under now, which a switch
+    /// replaces, and only with nothing bound `memory`, the workspace's own
+    /// `[subsystems.memory]`. That is the case at boot, before the context
+    /// exists, where the default config would bind the local engine whatever
+    /// the user chose.
+    #[must_use]
+    pub fn for_workspace(workspace_dir: PathBuf, memory: MemorySubsystemConfig) -> Self {
+        Self {
+            source: Source::Workspace {
+                dir: workspace_dir,
+                memory,
+            },
         }
     }
 
@@ -64,24 +114,23 @@ impl FacetCache {
         }
     }
 
-    /// The profile family, or a caller-facing error.
-    fn profile(&self) -> anyhow::Result<&dyn MemoryProfile> {
+    /// The driver this call reads through.
+    fn resolve(&self) -> anyhow::Result<Resolved<'_>> {
         match &self.source {
-            Source::Guard(guard) => guard.as_profile().ok_or_else(|| {
-                anyhow::anyhow!("memory driver does not support the profile family")
-            }),
-            Source::Direct(profile) => Ok(profile.as_ref()),
+            Source::Guard(guard) => Ok(Resolved::Guard(Arc::clone(guard))),
+            Source::Workspace { dir, memory } => workspace_guard(dir, memory).map(Resolved::Guard),
+            Source::Direct(profile) => Ok(Resolved::Direct(profile.as_ref())),
         }
     }
 
     /// List all facets with `state = 'active'`, ordered by stability descending.
     pub async fn list_active(&self) -> anyhow::Result<Vec<ProfileFacet>> {
-        Ok(self.profile()?.list_active_facets().await?)
+        Ok(self.resolve()?.profile()?.list_active_facets().await?)
     }
 
     /// List all facets (all states), ordered by stability descending.
     pub async fn list_all(&self) -> anyhow::Result<Vec<ProfileFacet>> {
-        Ok(self.profile()?.list_all_facets().await?)
+        Ok(self.resolve()?.profile()?.list_all_facets().await?)
     }
 
     /// List active facets belonging to a specific class.
@@ -98,12 +147,12 @@ impl FacetCache {
 
     /// Fetch a single facet by its full key (e.g. `"style/verbosity"`).
     pub async fn get(&self, key: &str) -> anyhow::Result<Option<ProfileFacet>> {
-        Ok(self.profile()?.get_facet(key).await?)
+        Ok(self.resolve()?.profile()?.get_facet(key).await?)
     }
 
     /// Upsert a fully-formed facet row (rebuild path).
     pub async fn upsert(&self, facet: &ProfileFacet) -> anyhow::Result<()> {
-        Ok(self.profile()?.upsert_facet(facet).await?)
+        Ok(self.resolve()?.profile()?.upsert_facet(facet).await?)
     }
 
     /// Override the `user_state` of a facet.
@@ -111,6 +160,7 @@ impl FacetCache {
     /// Returns `Ok(true)` if a row was found and updated.
     pub async fn set_user_state(&self, key: &str, user_state: UserState) -> anyhow::Result<bool> {
         Ok(self
+            .resolve()?
             .profile()?
             .set_facet_user_state(key, user_state)
             .await?)
@@ -118,15 +168,37 @@ impl FacetCache {
 
     /// Delete a facet by key. Returns `true` if a row was removed.
     pub async fn delete(&self, key: &str) -> anyhow::Result<bool> {
-        Ok(self.profile()?.delete_facet(key).await?)
+        Ok(self.resolve()?.profile()?.delete_facet(key).await?)
     }
 
     /// Delete all `Dropped`-state facets whose stability is below `threshold`.
     ///
     /// Pinned facets are never deleted. Returns the number of rows removed.
     pub async fn drop_below_threshold(&self, threshold: f64) -> anyhow::Result<usize> {
-        Ok(self.profile()?.drop_facets_below(threshold).await?)
+        Ok(self
+            .resolve()?
+            .profile()?
+            .drop_facets_below(threshold)
+            .await?)
     }
+}
+
+/// The guarded driver serving `dir` now.
+///
+/// Through the context that serves the workspace when there is one, which an
+/// engine switch re-points. Else through the config the workspace is bound
+/// under now, which a switch replaces: `memory` was the config when the cache
+/// was built, and binding it again after a switch would rebuild the evicted
+/// engine. Only with nothing bound, as at boot before the first binding, does
+/// `memory` itself decide (`memory::binding::current_for`).
+fn workspace_guard(dir: &Path, memory: &MemorySubsystemConfig) -> anyhow::Result<Arc<MemoryGuard>> {
+    let context = crate::core::runtime::context::CoreContext::current()
+        .filter(|ctx| ctx.workspace_dir().ok().as_deref() == Some(dir));
+    let guard = match context {
+        Some(ctx) => ctx.memory(),
+        None => crate::memory::binding::current_for(dir, memory).map(|binding| binding.guard()),
+    };
+    guard.map_err(|error| anyhow::anyhow!("no memory binding for the facet cache: {error}"))
 }
 
 // ── Class ↔ key utilities ─────────────────────────────────────────────────────
@@ -205,11 +277,6 @@ pub async fn reset_non_pinned(cache: &FacetCache) -> anyhow::Result<(usize, usiz
         }
     }
     Ok((deleted, pinned_preserved))
-}
-
-/// Build a full key from a class and a suffix (e.g. `(Style, "verbosity")` → `"style/verbosity"`).
-pub fn key_with_class(class: FacetClass, suffix: &str) -> String {
-    format!("{}/{suffix}", class_prefix(class))
 }
 
 /// Return the canonical key prefix for a [`FacetClass`].

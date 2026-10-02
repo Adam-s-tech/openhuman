@@ -20,11 +20,15 @@ use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;
 
 use super::loop_guards::{
-    is_recoverable_tool_failure, is_repeat_call_exempt, recoverable_identical_halt_summary,
-    recoverable_no_progress_halt_summary, terminal_inference_failure_kind,
-    terminal_inference_halt_summary, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
+    is_repeat_call_exempt, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
     RECOVERABLE_REPEAT_FAILURE_THRESHOLD,
 };
+pub(crate) use crate::inference::failure_copy::user_actionable_escalation;
+use crate::inference::failure_copy::{
+    recoverable_identical_halt_summary, recoverable_no_progress_halt_summary,
+    terminal_inference_failure_kind, terminal_inference_halt_summary,
+};
+use tinyinference_llm::failure::is_recoverable_failure_text as is_recoverable_tool_failure;
 
 /// `after_tool`: stop (or nudge) the run when tool calls keep failing with no
 /// progress (issue #4249). The legacy tool loop's progress guard surfaced a
@@ -184,47 +188,6 @@ impl RepeatedToolFailureMiddleware {
     }
 }
 
-/// Recognise a **user-actionable** blocker in a failing tool result — one only
-/// the user can clear — and phrase the halt as a direct ask instead of the
-/// crate's generic "the goal looks unreachable in this environment, report this
-/// back" summary (issue #4092). Today that's a missing service connection (the
-/// issue's canonical example: acting on a service that isn't connected). Such a
-/// failure will never self-resolve by retrying, and the fix is the user's, so
-/// escalate with a concrete next step instead of looping or reporting a generic
-/// dead-end. Returns `None` for failures that are not user-actionable, leaving
-/// the crate's summary in place.
-pub(crate) fn user_actionable_escalation(tool: &str, error: &str) -> Option<String> {
-    let lower = error.to_lowercase();
-    let permission_or_scope_failure = lower.contains("[composio:error:insufficient_scope]")
-        || lower.contains("[composio:error:trigger_permission]")
-        || lower.contains("insufficient scope")
-        || lower.contains("insufficient authentication scopes")
-        || lower.contains("insufficient permissions")
-        || lower.contains("missing required permissions")
-        || lower.contains("permission to manage triggers");
-    if permission_or_scope_failure {
-        return None;
-    }
-    // Keep this narrow: some scope/permission failures legitimately tell the
-    // user to reconnect in Connections, but they are not missing connections.
-    let missing_connection = lower.contains("[composio:error:composio_platform]")
-        || lower.contains("not connected")
-        || lower.contains("isn't connected")
-        || lower.contains("is not connected")
-        || lower.contains("not enabled")
-        || lower.contains("token revoked")
-        || lower.contains("connection error, try to authenticate");
-    if !missing_connection {
-        return None;
-    }
-    Some(format!(
-        "I can't continue without your input: the `{tool}` action needs a service that isn't \
-         connected. {}\n\nConnect it (Connections), then tell me to retry — or \
-         tell me how you'd like to proceed instead.",
-        crate::util::truncate_with_ellipsis(error, 400),
-    ))
-}
-
 /// A stable, bounded fingerprint of a tool call's arguments for the identical-
 /// repeat signature (hashed so a huge payload doesn't bloat the map/comparison).
 fn args_fingerprint(arguments: &serde_json::Value) -> String {
@@ -267,6 +230,35 @@ pub(super) fn failure_scope(tool: &str, arguments: &serde_json::Value) -> String
 /// Explicit recovery policy. Only recognised failures enter the classified
 /// ledger; unknown prose continues through the established exact-repeat guard.
 pub(super) fn recovery_policy(
+    tool: &str,
+    error: &str,
+    body_level_failure: bool,
+) -> Option<(&'static str, usize)> {
+    let (class, budget) = classified_recovery_policy(tool, error, body_level_failure)?;
+    // A path the model mistyped is a wrong call it can correct, not a missing
+    // program: the classifier files `No such file or directory (os error 2)`
+    // under `MissingApp`, which is right for a shell command and fatal for
+    // `file_read`. One bad relative path ended a whole turn after two calls.
+    if class == "unsupported"
+        && is_path_tool(tool)
+        && error
+            .to_ascii_lowercase()
+            .contains("no such file or directory")
+    {
+        return Some(("not_found", 1));
+    }
+    Some((class, budget))
+}
+
+/// Tools whose first argument is a filesystem path the model typed.
+fn is_path_tool(tool: &str) -> bool {
+    matches!(
+        tool,
+        "file_read" | "file_write" | "apply_patch" | "list_files" | "list" | "grep" | "glob"
+    )
+}
+
+fn classified_recovery_policy(
     tool: &str,
     error: &str,
     body_level_failure: bool,
@@ -335,6 +327,15 @@ pub(super) fn recovery_policy(
         {
             ("transient", 2)
         }
+        // A local command killed by the shell's own timeout is still uncertain
+        // (it may have partly run), but it is inspectable: the model can check
+        // the filesystem or re-run a smaller, bounded step. Halting the whole
+        // turn on the first one threw away every earlier result for what is
+        // usually a slow read (a `whois`/`dig` loop). It gets one recovery
+        // attempt, steered by a reconcile-first nudge, and halts on a second.
+        // Remote actions (`gmail_send`, payments, …) stay at zero: a retry
+        // there can repeat an effect the agent cannot observe.
+        Class::Timeout if tool == "shell" => ("uncertain_side_effect", 1),
         Class::Timeout => ("uncertain_side_effect", 0),
         Class::Unknown if is_recoverable_tool_failure(error) => ("transient", 2),
         Class::Unknown
@@ -476,12 +477,20 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                     self.tracker.reset();
                     return Ok(());
                 }
-                if matches!(class, "missing_window" | "missing_app" | "validation") {
-                    let instruction = if class == "validation" {
-                        "The last call failed validation. Correct its schema or arguments once before trying again."
-                    } else {
-                        "The desktop target was not found. Rediscover the current app and window once before trying again."
+                if matches!(
+                    class,
+                    "missing_window" | "missing_app" | "validation" | "uncertain_side_effect"
+                ) {
+                    let instruction = match class {
+                        "validation" => "The last call failed validation. Correct its schema or arguments once before trying again.",
+                        "uncertain_side_effect" => "The last command timed out and was killed; it may have partly run. Check its effect before repeating anything, then retry at most once as a smaller, bounded step (fewer items per call, a per-item timeout such as `timeout 5`, or background it and poll).",
+                        _ => "The desktop target was not found. Rediscover the current app and window once before trying again.",
                     };
+                    tracing::debug!(
+                        tool = tool_name,
+                        class,
+                        "[tinyagents::mw] classified failure within budget — nudging recovery"
+                    );
                     self.queue_nudge(instruction);
                 }
                 // The classified budget owns this known blocker. In particular,

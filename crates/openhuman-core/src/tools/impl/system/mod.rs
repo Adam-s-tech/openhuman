@@ -4,53 +4,40 @@
 //! `tools/impl/README.md`; `security_for_tool_context` below is the shared
 //! `SecurityPolicy` resolver that must stay in step with the `filesystem` copy.
 
-mod command_output;
-mod current_time;
-mod detect_tools;
-mod insert_sql_record;
 mod install_tool;
 mod lsp;
 mod node_exec;
 mod npm_exec;
 mod proxy_config;
-mod pushover;
 mod python_exec;
-mod resolve_time;
 mod retrieve_tool_output;
 mod schedule;
 mod shell;
 mod tool_stats;
 mod update_apply;
 mod update_check;
-mod workspace_state;
 
 use crate::security::policy::{TrustedAccess, TrustedRoot};
 use crate::security::SecurityPolicy;
 use tinytools::ToolRunContext;
 
-pub use current_time::CurrentTimeTool;
-pub use detect_tools::DetectToolsTool;
-pub use insert_sql_record::InsertSqlRecordTool;
 pub use install_tool::InstallToolTool;
 pub use lsp::{lsp_capability_enabled, LspTool, LSP_ENABLED_ENV};
 pub use node_exec::NodeExecTool;
 pub use npm_exec::NpmExecTool;
 pub use proxy_config::ProxyConfigTool;
-pub use pushover::PushoverTool;
 pub use python_exec::PythonExecTool;
-pub use resolve_time::ResolveTimeTool;
-pub use retrieve_tool_output::RetrieveToolOutputTool;
+pub use retrieve_tool_output::{retrieve_tool_output_tool, RetrieveToolOutputTool};
 pub use schedule::ScheduleTool;
 pub use shell::ShellTool;
 pub use tool_stats::ToolStatsTool;
 pub use update_apply::UpdateApplyTool;
 pub use update_check::UpdateCheckTool;
-pub use workspace_state::WorkspaceStateTool;
 
 /// Clone `security` and scope it to the run's workspace descriptor, if any.
 ///
 /// The process-tool counterpart of
-/// [`super::filesystem::security_for_tool_context`], and it must stay in step
+/// `tools/impl/filesystem/gate.rs` (`security_scoped_to_root`), and it must stay in step
 /// with it: the descriptor's root becomes both the relative-path resolution
 /// root (`action_dir`) **and** a `ReadWrite` trusted root. The grant is the
 /// load-bearing half — `action_dir` only decides where a relative path lands,

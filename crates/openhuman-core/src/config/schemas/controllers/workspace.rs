@@ -52,12 +52,12 @@ pub(super) fn handle_update_analytics_settings(params: Map<String, Value>) -> Co
 
 pub(super) fn handle_get_analytics_settings(_params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async {
-        use crate::rpc::RpcOutcome;
+        use crate::core::Outcome;
         let config = config_rpc::load_config_with_timeout().await?;
         let result = serde_json::json!({
             "enabled": config.observability.analytics_enabled,
         });
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             result,
             vec!["analytics settings read".to_string()],
         ))
@@ -100,7 +100,7 @@ pub(crate) fn handle_get_data_paths(params: Map<String, Value>) -> ControllerFut
 /// resolution (the default used by the agent tool and diagnostics).
 async fn resolve_data_paths(
     params: Map<String, Value>,
-) -> Result<crate::rpc::RpcOutcome<Value>, String> {
+) -> Result<crate::core::Outcome<Value>, String> {
     let user_id = params
         .get("user_id")
         .and_then(Value::as_str)
@@ -145,6 +145,7 @@ pub(super) fn handle_update_agent_paths(params: Map<String, Value>) -> Controlle
         };
         let patch = config_rpc::AgentPathsPatch {
             action_dir: update.action_dir,
+            files_dir: update.files_dir,
         };
         match config_rpc::load_and_apply_agent_paths_settings(patch).await {
             Ok(outcome) => {

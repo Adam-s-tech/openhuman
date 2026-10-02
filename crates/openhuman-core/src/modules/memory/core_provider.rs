@@ -183,6 +183,12 @@ impl MemoryProvider for ModuleMemoryProvider {
     fn as_answer(&self) -> Option<&dyn MemoryAnswer> {
         artifact_serves(Capability::Answer).then_some(self as &dyn MemoryAnswer)
     }
+    fn as_episodic_portability(
+        &self,
+    ) -> Option<&dyn tinymemory_api::provider::MemoryEpisodicPortability> {
+        artifact_serves(Capability::EpisodicPortability)
+            .then_some(self as &dyn tinymemory_api::provider::MemoryEpisodicPortability)
+    }
 }
 
 #[async_trait]

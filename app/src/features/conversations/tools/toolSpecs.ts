@@ -172,7 +172,6 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   run_linter: spec('runLinter', ListChecksIcon, 'code'),
   run_tests: spec('runTests', ListChecksIcon, 'code'),
   lsp: spec('analyzeCode', CodeIcon, 'code', { chip: chip.path() }),
-  insert_sql_record: spec('insertRecord', DatabaseIcon, 'system', { chip: chip.text('table') }),
 
   // ── Shell and system ────────────────────────────────────────────────────
   shell: spec('runCommand', SquareTerminalIcon, 'shell', { chip: chip.command(), body: 'shell' }),
@@ -196,6 +195,10 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   resolve_time: spec('resolveDate', ClockIcon, 'system', { chip: chip.text('expr') }),
   retrieve_tool_output: spec('retrieveOutput', ArchiveRestoreIcon, 'system'),
   tinyjuice_retrieve: spec('retrieveOutput', ArchiveRestoreIcon, 'system'),
+  // REPL tools over a stored (handle) tool result; they reuse existing phrases.
+  juice_find: spec('searchCode', TextSearchIcon, 'system', { chip: chip.text('query') }),
+  juice_extract: spec('extractDetails', LayersIcon, 'system'),
+  juice_summarize: spec('extractDetails', LayersIcon, 'system'),
   read_workspace_state: spec('reviewWorkspace', FolderOpenIcon, 'system'),
   proxy_config: spec('configureProxy', SettingsIcon, 'system', { chip: chip.text('action') }),
   update_check: spec('checkUpdates', DownloadIcon, 'system'),

@@ -1,7 +1,7 @@
 //! Model/provider config operations: AI providers, memory, runtime, local AI, Composio.
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::loader::{load_config_with_timeout, snapshot_config_json};
 
@@ -39,9 +39,7 @@ pub struct ModelSettingsPatch {
     pub vision_provider: Option<String>,
     pub memory_provider: Option<String>,
     pub embeddings_provider: Option<String>,
-    pub heartbeat_provider: Option<String>,
     pub learning_provider: Option<String>,
-    pub subconscious_provider: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -63,6 +61,8 @@ pub struct MemorySettingsPatch {
 pub struct RuntimeSettingsPatch {
     pub kind: Option<String>,
     pub reasoning_enabled: Option<bool>,
+    /// `Some("")` clears the effort back to the provider default.
+    pub reasoning_effort: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -72,16 +72,14 @@ pub struct LocalAiSettingsPatch {
     /// when this is `false`, regardless of `runtime_enabled`. The unified
     /// AI panel ties the two together (both flip on enable, both flip
     /// off on disable) so a single toggle gives the user the obvious
-    /// behaviour without needing to apply a preset first.
+    /// behaviour.
     pub opt_in_confirmed: Option<bool>,
     pub provider: Option<String>,
     pub base_url: Option<Option<String>>,
     pub model_id: Option<String>,
     pub chat_model_id: Option<String>,
     pub usage_embeddings: Option<bool>,
-    pub usage_heartbeat: Option<bool>,
     pub usage_learning_reflection: Option<bool>,
-    pub usage_subconscious: Option<bool>,
     pub api_key: Option<String>,
 }
 
@@ -252,7 +250,7 @@ fn complete_byok_route(config: &mut Config, explicit: &ExplicitRolePins) {
 pub async fn apply_model_settings(
     config: &mut Config,
     update: ModelSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     // #5324: snapshot the embedder selection BEFORE applying the patch so the
     // failed-job un-park below only fires when the embedder actually changed.
     // This path also saves chat/reasoning/vision/etc. providers; without this
@@ -400,14 +398,8 @@ pub async fn apply_model_settings(
     if let Some(s) = update.embeddings_provider {
         config.embeddings_provider = normalise_provider(s);
     }
-    if let Some(s) = update.heartbeat_provider {
-        config.heartbeat_provider = normalise_provider(s);
-    }
     if let Some(s) = update.learning_provider {
         config.learning_provider = normalise_provider(s);
-    }
-    if let Some(s) = update.subconscious_provider {
-        config.subconscious_provider = normalise_provider(s);
     }
 
     complete_byok_route(config, &explicit_role_pins);
@@ -439,7 +431,7 @@ pub async fn apply_model_settings(
         "0".to_string()
     };
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "model settings saved to {} (requeued_failed={requeued_note})",
@@ -451,7 +443,7 @@ pub async fn apply_model_settings(
 /// Loads the configuration, applies model settings updates, and saves it.
 pub async fn load_and_apply_model_settings(
     update: ModelSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_model_settings(&mut config, update).await
 }
@@ -460,7 +452,7 @@ pub async fn load_and_apply_model_settings(
 pub async fn apply_memory_settings(
     config: &mut Config,
     update: MemorySettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     // #5324: snapshot the embedding signature BEFORE applying the patch. This
     // path also saves `backend` / `auto_save` / `memory_window`, none of which
     // remediate a budget-exhausted embedder — so the failed-job un-park below
@@ -531,7 +523,7 @@ pub async fn apply_memory_settings(
         "0".to_string()
     };
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "memory settings saved to {} (requeued_failed={requeued_note})",
@@ -543,7 +535,7 @@ pub async fn apply_memory_settings(
 /// Loads the configuration, applies memory settings updates, and saves it.
 pub async fn load_and_apply_memory_settings(
     update: MemorySettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_memory_settings(&mut config, update).await
 }
@@ -552,16 +544,26 @@ pub async fn load_and_apply_memory_settings(
 pub async fn apply_runtime_settings(
     config: &mut Config,
     update: RuntimeSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if let Some(kind) = update.kind {
         config.runtime.kind = kind;
     }
     if let Some(reasoning_enabled) = update.reasoning_enabled {
         config.runtime.reasoning_enabled = Some(reasoning_enabled);
     }
+    if let Some(effort) = update.reasoning_effort {
+        let effort = effort.trim();
+        if effort.is_empty() {
+            config.runtime.reasoning_effort = None;
+        } else {
+            let parsed = crate::agent::tinyagents::parse_reasoning_effort(effort)
+                .ok_or_else(|| format!("unknown reasoning_effort '{effort}'"))?;
+            config.runtime.reasoning_effort = Some(parsed.as_str().to_string());
+        }
+    }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "runtime settings saved to {}",
@@ -573,7 +575,7 @@ pub async fn apply_runtime_settings(
 /// Loads the configuration, applies runtime settings updates, and saves it.
 pub async fn load_and_apply_runtime_settings(
     update: RuntimeSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_runtime_settings(&mut config, update).await
 }
@@ -582,7 +584,7 @@ pub async fn load_and_apply_runtime_settings(
 pub async fn apply_local_ai_settings(
     config: &mut Config,
     update: LocalAiSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if let Some(v) = update.runtime_enabled {
         config.local_ai.runtime_enabled = v;
     }
@@ -620,14 +622,8 @@ pub async fn apply_local_ai_settings(
     if let Some(v) = update.usage_embeddings {
         config.local_ai.usage.embeddings = v;
     }
-    if let Some(v) = update.usage_heartbeat {
-        config.local_ai.usage.heartbeat = v;
-    }
     if let Some(v) = update.usage_learning_reflection {
         config.local_ai.usage.learning_reflection = v;
-    }
-    if let Some(v) = update.usage_subconscious {
-        config.local_ai.usage.subconscious = v;
     }
     if let Some(api_key) = update.api_key {
         let trimmed = api_key.trim();
@@ -647,7 +643,7 @@ pub async fn apply_local_ai_settings(
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "local AI settings saved to {}",
@@ -659,7 +655,7 @@ pub async fn apply_local_ai_settings(
 /// Loads the configuration, applies local-AI settings updates, and saves it.
 pub async fn load_and_apply_local_ai_settings(
     update: LocalAiSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_local_ai_settings(&mut config, update).await
 }
@@ -668,7 +664,7 @@ pub async fn load_and_apply_local_ai_settings(
 pub async fn apply_composio_trigger_settings(
     config: &mut Config,
     update: ComposioTriggerSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if let Some(v) = update.triage_disabled {
         config.composio.triage_disabled = v;
         tracing::debug!(
@@ -685,7 +681,7 @@ pub async fn apply_composio_trigger_settings(
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "composio trigger settings saved to {}",
@@ -697,19 +693,19 @@ pub async fn apply_composio_trigger_settings(
 /// Loads the configuration, applies composio trigger settings, and saves it.
 pub async fn load_and_apply_composio_trigger_settings(
     update: ComposioTriggerSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_composio_trigger_settings(&mut config, update).await
 }
 
 /// Reads the current composio trigger-triage settings.
-pub async fn get_composio_trigger_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_composio_trigger_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let result = serde_json::json!({
         "triage_disabled": config.composio.triage_disabled,
         "triage_disabled_toolkits": config.composio.triage_disabled_toolkits,
     });
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         result,
         vec!["composio trigger settings read".to_string()],
     ))
@@ -725,10 +721,10 @@ pub(crate) fn resolve_backend_api_url(config: &Config) -> Option<String> {
 
 /// Resolves the effective backend API URL from configuration or defaults;
 /// `api_url` is `null` when the core has no hosted backend.
-pub async fn load_and_resolve_api_url() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn load_and_resolve_api_url() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let resolved = resolve_backend_api_url(&config);
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         serde_json::json!({ "api_url": resolved }),
         Vec::new(),
     ))

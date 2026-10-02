@@ -23,10 +23,9 @@ pub(crate) struct CachedIntegrations {
     pub(crate) cached_at: Instant,
 }
 
-/// Process-wide cache for connected integrations, keyed by the config
-/// identity (the `config_path` string) so different user contexts don't
-/// collide. Each entry is populated on first fetch and returned on
-/// subsequent calls until explicitly invalidated or the process exits.
+/// Process-wide cache for connected integrations, keyed by the Composio
+/// credential identity ([`cache_key`]) so two agents on different
+/// credentials never read each other's connections.
 pub(crate) static INTEGRATIONS_CACHE: LazyLock<RwLock<HashMap<String, CachedIntegrations>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
@@ -47,14 +46,10 @@ pub(crate) fn composio_cache_test_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|e| e.into_inner())
 }
 
-/// Bind a cached integration list to the effective backend credential and
-/// endpoint as well as the local config. The digest keeps secrets out of the
-/// cache key and logs while preventing an old identity's cache hit during a
-/// credential rotation, even before invalidation completes.
+/// Bind a cached integration list to its backend endpoint, backend credential,
+/// and effective Composio credential identity. Digests keep secrets out of
+/// cache keys and logs while preventing cross-agent cache hits after rotation.
 pub(crate) fn cache_key(config: &Config) -> String {
-    // Match `IntegrationClient::new_inner`: the cache must follow the same
-    // control-plane origin after the transport applies its configured/default
-    // backend resolution and inference-path normalization.
     let backend_url = crate::backend::base_url(&config.api_url)
         .map(|url| crate::util::url::normalize_backend_api_base_url(&url))
         .unwrap_or_default();
@@ -63,7 +58,7 @@ pub(crate) fn cache_key(config: &Config) -> String {
 
 fn cache_key_with_backend_url(config: &Config, backend_url: &str) -> String {
     let mut digest = Sha256::new();
-    digest.update(b"openhuman-integrations-cache-v2\0");
+    digest.update(b"openhuman-integrations-cache-v3\0");
     digest.update(config.config_path.to_string_lossy().as_bytes());
     digest.update(b"\0");
     digest.update(backend_url.as_bytes());
@@ -79,7 +74,38 @@ fn cache_key_with_backend_url(config: &Config, backend_url: &str) -> String {
         }
         Err(_) => digest.update(b"unavailable"),
     }
-    hex::encode(digest.finalize())
+    digest.update(b"\0composio\0");
+    let composio = &config.composio;
+    digest.update(composio.mode.trim().as_bytes());
+    digest.update(b"\0");
+    digest.update(composio.entity_id.trim().as_bytes());
+    digest.update(b"\0");
+    if let Some(host) = composio.host_credential.as_ref() {
+        digest.update(host.api_key().as_bytes());
+        digest.update(b"\0");
+        digest.update(host.entity().as_bytes());
+        if let Some(urls) = host.direct_base_urls() {
+            digest.update(urls.v2.as_bytes());
+            digest.update(b"\0");
+            digest.update(urls.v3.as_bytes());
+        }
+    } else {
+        let inline_key = composio
+            .api_key
+            .as_deref()
+            .map(str::trim)
+            .filter(|key| !key.is_empty());
+        if composio.mode.trim() == crate::config::schema::COMPOSIO_MODE_DIRECT {
+            if let Ok(Some(stored)) = crate::security::credentials::get_composio_api_key(config) {
+                digest.update(stored.as_bytes());
+            } else if let Some(key) = inline_key {
+                digest.update(key.as_bytes());
+            }
+        } else if let Some(key) = inline_key {
+            digest.update(key.as_bytes());
+        }
+    }
+    format!("composio:{}", hex::encode(digest.finalize()))
 }
 
 /// Clear cached connected integrations so the next call to

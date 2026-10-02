@@ -3,7 +3,7 @@ use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::fork_context::{with_parent_context, ParentExecutionContext};
 use crate::agent::prompts::ToolCallFormat;
 use crate::config::AgentConfig;
-use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
+use crate::memory::test_support::NoopMemory;
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
@@ -32,9 +32,13 @@ fn parameters_schema_advertises_fire_and_forget_fields() {
         .get("properties")
         .and_then(|v| v.as_object())
         .expect("properties");
-    for key in ["context", "model", "toolkit", "task_title"] {
+    for key in ["context", "model", "task_title"] {
         assert!(props.contains_key(key), "missing {key}");
     }
+    assert!(
+        !props.contains_key("toolkit"),
+        "the retired toolkit spawn argument must not be advertised"
+    );
 }
 
 #[test]
@@ -259,14 +263,16 @@ fn reusable_follow_up_message_preserves_context() {
 #[test]
 fn extract_workflow_proposal_finds_last_proposal_tool_result() {
     let history = vec![
-        ChatMessage::user("build me a workflow"),
-        ChatMessage::tool(r#"{"type":"something_else","x":1}"#),
-        ChatMessage::tool(r#"{"type":"workflow_proposal","persisted":false,"name":"Old Draft"}"#),
-        ChatMessage::assistant("revising…"),
-        ChatMessage::tool(
+        TranscriptMessage::user("build me a workflow"),
+        TranscriptMessage::tool(r#"{"type":"something_else","x":1}"#),
+        TranscriptMessage::tool(
+            r#"{"type":"workflow_proposal","persisted":false,"name":"Old Draft"}"#,
+        ),
+        TranscriptMessage::assistant("revising…"),
+        TranscriptMessage::tool(
             r#"{"type":"workflow_proposal","persisted":false,"name":"Daily X Trending Email"}"#,
         ),
-        ChatMessage::assistant("Here's the proposed workflow."),
+        TranscriptMessage::assistant("Here's the proposed workflow."),
     ];
     let proposal = extract_workflow_proposal_from_history(&history).expect("proposal extracted");
     // The LAST proposal wins — later revisions supersede earlier drafts.
@@ -276,9 +282,9 @@ fn extract_workflow_proposal_finds_last_proposal_tool_result() {
 #[test]
 fn extract_workflow_proposal_ignores_non_proposal_history() {
     let history = vec![
-        ChatMessage::user("hello"),
-        ChatMessage::tool("plain text tool output, not json"),
-        ChatMessage::assistant("done"),
+        TranscriptMessage::user("hello"),
+        TranscriptMessage::tool("plain text tool output, not json"),
+        TranscriptMessage::assistant("done"),
     ];
     assert!(extract_workflow_proposal_from_history(&history).is_none());
 }
@@ -300,7 +306,7 @@ fn attach_workflow_proposal_persists_thread_message_and_extends_summary() {
     )
     .expect("thread created");
 
-    let history = vec![ChatMessage::tool(
+    let history = vec![TranscriptMessage::tool(
         r#"{"type":"workflow_proposal","persisted":false,"name":"Daily X Trending Email","graph":{"nodes":[],"edges":[]}}"#,
     )];
     let summary = attach_workflow_proposal(
@@ -344,7 +350,7 @@ fn attach_workflow_proposal_without_proposal_returns_summary_unchanged() {
         Some("thread-x"),
         "sub-task-2",
         "task_manager_agent",
-        &[ChatMessage::tool("no proposal here")],
+        &[TranscriptMessage::tool("no proposal here")],
         "research done".to_string(),
     );
     assert_eq!(summary, "research done");
@@ -369,7 +375,7 @@ async fn missing_prompt_returns_error() {
     assert!(result.output().contains("prompt"));
 }
 
-/// B40 / Gap 4: a delegating agent (orchestrator/subconscious) calling
+/// B40 / Gap 4: a delegating agent (e.g. the orchestrator) calling
 /// `spawn_async_subagent` directly from a thread-less context (flow
 /// `agent` node, CLI, cron) must get a clear, actionable error instead of
 /// silently accepting the spawn and later dropping its result in
@@ -481,60 +487,23 @@ fn parent_context(workspace_dir: &Path) -> ParentExecutionContext {
     }
 }
 
-struct NoopMemory;
-
-#[async_trait::async_trait]
-impl Memory for NoopMemory {
-    fn name(&self) -> &str {
-        "noop"
-    }
-
-    async fn store(
-        &self,
-        _namespace: &str,
-        _key: &str,
-        _content: &str,
-        _category: MemoryCategory,
-        _session_id: Option<&str>,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    async fn recall(
-        &self,
-        _query: &str,
-        _limit: usize,
-        _opts: RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn get(&self, _namespace: &str, _key: &str) -> anyhow::Result<Option<MemoryEntry>> {
-        Ok(None)
-    }
-
-    async fn list(
-        &self,
-        _namespace: Option<&str>,
-        _category: Option<&MemoryCategory>,
-        _session_id: Option<&str>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn forget(&self, _namespace: &str, _key: &str) -> anyhow::Result<bool> {
-        Ok(false)
-    }
-
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(0)
-    }
-
-    async fn health_check(&self) -> bool {
-        true
-    }
+/// The session builder swaps in a scoped instance so the WIRE schema (read
+/// from the registered tool on native tool calling) carries only the ids the
+/// parent may dispatch, sorted and deduplicated, and says so.
+#[test]
+fn scoped_instance_advertises_exactly_the_allowlist() {
+    let tool = SpawnAsyncSubagentTool::scoped(vec![
+        "workflow_builder".to_string(),
+        "agent_memory".to_string(),
+        "workflow_builder".to_string(),
+    ]);
+    let schema = tool.parameters_schema();
+    assert_eq!(
+        schema["properties"]["agent_id"]["enum"],
+        serde_json::json!(["agent_memory", "workflow_builder"])
+    );
+    assert!(schema["properties"]["agent_id"]["description"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("only these are dispatchable"));
 }

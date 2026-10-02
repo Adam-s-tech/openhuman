@@ -4,14 +4,14 @@
 use std::collections::BTreeMap;
 
 use crate::agent::progress::AgentProgress;
-use crate::agent::progress_tracing::serialize::{
+use tinyagents_harness::observability::trace_export::serialize::{
     json_f64, json_str, json_u32, json_u64, json_usize, status_of, truncate_chars,
     MAX_ERROR_MESSAGE_CHARS, MAX_MODEL_CONTENT_CHARS,
 };
-use crate::agent::progress_tracing::types::SpanKind;
+use tinyagents_harness::observability::trace_export::SpanKind;
 
 use super::state::{SpanCollector, SubagentState};
-use crate::agent::progress_tracing::types::SpanStatus;
+use tinyagents_harness::observability::trace_export::SpanStatus;
 
 impl SpanCollector {
     /// Fold a single progress event into the span tree, stamped at
@@ -27,6 +27,7 @@ impl SpanCollector {
                 max_iterations,
             } => {
                 self.close_current_iteration(now_unix_ms);
+                self.first_deltas = Default::default();
                 let parent = self.ensure_turn_span(now_unix_ms);
                 let mut attrs = BTreeMap::new();
                 attrs.insert("agent.iteration".to_string(), json_u32(*iteration));
@@ -195,6 +196,7 @@ impl SpanCollector {
                         span_index: index,
                         current_iteration_span_id: None,
                         open_tools: BTreeMap::new(),
+                        first_deltas: Default::default(),
                     },
                 );
             }
@@ -239,6 +241,7 @@ impl SpanCollector {
                 );
                 if let Some(state) = self.subagents.get_mut(task_id) {
                     state.current_iteration_span_id = Some(id);
+                    state.first_deltas = Default::default();
                 }
             }
 
@@ -459,12 +462,23 @@ impl SpanCollector {
 
             // Content-bearing / streaming events carry prompt text, tool
             // arguments, or model output — never exported (privacy rule).
-            AgentProgress::TextDelta { .. }
-            | AgentProgress::ThinkingDelta { .. }
-            | AgentProgress::ToolCallArgsDelta { .. }
-            | AgentProgress::SubagentTextDelta { .. }
-            | AgentProgress::SubagentThinkingDelta { .. }
-            | AgentProgress::SubagentAwaitingUser { .. } => {}
+            // Only *when* the first one arrived is kept, for time to first
+            // token on the generation span.
+            AgentProgress::TextDelta { .. } => self.first_deltas.observe(now_unix_ms, true),
+            AgentProgress::ThinkingDelta { .. } | AgentProgress::ToolCallArgsDelta { .. } => {
+                self.first_deltas.observe(now_unix_ms, false)
+            }
+            AgentProgress::SubagentTextDelta { task_id, .. } => {
+                if let Some(state) = self.subagents.get_mut(task_id) {
+                    state.first_deltas.observe(now_unix_ms, true);
+                }
+            }
+            AgentProgress::SubagentThinkingDelta { task_id, .. } => {
+                if let Some(state) = self.subagents.get_mut(task_id) {
+                    state.first_deltas.observe(now_unix_ms, false);
+                }
+            }
+            AgentProgress::SubagentAwaitingUser { .. } => {}
         }
     }
 

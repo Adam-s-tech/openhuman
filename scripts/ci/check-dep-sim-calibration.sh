@@ -36,7 +36,10 @@
 # 270 -> 271 on 2026-09-18: `tinytools-agent` becomes the shared
 # provider-neutral tool-call protocol crate; it adds one Rust crate
 # and no native build dependency.
-# See the kernel-floor history for why these raises are justified. The current
+# 286 -> 283 on 2026-09-29: the merged dependency graph now resolves three
+# fewer unique crate names in the flows profile; keep calibration aligned
+# with the lowered kernel floor.
+# See the kernel-floor history for prior raises. The current
 # macOS graph resolves three more names than CI Linux; this calibrates against
 # the Linux target used by CI.
 #
@@ -57,11 +60,27 @@
 # 280 -> 282 on 2026-09-25: TinyChannels 0.1.3 resolves HMAC 0.13 and
 # activates digest 0.11's ctutils/cmov tail, adding two names but no native
 # build dependency. See the matching kernel-floor history entry.
+# 286 -> 283 on 2026-09-29: the updated locked dependency graph resolves
+# three fewer unique names in the Linux flows profile; no native build
+# dependencies changed. See kernel-floor.limits.
 # 285 -> 286 on 2026-09-27: multi-provider search uses the required
 # tinysearch-bus contract in always-on config and policy code; one name,
 # no native dependency. See kernel-floor.limits.
+# 286 -> 283 on 2026-09-29: current vendored dependency resolution sheds
+# three package names without changing the native build dependency count.
 # 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
 # tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
+# 286 -> 283 on 2026-09-29: the current flows graph sheds three resolved
+# packages and crate names without changing native builds. See kernel-floor.limits.
+# 283 -> 282 on 2026-09-29: the JSON-RPC split removes openhuman-rpc from the
+# core graph after the TinyMCP v0.3.5 update; native count remains 2.
+# 282 -> 283 on 2026-09-30: TinyChannels supplies the always-on CLI channel
+# and shared runtime helpers through `tinychannels-runtime`; the required
+# workspace package adds one name, no dependency tail or native build. See PR #6782.
+# 299 -> 304 on 2026-10-01: the current merged upstream module pins resolve
+# five additional crate names in the flows profile. The measured graph has 321
+# packages / 304 names and still 2 native builds; the kernel-floor history
+# records the upstream update and its measured increase.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
@@ -69,6 +88,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-EXPECTED_NAMES=286
+EXPECTED_NAMES=304
 
 exec python3 scripts/dep-sim.py --cut-nothing --expect-names "${EXPECTED_NAMES}"

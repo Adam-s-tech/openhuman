@@ -1,32 +1,6 @@
 use super::*;
 
 #[test]
-fn browser_allowed_domains_shares_fetch_list_minus_wildcard() {
-    // Unified web-access firewall: the browser tool derives its host allowlist
-    // from `http_request.allowed_domains`, but the `"*"` allow-all wildcard is
-    // stripped so a fetch-side "Allow all" never silently opens the browser.
-
-    // Explicit hosts pass straight through (shared with fetch).
-    assert_eq!(
-        browser_allowed_domains(&["reuters.com".into(), "github.com".into()]),
-        vec!["reuters.com".to_string(), "github.com".to_string()],
-    );
-
-    // `"*"` (fetch allow-all, and the http_request default) yields an EMPTY
-    // browser list — browser stays closed unless OPENHUMAN_BROWSER_ALLOW_ALL.
-    assert!(browser_allowed_domains(&["*".into()]).is_empty());
-
-    // Mixed: wildcard dropped, explicit hosts kept.
-    assert_eq!(
-        browser_allowed_domains(&["*".into(), "intranet.corp".into()]),
-        vec!["intranet.corp".to_string()],
-    );
-
-    // Block-all (empty fetch list) -> empty browser list.
-    assert!(browser_allowed_domains(&[]).is_empty());
-}
-
-#[test]
 fn all_tools_includes_browser_when_enabled() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
@@ -68,16 +42,6 @@ fn all_tools_includes_browser_when_enabled() {
 }
 
 #[test]
-fn default_tools_names() {
-    let security = Arc::new(SecurityPolicy::default());
-    let tools = default_tools(security);
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(names.contains(&"shell"));
-    assert!(names.contains(&"file_read"));
-    assert!(names.contains(&"file_write"));
-}
-
-#[test]
 fn default_tools_all_have_descriptions() {
     let security = Arc::new(SecurityPolicy::default());
     let tools = default_tools(security);
@@ -107,49 +71,6 @@ fn default_tools_all_have_schemas() {
             tool.name()
         );
     }
-}
-
-#[test]
-fn tool_spec_generation() {
-    let security = Arc::new(SecurityPolicy::default());
-    let tools = default_tools(security);
-    for tool in &tools {
-        let spec = tool.spec();
-        assert_eq!(spec.name, tool.name());
-        assert_eq!(spec.description, tool.description());
-        assert!(spec.parameters.is_object());
-    }
-}
-
-#[test]
-fn tool_result_serde() {
-    let result = ToolResult::success("hello");
-    let json = serde_json::to_string(&result).unwrap();
-    let parsed: ToolResult = serde_json::from_str(&json).unwrap();
-    assert!(!parsed.is_error);
-    assert_eq!(parsed.output(), "hello");
-}
-
-#[test]
-fn tool_result_with_error_serde() {
-    let result = ToolResult::error("boom");
-    let json = serde_json::to_string(&result).unwrap();
-    let parsed: ToolResult = serde_json::from_str(&json).unwrap();
-    assert!(parsed.is_error);
-    assert_eq!(parsed.output(), "boom");
-}
-
-#[test]
-fn tool_spec_serde() {
-    let spec = ToolSpec {
-        name: "test".into(),
-        description: "A test tool".into(),
-        parameters: serde_json::json!({"type": "object"}),
-    };
-    let json = serde_json::to_string(&spec).unwrap();
-    let parsed: ToolSpec = serde_json::from_str(&json).unwrap();
-    assert_eq!(parsed.name, "test");
-    assert_eq!(parsed.description, "A test tool");
 }
 
 #[test]

@@ -126,21 +126,6 @@ pub enum DomainEvent {
         orchestration_id: String,
         reason: Option<String>,
     },
-    // ── Subconscious orchestrator ───────────────────────────────────────
-    /// A subconscious trigger finished gate evaluation (promote or drop).
-    /// Observability only — lets dashboards see ingestion volume and the
-    /// gate's promote/drop ratio without reading logs.
-    SubconsciousTriggerProcessed {
-        /// Trigger source family (`cron` / `user_message` / …).
-        source: String,
-        /// Gate decision (`promote` / `drop`).
-        decision: String,
-        /// Whether the trigger was promoted into the long-lived session.
-        promoted: bool,
-        /// Gate evaluation latency in milliseconds.
-        latency_ms: u64,
-    },
-
     // ── Run Queue ──────────────────────────────────────────────────────
     /// A message was queued into the active-run queue instead of interrupting.
     RunQueueMessageQueued {
@@ -284,6 +269,17 @@ pub enum DomainEvent {
         bound_driver: String,
         /// Why the configured driver was refused.
         reason: String,
+    },
+    /// The user switched the memory engine (`memory.engine_set` /
+    /// `memory.engine_migrate`) and the binding was rebound in process.
+    ///
+    /// Carries driver ids only — never an endpoint, credential or reference,
+    /// same rule as [`Self::MemoryDriverBindFailed`].
+    MemoryDriverChanged {
+        /// The driver id that was active before the switch.
+        from: String,
+        /// The driver id that is configured now.
+        to: String,
     },
     /// The memory policy guard refused a call before it reached the bound
     /// driver (`docs/specs/kernel.md` §3.4).
@@ -697,7 +693,7 @@ pub enum DomainEvent {
     /// (`web_chat::event_bus::ApprovalSurfaceSubscriber`)
     /// silently drops it (that gap was the original silent-deadlock bug).
     /// Published by `ApprovalGate::intercept_audited` alongside the existing
-    /// `ApprovalRequested`, bridged by `core::socketio` directly to a
+    /// `ApprovalRequested`, bridged by `openhuman_rpc::server::socketio` directly to a
     /// broadcast (not per-room) `flow_approval_request` Socket.IO event so
     /// the Workflows UI can surface and resolve the park without polling.
     FlowApprovalRequested {
@@ -826,8 +822,8 @@ pub enum DomainEvent {
         /// relative and would otherwise resolve into the wrong
         /// `<workspace>/artifacts/` tree.
         workspace_dir: String,
-        /// Relative path under `<workspace>/artifacts/`, e.g.
-        /// `"<uuid>/deck.pptx"`. The absolute path is reachable via
+        /// File name relative to its root (`"deck.pptx"` in the files folder,
+        /// legacy `"<uuid>/deck.pptx"`); the absolute path is reachable via
         /// `ai_get_artifact` so the renderer never needs the
         /// workspace root.
         path: String,
@@ -892,8 +888,8 @@ pub enum DomainEvent {
         /// Absolute workspace root the artifact belongs to — see
         /// [`Self::ArtifactReady::workspace_dir`] for rationale.
         workspace_dir: String,
-        /// Relative path under `<workspace>/artifacts/` where the file
-        /// *will* land. The frontend uses it to render a stable card key
+        /// The name, relative to the visible files folder (#5505), the file
+        /// *will* land under. The frontend uses it to render a stable card key
         /// so subsequent `ArtifactReady` can swap the same surface in
         /// place without flicker.
         path: String,
@@ -1545,6 +1541,7 @@ impl DomainEvent {
             | Self::MemoryStored { .. }
             | Self::MemoryRecalled { .. }
             | Self::MemoryDriverBindFailed { .. }
+            | Self::MemoryDriverChanged { .. }
             | Self::MemoryGuardDenied { .. }
             | Self::MemorySyncRequested { .. }
             | Self::MemorySyncStageChanged { .. }
@@ -1644,8 +1641,6 @@ impl DomainEvent {
             | Self::ThreadTodosChanged { .. }
             | Self::ThreadRunModeChanged { .. } => "agent",
 
-            Self::SubconsciousTriggerProcessed { .. } => "subconscious",
-
             Self::Voice(_) => "voice",
 
             Self::ApprovalRequested { .. }
@@ -1689,7 +1684,6 @@ impl DomainEvent {
             Self::AgentOrchestrationCompleted { .. } => "AgentOrchestrationCompleted",
             Self::AgentOrchestrationFailed { .. } => "AgentOrchestrationFailed",
             Self::AgentOrchestrationClosed { .. } => "AgentOrchestrationClosed",
-            Self::SubconsciousTriggerProcessed { .. } => "SubconsciousTriggerProcessed",
             Self::RunQueueMessageQueued { .. } => "RunQueueMessageQueued",
             Self::RunQueueFollowupDispatched { .. } => "RunQueueFollowupDispatched",
             Self::RunQueueInterrupted { .. } => "RunQueueInterrupted",
@@ -1700,6 +1694,7 @@ impl DomainEvent {
             Self::MemoryStored { .. } => "MemoryStored",
             Self::MemoryRecalled { .. } => "MemoryRecalled",
             Self::MemoryDriverBindFailed { .. } => "MemoryDriverBindFailed",
+            Self::MemoryDriverChanged { .. } => "MemoryDriverChanged",
             Self::MemoryGuardDenied { .. } => "MemoryGuardDenied",
             Self::MemorySyncRequested { .. } => "MemorySyncRequested",
             Self::MemorySyncStageChanged { .. } => "MemorySyncStageChanged",

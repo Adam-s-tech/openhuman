@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::api::provider::ChunkQuery;
 use crate::memory::api::tree::{TreeLeaf, TreeSummary};
-use crate::rpc::RpcOutcome;
 
 // `MemoryGraph` in the contract is the key/value and relation tier, a different
 // graph from the one exported here: the summary forest and its leaf chunks,
@@ -76,12 +76,21 @@ pub struct GraphExportResponse {
 /// still the cut the UI sees.
 const CHUNK_LABEL_CHARS: usize = 72;
 
+/// Label cap for a summary node whose driver serves its text inline — hosted
+/// memory's concepts, beliefs and facts. The same cut as a chunk's, so the two
+/// read alike on the canvas.
+const SUMMARY_LABEL_CHARS: usize = CHUNK_LABEL_CHARS;
+
+/// The tree kind a hosted driver reports for the forest it draws from the
+/// server's own understanding.
+const HOSTED_TREE_KIND: &str = "understanding";
+
 // ── graph_export ────────────────────────────────────────────────────────
 
 pub async fn graph_export_rpc(
     config: &Config,
     mode: GraphMode,
-) -> Result<RpcOutcome<GraphExportResponse>, String> {
+) -> Result<Outcome<GraphExportResponse>, String> {
     log::debug!("[memory_tree::read::graph_export] mode={mode:?}");
 
     // No `spawn_blocking`: every read below is a driver call, the driver owns
@@ -107,7 +116,7 @@ pub async fn graph_export_rpc(
         resp.edges.len(),
         crate::util::redact::redact(&resp.content_root_abs),
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 // ── collect_tree_graph ───────────────────────────────────────────────────
@@ -172,6 +181,9 @@ async fn collect_tree_graph(cfg: &Config) -> Result<(Vec<GraphNode>, Vec<GraphEd
             "[memory_tree::read::graph_tree] leaves={} budget={chunk_budget}",
             leaves.len()
         );
+        let leaf_ids: std::collections::HashSet<String> =
+            leaves.iter().map(|leaf| leaf.chunk_id.clone()).collect();
+        nodes = drop_stand_ins(nodes, &leaf_ids);
         for leaf in leaves {
             let TreeLeaf {
                 chunk_id,
@@ -247,10 +259,18 @@ fn shape_summary_nodes(summaries: Vec<TreeSummary>, max_nodes: usize) -> Vec<Gra
                 child_ids,
                 time_range_start,
                 time_range_end,
+                preview,
             } = summary;
             let child_count = child_ids.len() as u32;
-            let file_basename = sanitize_basename(&id);
-            let label = format!("L{level} · {tree_scope}");
+            // A driver that serves a summary's text inline keeps no file for
+            // it: the text is the label, and the UI is given no path to open.
+            let (label, file_basename) = match preview.filter(|text| !text.trim().is_empty()) {
+                Some(text) => (text.chars().take(SUMMARY_LABEL_CHARS).collect(), None),
+                None => (
+                    format!("L{level} · {tree_scope}"),
+                    Some(sanitize_basename(&id)),
+                ),
+            };
             SummaryRow {
                 node: GraphNode {
                     kind: "summary".into(),
@@ -266,7 +286,7 @@ fn shape_summary_nodes(summaries: Vec<TreeSummary>, max_nodes: usize) -> Vec<Gra
                     child_count: Some(child_count),
                     time_range_start_ms: Some(time_range_start.timestamp_millis()),
                     time_range_end_ms: Some(time_range_end.timestamp_millis()),
-                    file_basename: Some(file_basename),
+                    file_basename,
                     entity_kind: None,
                 },
                 tree_scope,
@@ -275,18 +295,23 @@ fn shape_summary_nodes(summaries: Vec<TreeSummary>, max_nodes: usize) -> Vec<Gra
         })
         .collect();
 
-    let mut scopes: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    // Scope to the kind of tree that occupies it. A hosted driver's trees are
+    // its namespaces and read as what they hold; every other driver's scope is
+    // shown as it names itself.
+    let mut scopes: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
     for sr in &summary_rows {
-        scopes.insert(sr.tree_scope.clone());
+        scopes
+            .entry(sr.tree_scope.clone())
+            .or_insert_with(|| sr.node.tree_kind.clone().unwrap_or_default());
     }
 
     let mut nodes: Vec<GraphNode> = Vec::new();
     let mut source_root_ids: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
 
-    for scope in &scopes {
+    for (scope, tree_kind) in &scopes {
         let root_id = format!("source:{scope}");
-        let label = scope_display_label(scope);
+        let label = scope_display_label(scope, tree_kind);
         source_root_ids.insert(scope.clone(), root_id.clone());
         nodes.push(GraphNode {
             kind: "source".into(),
@@ -367,7 +392,46 @@ fn shape_summary_nodes(summaries: Vec<TreeSummary>, max_nodes: usize) -> Vec<Gra
     nodes
 }
 
-fn scope_display_label(scope: &str) -> String {
+/// Drops the document leaves that stand in for children the leaf listing
+/// then returned as leaves of their own.
+///
+/// A document leaf is drawn for each child of an L1 summary so a child the
+/// listing never returns still shows. One the listing does return would be
+/// drawn twice — once as the stand-in, once as itself — so its stand-in goes.
+pub(super) fn drop_stand_ins(
+    nodes: Vec<GraphNode>,
+    leaf_ids: &std::collections::HashSet<String>,
+) -> Vec<GraphNode> {
+    nodes
+        .into_iter()
+        .filter(|node| {
+            let stands_in_for = node.tree_scope.as_deref().and_then(|scope| {
+                node.id
+                    .strip_prefix("doc:")
+                    .and_then(|rest| rest.strip_prefix(scope))
+                    .and_then(|rest| rest.strip_prefix(':'))
+            });
+            !(node.kind == "chunk" && stands_in_for.is_some_and(|child| leaf_ids.contains(child)))
+        })
+        .collect()
+}
+
+/// The name a source root carries: a hosted driver's namespaces read as what
+/// they hold, and every other scope reads as it names itself.
+///
+/// `tree_kind` is what keeps the two apart. The embedded engine has a `global`
+/// tree of its own, whose scope is the literal `global`, so matching on the
+/// scope alone would rename a node that has nothing to do with hosted memory.
+pub(super) fn scope_display_label(scope: &str, tree_kind: &str) -> String {
+    if tree_kind == HOSTED_TREE_KIND {
+        match scope {
+            "global" => return "Memory".to_string(),
+            "sources/chat" => return "Chat".to_string(),
+            "sources/email" => return "Email".to_string(),
+            "sources/documents" => return "Documents".to_string(),
+            _ => {}
+        }
+    }
     if scope.starts_with("github:") {
         let repo = scope.strip_prefix("github:").unwrap_or(scope);
         format!("GitHub · {repo}")
@@ -395,16 +459,6 @@ fn document_label(child_id: &str) -> String {
         format!("PR #{n}")
     } else {
         child_id.chars().take(40).collect()
-    }
-}
-
-#[allow(dead_code)]
-pub(super) fn source_id_to_scope(source_id: &str) -> String {
-    let parts: Vec<&str> = source_id.splitn(3, ':').collect();
-    if parts.len() >= 2 {
-        format!("{}:{}", parts[0], parts[1])
-    } else {
-        source_id.to_string()
     }
 }
 

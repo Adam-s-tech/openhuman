@@ -235,27 +235,3 @@ pub async fn apply_all_in() -> Result<Vec<MemorySourceEntry>, String> {
         .apply_all_in()
         .map_err(|error| error.to_string())
 }
-
-/// Decode the source registry a host config carries.
-///
-/// The registry crosses the memory host seam as JSON, so this is where it
-/// becomes typed again.
-///
-/// A malformed or absent registry yields an empty list rather than an error.
-/// Every caller is a background loop deciding what to sync, and "nothing is
-/// registered" is the fail-closed answer there; propagating would take the loop
-/// down over one bad row.
-#[must_use]
-pub fn decode_memory_sources(config: &Config) -> Vec<MemorySourceEntry> {
-    use tinymemory_api::host::MemoryHostConfig as _;
-    match config.memory_sources_json() {
-        Ok(value) => serde_json::from_value(value).unwrap_or_else(|e| {
-            log::warn!("[memory_sources:registry] could not decode memory sources: {e:#}");
-            Vec::new()
-        }),
-        Err(e) => {
-            log::warn!("[memory_sources:registry] could not read memory sources: {e:#}");
-            Vec::new()
-        }
-    }
-}

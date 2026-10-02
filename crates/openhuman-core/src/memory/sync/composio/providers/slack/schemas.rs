@@ -16,15 +16,10 @@ use serde_json::{Map, Value};
 use super::rpc as slack_rpc;
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 
 const NAMESPACE: &str = "slack_memory";
-
-/// Returns every schema published by the Slack-ingestion namespace.
-pub fn all_slack_memory_controller_schemas() -> Vec<ControllerSchema> {
-    vec![schemas("sync_trigger"), schemas("sync_status")]
-}
 
 /// Returns every controller (schema + handler pair) for the Slack-ingestion namespace.
 pub fn all_slack_memory_registered_controllers() -> Vec<RegisteredController> {
@@ -129,6 +124,6 @@ fn parse_value<T: DeserializeOwned>(v: Value) -> Result<T, String> {
     serde_json::from_value(v).map_err(|e| format!("invalid params: {e}"))
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

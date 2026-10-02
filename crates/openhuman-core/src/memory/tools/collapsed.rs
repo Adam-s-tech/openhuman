@@ -24,7 +24,7 @@
 //! `permission_level_with_args` resolves the member's own level from the
 //! action; the argument-free `permission_level` reports the strictest any
 //! member requires, so an argument-less caller over-restricts rather than
-//! under-. See `tools::implementations::meta::collapse`.
+//! under-. See `tinytools::collapse`.
 //!
 //! **Pre-existing, and left alone:** this family declares one level between
 //! them. Neither `memory_store` nor `memory_forget` overrides
@@ -49,7 +49,7 @@ use super::search::{MemoryChunkContextTool, MemoryHybridSearchTool, MemoryVector
 use super::store::MemoryStoreTool;
 use crate::config::Config;
 use crate::security::policy::SecurityPolicy;
-use crate::tools::implementations::meta::collapse::{
+use tinytools::collapse::{
     any_external_effect, args_without_action, merge_action_schemas, resolve, strictest_permission,
     unknown_action_message, CollapsedAction,
 };
@@ -83,12 +83,12 @@ impl MemoryTool {
             forget: MemoryForgetTool::new(security),
             doctor: MemoryDoctorTool::new(Arc::clone(&config)),
             flavour: MemoryFlavourTool::new(config),
-            hybrid_search: MemoryHybridSearchTool,
-            vector_search: MemoryVectorSearchTool,
-            chunk_context: MemoryChunkContextTool,
-            raw_search: MemoryStoreRawSearchTool,
-            raw_chunks: MemoryStoreRawChunksTool,
-            kinds: MemoryStoreKindsTool,
+            hybrid_search: MemoryHybridSearchTool::default(),
+            vector_search: MemoryVectorSearchTool::default(),
+            chunk_context: MemoryChunkContextTool::default(),
+            raw_search: MemoryStoreRawSearchTool::default(),
+            raw_chunks: MemoryStoreRawChunksTool::default(),
+            kinds: MemoryStoreKindsTool::default(),
         }
     }
 

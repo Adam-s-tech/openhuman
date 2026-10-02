@@ -77,7 +77,7 @@ pub struct CoreProcessHandle {
     /// Bearer token the embedded server validates on every inbound request.
     ///
     /// Handed to the embedded server **in-memory** (via the `rpc_token`
-    /// argument of [`openhuman_core::core::jsonrpc::run_server_embedded_with_ready`])
+    /// argument of [`openhuman_rpc::server::run_server_embedded_with_ready`])
     /// rather than through `OPENHUMAN_CORE_TOKEN` on the process environment.
     /// Avoiding the env crossing keeps the bearer off `/proc/<pid>/environ`
     /// (Linux) and out of `sysctl KERN_PROCARGS2` / `ps eww -p <pid>` (macOS)
@@ -223,9 +223,8 @@ impl CoreProcessHandle {
         for startup_attempt in 0..=1u8 {
             let mut retry_after_takeover = false;
             let shutdown_token = self.fresh_shutdown_token().await;
-            let (ready_tx, mut ready_rx) = tokio::sync::oneshot::channel::<
-                openhuman_core::core::jsonrpc::EmbeddedReadySignal,
-            >();
+            let (ready_tx, mut ready_rx) =
+                tokio::sync::oneshot::channel::<openhuman_rpc::server::EmbeddedReadySignal>();
             let mut received_ready = false;
 
             {
@@ -292,7 +291,7 @@ impl CoreProcessHandle {
                         "[core] spawning embedded in-process core server on preferred port {port}"
                     );
                     let task = tokio::spawn(async move {
-                        openhuman_core::core::jsonrpc::run_server_embedded_with_ready(
+                        openhuman_rpc::server::run_server_embedded_with_ready(
                             None,
                             Some(port),
                             true,
@@ -462,7 +461,7 @@ impl CoreProcessHandle {
 
     pub(crate) fn apply_embedded_ready_signal(
         &self,
-        ready: openhuman_core::core::jsonrpc::EmbeddedReadySignal,
+        ready: openhuman_rpc::server::EmbeddedReadySignal,
     ) {
         *self.active_port.write() = ready.port;
         std::env::set_var("OPENHUMAN_CORE_RPC_URL", self.rpc_url());
@@ -704,12 +703,13 @@ impl CoreProcessHandle {
     ///
     /// The moment is sized from what that teardown is allowed to take, so the
     /// abort below never lands in the middle of it: the memory exit budget
-    /// (`EXIT_BUDGET`, every driver and the hook registry on one deadline),
-    /// the ollama cleanup after it in `serve_http` (2 s), and half a second
-    /// for the drain itself. Typical quits finish in milliseconds; the budget
-    /// is only what a wedged store or daemon may cost.
+    /// (`EXIT_BUDGET`, every driver and the hook registry on one deadline)
+    /// plus half a second for the drain itself. There is no local-runtime
+    /// cleanup after it: OpenHuman never spawns Ollama / LM Studio / MLX.
+    /// Typical quits finish in milliseconds; the budget is only what a wedged
+    /// store may cost.
     async fn drain_task_briefly(&self) {
-        const AFTER_MEMORY: Duration = Duration::from_millis(2_500);
+        const AFTER_MEMORY: Duration = Duration::from_millis(500);
         let budget = openhuman_core::memory::exit::EXIT_BUDGET + AFTER_MEMORY;
         let mut task_guard = self.task.lock().await;
         let Some(task) = task_guard.as_mut() else {

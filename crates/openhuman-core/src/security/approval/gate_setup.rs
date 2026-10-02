@@ -107,9 +107,8 @@ impl ApprovalGate {
     /// fallback pattern so a toggle made this session (config save + live
     /// policy reload) takes effect on the very next tool call.
     ///
-    /// Callers MUST still exclude `TrustedAutomationSource::SubconsciousTainted`
-    /// and `AgentTurnOrigin::Unknown` before trusting this flag — see the
-    /// `matches!` guard at the call site below. This method only reports the
+    /// Callers MUST still exclude `AgentTurnOrigin::Unknown` before trusting
+    /// this flag — see the `matches!` guard at the call site below. This method only reports the
     /// user's setting; it does not know about origin.
     fn is_auto_approve_all_enabled(&self) -> bool {
         if let Some(policy) = crate::security::live_policy::current() {

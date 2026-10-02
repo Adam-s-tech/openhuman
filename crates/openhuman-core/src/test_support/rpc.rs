@@ -14,9 +14,9 @@ use serde_json::json;
 
 use crate::config::Config;
 use crate::config::{clear_active_user, default_root_openhuman_dir};
+use crate::core::Outcome;
 use crate::cron;
 use crate::memory::read_rpc;
-use crate::rpc::RpcOutcome;
 
 const E2E_MODE_ENV_VAR: &str = "OPENHUMAN_E2E_MODE";
 
@@ -57,7 +57,7 @@ fn ensure_e2e_mode_value(raw: Option<&str>) -> Result<(), String> {
 /// Errors at any individual wipe step short-circuit and surface back to the
 /// caller — partial resets are worse than a clear failure, because they let
 /// downstream tests pass on contaminated state.
-pub async fn reset() -> Result<RpcOutcome<ResetSummary>, String> {
+pub async fn reset() -> Result<Outcome<ResetSummary>, String> {
     log::debug!("[test_reset] entry");
     ensure_e2e_mode_enabled().map_err(|e| {
         log::debug!("[test_reset] rejected: {e}");
@@ -131,7 +131,7 @@ pub async fn reset() -> Result<RpcOutcome<ResetSummary>, String> {
         serde_json::to_string(&summary).unwrap_or_default()
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         summary,
         vec![
             format!("removed {cron_jobs_removed} cron jobs"),
@@ -153,20 +153,6 @@ async fn wipe_memory_tree(config: &Config) -> Result<MemoryTreeResetSummary, Str
         dirs_removed: value.dirs_removed,
         sync_state_cleared: value.sync_state_cleared,
     })
-}
-
-/// Convenience helper for handlers that prefer a raw JSON envelope.
-#[allow(dead_code)]
-pub async fn reset_json() -> Result<serde_json::Value, String> {
-    let outcome = reset().await?;
-    Ok(json!({
-        "removed_cron_jobs": outcome.value.cron_jobs_removed,
-        "memory_tree_rows_deleted": outcome.value.memory_tree_rows_deleted,
-        "memory_tree_dirs_removed": outcome.value.memory_tree_dirs_removed,
-        "memory_tree_sync_state_cleared": outcome.value.memory_tree_sync_state_cleared,
-        "previously_onboarded": outcome.value.onboarding_was_completed,
-        "previously_authenticated": outcome.value.api_key_was_set,
-    }))
 }
 
 #[cfg(test)]

@@ -4,21 +4,18 @@
 //! end-to-end without a SQLite/vector backend.
 
 use super::*;
-use crate::agent::messages::ChatMessage;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use async_trait::async_trait;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::{SessionTranscript, TranscriptMeta};
 
 fn durable_messages(
-    messages: impl IntoIterator<Item = ChatMessage>,
+    messages: impl IntoIterator<Item = TranscriptMessage>,
 ) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
-    messages
-        .into_iter()
-        .map(|message| crate::agent::messages::transcript_message_from_chat(&message))
-        .collect()
+    messages.into_iter().collect()
 }
 
 /// Tiny in-memory `Memory` implementation good enough to drive the
@@ -206,10 +203,12 @@ async fn ingest_extracts_high_importance_preference_with_provenance() {
         tools: None,
         meta: fake_meta(Some("thr_alpha")),
         messages: durable_messages([
-            ChatMessage::user("hi"),
-            ChatMessage::assistant("hello"),
-            ChatMessage::user("I prefer Postgres over MySQL for any new metadata service we ship."),
-            ChatMessage::user("Still need to migrate the auth service before Friday."),
+            TranscriptMessage::user("hi"),
+            TranscriptMessage::assistant("hello"),
+            TranscriptMessage::user(
+                "I prefer Postgres over MySQL for any new metadata service we ship.",
+            ),
+            TranscriptMessage::user("Still need to migrate the auth service before Friday."),
         ]),
     };
 
@@ -240,7 +239,7 @@ async fn re_ingest_is_idempotent() {
     let transcript = SessionTranscript {
         tools: None,
         meta: fake_meta(Some("thr_beta")),
-        messages: durable_messages([ChatMessage::user(
+        messages: durable_messages([TranscriptMessage::user(
             "I prefer Postgres for everything new — please default to it.",
         )]),
     };
@@ -266,10 +265,10 @@ async fn ingest_captures_user_reflection_and_recurring_pattern() {
         tools: None,
         meta: fake_meta(Some("thr_gamma")),
         messages: durable_messages([
-            ChatMessage::user("I prefer terse responses with no preamble."),
-            ChatMessage::user("Going forward I want code-first answers."),
-            ChatMessage::user("I always want bullet points when listing options."),
-            ChatMessage::user(
+            TranscriptMessage::user("I prefer terse responses with no preamble."),
+            TranscriptMessage::user("Going forward I want code-first answers."),
+            TranscriptMessage::user("I always want bullet points when listing options."),
+            TranscriptMessage::user(
                 "I realized we keep reintroducing the same schema bug — \
                  next time write a regression test first.",
             ),
@@ -303,10 +302,10 @@ async fn ingest_filters_low_signal_chatter() {
         tools: None,
         meta: fake_meta(None),
         messages: durable_messages([
-            ChatMessage::user("ok"),
-            ChatMessage::user("thanks!"),
-            ChatMessage::assistant("👍"),
-            ChatMessage::user("hi there"),
+            TranscriptMessage::user("ok"),
+            TranscriptMessage::user("thanks!"),
+            TranscriptMessage::assistant("👍"),
+            TranscriptMessage::user("hi there"),
         ]),
     };
 
@@ -331,16 +330,16 @@ async fn ingest_persists_candidates_with_bounded_concurrency() {
         tools: None,
         meta: fake_meta(Some("thr_bound")),
         messages: durable_messages([
-            ChatMessage::user("I prefer Postgres over MySQL for new metadata services."),
-            ChatMessage::user("I prefer tabs over spaces in our Go codebase."),
-            ChatMessage::user("I prefer dark mode in every editor I use."),
-            ChatMessage::user("I prefer trunk-based development over feature branches."),
-            ChatMessage::user("I prefer Rust for systems-level work on this team."),
-            ChatMessage::user("I prefer squash merges when landing pull requests."),
-            ChatMessage::user("I prefer pnpm over npm for all frontend workspaces."),
-            ChatMessage::user("I prefer monorepos for tightly coupled services."),
-            ChatMessage::user("I prefer integration tests over heavy mocking."),
-            ChatMessage::user("I prefer ISO-8601 timestamps in all our logs."),
+            TranscriptMessage::user("I prefer Postgres over MySQL for new metadata services."),
+            TranscriptMessage::user("I prefer tabs over spaces in our Go codebase."),
+            TranscriptMessage::user("I prefer dark mode in every editor I use."),
+            TranscriptMessage::user("I prefer trunk-based development over feature branches."),
+            TranscriptMessage::user("I prefer Rust for systems-level work on this team."),
+            TranscriptMessage::user("I prefer squash merges when landing pull requests."),
+            TranscriptMessage::user("I prefer pnpm over npm for all frontend workspaces."),
+            TranscriptMessage::user("I prefer monorepos for tightly coupled services."),
+            TranscriptMessage::user("I prefer integration tests over heavy mocking."),
+            TranscriptMessage::user("I prefer ISO-8601 timestamps in all our logs."),
         ]),
     };
 

@@ -103,18 +103,26 @@ pub struct ContextConfig {
     pub prefer_markdown_tool_output: bool,
 
     /// Switch for tokenjuice tool-output compaction (Stage 1a). When `true`,
-    /// large structured tool outputs (build/test logs, diffs, JSON arrays) are
-    /// content-aware compressed *before* the [`Self::tool_result_budget_bytes`]
-    /// byte cap and before they enter history, with a `⟦tj:<hash>⟧` marker the
-    /// model can redeem through `tinyjuice_retrieve`.
+    /// large tool outputs are handled by the TinyJuice module *before* the
+    /// [`Self::tool_result_budget_bytes`] byte cap and before they enter history.
     ///
-    /// **Off by default** since the 2026-09 latency work: in practice the
-    /// compacted view cost the model a retrieval round trip more often than it
-    /// saved context, and every curated belt paid for the retrieve tool's
-    /// schema on every turn. The per-tool char cap and the shared byte
-    /// backstop (which persists oversized output for `file_read`) stay on.
-    /// Turn it back on via config or `OPENHUMAN_COMPACTION=1`.
-    #[serde(default)]
+    /// With `[tokenjuice] repl_handle_enabled` (the default) a large result is
+    /// stored in the CCR cache and replaced by a stats line, a short head and a
+    /// handle. The model reads that, and queries the rest with `juice_find`,
+    /// `juice_extract` and `juice_summarize` (registered only while this switch
+    /// is on) or takes the whole original with `tinyjuice_retrieve`. No model
+    /// call is involved, so it cannot stall on a slow summarizer. With
+    /// `repl_handle_enabled = false` the result is instead compressed to one
+    /// blob with a `⟦tj:<hash>⟧` marker for `tinyjuice_retrieve`.
+    ///
+    /// **On by default.** It was off from the 2026-09 latency work, when a
+    /// compacted view cost a retrieval round trip more often than it saved
+    /// context, every curated belt paid for the retrieve schema, and the LLM
+    /// summary could stall a turn. The handle path avoids the stall and gives
+    /// the model queries instead of a blind retrieve. The per-tool char cap and
+    /// the shared byte backstop apply either way. Opt out with
+    /// `compaction_enabled = false` or `OPENHUMAN_COMPACTION=0`.
+    #[serde(default = "default_true")]
     pub compaction_enabled: bool,
 }
 
@@ -159,7 +167,7 @@ impl Default for ContextConfig {
             session_memory: SessionMemoryConfig::default(),
             summarizer_model: None,
             prefer_markdown_tool_output: default_true(),
-            compaction_enabled: false,
+            compaction_enabled: default_true(),
         }
     }
 }

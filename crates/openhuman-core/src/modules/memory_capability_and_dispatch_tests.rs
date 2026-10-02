@@ -238,6 +238,9 @@ fn every_operation_label_is_classified_and_no_mutation_is_a_read() {
         "flush_pending",
         "flush_source_tree",
         "forget",
+        // tinymemory#178: writes a page of the episodic record into the
+        // engine a switch is copying to.
+        "import_episodic",
         "forget_matching",
         "forget_source",
         "import_records",

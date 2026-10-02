@@ -1,6 +1,7 @@
 use super::route::route_for_model;
 use super::types::{
-    BudgetStatus, CostDashboard, CostRecord, CostSummary, DailyCostEntry, ModelStats, TokenUsage,
+    BudgetStatus, CostDashboard, CostRecord, CostSource, CostSummary, DailyCostEntry, ModelStats,
+    TokenUsage,
 };
 use crate::config::CostConfig;
 use anyhow::{anyhow, Context, Result};
@@ -15,6 +16,7 @@ use std::sync::Arc;
 /// Cost tracker for API usage monitoring and budget enforcement.
 pub struct CostTracker {
     config: CostConfig,
+    workspace_dir: PathBuf,
     storage: Arc<Mutex<CostStorage>>,
     session_id: String,
     session_costs: Arc<Mutex<Vec<CostRecord>>>,
@@ -31,6 +33,7 @@ impl CostTracker {
 
         Ok(Self {
             config,
+            workspace_dir: workspace_dir.to_path_buf(),
             storage: Arc::new(Mutex::new(storage)),
             session_id: uuid::Uuid::new_v4().to_string(),
             session_costs: Arc::new(Mutex::new(Vec::new())),
@@ -40,6 +43,11 @@ impl CostTracker {
     /// Get the session ID.
     pub fn session_id(&self) -> &str {
         &self.session_id
+    }
+
+    /// Workspace this tracker persists into.
+    pub fn workspace_dir(&self) -> &Path {
+        &self.workspace_dir
     }
 
     fn lock_storage(&self) -> MutexGuard<'_, CostStorage> {
@@ -103,10 +111,12 @@ impl CostTracker {
         };
 
         let session_costs = self.lock_session_costs();
-        let session_cost: f64 = session_costs
-            .iter()
-            .map(|record| record.usage.cost_usd)
-            .sum();
+        let session_cost: f64 = non_negative_zero(
+            session_costs
+                .iter()
+                .map(|record| record.usage.cost_usd)
+                .sum(),
+        );
         let total_tokens: u64 = session_costs
             .iter()
             .map(|record| record.usage.total_tokens)
@@ -262,7 +272,7 @@ impl CostTracker {
         alert_threshold: f64,
     ) -> Result<CostDashboard> {
         let days = self.get_daily_history(7)?;
-        let period_total_usd: f64 = days.iter().map(|d| d.cost_usd).sum();
+        let period_total_usd: f64 = non_negative_zero(days.iter().map(|d| d.cost_usd).sum());
         let daily_average = period_total_usd / days.len().max(1) as f64;
         let monthly_pace_usd = daily_average * 30.0;
         let budget_limit_monthly_usd = self.config.monthly_limit_usd.max(0.0);
@@ -333,6 +343,24 @@ impl CostTracker {
             by_model,
         })
     }
+}
+
+/// An empty `f64` sum is `-0.0`, which serialises as `-0.0` and renders as
+/// "-$0.00". Every derived total goes through this.
+pub(super) fn non_negative_zero(value: f64) -> f64 {
+    if value == 0.0 {
+        0.0
+    } else {
+        value
+    }
+}
+
+/// Rows the budget gate once wrote as `host:<agent_id>` with an estimated cost
+/// of zero. The event bridge already recorded the same model call under its
+/// real model, so these only double the token and request counts. Ledgers
+/// written before that stopped still hold them; every read skips them.
+fn is_legacy_host_duplicate(record: &CostRecord) -> bool {
+    record.usage.model.starts_with("host:") && record.usage.cost_source == CostSource::Estimated
 }
 
 fn resolve_storage_path(workspace_dir: &Path) -> Result<PathBuf> {
@@ -457,6 +485,7 @@ impl CostStorage {
             }
 
             match serde_json::from_str::<CostRecord>(trimmed) {
+                Ok(record) if is_legacy_host_duplicate(&record) => {}
                 Ok(record) => on_record(record),
                 Err(error) => {
                     tracing::warn!(
@@ -567,13 +596,6 @@ impl CostStorage {
     fn get_aggregated_costs(&mut self) -> Result<(f64, f64)> {
         self.ensure_period_cache_current()?;
         Ok((self.daily_cost_usd, self.monthly_cost_usd))
-    }
-
-    /// Get aggregated **managed-route** costs for the current day and month —
-    /// the only spend the local `[cost]` budget may gate (#5016).
-    fn get_aggregated_managed_costs(&mut self) -> Result<(f64, f64)> {
-        self.ensure_period_cache_current()?;
-        Ok((self.daily_managed_cost_usd, self.monthly_managed_cost_usd))
     }
 
     /// Get cost for a specific date.

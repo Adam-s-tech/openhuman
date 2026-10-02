@@ -15,7 +15,7 @@
 // binary can read as dead once every file shares one crate root here (e.g. a
 // helper only reached by a `#[cfg]`-gated test). These are coverage suites, not
 // production code, so silence the noise rather than churn 76 files.
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code)]
 
 use std::sync::{Mutex, OnceLock};
 
@@ -33,11 +33,30 @@ use std::sync::{Mutex, OnceLock};
 /// panicking test cannot wedge the whole suite.
 pub static SHARED_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
+/// Serializes aggregated suites that reach the Composio connector module.
+///
+/// The module is loaded once per process and holds exactly one route, so two
+/// tests that point it at different routes (backend vs direct mode) race when
+/// run concurrently: one reconfigures the module mid-call and the other sees
+/// the wrong route. The core's own unit tests serialize on `module_guard`,
+/// which is `cfg(test)`-only; this is the integration-binary equivalent.
+pub static CONNECTOR_MODULE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// The TinyHumans backend transport for every aggregated suite that boots the
 /// core in-process and reaches the mock backend: call
 /// `crate::tinyhumans_boot::boot()` from the suite's fixture (or each test).
 /// The core carries no backend client of its own.
 #[path = "support/tinyhumans_boot.rs"]
 pub mod tinyhumans_boot;
+
+/// The shared `EnvVarGuard` (set / unset one var, restore on drop). It does not
+/// lock: suites hold [`SHARED_ENV_LOCK`] through their own `env_lock()`.
+#[path = "support/env_guard.rs"]
+pub mod env_guard;
+/// The RPC bearer and JSON-RPC helpers some suites share (see `support/`).
+#[path = "support/rpc_auth.rs"]
+pub mod rpc_auth;
+#[path = "support/rpc_harness.rs"]
+pub mod rpc_harness;
 
 include!(concat!(env!("OUT_DIR"), "/raw_coverage_mods.rs"));

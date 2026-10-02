@@ -12,7 +12,7 @@ fn artifact_mw(
         budget_bytes: 1_000,
         payload_summarizer: summarizer,
         artifact_store: Some(
-            crate::agent::harness::tool_result_artifacts::ToolResultArtifactStore::new(
+            crate::agent::harness::tool_result_artifacts::new_tool_result_store(
                 action_dir.to_path_buf(),
                 "session",
             ),
@@ -111,7 +111,7 @@ async fn an_oversized_result_is_stored_as_the_tool_returned_it_not_as_rewritten(
 async fn a_raw_result_file_read_cannot_open_is_stored_as_the_processed_copy() {
     let tmp = tempfile::tempdir().unwrap();
     let summary = "s".repeat(3_000);
-    let raw_len = crate::tools::FileReadTool::MAX_FILE_SIZE_BYTES as usize + 1;
+    let raw_len = tinytools_std::filesystem::FileReadTool::MAX_FILE_SIZE_BYTES as usize + 1;
     let mw = artifact_mw(Some(summarized(&summary)), tmp.path());
     let mut result = tool_result("echo", &"r".repeat(raw_len));
 

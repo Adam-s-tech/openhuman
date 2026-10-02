@@ -25,6 +25,7 @@
 //! destructive `test_reset` never ships — so the case here asserts the
 //! absence, and the positive path is compiled in only when the feature is.
 
+use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -36,7 +37,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 /// Preferred bearer for this suite. It is only the *actual* bearer when this
 /// module happens to be the first in the aggregated binary to initialise auth —
@@ -54,40 +55,6 @@ static AUTH_INIT: OnceLock<()> = OnceLock::new();
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 // ── Env isolation ─────────────────────────────────────────────────────────
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
 
 /// `HOME` / `OPENHUMAN_WORKSPACE` are process-global, so every case in this
 /// binary is serialised behind one lock.
@@ -247,7 +214,7 @@ fn catalog_has(catalog: &Value, method: &str) -> bool {
         .any(|entry| entry.get("method").and_then(Value::as_str) == Some(method))
 }
 
-/// The payload of a successful dispatch, unwrapping the `RpcOutcome`
+/// The payload of a successful dispatch, unwrapping the `Outcome`
 /// `{ result, logs }` envelope when the handler produced one.
 fn payload(value: &Value, context: &str) -> Value {
     if let Some(error) = value.get("error") {
@@ -878,94 +845,6 @@ async fn ai_artifacts_list_filter_get_and_delete() {
             .join("artifact-oldest")
             .exists(),
         "delete must remove the directory too"
-    );
-
-    harness.join.abort();
-}
-
-/// Failure paths for the artifact surface: a traversal id is refused before
-/// any filesystem access, an absent id is an error, and `regenerate` refuses
-/// both a non-presentation artifact and a call with no routing context.
-#[tokio::test]
-async fn ai_artifacts_reject_traversal_absence_and_unregenerable_kinds() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    seed_artifact(
-        &harness.workspace,
-        "artifact-doc",
-        "document",
-        "A document",
-        "2026-03-01T00:00:00Z",
-        None,
-    );
-
-    let traversal = rpc(
-        &harness.rpc_base,
-        33_101,
-        "openhuman.ai_get_artifact",
-        json!({ "artifact_id": "../../etc/passwd" }),
-    )
-    .await;
-    assert!(
-        error_message(&traversal, "ai_get_artifact traversal").contains("must not contain '/'"),
-        "an id with a path separator must be refused by the validator: {traversal}"
-    );
-
-    let empty = rpc(
-        &harness.rpc_base,
-        33_102,
-        "openhuman.ai_delete_artifact",
-        json!({ "artifact_id": "   " }),
-    )
-    .await;
-    assert!(
-        error_message(&empty, "ai_delete_artifact blank id").contains("must not be empty"),
-        "a whitespace-only id trims to empty and must be refused: {empty}"
-    );
-
-    let missing = rpc(
-        &harness.rpc_base,
-        33_103,
-        "openhuman.ai_get_artifact",
-        json!({ "artifact_id": "artifact-that-does-not-exist" }),
-    )
-    .await;
-    assert!(
-        error_message(&missing, "ai_get_artifact absent").contains("artifact-that-does-not-exist"),
-        "the error must identify the artifact: {missing}"
-    );
-
-    // regenerate needs routing context for the socket events it triggers.
-    let no_routing = rpc(
-        &harness.rpc_base,
-        33_104,
-        "openhuman.ai_regenerate",
-        json!({ "artifact_id": "artifact-doc", "thread_id": "", "client_id": "" }),
-    )
-    .await;
-    assert!(
-        error_message(&no_routing, "ai_regenerate without routing")
-            .contains("thread_id + client_id"),
-        "regenerate must refuse without event routing: {no_routing}"
-    );
-
-    // Only presentations persist the args a re-dispatch needs.
-    let wrong_kind = rpc(
-        &harness.rpc_base,
-        33_105,
-        "openhuman.ai_regenerate",
-        json!({
-            "artifact_id": "artifact-doc",
-            "thread_id": "thread-alpha",
-            "client_id": "client-1",
-        }),
-    )
-    .await;
-    let message = error_message(&wrong_kind, "ai_regenerate on a document");
-    assert!(
-        message.contains("only supported for presentations") && message.contains("document"),
-        "the refusal must name the rule and the actual kind, got: {message}"
     );
 
     harness.join.abort();

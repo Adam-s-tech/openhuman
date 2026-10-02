@@ -19,7 +19,7 @@ use super::fetch_uncached::fetch_connected_integrations_uncached;
 /// data injected into system prompts — both the agent turn loop and
 /// the debug dump CLI call this function.
 ///
-/// Results are cached process-wide (keyed by config identity) and
+/// Results are cached process-wide (keyed by credential identity) and
 /// returned instantly on subsequent calls. The cache is invalidated
 /// when a connection changes (via [`invalidate_connected_integrations_cache`]
 /// or `list_connections` reconciliation), or on process restart.

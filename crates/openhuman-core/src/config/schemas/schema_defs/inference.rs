@@ -97,9 +97,7 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_string("vision_provider", "Provider string for the vision / multimodal workload (managed default: the default model)."),
                 optional_string("memory_provider", "Provider string for memory-tree extract + summarise."),
                 optional_string("embeddings_provider", "Provider string for embedding generation."),
-                optional_string("heartbeat_provider", "Provider string for the heartbeat background-reasoning loop."),
                 optional_string("learning_provider", "Provider string for learning / reflection passes."),
-                optional_string("subconscious_provider", "Provider string for subconscious evaluation."),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),
@@ -137,6 +135,10 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
             inputs: vec![
                 optional_string("kind", "Runtime kind."),
                 optional_bool("reasoning_enabled", "Enable reasoning mode."),
+                optional_string(
+                    "reasoning_effort",
+                    "Default reasoning effort for agent turns: none, minimal, low, medium, high or xhigh. Empty string clears it back to the provider default.",
+                ),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),
@@ -175,16 +177,8 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                     "Use the local model for embedding generation (when runtime_enabled).",
                 ),
                 optional_bool(
-                    "usage_heartbeat",
-                    "Use the local model inside the heartbeat loop (when runtime_enabled).",
-                ),
-                optional_bool(
                     "usage_learning_reflection",
                     "Use the local model for learning/reflection passes (when runtime_enabled).",
-                ),
-                optional_bool(
-                    "usage_subconscious",
-                    "Use the local model for subconscious evaluation (when runtime_enabled).",
                 ),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],

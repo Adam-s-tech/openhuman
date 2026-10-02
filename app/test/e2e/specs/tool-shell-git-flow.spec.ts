@@ -25,7 +25,7 @@ const USER_ID = 'e2e-tool-shell-git';
  * RPC and registry contract end-to-end, and skip the LLM-driven assertion
  * with an explicit reason. The execution path itself is covered by the Rust
  * unit suite under `crates/openhuman-core/src/tools/impl/system/shell.rs` and
- * `crates/openhuman-core/src/tools/impl/filesystem/git_operations.rs`.
+ * `tinytools-std filesystem/git_operations/mod.rs`.
  *
  * What this spec proves end-to-end:
  *  - 6.2.1 — the agent runtime is up and the `orchestrator` definition, which
@@ -47,7 +47,7 @@ const USER_ID = 'e2e-tool-shell-git';
  *  - 6.2.4 — same fixture supports a Node-side commit, proving that a write
  *    op is structurally feasible against the resolved workspace. The full
  *    sidecar-driven write path is exercised by
- *    `crates/openhuman-core/src/tools/impl/filesystem/git_operations_tests.rs`.
+ *    tinytools-std `filesystem/git_operations/test.rs`.
  *
  * Future: when the harness gains a deterministic mock-LLM that emits
  * structured tool_calls (tracked alongside #68 in skill-execution-flow), the
@@ -255,7 +255,7 @@ describe('System tools — Shell + Git (registry, denial envelope, fixture repo)
     const repoDir = path.join(workspaceDir(), FIXTURE_REPO_REL);
     // Add a second file and commit — proves the same fixture supports the
     // full add → commit lifecycle the agent's `git_operations` write path
-    // uses (validated structurally in git_operations_tests.rs).
+    // uses (validated structurally in filesystem/git_operations/test.rs).
     const followupFile = 'CHANGELOG.md';
     await fs.writeFile(
       path.join(repoDir, followupFile),

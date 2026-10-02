@@ -9,8 +9,6 @@ pub use cloud_providers::{
 };
 pub mod ephemeral_route;
 pub use ephemeral_route::{EphemeralRoute, EPHEMERAL_ROUTE_SLUG};
-pub mod subconscious;
-pub use subconscious::{SubconsciousConfig, SubconsciousEngine};
 mod agent;
 mod autonomy;
 mod capability_providers;
@@ -21,6 +19,7 @@ pub use cli_overrides::AppliedInferenceOverride;
 mod computer;
 pub use computer::{ComputerConfig, DecisionModel};
 mod context;
+mod cron;
 mod dashboard;
 mod desktop;
 pub use desktop::DesktopConfig;
@@ -28,7 +27,6 @@ mod defaults;
 mod dictation;
 mod hooks;
 pub use hooks::HooksConfig;
-mod heartbeat_cron;
 pub mod hosting;
 pub use hosting::HostingConfig;
 mod identity_cost;
@@ -37,8 +35,9 @@ mod load;
 pub use load::{
     action_dir_env_override, active_user_marker_path, active_workspace_dir,
     active_workspace_dir_cached, active_workspace_snapshot, clear_active_user, default_action_dir,
-    default_projects_dir, default_root_openhuman_dir, pre_login_user_dir, read_active_user_id,
-    resolve_action_dir, user_openhuman_dir, write_active_user_id, PRE_LOGIN_USER_ID,
+    default_files_dir, default_projects_dir, default_root_openhuman_dir, pre_login_user_dir,
+    read_active_user_id, resolve_action_dir, resolve_files_dir, user_openhuman_dir,
+    write_active_user_id, PRE_LOGIN_USER_ID,
 };
 // Crate-internal: the invalidation half of the cached active workspace. The
 // marker writers in `load_user_state` call it from outside `load`; the
@@ -88,9 +87,9 @@ pub use channels::{
 };
 pub(crate) use cli_overrides::set_cli_inference_overrides;
 pub use context::ContextConfig;
+pub use cron::CronConfig;
 pub use dashboard::{DashboardConfig, DiagramViewerConfig, EventStreamConfig, ModelHealthConfig};
 pub use dictation::{DictationActivationMode, DictationConfig};
-pub use heartbeat_cron::{CronConfig, HeartbeatConfig, SubconsciousMode};
 pub use identity_cost::{CostConfig, ModelPricing};
 pub use learning::{LearningConfig, ReflectionSource};
 pub use local_ai::{LocalAiConfig, LocalAiUsage};
@@ -120,9 +119,10 @@ pub use subsystems::{
 pub use task_sources::TaskSourcesConfig;
 pub use tokenjuice::TokenjuiceConfig;
 pub use tools::{
-    BrowserComputerUseConfig, BrowserConfig, ComposioConfig, CurlConfig, GitbooksConfig,
-    HttpHeader, HttpRequestConfig, IntegrationToggle, IntegrationsConfig, LegacySearchInputs,
-    McpAuthConfig, McpClientConfig, McpClientIdentityConfig, McpServerConfig, MultimodalConfig,
+    BrowserComputerUseConfig, BrowserConfig, ComposioConfig, ComposioDirectBaseUrls,
+    ComposioHostCredential, CurlConfig, GitbooksConfig, HttpHeader, HttpRequestConfig,
+    IntegrationToggle, IntegrationsConfig, LegacySearchInputs, McpAuthConfig, McpClientConfig,
+    McpClientIdentityConfig, McpServerConfig, McpToolExposure, MultimodalConfig,
     MultimodalFileConfig, SearchConfig, SearchEngineCredentials, SearchPresentation,
     SearchProviderSettings, SearchRoute, SearxngConfig, SecretsConfig, SeltzConfig,
     WebSearchConfig, COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT, MANAGED_SEARCH_PROVIDERS,
@@ -136,8 +136,8 @@ mod voice_server;
 pub use voice_server::{SttEngine, VoiceActivationMode, VoiceServerConfig};
 pub mod voice_providers;
 pub use voice_providers::{
-    generate_voice_provider_id, is_voice_slug_reserved, BuiltinVoiceProvider, SttApiStyle,
-    TtsApiStyle, VoiceCapability, VoiceProviderCreds, BUILTIN_VOICE_PROVIDERS,
+    generate_voice_provider_id, is_voice_slug_reserved, BuiltinVoiceProvider, VoiceCapability,
+    VoiceProviderCreds, BUILTIN_VOICE_PROVIDERS,
 };
 mod types;
 pub use types::*;

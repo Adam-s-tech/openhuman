@@ -31,7 +31,9 @@
 //! rows by stability. Excess Active rows are demoted to Provisional. A cross-class
 //! overflow pool holds up to `BUDGET_OVERFLOW` extra Provisional rows.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, PoisonError};
 
 use crate::agent::learning::cache::FacetCache;
 use crate::agent::learning::candidate::{self, CueFamily, FacetClass, LearningCandidate};
@@ -79,6 +81,25 @@ pub const BUDGET_GOAL: usize = 3;
 pub const BUDGET_CHANNEL: usize = 1;
 /// Cross-class overflow pool for Provisional rows that didn't make a class budget.
 pub const BUDGET_OVERFLOW: usize = 5;
+
+/// How far a facet's confidence or stability may drift before a rebuild
+/// writes the row again.
+///
+/// Every rebuild recomputes every facet, and decay alone moves its scores a
+/// little each time. Writing each one back cost a write per facet per cycle —
+/// several billed requests each on hosted memory — to record a change no
+/// reader would act on. Skipping it loses nothing:
+///
+/// - confidence decays exponentially in the time since `last_seen_at`, so the
+///   next cycle, computing from the older row, reaches the confidence a
+///   write-every-cycle would have;
+/// - stability counts time since the last reinforcement, which a skipped
+///   write no longer refreshes, so the rebuild reads it from the previous
+///   rebuild instead (`StabilityDetector::last_rebuild_at`), as the refresh
+///   would have.
+///
+/// The tolerance only bounds how stale the stored scores may read in between.
+pub const REWRITE_TOLERANCE: f64 = 0.01;
 
 /// Per-class top-N budget for Active rows.
 pub fn class_budget(class: FacetClass) -> usize {
@@ -152,6 +173,37 @@ pub struct RebuildOutcome {
 pub struct StabilityDetector {
     pub(crate) cache: FacetCache,
     pub(crate) buffer: &'static candidate::Buffer,
+    /// When the previous rebuild finished: this detector's, or, when
+    /// persisted, a later one by another detector over the same workspace.
+    ///
+    /// A facet's stability counts time since its last reinforcement, read from
+    /// `last_seen_at`, which every rebuild used to refresh by writing every
+    /// row. A rebuild now skips rows that barely moved (see
+    /// [`REWRITE_TOLERANCE`]), so `last_seen_at` can be older than the last
+    /// rebuild; this is the time the refresh would have carried, so stability
+    /// reads as it did when every row was written.
+    pub(crate) last_rebuild_at: std::sync::Mutex<Option<f64>>,
+    /// How far a score may move before its row is written again. A field so a
+    /// test can compare against a detector that writes every row every cycle.
+    pub(crate) rewrite_tolerance: f64,
+    /// Where `last_rebuild_at` is kept between processes, when set (see
+    /// [`Self::persisted_in`]).
+    pub(crate) state_path: Option<PathBuf>,
+    /// Held for the length of a rebuild, so rebuilds over the same facets run
+    /// one at a time: this detector's periodic and event-driven ones, and,
+    /// once [`Self::persisted_in`], those of every detector over the workspace
+    /// in this process. Each then starts from the facets and the rebuild time
+    /// the one before it left, rather than racing it and overwriting its rows.
+    pub(crate) rebuild_turn: Arc<tokio::sync::Mutex<()>>,
+}
+
+/// Where a workspace keeps the time of its last rebuild.
+pub const REBUILD_STATE_FILE: &str = "state/learning/rebuild.json";
+
+/// The time of a workspace's last rebuild, as [`REBUILD_STATE_FILE`] holds it.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(super) struct RebuildState {
+    last_rebuild_at: f64,
 }
 
 impl StabilityDetector {
@@ -162,6 +214,77 @@ impl StabilityDetector {
         Self {
             cache,
             buffer: candidate::global(),
+            last_rebuild_at: std::sync::Mutex::new(None),
+            rewrite_tolerance: REWRITE_TOLERANCE,
+            state_path: None,
+            rebuild_turn: Arc::default(),
+        }
+    }
+
+    /// Keeps the time of the last rebuild in `workspace_dir`
+    /// ([`REBUILD_STATE_FILE`]), and starts each rebuild from the one stored
+    /// there.
+    ///
+    /// A row a rebuild skipped can keep an old `last_seen_at` for weeks — a
+    /// low-confidence row moves less than the tolerance per cycle — while the
+    /// rebuild time stands in for its reinforcement. A detector that started
+    /// without that time, after a restart or for a one-off rebuild, would read
+    /// those weeks as decay all at once and could demote or evict a facet an
+    /// uninterrupted detector keeps. Every detector over a workspace's facets
+    /// therefore reads and writes the same stored time, and reads it again at
+    /// each rebuild: the scheduled detector lives on beside the one-off ones
+    /// the tool and the RPC build, and must count from their rebuilds too.
+    /// Rebuilds over the workspace in this process also take turns (see
+    /// `rebuild_turn`).
+    ///
+    /// A missing or unreadable file is a detector with no previous rebuild:
+    /// the first one reads reinforcement from the rows alone, as before.
+    #[must_use]
+    pub fn persisted_in(mut self, workspace_dir: &Path) -> Self {
+        let workspace =
+            std::fs::canonicalize(workspace_dir).unwrap_or_else(|_| workspace_dir.to_path_buf());
+        self.rebuild_turn = workspace_turn(&workspace);
+        self.state_path = Some(workspace_dir.join(REBUILD_STATE_FILE));
+        self
+    }
+
+    /// When the facets were last rebuilt: by this detector, or, when
+    /// persisted, later by another one over the workspace.
+    fn previous_rebuild(&self) -> Option<f64> {
+        let stored = self.state_path.as_deref().and_then(read_rebuild_time);
+        let mut held = self
+            .last_rebuild_at
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        tracing::debug!(
+            held = ?*held,
+            stored = ?stored,
+            "[learning::stability] previous rebuild"
+        );
+        *held = later(*held, stored);
+        *held
+    }
+
+    /// Records `at` as the last rebuild, in memory and, when persisted, on
+    /// disk; neither moves back to an earlier time. A write that fails is
+    /// logged: the next rebuild records again.
+    fn record_rebuild(&self, at: f64) {
+        let at = {
+            let mut held = self
+                .last_rebuild_at
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            *held = later(*held, Some(at));
+            held.unwrap_or(at)
+        };
+        let Some(path) = &self.state_path else {
+            return;
+        };
+        if let Err(error) = store_rebuild_time(path, at) {
+            tracing::warn!(
+                path = %path.display(),
+                "[learning::stability] could not record the rebuild time: {error}"
+            );
         }
     }
 
@@ -178,6 +301,7 @@ impl StabilityDetector {
     ///
     /// Async since the facet store moved behind the memory driver.
     pub async fn rebuild(&self, now: f64) -> anyhow::Result<RebuildOutcome> {
+        let turn = self.rebuild_turn.lock().await;
         tracing::debug!("[learning::stability] rebuild starting at t={now:.0}");
 
         // Step 1 — drain buffer.
@@ -186,6 +310,10 @@ impl StabilityDetector {
             "[learning::stability] drained {} candidates from buffer",
             candidates.len()
         );
+
+        // The previous rebuild's time stands in for the refresh a skipped
+        // write did not make (see `last_rebuild_at`).
+        let refreshed_at = self.previous_rebuild();
 
         // Step 2 — load existing facets.
         let existing_facets = self.cache.list_all().await?;
@@ -228,7 +356,7 @@ impl StabilityDetector {
             let final_stability = stability(
                 dominant_cue(cands, existing),
                 total_evidence_count(cands, existing),
-                most_recent_reinforcement(cands, existing, now, *class),
+                most_recent_reinforcement(cands, existing, refreshed_at, now, *class),
                 now,
                 *class,
                 has_explicit,
@@ -359,6 +487,7 @@ impl StabilityDetector {
         let mut kept = 0usize;
         let mut evicted = 0usize;
 
+        let mut rewritten = 0usize;
         for cf in &all_final {
             if cf.facet.state == FacetState::Dropped {
                 evicted += 1;
@@ -367,8 +496,17 @@ impl StabilityDetector {
             } else {
                 kept += 1;
             }
+            let held = existing_by_key.get(&cf.facet.key);
+            if held.is_some_and(|held| !worth_rewriting(held, &cf.facet, self.rewrite_tolerance)) {
+                continue;
+            }
+            rewritten += 1;
             self.cache.upsert(&cf.facet).await?;
         }
+        tracing::debug!(
+            "[learning::stability] wrote {rewritten} of {} facets; the rest moved less than the rewrite tolerance",
+            all_final.len()
+        );
 
         // (Existing keys not in the rebuild output are legacy/non-class rows — skip.)
 
@@ -386,6 +524,9 @@ impl StabilityDetector {
         tracing::info!(
             "[learning::stability] rebuild added={added} evicted={evicted} kept={kept} total={total_size}"
         );
+
+        self.record_rebuild(now);
+        drop(turn);
 
         // Step 8 — publish CacheRebuilt event.
         BUS.publish(DomainEvent::CacheRebuilt {
@@ -405,210 +546,17 @@ impl StabilityDetector {
     }
 }
 
-// ── Rebuild internals ─────────────────────────────────────────────────────────
-
-struct ComputedFacet {
-    is_new: bool,
-    facet: ProfileFacet,
-}
-
-/// Choose the winning value for a `(class, key)` group via `argmax(stability)`.
-///
-/// Returns the value with the highest combined evidence weight. Falls back to the
-/// existing row's value if no candidates are present.
-fn select_winning_value(
-    cands: &[LearningCandidate],
-    existing: Option<&ProfileFacet>,
-    now: f64,
-    class: FacetClass,
-) -> Option<String> {
-    if cands.is_empty() {
-        return existing.map(|f| f.value.clone());
-    }
-
-    // Score each distinct value.
-    let mut value_scores: HashMap<&str, f64> = HashMap::new();
-    for c in cands {
-        let dt = (now - c.observed_at).max(0.0);
-        let recency = (-dt / half_life(class)).exp();
-        let score = c.cue_family.weight() * recency * c.initial_confidence;
-        *value_scores.entry(c.value.as_str()).or_default() += score;
-    }
-
-    // If existing row matches a candidate value, add its weight too.
-    if let Some(existing) = existing {
-        let dt = (now - existing.last_seen_at).max(0.0);
-        let recency = (-dt / half_life(class)).exp();
-        let existing_score = recency * existing.confidence;
-        *value_scores.entry(existing.value.as_str()).or_default() += existing_score;
-    }
-
-    value_scores
-        .into_iter()
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .map(|(v, _)| v.to_string())
-}
-
-/// Aggregate stability contribution from all candidates (not per-value).
-/// Returns (aggregate_score, has_explicit_evidence).
-fn aggregate_stability(
-    cands: &[LearningCandidate],
-    existing: Option<&ProfileFacet>,
-    now: f64,
-    class: FacetClass,
-) -> (f64, bool) {
-    let mut score = 0.0f64;
-    let mut has_explicit = false;
-
-    for c in cands {
-        let dt = (now - c.observed_at).max(0.0);
-        let recency = (-dt / half_life(class)).exp();
-        score += c.cue_family.weight() * recency;
-        if matches!(c.cue_family, CueFamily::Explicit) {
-            has_explicit = true;
-        }
-    }
-
-    if let Some(existing) = existing {
-        let dt = (now - existing.last_seen_at).max(0.0);
-        let recency = (-dt / half_life(class)).exp();
-        score += existing.confidence * recency;
-    }
-
-    (score, has_explicit)
-}
-
-/// Determine the dominant cue family (highest weight).
-fn dominant_cue(cands: &[LearningCandidate], _existing: Option<&ProfileFacet>) -> CueFamily {
-    cands
-        .iter()
-        .max_by(|a, b| {
-            a.cue_family
-                .weight()
-                .partial_cmp(&b.cue_family.weight())
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .map(|c| c.cue_family)
-        .unwrap_or(CueFamily::Behavioral)
-}
-
-/// Convert the learning domain's `EvidenceRef` to the memory contract's.
-///
-/// # Why a conversion and not one type
-///
-/// They are the *same shape* — `memory/api/host/evidence.rs` and
-/// `tinymemory-api`'s copy are byte-identical, and this round-trips through
-/// serde precisely because of that. They are nominally distinct only because
-/// the learning candidate types still live in `tinymemory_core`, so
-/// `candidate::EvidenceRef` resolves to the crate's copy while
-/// `ProfileFacet::evidence_refs` uses the host's.
-///
-/// This bridge disappears when `learning_candidate` comes home — it is agent
-/// domain knowledge, not engine storage, and belongs host-side with the rest of
-/// the learning subsystem. Tracked as stage 4 in
-/// `docs/specs/2026-08-13-memory-module-port.md`.
-fn evidence_to_contract(refs: &[candidate::EvidenceRef]) -> Vec<tinymemory_api::host::EvidenceRef> {
-    refs.iter()
-        .filter_map(|r| {
-            serde_json::to_value(r)
-                .ok()
-                .and_then(|v| serde_json::from_value(v).ok())
-        })
-        .collect()
-}
-
-/// The inverse of [`evidence_to_contract`].
-fn evidence_from_contract(
-    refs: &[tinymemory_api::host::EvidenceRef],
-) -> Vec<candidate::EvidenceRef> {
-    refs.iter()
-        .filter_map(|r| {
-            serde_json::to_value(r)
-                .ok()
-                .and_then(|v| serde_json::from_value(v).ok())
-        })
-        .collect()
-}
-
-/// Merge the existing row's evidence refs with this cycle's new refs,
-/// deduplicating while preserving first-seen order.
-///
-/// `Vec::dedup_by` only collapses *consecutive* equal elements, so a ref that
-/// recurs non-adjacently — present in the existing row and re-emitted by a new
-/// candidate, or repeated within one cycle — would slip through and accumulate
-/// without bound across rebuilds. `EvidenceRef: Eq + Hash`, so tracking seen
-/// refs in a set removes every duplicate exactly and cheaply.
-fn merge_evidence_refs(
-    existing_refs: &[candidate::EvidenceRef],
-    new_refs: Vec<candidate::EvidenceRef>,
-) -> Vec<candidate::EvidenceRef> {
-    let mut seen: HashSet<candidate::EvidenceRef> = HashSet::new();
-    existing_refs
-        .iter()
-        .cloned()
-        .chain(new_refs)
-        .filter(|r| seen.insert(r.clone()))
-        .collect()
-}
-
-/// Total evidence count from candidates + existing row.
-fn total_evidence_count(cands: &[LearningCandidate], existing: Option<&ProfileFacet>) -> u32 {
-    let from_existing = existing.map(|f| f.evidence_count as u32).unwrap_or(0);
-    from_existing + cands.len() as u32
-}
-
-/// The most recent observation timestamp across candidates and the existing row.
-///
-/// The result is floored at `now - half_life(class)` so a facet's recency decay
-/// in [`stability`] bottoms out at one (class-specific) half-life. The floor
-/// must use the facet's own `class`: every other per-group computation in
-/// `rebuild` is class-scoped, and the half-lives span 7d (Channel) to 90d
-/// (Identity), so a hardcoded class would over-retain longer-lived facets and
-/// evict shorter-lived ones too early.
-fn most_recent_reinforcement(
-    cands: &[LearningCandidate],
-    existing: Option<&ProfileFacet>,
-    now: f64,
-    class: FacetClass,
-) -> f64 {
-    let newest_cand = cands
-        .iter()
-        .map(|c| c.observed_at)
-        .fold(f64::NEG_INFINITY, f64::max);
-    let existing_ts = existing
-        .map(|f| f.last_seen_at)
-        .unwrap_or(f64::NEG_INFINITY);
-    newest_cand.max(existing_ts).max(now - half_life(class))
-}
-
-/// Map a stability score + user_state to a lifecycle state.
-fn state_from_stability(score: f64, user_state: UserState) -> FacetState {
-    // Pinned → always Active; Forgotten → always Dropped.
-    if matches!(user_state, UserState::Pinned) {
-        return FacetState::Active;
-    }
-    if matches!(user_state, UserState::Forgotten) {
-        return FacetState::Dropped;
-    }
-
-    if score.is_infinite() || score >= TAU_PROMOTE {
-        FacetState::Active
-    } else if score >= TAU_PROVISIONAL {
-        FacetState::Provisional
-    } else if score >= TAU_EVICT {
-        FacetState::Candidate
-    } else {
-        FacetState::Dropped
-    }
-}
-
-/// Canonical key prefix string for a class (used when grouping candidates).
-fn class_prefix(class: FacetClass) -> &'static str {
-    crate::agent::learning::cache::class_prefix(class)
-}
-
 // ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[path = "stability_detector_helpers.rs"]
+mod helpers;
+#[allow(unused_imports)]
+pub(crate) use helpers::*;
 
 #[cfg(test)]
 #[path = "stability_detector_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "stability_detector_tests_2_tests.rs"]
+mod tests_rebuild_time;

@@ -12,7 +12,7 @@ async fn apply_agent_settings_rejects_out_of_range_timeout() {
         &mut cfg,
         AgentSettingsPatch {
             agent_timeout_secs: Some(0),
-            chat_agent_id: None,
+            ..AgentSettingsPatch::default()
         },
     )
     .await
@@ -24,7 +24,7 @@ async fn apply_agent_settings_rejects_out_of_range_timeout() {
         &mut cfg,
         AgentSettingsPatch {
             agent_timeout_secs: Some(99_999),
-            chat_agent_id: None,
+            ..AgentSettingsPatch::default()
         },
     )
     .await
@@ -113,6 +113,7 @@ async fn apply_agent_settings_rejects_a_mixed_patch_without_mutating_config() {
         AgentSettingsPatch {
             agent_timeout_secs: Some(300),
             chat_agent_id: Some("typoed_agent".into()),
+            ..AgentSettingsPatch::default()
         },
     )
     .await
@@ -141,6 +142,7 @@ async fn apply_agent_paths_valid_abs_path_persists_override_and_recomputes() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(new_dir.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -171,6 +173,7 @@ async fn apply_agent_paths_rejects_relative_path() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some("relative/projects".into()),
+            files_dir: None,
         },
     )
     .await
@@ -194,6 +197,7 @@ async fn apply_agent_paths_rejects_action_dir_equal_to_workspace() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(workspace.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -220,6 +224,7 @@ async fn apply_agent_paths_empty_input_clears_override() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some("   ".into()),
+            files_dir: None,
         },
     )
     .await
@@ -249,6 +254,7 @@ async fn apply_agent_paths_auto_creates_missing_directory() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(missing.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -273,6 +279,7 @@ async fn apply_agent_paths_rejects_existing_file() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(file.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -302,6 +309,7 @@ async fn apply_agent_paths_env_set_reports_source_env() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(user_dir.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -472,4 +480,53 @@ fn ensure_usable_cwd_errors_when_uncreatable() {
         msg.contains("could not be created"),
         "unexpected error: {msg}"
     );
+}
+
+#[tokio::test]
+async fn apply_agent_settings_sets_and_normalizes_tool_dispatcher() {
+    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempdir().unwrap();
+    let mut cfg = tmp_config(&tmp);
+    assert_eq!(
+        cfg.agent.tool_dispatcher, "auto",
+        "JSON/native is the default"
+    );
+
+    apply_agent_settings(
+        &mut cfg,
+        AgentSettingsPatch {
+            tool_dispatcher: Some("  Python ".into()),
+            ..AgentSettingsPatch::default()
+        },
+    )
+    .await
+    .expect("known dispatcher is accepted");
+    assert_eq!(cfg.agent.tool_dispatcher, "python");
+
+    // Omitting the field leaves it alone.
+    apply_agent_settings(&mut cfg, AgentSettingsPatch::default())
+        .await
+        .expect("no-op");
+    assert_eq!(cfg.agent.tool_dispatcher, "python");
+}
+
+#[tokio::test]
+async fn apply_agent_settings_rejects_unknown_tool_dispatcher_without_mutating() {
+    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempdir().unwrap();
+    let mut cfg = tmp_config(&tmp);
+
+    let err = apply_agent_settings(
+        &mut cfg,
+        AgentSettingsPatch {
+            agent_timeout_secs: Some(321),
+            tool_dispatcher: Some("cobol".into()),
+            ..AgentSettingsPatch::default()
+        },
+    )
+    .await
+    .expect_err("unknown dispatcher must be rejected");
+    assert!(err.contains("invalid tool_dispatcher"), "unexpected: {err}");
+    assert_eq!(cfg.agent.tool_dispatcher, "auto");
+    assert_ne!(cfg.agent.agent_timeout_secs, 321, "mixed patch is atomic");
 }

@@ -418,26 +418,15 @@ fn private_or_local(host: &str) -> bool {
     if host == "localhost" || host.ends_with(".localhost") || host.ends_with(".local") {
         return true;
     }
+    // The network tools' full non-global list, so the browser blocks the same
+    // reserved, benchmarking and documentation ranges they do.
     match host.parse::<std::net::IpAddr>() {
+        // `is_non_global_v4` already covers 0.0.0.0/8; the explicit octet check
+        // keeps that local-host range visibly blocked at this call site too.
         Ok(std::net::IpAddr::V4(ip)) => {
-            ip.is_private()
-                || ip.is_loopback()
-                || ip.is_link_local()
-                || ip.is_unspecified()
-                || ip.is_multicast()
-                || ip.octets()[0] == 0
-                || ip.octets()[0] == 100 && (64..=127).contains(&ip.octets()[1])
+            tinytools_std::url_guard::is_non_global_v4(ip) || ip.octets()[0] == 0
         }
-        Ok(std::net::IpAddr::V6(ip)) => {
-            ip.is_loopback()
-                || ip.is_unique_local()
-                || ip.is_unicast_link_local()
-                || ip.is_unspecified()
-                || ip.is_multicast()
-                || ip
-                    .to_ipv4_mapped()
-                    .is_some_and(|mapped| private_or_local(&mapped.to_string()))
-        }
+        Ok(std::net::IpAddr::V6(ip)) => tinytools_std::url_guard::is_non_global_v6(ip),
         Err(_) => false,
     }
 }

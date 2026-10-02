@@ -377,18 +377,6 @@ async fn memory_tools_all_present_under_the_module_driver() {
     }
 }
 
-/// The git-backed diff tool was deleted along with the `memory-git` gate.
-/// This pins that it stays gone in every build, not merely unregistered.
-#[test]
-fn memory_diff_tool_is_absent_in_every_build() {
-    let tmp = TempDir::new().unwrap();
-    let names = tool_names(&expansion_tools_for(&tmp));
-    assert!(
-        !names.iter().any(|name| name == "memory_diff"),
-        "memory_diff was removed with the memory-git gate; got: {names:?}"
-    );
-}
-
 /// The half that proves the filter removes anything.
 #[tokio::test]
 async fn optional_family_memory_tools_absent_under_the_null_driver() {
@@ -409,11 +397,6 @@ async fn optional_family_memory_tools_absent_under_the_null_driver() {
             "`{absent}` must be ABSENT under the null driver; got: {names:?}"
         );
     }
-    // Removed outright with the `memory-git` gate.
-    assert!(
-        !names.iter().any(|n| n == "memory_diff"),
-        "`memory_diff` must be ABSENT under the null driver; got: {names:?}"
-    );
     for present in ALWAYS_PRESENT_MEMORY_TOOLS {
         assert!(
             names.iter().any(|n| n == present),

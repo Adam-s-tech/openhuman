@@ -104,6 +104,13 @@ pub mod reconcile;
 // the driver's log by the history RPCs (openhuman#6257).
 pub(crate) mod run_history;
 
+// Local sources the host reads and sends through a driver's source sink, for a
+// driver that runs no source pipeline of its own (hosted memory), and the loop
+// that schedules them.
+pub(crate) mod hosted_periodic;
+pub(crate) mod hosted_sync;
+pub use hosted_periodic::start_hosted_periodic_sync;
+
 // The controller aggregators this domain's RPC surface defines. Aliased
 // exactly as the pre-extraction module exported them.
 pub use schemas::{

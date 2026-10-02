@@ -35,7 +35,10 @@ fn render_installed_skills_lists_skills_and_names_the_hand_offs_it_is_given() {
             "catalogue names `{not_callable}` as if callable"
         );
     }
-    assert!(out.contains("Handoff Plan"));
+    // The Handoff Plan contract is stated once, in the routing text, rather
+    // than again in every skills section.
+    assert!(!out.contains("Handoff Plan"));
+    assert!(ARCHETYPE.contains("Act on a returned `## Handoff Plan` yourself"));
     assert!(out.contains("- **ascii-art**: ASCII art via pyfiglet"));
     assert!(out.contains("- **no-dir**: (no description)"));
 
@@ -62,7 +65,7 @@ fn prompt_routes_result_gating_tasks_to_synchronous_delegation() {
     // finalized before the critique ran. The orchestrator prompt must
     // explicitly route result-gating work to a synchronous/awaited path.
     assert!(
-        ARCHETYPE.contains("A result that must gate this reply goes through a `delegate_*` specialist with `blocking: true`"),
+        ARCHETYPE.contains("A result that gates this reply needs a delegate with `blocking: true`"),
         "orchestrator prompt must carry the result-gating delegation rule"
     );
     // The only primitive that returns inside the turn is a blocking
@@ -161,33 +164,40 @@ fn connected_mcp_block_empty_when_none() {
 }
 
 #[test]
-fn mcp_prompt_instruction_requires_direct_tool_visibility() {
+fn mcp_prompt_instruction_requires_a_reachable_registry_tool() {
+    const MCP_LINE: &str = "MCP: server tools come from `tool_search`";
     let mut ctx = ctx_with(&[]);
+    // Neither visible nor registered: no MCP route.
     let hidden = ["web_fetch".to_string()].into_iter().collect();
     ctx.visible_tool_names = &hidden;
     let without = build(&ctx).unwrap();
-    assert!(!without.contains("Before searching elsewhere, check **Connected MCP Servers**"));
+    assert!(!without.contains(MCP_LINE));
 
     let unfiltered = std::collections::HashSet::new();
     ctx.visible_tool_names = &unfiltered;
     let wildcard = build(&ctx).unwrap();
-    assert_eq!(
-        wildcard.contains("Before searching elsewhere, check **Connected MCP Servers**"),
-        cfg!(feature = "mcp")
-    );
+    assert_eq!(wildcard.contains(MCP_LINE), cfg!(feature = "mcp"));
 
     let visible = ["mcp_registry_tool_call".to_string()].into_iter().collect();
     ctx.visible_tool_names = &visible;
     let with = build(&ctx).unwrap();
-    assert_eq!(
-        with.contains("Before searching elsewhere, check **Connected MCP Servers**"),
-        cfg!(feature = "mcp")
-    );
+    assert_eq!(with.contains(MCP_LINE), cfg!(feature = "mcp"));
     if cfg!(feature = "mcp") {
-        assert!(with.contains("`tool_search` for the action"));
-        assert!(with.contains("mcp_registry_list_tools"));
+        assert!(with.contains("never guess their arguments"));
     }
     assert!(!with.contains("use_mcp_server"));
+
+    // Registered but deferred (the orchestrator's `deferred_tools` takes the
+    // registry tools off its wire): still a route, reached through
+    // `tool_search`, so the line must stay.
+    let registered = [crate::agent::prompts::PromptTool::new(
+        "mcp_registry_tool_call",
+        "Invoke a tool on a connected MCP server.",
+    )];
+    ctx.visible_tool_names = &hidden;
+    ctx.tools = &registered;
+    let deferred = build(&ctx).unwrap();
+    assert_eq!(deferred.contains(MCP_LINE), cfg!(feature = "mcp"));
 }
 
 #[test]
@@ -294,37 +304,32 @@ fn build_includes_datetime() {
 #[test]
 fn build_includes_direct_first_decision_tree() {
     let body = build(&ctx_with(&[])).unwrap();
-    assert!(body.contains("## How you work"));
-    assert!(body.contains("Take the first branch that applies:"));
-    assert!(body.contains("**Answerable without tools**: reply."));
-    // Step 2 of the decision tree routes live external-service requests to
-    // a `tool_search` + direct call rather than memory or a sub-agent.
-    assert!(body.contains("Needs a connected service's own data or actions"));
-    assert!(body.contains("Use the live service even when memory could plausibly answer"));
-    assert!(body.contains("No sub-agent runs it for you"));
-    // The lead-in rule lives on the branch where the failure was observed: a
-    // live run had the model answer "let me search for the right tool" and
-    // end the turn without emitting the `tool_search` call.
-    assert!(body.contains("an announced search never runs"));
+    assert!(body.contains("## Routing"));
+    assert!(body.contains("First match wins:"));
+    assert!(body.contains("- Chat or general knowledge: answer."));
+    // The service branch routes live external-service requests to a
+    // `tool_search` + direct call rather than memory or a sub-agent.
+    assert!(body.contains("The user's own data or actions on a connected service"));
+    assert!(body.contains("call it yourself, now, even if memory might answer"));
+    // The lead-in rule: a live run had the model answer "let me search for
+    // the right tool" and end the turn without emitting the call.
+    assert!(body.contains("Make a tool call in the message that announces it"));
     assert!(!body.contains("delegate_to_integrations_agent"));
 }
 
 #[test]
 fn build_routes_live_facts_to_the_web_tools_directly() {
     let body = build(&ctx_with(&[])).unwrap();
-    // There is no research sub-agent: broad research is a deep web answer or
-    // search plus a batched contents read, done by the orchestrator itself.
-    assert!(body.contains("anything broader via deep `web_answer_tool`"));
-    assert!(body.contains("`depth: \"deep\"`"));
-    assert!(body.contains("`web_contents_tool`"));
+    // There is no research sub-agent: broad research is a deep web answer,
+    // done by the orchestrator itself with the web tools on its belt.
+    assert!(body.contains("`depth: \"deep\"` for research"));
+    assert!(body.contains("`provider` unset unless named"));
     assert!(
         !body.contains("`research`"),
         "the removed research delegate must not be named"
     );
-    assert!(body.contains("weather, forecasts, prices, recent news"));
-    assert!(body.contains("\"use live data\""));
-    // A lead-in line is welcome, but only in the same message as the call.
-    assert!(body.contains("an announced search never runs: emit it"));
+    // Live or time-sensitive asks are answered now, with a tool call.
+    assert!(body.contains("Live asks get a tool call now."));
     assert!(!body.contains("researcher"));
 }
 
@@ -333,7 +338,7 @@ fn build_routes_live_facts_to_the_web_tools_directly() {
 #[test]
 fn build_keeps_code_work_direct_with_no_coding_hand_off() {
     let body = build(&ctx_with(&[])).unwrap();
-    assert!(body.contains("Keep code work end-to-end"));
+    assert!(body.contains("edit and verify in the same turn"));
     for gone in ["run_code", "delegate_run_code", "review_code"] {
         assert!(
             !body.contains(gone),
@@ -347,7 +352,7 @@ fn build_keeps_code_work_direct_with_no_coding_hand_off() {
 /// not against itself, so a rename on either side fails here.
 #[test]
 fn prompt_names_only_guided_skills_that_exist() {
-    assert!(ARCHETYPE.contains("`use_skill` skill `coding`, `system`, `web3` or `docs` first"));
+    assert!(ARCHETYPE.contains("`use_skill` `coding`/`system`/`web3`/`docs` first"));
     for skill in ["coding", "system", "web3", "docs"] {
         let pack = crate::tools::toolpacks::pack(skill)
             .unwrap_or_else(|| panic!("prompt names skill `{skill}`, which is not a pack"));
@@ -363,7 +368,7 @@ fn prompt_names_only_guided_skills_that_exist() {
 #[test]
 fn prompt_binds_money_and_service_actions_to_explicit_consent() {
     assert!(ARCHETYPE.contains(
-        "except moving funds and stopping, uninstalling or updating OpenHuman's service: those need the user's explicit yes"
+        "Explicit yes only before moving funds or stopping, uninstalling or updating OpenHuman."
     ));
 }
 
@@ -380,59 +385,45 @@ fn build_emits_connected_integrations_as_search_then_call() {
     }];
     let body = build(&ctx_with(&integrations)).unwrap();
     assert!(body.contains("## Connected Integrations"));
-    assert!(body.contains("toolkit: \"gmail\""));
-    // The route is the harness's search bridge, not a sub-agent.
-    assert!(body.contains("`tool_search` for the action"));
-    assert!(body.contains("no sub-agent"));
+    assert!(body.contains("`gmail`"));
+    // Vendor descriptions are not rendered: `tool_search` says what a toolkit
+    // can do, and the blurbs cost tokens on every request.
+    assert!(!body.contains("Email access."));
+    // The route is the harness's search bridge, called directly.
+    assert!(body.contains("`tool_search` their actions"));
+    assert!(body.contains("call it yourself"));
     // The removed delegate and the old per-toolkit fan-out must be gone.
     assert!(!body.contains("delegate_to_integrations_agent"));
     assert!(!body.contains("delegate_gmail"));
     assert!(!body.contains("integrations_agent"));
     assert!(!body.contains("spawn_subagent(agent_id=\"integrations_agent\""));
-    // The "you have direct access" skill-executor wording stays out: the
-    // actions are not on the wire, they are searchable.
     assert!(!body.contains("You have direct access"));
-    // Must keep the always-try contract for real service asks.
+    // Search before refusing: the search, not priors, decides capability.
     assert!(
-        body.contains("Never claim you cannot access one without searching first"),
-        "the block must instruct the model to search before refusing"
+        body.contains("not prior knowledge or past answers"),
+        "the block must make the search the truth about a toolkit"
     );
+    assert!(body.contains("`tool_search` in plain words before declining"));
 }
 
 #[test]
 fn build_scope_gates_integrations_delegation() {
     // Regression: a connected service (e.g. Gmail) is not, by itself, a
     // reason to operate on it — a general-knowledge / web / date ask that
-    // names no service must NOT reach for a service action.
-    // Guards both the static Step-2 scope gate and the rendered
-    // connected-integrations clause.
-    let no_integrations = build(&ctx_with(&[])).unwrap();
-    assert!(
-        no_integrations.contains("general knowledge, web/news lookups, headlines, date/time, math, and anything public on the web (a public repository, a product page, docs) never go to a service"),
-        "Step-2 scope gate must keep general/web/date asks off integration actions"
-    );
-    assert!(
-        no_integrations.contains("A service being connected is not a reason to touch it"),
-        "Step-2 scope gate must forbid reaching into an unreferenced service"
-    );
-
-    let gmail = vec![ConnectedIntegration {
-        toolkit: "gmail".into(),
-        description: "Email access.".into(),
-        tools: Vec::new(),
-        gated_tools: Vec::new(),
-        connected: true,
-        connections: Vec::new(),
-        non_active_status: None,
-    }];
-    let with_gmail = build(&ctx_with(&gmail)).unwrap();
-    assert!(
-        with_gmail
-            .contains("a connected service is not a reason to touch it for general-knowledge"),
-        "connected-integrations block must carry the scoping clause when integrations are connected"
-    );
-    // The existing always-try contract for real service asks is preserved.
-    assert!(with_gmail.contains("Never claim you cannot access one without searching first"));
+    // names no service must NOT reach for a service action. The gate lives
+    // in the always-rendered routing, so it holds with or without
+    // integrations connected.
+    for integrations in [Vec::new(), gmail_only()] {
+        let body = build(&ctx_with(&integrations)).unwrap();
+        assert!(
+            body.contains("Public facts, news, time and math never go to a service."),
+            "scope gate must keep general/web/date asks off integration actions"
+        );
+        assert!(
+            body.contains("The user's own data or actions on a connected service"),
+            "the service branch must be scoped to the user's own data"
+        );
+    }
 }
 
 #[test]
@@ -441,9 +432,8 @@ fn build_does_not_route_scope_errors_as_disconnected() {
     // A scope error from the connect call is relayed, never rewritten as
     // "unsupported"; and the connected list is never treated as the
     // connectable list.
-    assert!(body.contains("If the connect call reports the toolkit unavailable, relay its message"));
-    assert!(body.contains("that is the only honest refusal"));
-    assert!(body.contains("the list shows what is connected, not what is connectable"));
+    assert!(body.contains("relay an \"unavailable\" reply"));
+    assert!(body.contains("never refuse from the list"));
     assert!(body.contains("`composio_connect`"));
 }
 
@@ -464,12 +454,12 @@ fn gmail_only() -> Vec<ConnectedIntegration> {
 // the scoping clause in the block body carries that rule for every format.
 #[test]
 fn connected_integrations_block_is_format_independent() {
+    // The scoping clause ("public facts never go to a service") lives in the
+    // always-rendered routing now; see `build_scope_gates_integrations_delegation`.
     let guide = render_connected_integrations(&gmail_only());
     assert!(guide.contains("## Connected Integrations"));
-    assert!(guide.contains("`tool_search` for the action"));
+    assert!(guide.contains("`tool_search` their actions"));
     assert!(!guide.contains("### When NOT to delegate"));
-    assert!(guide.contains("a connected service is not a reason to touch it"));
-    assert!(guide.contains("Never claim you cannot access one without searching first"));
 }
 
 // Capability questions are answered from the searchable catalogue, never
@@ -477,8 +467,8 @@ fn connected_integrations_block_is_format_independent() {
 #[test]
 fn connected_integrations_block_routes_capability_questions_to_search() {
     let guide = render_connected_integrations(&gmail_only());
-    assert!(guide.contains("### Capability questions about connected toolkits"));
-    assert!(guide.contains("`tool_search` first"));
+    assert!(guide
+        .contains("Its results, not prior knowledge or past answers, say what a toolkit can do."));
     assert!(!guide.contains("integrations_agent"));
 }
 
@@ -536,8 +526,8 @@ fn build_hides_unconnected_integrations() {
         },
     ];
     let body = build(&ctx_with(&integrations)).unwrap();
-    assert!(body.contains("- **gmail**"));
-    assert!(!body.contains("- **linear**"));
+    assert!(body.contains("`gmail`"));
+    assert!(!body.contains("`linear`"));
 }
 
 #[test]
@@ -549,12 +539,8 @@ fn build_routes_prompt_heavy_domains_to_specialists() {
     // twice per turn. What must survive is the routing *policy* — delegate
     // rather than improvise — and the pointer to the withheld ones.
     assert!(
-        body.contains("**Needs a specialist**"),
-        "the direct-first decision tree must still route to specialists"
-    );
-    assert!(
-        body.contains("Capabilities not in your tool list"),
-        "the prompt must point at the withheld-specialist section"
+        body.contains("- Specialists: delegate tools or `use_skill`."),
+        "the routing must still send specialist work to delegates or packed hand-offs"
     );
     assert!(
         !body.contains("## Presentation generation"),
@@ -577,28 +563,25 @@ fn build_includes_evidence_aware_synthesis_contract() {
     let body = build(&ctx_with(&[])).unwrap();
     assert!(body.contains("## Grounding and tool use"));
     assert_eq!(body.matches("## Grounding and tool use").count(), 1);
-    assert!(body.contains("`Evidence used`"));
-    assert!(body.contains("`Failed tool calls`"));
-    assert!(body.contains("Do not introduce facts its evidence does not support"));
-    assert!(body.contains("truncated, oversized, partial or unavailable"));
-    assert!(body.contains("Preserve numeric evidence exactly"));
-    assert!(body.contains("plus whatever `tool_search` returns"));
-    assert!(body.contains("`tool_search` with the intent in plain words"));
+    // A worker's summary is checked against its evidence, not trusted.
+    assert!(body.contains("Worker summaries are claims: check them against their evidence."));
+    assert!(body.contains("Truncated output is incomplete."));
+    assert!(body.contains("copy figures exactly"));
+    assert!(body.contains("`tool_search` in plain words before declining"));
     // Under the native dialect no tool is "listed in this prompt"; a model told
     // that its tools are the listed ones concluded it had no web search while
-    // `web_search_tool` sat in its tool list (thread-7e52b, 2026-09-22).
+    // `web_search_tool` sat in its tool list (thread-7e52b, 2026-09-22). The
+    // routing names the web tools so that conclusion has nothing to stand on.
     assert!(!body.contains("listed in this prompt"), "{body}");
-    assert!(body.contains("`web_search_tool` and `web_fetch` are usually in it"));
+    assert!(body.contains("`web_search_tool`") && body.contains("`web_fetch`"));
     // With no search tool in its list the model called `web_search_tool` three
     // times and the turn aborted on a validation blocker (Bali trip thread,
-    // 2026-09-29): an unlisted name must never be retried.
-    assert!(body.contains("an unlisted name fails as unknown every time, so never retry one"));
+    // 2026-09-29): an unknown name must never be retried.
+    assert!(body.contains("Tools named by a tool result or `tool_search` are callable by name; other unlisted names always fail, so don't retry them."));
     // The web tools are routed across providers with fallback; forcing a
     // provider disables it.
-    assert!(body.contains("leave `provider` unset unless the user names one"));
-    assert!(body.contains(
-        "anything public on the web (a public repository, a product page, docs) never go to a service"
-    ));
+    assert!(body.contains("`provider` unset unless named"));
+    assert!(body.contains("Public facts, news, time and math never go to a service."));
 }
 
 #[test]
@@ -609,8 +592,8 @@ fn build_never_mandates_plan_review_and_allows_a_lead_in() {
     let body = build(&ctx_with(&[])).unwrap();
     assert!(!body.contains("request_plan_review"), "{body}");
     assert!(!body.contains("before doing any of the work"));
-    assert!(body.contains("Don't stop with a plan: execute it."));
-    assert!(body.contains("## Plans"));
+    assert!(body.contains("3+ steps: `todo`, then execute."));
+    assert!(body.contains("Make a tool call in the message that announces it"));
 }
 
 #[test]

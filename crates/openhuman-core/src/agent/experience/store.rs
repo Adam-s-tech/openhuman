@@ -9,34 +9,14 @@ use std::sync::Arc;
 
 pub const AGENT_EXPERIENCE_NAMESPACE: &str = "agent_experience";
 
-/// Encode a serialized experience so its structured payload survives the memory
-/// layer's free-text content sanitizer.
-///
-/// `Memory::store` runs every document's `content` through the secret/PII
-/// scrubber (`tinycortex … safety::sanitize_text`), whose *bare-numeric* PII
-/// patterns (credit-card via Luhn, CPF, CNPJ) match any 11–19-digit run. A
-/// serialized `AgentExperience` embeds `created_at_ms` / `updated_at_ms` as bare
-/// 13-digit millisecond timestamps, so whenever `now_ms()` happens to be
-/// Luhn-valid (~10% of the time) the scrubber rewrites the number to a
-/// `[REDACTED_PII_*]` token — corrupting the JSON so it no longer parses back on
-/// read. The record then silently vanishes from [`AgentExperienceStore::list`],
-/// making recall non-deterministic run-to-run (issue #5209).
-///
-/// Base64 has no 11+-digit bare-numeric runs (and no `Bearer`/`sk-` literals),
-/// so the sanitizer is a guaranteed no-op over the encoded payload and the
-/// round-trip is lossless. The store still redacts the sensitive free-text
-/// fields itself via [`redact_experience`] before serialization, so this does
-/// not weaken secret handling.
-fn encode_experience_payload(json: &str) -> String {
-    base64::engine::general_purpose::STANDARD.encode(json.as_bytes())
-}
-
 /// Decode a stored experience payload.
 ///
-/// New records are base64(JSON) (see [`encode_experience_payload`]); legacy
-/// records are plain JSON. A JSON object starts with `{`, which is not in the
-/// base64 alphabet, so the base64 decode fails cleanly on legacy content and we
-/// fall back to parsing it as plain JSON — no ambiguity, no migration step.
+/// Records are plain JSON. Rows written before the engine's bare-card gate
+/// became corroborated (#6855) were base64(JSON) to dodge a Luhn-valid 13-digit
+/// millisecond timestamp being rewritten to `[REDACTED_PII_*]` (#5209); they are
+/// still read here. A JSON object starts with `{`, which is not in the base64
+/// alphabet, so the base64 decode fails cleanly on plain content and we fall
+/// back to parsing it directly: no ambiguity, no migration step.
 fn decode_experience_payload(stored: &str) -> Result<AgentExperience, String> {
     if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(stored.trim()) {
         if let Ok(text) = std::str::from_utf8(&bytes) {
@@ -94,7 +74,6 @@ impl AgentExperienceStore {
         experience = redact_experience(experience);
 
         let content = serde_json::to_string(&experience).map_err(|e| e.to_string())?;
-        let content = encode_experience_payload(&content);
         self.memory
             .store(
                 AGENT_EXPERIENCE_NAMESPACE,
@@ -243,26 +222,15 @@ fn storage_key(id: &str) -> String {
 }
 
 /// Redact secrets/PII from every captured free-text field before the record is
-/// serialized and stored.
+/// serialized and stored, so a secret in any of them is gone from both the
+/// stored record and what recall returns.
 ///
-/// Previously the memory layer's own content scrubber ran over the stored JSON
-/// blob, so any secret in any field was redacted at write time. We now
-/// base64-encode the payload before [`Memory::store`] (so a Luhn-valid
-/// millisecond timestamp can no longer be misread as a credit card and corrupt
-/// the JSON — #5209), which makes that store-time scrub a no-op over the
-/// payload. To preserve the security invariant we must therefore run the SAME
-/// full scrubber ([`sanitize_text`] — private-key blocks,
-/// Bearer/`sk-`/Stripe/npm/OAuth secrets, and the full national-ID / phone /
-/// credit-card PII set) over the sensitive free-text fields ourselves, here,
-/// before serialization. A secret placed in any of these is then redacted in
-/// both the stored record and what recall returns.
-///
-/// Scope note: only free-text/description fields are scrubbed. The numeric
-/// timestamp/confidence fields are left untouched — scrubbing structural
-/// numbers is exactly what caused the corruption we fixed. `id` is the storage
-/// key (scrubbing it would desync key vs. content; a secret-bearing key is
-/// rejected up front by the memory layer's `has_likely_secret` guard) and
-/// key (scrubbing it would desync key vs. content); it is left intact.
+/// The full scrubber ([`sanitize_text`]: private-key blocks, Bearer/`sk-`/
+/// Stripe/npm/OAuth secrets, national-ID / phone / card PII) runs under the
+/// host's corroborated policy, which leaves bare 13-digit epoch-millisecond
+/// timestamps alone. Only free-text fields are scrubbed: the numeric
+/// timestamp/confidence fields are structural, and `id` is the storage key
+/// (scrubbing it would desync key and content), so both stay intact.
 fn redact_experience(mut experience: AgentExperience) -> AgentExperience {
     fn scrub(value: &str) -> String {
         sanitize_text(value).value

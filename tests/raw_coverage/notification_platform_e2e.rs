@@ -1,5 +1,3 @@
-#![cfg(any())] // TODO(#6382): migrate this legacy TinyAgents fixture to the hosted public API.
-
 //! End-to-end coverage for the notification centre and the small platform namespaces that had no
 //! e2e target at all: `notification` (7 uncovered), `health` (2), `doctor` (2), `service`'s
 //! daemon-host pair, `provider_surfaces` (2), `slack_memory` (2) and `announcements` (1).
@@ -18,6 +16,7 @@
 //!   ~/tinyhuman/ci-slot.sh cargo test --test raw_coverage_all \
 //!       --features "$(bash scripts/ci/product-features.sh)" notification_platform
 
+use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -30,14 +29,14 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_core::core::auth::{get_rpc_token, init_rpc_token};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::config::rpc::load_config_with_timeout;
+use openhuman_core::core::auth::{get_rpc_token, init_rpc_token};
 use openhuman_core::desktop::notifications::store as notification_store;
 use openhuman_core::desktop::notifications::types::{
     CoreNotificationCategory, CoreNotificationEvent,
 };
 use openhuman_core::platform::health::{mark_component_error, mark_component_ok};
+use openhuman_rpc::server::build_core_http_router;
 
 // ── env serialisation ────────────────────────────────────────────────────────
 
@@ -72,37 +71,8 @@ fn rpc_bearer() -> &'static str {
 }
 
 fn ensure_rpc_auth() {
-
     crate::tinyhumans_boot::boot();
     let _ = rpc_bearer();
-}
-
-struct EnvGuard {
-    key: &'static str,
-    prev: Option<String>,
-}
-
-impl EnvGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let prev = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, prev }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let prev = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, prev }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match &self.prev {
-            Some(v) => std::env::set_var(self.key, v),
-            None => std::env::remove_var(self.key),
-        }
-    }
 }
 
 // ── mock backend ─────────────────────────────────────────────────────────────
@@ -162,7 +132,8 @@ async fn mock_announcements_latest(
                 "id": "ann-1",
                 "title": "Scheduled maintenance",
                 "body": "The backend is being upgraded.",
-                "severity": "info"
+                "severity": "INFO",
+                "createdAt": "2026-01-01T00:00:00Z"
             }
         }))),
         AnnouncementMode::NotFound => Err((
@@ -179,7 +150,9 @@ async fn mock_composio_connections(
     if !is_authed(&headers) {
         return Err(unauthorized());
     }
-    Ok(Json(json!({ "success": true, "data": (*state.connections).clone() })))
+    Ok(Json(
+        json!({ "success": true, "data": (*state.connections).clone() }),
+    ))
 }
 
 fn mock_backend_router(state: BackendState) -> Router {
@@ -285,10 +258,10 @@ struct Harness {
     openhuman_home: std::path::PathBuf,
     mock_join: tokio::task::JoinHandle<()>,
     rpc_join: tokio::task::JoinHandle<()>,
-    _home: EnvGuard,
-    _ws: EnvGuard,
-    _backend: EnvGuard,
-    _vite: EnvGuard,
+    _home: EnvVarGuard,
+    _ws: EnvVarGuard,
+    _backend: EnvVarGuard,
+    _vite: EnvVarGuard,
     _tmp: tempfile::TempDir,
 }
 
@@ -297,10 +270,10 @@ impl Harness {
         let tmp = tempdir().expect("tempdir");
         let home = tmp.path().to_path_buf();
         let openhuman_home = home.join(".openhuman");
-        let _home = EnvGuard::set_to_path("HOME", &home);
-        let _ws = EnvGuard::unset("OPENHUMAN_WORKSPACE");
-        let _backend = EnvGuard::unset("BACKEND_URL");
-        let _vite = EnvGuard::unset("VITE_BACKEND_URL");
+        let _home = EnvVarGuard::set_to_path("HOME", &home);
+        let _ws = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+        let _backend = EnvVarGuard::unset("BACKEND_URL");
+        let _vite = EnvVarGuard::unset("VITE_BACKEND_URL");
 
         let (mock_addr, mock_join) = serve_ephemeral(mock_backend_router(state)).await;
         write_test_config(&openhuman_home, &format!("http://{mock_addr}"));
@@ -433,7 +406,10 @@ async fn notification_centre_lifecycle_over_rpc() {
         Some("The Q3 numbers are attached.")
     );
     assert_eq!(row.get("provider").and_then(Value::as_str), Some("gmail"));
-    assert_eq!(row.get("account_id").and_then(Value::as_str), Some("acct-e2e"));
+    assert_eq!(
+        row.get("account_id").and_then(Value::as_str),
+        Some("acct-e2e")
+    );
     assert_eq!(
         row.get("raw_payload").and_then(|p| p.get("messageId")),
         Some(&json!("m-1")),
@@ -828,7 +804,10 @@ async fn health_snapshot_and_system_info_report_this_process() {
     let h = Harness::start(default_state()).await;
 
     mark_component_ok("e2e_platform_probe_ok");
-    mark_component_error("e2e_platform_probe_bad", "synthetic failure for the e2e probe");
+    mark_component_error(
+        "e2e_platform_probe_bad",
+        "synthetic failure for the e2e probe",
+    );
 
     let snapshot = post_json_rpc(&h.rpc_base, 9201, "openhuman.health_snapshot", json!({})).await;
     let result = peel(assert_no_jsonrpc_error(&snapshot, "health_snapshot"));
@@ -875,7 +854,10 @@ async fn health_snapshot_and_system_info_report_this_process() {
         "the snapshot describes *this* process"
     );
     assert!(
-        result.get("uptime_seconds").and_then(Value::as_u64).is_some(),
+        result
+            .get("uptime_seconds")
+            .and_then(Value::as_u64)
+            .is_some(),
         "snapshot must carry uptime_seconds: {result}"
     );
     assert!(
@@ -1038,9 +1020,12 @@ async fn doctor_report_and_models_are_internally_consistent() {
         .unwrap_or_else(|| panic!("doctor_models must return a summary: {result}"));
     let total: u64 = ["ok", "skipped", "auth_or_access", "errors"]
         .iter()
-        .map(|k| summary.get(*k).and_then(Value::as_u64).unwrap_or_else(|| {
-            panic!("summary must carry {k}: {result}")
-        }))
+        .map(|k| {
+            summary
+                .get(*k)
+                .and_then(Value::as_u64)
+                .unwrap_or_else(|| panic!("summary must carry {k}: {result}"))
+        })
         .sum();
     assert_eq!(
         total,
@@ -1151,9 +1136,12 @@ async fn service_daemon_host_preferences_round_trip_to_disk() {
     )
     .await;
     assert_eq!(
-        peel(assert_no_jsonrpc_error(&reread, "service_daemon_host_get after set"))
-            .get("showTray")
-            .and_then(Value::as_bool),
+        peel(assert_no_jsonrpc_error(
+            &reread,
+            "service_daemon_host_get after set"
+        ))
+        .get("showTray")
+        .and_then(Value::as_bool),
         Some(false),
         "get must read back what set wrote, not the default"
     );
@@ -1497,7 +1485,10 @@ async fn announcements_get_latest_passes_through_and_folds_404_to_null() {
         json!({}),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&present, "announcements_get_latest"));
+    let result = peel(assert_no_jsonrpc_error(
+        &present,
+        "announcements_get_latest",
+    ));
     assert_eq!(
         result.get("id").and_then(Value::as_str),
         Some("ann-1"),
@@ -1507,7 +1498,7 @@ async fn announcements_get_latest_passes_through_and_folds_404_to_null() {
         result.get("title").and_then(Value::as_str),
         Some("Scheduled maintenance")
     );
-    assert_eq!(result.get("severity").and_then(Value::as_str), Some("info"));
+    assert_eq!(result.get("severity").and_then(Value::as_str), Some("INFO"));
     h.stop();
 
     // ── signed in, backend 404: folded into `null`, not surfaced as an error.

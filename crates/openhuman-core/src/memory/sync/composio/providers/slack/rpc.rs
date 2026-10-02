@@ -36,13 +36,14 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::integrations::composio::client::{
-    create_composio_client, direct_list_connections, ComposioClientKind,
+    direct_list_connections, resolve_composio_route, ComposioRoute,
 };
+use crate::integrations::composio::module_client::{self as connectors, methods};
 use crate::integrations::composio::ops::run_sync_within_budget;
 use crate::integrations::composio::providers::SyncOutcome;
 use crate::integrations::composio::types::ComposioConnectionsResponse;
-use crate::rpc::RpcOutcome;
 
 /// Optional connection-id override for the trigger. When absent, all
 /// active Slack connections are synced (serially, one-by-one).
@@ -71,14 +72,15 @@ pub struct SyncTriggerResponse {
 /// filtering, identical error wrapping, distinct log prefixes for
 /// debuggability.
 async fn list_slack_connections(config: &Config) -> Result<ComposioConnectionsResponse, String> {
-    let kind = create_composio_client(config)
+    let kind = resolve_composio_route(config)
         .map_err(|e| format!("[slack_ingest] list_connections: {e}"))?;
     match kind {
-        ComposioClientKind::Backend(client) => client
-            .list_connections()
-            .await
-            .map_err(|e| format!("[slack_ingest] list_connections (backend) failed: {e:#}")),
-        ComposioClientKind::Direct(direct) => direct_list_connections(&direct)
+        ComposioRoute::Backend => {
+            connectors::call_bare::<ComposioConnectionsResponse>(config, methods::LIST_CONNECTIONS)
+                .await
+                .map_err(|e| format!("[slack_ingest] list_connections (backend) failed: {e}"))
+        }
+        ComposioRoute::Direct(direct) => direct_list_connections(config, &direct)
             .await
             .map_err(|e| format!("[slack_ingest] list_connections (direct) failed: {e:#}")),
     }
@@ -90,7 +92,7 @@ async fn list_slack_connections(config: &Config) -> Result<ComposioConnectionsRe
 pub async fn sync_trigger_rpc(
     config: &Config,
     req: SyncTriggerRequest,
-) -> Result<RpcOutcome<SyncTriggerResponse>, String> {
+) -> Result<Outcome<SyncTriggerResponse>, String> {
     // Route through the mode-aware factory so direct-mode users
     // discover slack connections from THEIR personal Composio tenant —
     // not the tinyhumans backend tenant. Mirrors `composio::ops`
@@ -151,7 +153,7 @@ pub async fn sync_trigger_rpc(
     }
 
     let synced = outcomes.len();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         SyncTriggerResponse {
             outcomes,
             connections_considered: considered,
@@ -208,7 +210,7 @@ pub struct ConnectionStatus {
 pub async fn sync_status_rpc(
     config: &Config,
     _req: SyncStatusRequest,
-) -> Result<RpcOutcome<SyncStatusResponse>, String> {
+) -> Result<Outcome<SyncStatusResponse>, String> {
     // Route through the mode-aware factory so direct-mode users see
     // status rows for THEIR slack connections, not the tinyhumans
     // backend tenant's (#1710).
@@ -232,7 +234,7 @@ pub async fn sync_status_rpc(
     }
 
     let count = rows.len();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         SyncStatusResponse { connections: rows },
         format!(
             "slack_ingest: status connections={count} (per-connection sync detail is no \

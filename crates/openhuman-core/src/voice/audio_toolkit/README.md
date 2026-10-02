@@ -26,8 +26,8 @@ Text-to-speech "podcast" toolkit. Synthesizes text into a workspace audio file v
 
 From `mod.rs`:
 
-- ops: `generate_podcast`, `email_podcast`, `generate_and_email_podcast`, `resolve_email_capture_dir`. All take `&Config` and return `Result<RpcOutcome<T>, String>` (except `resolve_email_capture_dir`, which returns `Option<PathBuf>`).
-- schemas: `all_audio_toolkit_controller_schemas`, `all_audio_toolkit_registered_controllers`.
+- ops: `generate_podcast`, `email_podcast`, `generate_and_email_podcast`, `resolve_email_capture_dir`. All take `&Config` and return `Result<Outcome<T>, String>` (except `resolve_email_capture_dir`, which returns `Option<PathBuf>`).
+- schemas: `all_audio_toolkit_registered_controllers`.
 - types: `AudioFormat` (`Mp3`/`Wav`, with `extension()` / `mime()`), `AudioGenerateRequest`, `EmailPodcastRequest`, `AudioGeneratedArtifact`, `AudioEmailDeliveryResult`, `AudioToolkitGenerateAndEmailResult`.
 - **tools** (`pub mod tools`): `AudioGeneratePodcastTool`, `AudioEmailPodcastTool`, `AudioGenerateAndEmailPodcastTool`.
 
@@ -41,7 +41,7 @@ Namespace `audio_toolkit` (invoked as `openhuman.audio_toolkit_<function>`):
 | `audio_toolkit_email_podcast` | `to`, `subject`, `body`, `audio_path` (req); optional `attachment_name` | `email` (delivery JSON) |
 | `audio_toolkit_generate_and_email_podcast` | `text`, `to`, `subject`, `body` (req); optional `title`, `output_path`, `provider`, `voice`, `format`, `attachment_name` | `result` (combined JSON) |
 
-Registered into the global controller registry via `crates/openhuman-core/src/core/all.rs` (both `all_audio_toolkit_registered_controllers` and `all_audio_toolkit_controller_schemas`).
+Registered into the global controller registry via `crates/openhuman-core/src/core/all.rs` (`all_audio_toolkit_registered_controllers`).
 
 ## Agent tools
 
@@ -70,7 +70,7 @@ No durable domain store. Side effects are filesystem writes within the workspace
 - `crate::security`: `SecurityPolicy` / `ToolOperation` to gate the agent tools.
 - `tinytools`: `Tool`, `ToolResult`, `PermissionLevel`.
 - `crate::core::all` / `crate::core`: `RegisteredController`, `ControllerFuture`, `ControllerSchema`, `FieldSchema`, `TypeSchema` for RPC registration.
-- `crate::rpc::RpcOutcome`: controller/op return contract.
+- `crate::core::Outcome`: controller/op return contract.
 - External crates: `lettre` (email message + attachment), `base64`, `chrono`, `uuid`.
 
 ## Used by

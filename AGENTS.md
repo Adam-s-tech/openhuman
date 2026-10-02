@@ -14,12 +14,12 @@ Architecture: [overview](gitbooks/developing/architecture.md),
 | --- | --- |
 | `app/src/` | Vite and React frontend |
 | `crates/openhuman-app/` | Thin desktop host; excluded from the root workspace, build with `--manifest-path crates/openhuman-app/Cargo.toml` |
-| `crates/openhuman-core/` | Package `openhuman`: business domains under `src/<domain>/`, transport/dispatch/auth under `src/core/` |
+| `crates/openhuman-core/` | Package `openhuman`: business domains under `src/<domain>/`, the controller contract, dispatch and auth under `src/core/` |
 | `crates/openhuman-core/src/<domain>/` | Flat business-domain modules (agent, memory, tools, security, channels, ...) |
-| `crates/openhuman-core/src/core/` | CLI, JSON-RPC and HTTP dispatch, controller registry, event bus, runtime composition; no business logic |
+| `crates/openhuman-core/src/core/` | CLI, controller contract (`Outcome`, schemas) and in-process dispatch, controller registry, event bus, runtime composition; no business logic and no JSON-RPC server |
 | `crates/openhuman-cli/` | The `openhuman-core` binary (`src/main.rs`), the developer/benchmark bins (`src/bin/`), and every root `tests/*.rs` / `examples/*.rs` target; depends on `openhuman-tinyhumans` for the backend transport the core does not carry |
 | `crates/openhuman-embed/` | Typed library facade for embedding the core in another product |
-| `crates/openhuman-rpc/` | Shared RPC contracts, response decoding, and HTTP client used by app and TUI |
+| `crates/openhuman-rpc/` | JSON-RPC 2.0 over the core: envelopes, HTTP client, and the server (router, Socket.IO, listener, `run_server*`) used by app, CLI and TUI |
 | `crates/openhuman-tinyhumans/` | The TinyHumans layer above embed: SDK-backed backend transport, a `RuntimeBuilder` that boots connected, and the host-side login/session owner (login-token exchange, `/auth/me`, current-user cache, credential handoff) used by app and TUI |
 | `crates/openhuman-tui/` | Standalone terminal frontend |
 | `tests/` | Rust integration and JSON-RPC tests |
@@ -86,7 +86,7 @@ DevTools client can attach to it. Run the same SPA in Chrome instead:
   finds the running desktop core, starts Vite, and prints
   `http://127.0.0.1:<core>/dev/connect?app=http://localhost:<vite>`. Open that
   URL with the chrome-devtools MCP (`new_page` / `navigate_page`). The core's
-  dev-only `GET /dev/connect` (`crates/openhuman-core/src/core/dev_connect.rs`)
+  dev-only `GET /dev/connect` (`crates/openhuman-rpc/src/server/dev_connect.rs`)
   redirects to Vite's `/__dev-connect` page with the RPC URL and bearer in the
   URL fragment. That page seeds them into `localStorage`, so the browser runs on
   the desktop core with its signed-in user, and nothing is pasted. The route
@@ -131,6 +131,18 @@ coverage must be at least 80 percent.
 
 - Frontend unit tests are colocated as `*.test.ts` or `*.test.tsx` under
   `app/src/`. Use Vitest and test behavior rather than implementation.
+- Rust unit tests are never inline. Put them in a sibling `<module>_tests.rs`
+  (`mod_tests.rs` beside a `mod.rs`) declared at the bottom of the module with
+  `#[cfg(test)]` and `#[path = "<module>_tests.rs"]` above `mod tests;`. The file
+  starts with `use super::*;` and carries no `#[cfg(test)]` of its own. Never name
+  one `test.rs`, `tests.rs` or `<module>_test.rs`, and never write an inline
+  `#[cfg(test)] mod tests { ... }` (`pnpm rust:layout` fails on an inline module
+  and on `test.rs`/`tests.rs`/`<module>_test.rs`). The same rule binds every
+  `vendor/` submodule: `node scripts/externalize-inline-tests.mjs <repo-root>
+  --write` converts one mechanically (add `--rename-legacy` for `test.rs` and
+  `<module>_test.rs`), and a crate root directly in
+  `src/bin/` keeps its tests in `src/bin/<stem>/` because Cargo builds any `.rs`
+  placed straight in `src/bin/` as a binary.
 - Rust domain tests live beside their modules. Use
   `scripts/test-rust-with-mock.sh` for tests that need the shared mock backend.
 - JSON-RPC behavior belongs in Rust E2E tests, commonly
@@ -188,6 +200,12 @@ guessing from logs.
   `openhuman-core agent dump-prompt --agent <id> --json --with-tools`
   (`scripts/debug-agent-prompts.sh`); the proxy shows the request the harness
   assembles from it per turn.
+- `pnpm debug breakdown <req-NNN.json> --response <res-NNN.txt>`
+  (`scripts/debug/prompt-breakdown.mjs`) prices one captured request: each
+  system-prompt section, each tool schema (description vs parameters) and each
+  message, in o200k tokens calibrated to the provider's `usage.prompt_tokens`,
+  plus paragraphs the request pays for twice. Capture with
+  `CAPTURE_ALL=1 CAPTURE_RESPONSES=1` so the response carries the usage.
 
 ## Configuration and security
 
@@ -294,7 +312,7 @@ Preferred module shape:
 | `mod.rs` | Module declarations, re-exports, and controller aggregators |
 | `types.rs` | Serde domain types |
 | `store.rs` | Persistence |
-| `ops.rs` | Business operations returning `RpcOutcome<T>` |
+| `ops.rs` | Business operations returning `Outcome<T>` |
 | `schemas.rs` | Controller schemas and thin handlers |
 | `tools.rs` | Domain-owned agent tools |
 | `bus.rs` | Event subscribers |
@@ -303,7 +321,7 @@ Preferred module shape:
 Additional rules:
 
 - Wire controllers through the registry in `crates/openhuman-core/src/core/all.rs`. Do not add
-  namespace branches to `cli.rs` or `jsonrpc.rs`.
+  namespace branches to `cli.rs` or the JSON-RPC server.
 - RPC namespace strings are wire contracts and do not follow directory
   renames.
 - Domain tools live with their domain and are re-exported through
@@ -313,13 +331,25 @@ Additional rules:
   are deduplication keys.
 - Update `crates/openhuman-core/src/platform/about_app/` when user-visible capabilities
   change.
-- `RpcOutcome<T>`, `StructuredRpcError`, `unwrap_rpc`, and the JSON-RPC HTTP
-  client live in `crates/openhuman-rpc/`; the core re-exports the crate as
-  `crate::rpc` (`pub use openhuman_rpc as rpc;` in
-  `crates/openhuman-core/src/lib.rs`), and `openhuman-app` and `openhuman-tui`
-  depend on it directly. Keep it free of business logic and core dependencies
-  (its only deps are serde, serde_json, and optional log/reqwest/url behind
-  the `http-client` feature).
+- The controller contract lives in core: every domain operation returns
+  `crate::core::Outcome<T>`; `crate::core::StructuredRpcError`, the params
+  rules (`core::params`) and in-process dispatch (`core::invoke::invoke_method`)
+  sit beside `ControllerSchema`. Core has no JSON-RPC server and does not
+  depend on `openhuman-rpc`.
+- `crates/openhuman-rpc/` sits above core and owns JSON-RPC 2.0: the envelopes
+  (`RpcRequest`, `RpcSuccess`, `RpcFailure`, `request_body`,
+  `decode_response`), the browser-origin allowlist, the HTTP client
+  (`http-client` feature), and the whole server (`server` feature): the axum
+  router and handlers, auth middleware, Socket.IO, `/dev/connect`, the
+  listener bind (`openhuman_rpc::server::serve`) and the `run_server*` entry
+  points. A host that runs `openhuman-core run`/`serve` calls
+  `openhuman_rpc::server::install_cli_server()` before `run_core_from_args`.
+  Domain-owned HTTP handlers the router mounts (`inference::http`, the
+  dictation WebSocket) stay in their domains behind core's `http-server`
+  feature. The `http_host` static-directory file server lives here too
+  (`openhuman_rpc::http_host`); `install_cli_server()` and
+  `build_core_http_router()` register its `http_host.*` controllers as a core
+  extension, so a host without this crate has no `http_host` surface.
 
 ## Tool, harness, and runtime boundaries
 
@@ -346,7 +376,7 @@ sandboxing, timeouts, and progress events.
   number of independently configured agents on it (`AgentSpec`: provider,
   access, `action_dir`, MCP servers, skills, prompt, tool scope, sandbox).
   `Harness` is the one-agent shorthand over the same two types. Agent turns
-  dispatch natively (`inference::local::ops::agent_chat_for`) under the
+  dispatch natively (`inference::host_runtime::ops::agent_chat_for`) under the
   agent's own `CoreContext` (`CoreContext::derive_with`); other facade calls
   go through `CoreRuntime::invoke`.
 - Set `config_path` with `workspace_dir`, and set a turn origin with its access
@@ -469,7 +499,7 @@ Direct rendered submodules under `vendor/`:
 | `tinysearch` | Web-search module, provider dispatch, tool declarations, and execution behind its TinyBus contract. |
 | `tinyskills` | Host-independent skill/workflow bundle parsing, discovery, scope resolution, resource inventory, and safe reads. OpenHuman owns trust and execution policy. |
 | `tinyvoice` | Host-agnostic voice primitives such as audio framing, VAD, wake-word gating, routing, and STT hallucination detection. |
-| `tinywallet` | Pure multi-chain wallet primitives such as address formats, validation, and encoding conversions; no key custody or transaction broadcast. |
+| `tinywallet` | Multi-chain wallet: `tinywallet-crypto` (address, asset, chain, `rpc::Transport`, tx codec), `tinywallet-x402` (x402 wire, payment, spending ledger, `x402_request` tool), `tinywallet-web3` (wallet engine, per-chain build/sign/broadcast flows, swap/bridge/dapp quotes, agent tools) behind host seams (`WalletSigner`, `PaymentSigner`, `WalletAccounts`, `RpcEndpoints`, `QuoteScope`, `Web3Backend`, `ProxyPolicy`), and the loadable `tinywallet-module` that derives keys and signs. OpenHuman keeps keyring, consent, credentials, config, controllers and the seam impls under `web3/`. |
 | `motosan-ai-oauth` | Provider-agnostic PKCE OAuth login and token-refresh primitives. |
 
 Some rendered submodules are shared dependencies nested inside those projects,
@@ -501,7 +531,7 @@ method constants, request and response types, and its contract version.
 | `tinyvoice-bus` | `voice` |
 | `tinyjuice-bus` | inference kernel |
 | `tinyruntime-bus` | runtime clients |
-| `tinywallet-bus` | `web3` |
+| `tinywallet-bus` | `web3` (contract; the chain primitives are in `tinywallet-crypto`) |
 | `tinymcp-bus` | `mcp` |
 | `tinychannels-bus` | channel vocabulary |
 | `tinyconnectors-bus` | OAuth connector (Composio) wire contract; called through `integrations/composio/module_client.rs` |
@@ -579,8 +609,12 @@ ProductIdentity}`).
 client (`BackendClient`, renamed from `BackendOAuthClient`) and error
 classification. Authenticated `BackendClient` requests go through
 `authed_json`, whose private `finish_authed_json` classifies transient
-transport failures and maps 401/404 responses to typed `BackendApiError`
-variants; `IntegrationClient::map_transport_error`
+transport failures and maps 401s and the transport's typed channel-message
+404s (`ChannelMessageNotFound` / `ChannelMessageRouteMissing`) to typed
+`BackendApiError` variants. What a backend response *means* is decided in
+the transport (`tinyhumans_sdk::classify`, applied by
+`openhuman-tinyhumans`'s `map_sdk_error`), never by reading bodies in the
+core; the recovery stays in the core. `IntegrationClient::map_transport_error`
 (`crates/openhuman-core/src/integrations/client/errors.rs`) plays the same
 role for integrations. Route new backend calls through those helpers instead
 of matching `BackendTransportError` by hand.

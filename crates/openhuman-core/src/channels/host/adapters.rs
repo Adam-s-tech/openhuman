@@ -12,9 +12,8 @@ use async_trait::async_trait;
 use parking_lot::Mutex;
 use tinychannels::host::{
     AllowlistStore, ApprovalDecision, ApprovalGate, ConversationMessage, ConversationStore,
-    EventSink, LifecycleRegistry, ReactionDecision, ReactionGate, ReactionQuery, ShutdownHook,
-    SpeechRequest, SpeechResult, SpeechSynthesizer, Transcriber, TranscriptionRequest,
-    TranscriptionResult,
+    EventSink, LifecycleRegistry, ShutdownHook, SpeechRequest, SpeechResult, SpeechSynthesizer,
+    Transcriber, TranscriptionRequest, TranscriptionResult,
 };
 
 use crate::config::Config;
@@ -128,39 +127,6 @@ impl SpeechSynthesizer for VoiceSynthesizer {
             audio_base64: value.audio_base64,
             mime_type: value.audio_mime,
             visemes,
-        })
-    }
-}
-
-// ---------------------------------------------------------------------------
-// ReactionGate → inference should_react
-// ---------------------------------------------------------------------------
-
-/// Inference-driven reaction gate backed by the local-AI should-react op.
-pub struct InferenceReactionGate {
-    pub config: Arc<Config>,
-}
-
-#[async_trait]
-impl ReactionGate for InferenceReactionGate {
-    async fn should_react(&self, query: ReactionQuery) -> anyhow::Result<ReactionDecision> {
-        // Honour the runtime gate: when the local model runtime is disabled we
-        // never react (matches presentation's prior inline guard).
-        if !self.config.local_ai.runtime_enabled {
-            tracing::debug!("{LOG_PREFIX} should_react skipped (local runtime disabled)");
-            return Ok(ReactionDecision::default());
-        }
-        let outcome = crate::inference::ops::inference_should_react(
-            &self.config,
-            &query.message,
-            &query.channel_type,
-        )
-        .await
-        .map_err(|e| anyhow::anyhow!(e))?;
-        Ok(ReactionDecision {
-            should_react: outcome.value.should_react,
-            emoji: outcome.value.emoji,
-            reason: None,
         })
     }
 }
@@ -342,7 +308,7 @@ impl EventSink for OpenHumanEventSink {
     ) -> anyhow::Result<()> {
         match domain {
             "web" => {
-                let event: crate::core::socketio::WebChannelEvent = serde_json::from_value(payload)
+                let event: crate::web_chat::WebChannelEvent = serde_json::from_value(payload)
                     .map_err(|e| {
                         anyhow::anyhow!(
                             "{LOG_PREFIX} web event payload not a WebChannelEvent ({kind}): {e}"

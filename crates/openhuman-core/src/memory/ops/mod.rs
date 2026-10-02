@@ -24,7 +24,12 @@
 //! - [`files`] — `ai_*_memory_file` handlers (use `tokio::fs`).
 
 pub mod documents;
+pub mod engine;
+#[cfg(test)]
+pub(crate) mod engine_fakes_tests;
+pub mod engine_migrate;
 pub mod envelope;
+pub(crate) mod fallback;
 pub mod files;
 pub mod guard;
 #[cfg(test)]
@@ -51,6 +56,14 @@ pub use documents::{
     DeleteDocParams, IngestDocParams, NamespaceOnlyParams, NamespaceSummariesResponse,
     PutDocParams, PutDocResult, QueryNamespaceParams, RecallNamespaceParams,
 };
+pub use engine::{
+    memory_engine_get, memory_engine_set, memory_engines_list, EngineState, EngineTargetParams,
+    EnginesList,
+};
+pub use engine_migrate::{
+    memory_engine_migrate, memory_engine_migrate_cancel, memory_engine_migrate_status,
+    MigrateCancelParams, MigrateParams, MigrateStatusParams,
+};
 pub use files::{ai_list_memory_files, ai_read_memory_file, ai_write_memory_file};
 pub use kv_graph::{
     graph_query, graph_upsert, kv_delete, kv_get, kv_list_namespace, kv_set, GraphQueryParams,
@@ -75,11 +88,10 @@ pub use tool_memory::{
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-pub(crate) use envelope::{error_envelope, memory_counts, memory_request_id};
+pub(crate) use envelope::memory_request_id;
 #[cfg(test)]
 pub(crate) use helpers::{
-    build_retrieval_context, chunk_metadata, default_category, default_priority,
-    default_source_type, extract_entity_type, filter_hits_by_document_ids,
+    build_retrieval_context, chunk_metadata, extract_entity_type, filter_hits_by_document_ids,
     format_llm_context_message, maybe_retrieval_context, relation_identity, relation_metadata,
     timestamp_to_rfc3339, validate_memory_relative_path,
 };

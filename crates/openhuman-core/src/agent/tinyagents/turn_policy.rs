@@ -143,7 +143,7 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     // repeats, the existing EmptyProviderResponse path remains actionable.
     policy.empty_response_retries = 1;
     policy.limits.max_model_calls = max_iterations;
-    policy.limits.max_tool_calls = max_iterations.saturating_mul(8).max(8);
+    policy.limits.max_tool_calls = crate::agent::stop_hooks::tool_call_limit(max_iterations);
     policy.limits.max_depth = MAX_SPAWN_DEPTH;
     // Wall-clock ceiling for the whole turn (issue #4746). The harness bounds
     // every individual model AND tool call by the run's *remaining* wall-clock
@@ -229,7 +229,16 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     // owns this admission behavior directly; the former host SchemaGuard had
     // to manufacture valid stub arguments only because this policy was left at
     // its historical fail-fast default.
-    policy.invalid_args = InvalidArgsPolicy::ReturnToolError;
+    //
+    // Normalize first: some providers (DeepSeek via OpenRouter) JSON-encode a
+    // nested object-typed argument, e.g. `mcp_registry_tool_call` with
+    // `"arguments": "{}"`. `ArgRecoveryMiddleware` only repairs a top-level
+    // string, so without the harness's schema-guided coercion every such call
+    // failed validation — and a parallel batch of them tripped the
+    // classified-failure breaker before the model could correct itself.
+    // Normalization keeps a rewrite only when it validates, so genuinely
+    // invalid arguments still come back as a corrective tool error.
+    policy.invalid_args = InvalidArgsPolicy::NormalizeThenReturnToolError;
     // Prompt-prefix protection is always on (issue #4249, 03.2). Two things
     // ride on it, and both were inert until the harness started stamping this
     // effective policy onto the outgoing request (tinyagents `model_call`):
@@ -239,8 +248,8 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     //     stable prefix into `provider_options`, and the provider adapters see
     //     `protect_prompt_prefix` and emit explicit `cache_control` breakpoints
     //     where the provider needs them (native Anthropic, OpenRouter relays).
-    // The stable prefix itself is declared per request by the host
-    // `PromptCacheSegmentMiddleware`.
+    // The stable prefix itself is declared per request by the vendor loop from
+    // the session's frozen system prefix (`RunContext::frozen_system_prefix_len`).
     policy.cache.protect_prompt_prefix = true;
     // Response caching is gated: it is enabled only for deterministic internal
     // runs (which additionally attach a `ResponseCache`). Interactive chat turns
@@ -291,7 +300,7 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 /// **This is a strict subset of the caller-side strip**, not a mirror of it
 /// (issue #6157). `subagent_host::tool_prep::is_subagent_spawn_tool` also
 /// resolves each archetype's `delegate_name` override through the definition
-/// registry — `plan`, `research`, `run_code`, `review_code`, … — none of which
+/// registry — `manage_tasks`, `create_image`, `setup_skills`, … — none of which
 /// carry the `delegate_` prefix this match relies on. Matching them here would
 /// put a registry lookup on the per-tool registration loop, so the caller
 /// stays responsible for the override names: every path that feeds `allowed`
@@ -301,3 +310,7 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 pub(crate) fn is_subagent_spawn_or_delegate_tool(name: &str) -> bool {
     name == "spawn_subagent" || name.starts_with("delegate_") || name == "spawn_worker_thread"
 }
+
+#[cfg(test)]
+#[path = "turn_policy_budget_tests.rs"]
+mod budget_tests;

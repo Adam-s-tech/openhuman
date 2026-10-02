@@ -54,6 +54,10 @@ fn response(hits: Vec<RetrievalHit>) -> RetrievalResponse {
 struct Scripted {
     outcome: Mutex<Result<RetrievalResponse, String>>,
     notes: Mutex<Result<Vec<NamespaceMemoryHit>, String>>,
+    /// Whether the scripted notes carry the engine's scores.
+    notes_scored: Mutex<bool>,
+    /// A typed refusal for the notes leg, instead of a plain failure.
+    notes_refusal: Mutex<Option<fn() -> MemoryError>>,
     delay: Duration,
     notes_delay: Mutex<Duration>,
     calls: AtomicUsize,
@@ -65,6 +69,8 @@ impl Scripted {
         Arc::new(Self {
             outcome: Mutex::new(outcome),
             notes: Mutex::new(Ok(Vec::new())),
+            notes_scored: Mutex::new(true),
+            notes_refusal: Mutex::new(None),
             delay,
             notes_delay: Mutex::new(Duration::ZERO),
             calls: AtomicUsize::new(0),
@@ -87,6 +93,20 @@ impl Scripted {
     /// Scripts the notes leg's answer.
     fn with_notes(self: Arc<Self>, notes: Vec<NamespaceMemoryHit>) -> Arc<Self> {
         *self.notes.lock().unwrap() = Ok(notes);
+        self
+    }
+
+    /// Scripts the notes leg's answer from an engine that ranks without
+    /// scoring: every similarity reads 0.0.
+    fn with_unscored_notes(self: Arc<Self>, notes: Vec<NamespaceMemoryHit>) -> Arc<Self> {
+        *self.notes.lock().unwrap() = Ok(notes);
+        *self.notes_scored.lock().unwrap() = false;
+        self
+    }
+
+    /// Scripts the notes leg to be refused with the error `refusal` makes.
+    fn with_refused_notes(self: Arc<Self>, refusal: fn() -> MemoryError) -> Arc<Self> {
+        *self.notes_refusal.lock().unwrap() = Some(refusal);
         self
     }
 
@@ -133,7 +153,7 @@ impl AutoRecallSource for Scripted {
         namespace: &str,
         _query: &str,
         limit: usize,
-    ) -> Result<Vec<NamespaceMemoryHit>, MemoryError> {
+    ) -> Result<ScoredNotes, MemoryError> {
         self.notes_calls.fetch_add(1, AtomicOrdering::SeqCst);
         // The lane owns both parameters; a fake that accepted anything would
         // let a wrong namespace or page size pass every test.
@@ -143,8 +163,14 @@ impl AutoRecallSource for Scripted {
         if !delay.is_zero() {
             tokio::time::sleep(delay).await;
         }
+        if let Some(refusal) = *self.notes_refusal.lock().unwrap() {
+            return Err(refusal());
+        }
         match &*self.notes.lock().unwrap() {
-            Ok(notes) => Ok(notes.clone()),
+            Ok(notes) => Ok(ScoredNotes {
+                hits: notes.clone(),
+                scored: *self.notes_scored.lock().unwrap(),
+            }),
             Err(message) => Err(MemoryError::Backend(message.clone())),
         }
     }
@@ -485,13 +511,34 @@ async fn from_guard_asks_the_notes_namespace_through_the_retrieval_family() {
     );
 }
 
+/// Hosted CortexDB's retrieval family ranks its notes and reports no signal:
+/// they are kept in the engine's order, as an unscored engine's are, rather
+/// than all dropped by the similarity floor.
+#[tokio::test]
+async fn from_guard_keeps_a_rank_only_drivers_notes_in_its_order() {
+    let ranked = |key: &str, content: &str, rank: f64| {
+        let mut hit = namespace_hit("global", key, content, 0.0);
+        hit.score = rank;
+        hit.score_breakdown.final_score = rank;
+        hit
+    };
+    let provider = RecordingProvider::new().with_namespace_hits(vec![
+        ranked("favourite_tea_oolong", TEA_NOTE, 1.0),
+        ranked("rent", "Rent is due on the 5th.", 0.9),
+    ]);
+    let (_provider, guard) = guarded_with(provider, embedded_policy());
+    let lane = AutoRecall::from_guard(Arc::new(guard));
+    let block = lane.block_for(TEA_QUESTION).await.expect("a block");
+    assert!(block.contains(TEA_NOTE), "{block}");
+}
+
 #[tokio::test]
 async fn from_guard_honours_the_hooks_switch() {
     let hooks = crate::config::schema::MemoryHooksConfig {
         auto_recall: false,
         ..Default::default()
     };
-    let policy = crate::memory::guard::GuardPolicy::new(
+    let policy = crate::memory::guard::HostGuardPolicy::new(
         "recording",
         crate::core::subsystem::DriverClass::Embedded,
         hooks,
@@ -518,3 +565,6 @@ async fn from_guard_over_a_driver_without_retrieval_stays_silent() {
 
 #[path = "notes_lane_tests.rs"]
 mod notes_lane_tests;
+
+#[path = "unscored_lane_tests.rs"]
+mod unscored_lane_tests;

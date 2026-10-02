@@ -103,7 +103,7 @@ impl EventHandler<DomainEvent> for ComposioTriggerSubscriber {
             let payload_owned = payload.clone();
 
             match tokio::task::spawn_blocking(move || {
-                store.record_trigger(
+                store.record(
                     &toolkit_owned,
                     &trigger_owned,
                     &metadata_id_owned,
@@ -236,6 +236,13 @@ impl EventHandler<DomainEvent> for ComposioTriggerSubscriber {
                         defer_until_ms = defer_until_ms,
                         reason = %reason,
                         "[composio][triage] run_triage deferred"
+                    );
+                }
+                Ok(TriageOutcome::Terminal { reason }) => {
+                    tracing::warn!(
+                        label = %envelope.display_label,
+                        reason = %reason,
+                        "[composio][triage] run_triage reached terminal state"
                     );
                 }
                 Err(e) => {

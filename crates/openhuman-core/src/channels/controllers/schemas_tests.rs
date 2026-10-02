@@ -76,7 +76,7 @@ fn deserialize_send_message_params() {
 
 #[test]
 fn to_json_helper() {
-    let outcome = RpcOutcome::single_log(json!({"ok": true}), "log");
+    let outcome = Outcome::single_log(json!({"ok": true}), "log");
     assert!(to_json(outcome).is_ok());
 }
 

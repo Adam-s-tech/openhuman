@@ -129,8 +129,8 @@ pub(crate) async fn execute_spawn_parallel_agents(
 /// Decode the tool's JSON request before it reaches host execution policy.
 ///
 /// This remains beside the tool rather than becoming a TinyAgents API: the
-/// parameter shape includes OpenHuman-specific ownership, toolkit, and
-/// worktree-policy fields.
+/// parameter shape includes OpenHuman-specific ownership and worktree-policy
+/// fields.
 fn parse_parallel_agent_tasks(
     args: &serde_json::Value,
 ) -> Result<Vec<ParallelAgentTask>, ParallelAgentTaskRequestError> {
@@ -164,7 +164,7 @@ impl Tool for SpawnParallelAgentsTool {
         "Run two or more independent sub-agent tasks concurrently and collect their results. \
          Read-only and worktree-isolated workers run in parallel; shared-workspace workers with \
          write-capable tools require disjoint `files:` ownership and run through a serial fallback. \
-         Each task has `{agent_id, prompt, context?, toolkit?, ownership?, isolation?, base_ref?}`."
+         Each task has `{agent_id, prompt, context?, ownership?, isolation?, base_ref?}`."
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
@@ -190,7 +190,6 @@ impl Tool for SpawnParallelAgentsTool {
                             "agent_id": agent_id_schema,
                             "prompt": { "type": "string" },
                             "context": { "type": "string" },
-                            "toolkit": { "type": "string" },
                             "ownership": {
                                 "type": "string",
                                 "description": "Disjoint file/module/responsibility boundary for this worker."

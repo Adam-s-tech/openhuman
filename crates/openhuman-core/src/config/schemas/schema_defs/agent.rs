@@ -57,7 +57,7 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                     comment: "Replace the \"Always allow\" allowlist (array of tool names the agent runs without an approval prompt). Empty array clears it.",
                     required: false,
                 },
-                optional_bool("auto_approve_all", "When true, auto-approve all tool calls without prompting. SubconsciousTainted and Unknown origins still denied. Hard security blocks unaffected."),
+                optional_bool("auto_approve_all", "When true, auto-approve all tool calls without prompting. Unknown origins still denied. Hard security blocks unaffected."),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),
@@ -84,7 +84,7 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
             inputs: vec![],
             outputs: vec![json_output(
                 "settings",
-                "Agent settings: agent_timeout_secs, effective_timeout_secs, env_override, min_timeout_secs, max_timeout_secs.",
+                "Agent settings: agent_timeout_secs, effective_timeout_secs, env_override, min_timeout_secs, max_timeout_secs, tool_dispatcher, tool_dispatcher_env_override.",
             )],
         }),
 "update_agent_settings" => Some( ControllerSchema {
@@ -101,6 +101,12 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 name: "chat_agent_id",
                 ty: TypeSchema::Option(Box::new(TypeSchema::String)),
                 comment: "Agent definition id the web-chat path routes turns to. Empty string reverts to the orchestrator. A named definition's own max_iterations governs the turn, so this is how a longer-running agent is selected.",
+                required: false,
+            },
+            FieldSchema {
+                name: "tool_dispatcher",
+                ty: TypeSchema::Option(Box::new(TypeSchema::String)),
+                comment: "How tool calls are spoken to the model: auto (default; native when supported, else JSON-in-tag) | native | xml | pformat | python | typescript. Applies to new sessions.",
                 required: false,
             }],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
