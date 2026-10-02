@@ -56,6 +56,15 @@ export default function MemoryDocumentsTab() {
     void reload();
   }, [reload]);
 
+  // While anything is syncing, re-read the registry so status, item counts and
+  // errors move on their own; idle registries are not polled.
+  const anySyncing = (sources ?? []).some(s => s.status === 'syncing');
+  useEffect(() => {
+    if (!anySyncing) return;
+    const timer = setInterval(() => void reload(), SYNC_POLL_MS);
+    return () => clearInterval(timer);
+  }, [anySyncing, reload]);
+
   const add = async (req: SourceAddRequest): Promise<boolean> => {
     setSaving(true);
     setAddError(null);
