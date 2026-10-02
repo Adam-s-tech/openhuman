@@ -119,7 +119,7 @@ pub fn run(config: &mut Config, prefer_local: bool) -> anyhow::Result<MigrationS
         return Ok(stats);
     }
 
-    // Both targets are 1024-dim ;
+    // Both targets are 1024-dim;
     // the legacy 384-dim BGE values are incompatible with either, so stored
     // vectors re-embed lazily via backfill regardless of which target we pick.
     let (provider, model, dimensions) = if prefer_local {
