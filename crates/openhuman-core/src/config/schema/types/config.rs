@@ -125,8 +125,8 @@ pub struct Config {
     #[serde(default = "default_temperature_value")]
     pub default_temperature: f64,
 
-    /// Optional language for background LLM artifacts such as memory-tree
-    /// summaries, extraction reasons, and learning reflections. Accepts either
+    /// Optional language for background LLM artifacts such as
+    /// summaries and generated briefs. Accepts either
     /// a known UI locale tag (for example `zh-CN`) or a human-readable language
     /// name. `None` preserves the existing default-language behaviour.
     #[serde(default)]

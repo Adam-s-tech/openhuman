@@ -55,8 +55,7 @@ pub struct ContextConfig {
     /// the raw payload before it enters agent history. Default: 4000 tokens.
     /// Set to 0 to disable.
     ///
-    /// Token count is estimated as `chars / 4` (the same heuristic used
-    /// by `tree_summarizer::estimate_tokens`). Pairs with
+    /// Token count is estimated as `chars / 4` (a rough heuristic). Pairs with
     /// [`Self::summarizer_max_payload_tokens`] which caps the upper end
     /// (paying for an LLM call on a multi-million-token blob makes no
     /// economic sense, so above the cap the existing

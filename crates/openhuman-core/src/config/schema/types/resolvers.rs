@@ -1,4 +1,4 @@
-//! Read-only resolvers on [`Config`]: memory-tree content root, per-workload
+//! Read-only resolvers on [`Config`]: files dir, per-workload
 //! local-model routing, and exact agent model pins.
 
 use std::path::PathBuf;
@@ -24,9 +24,8 @@ impl Config {
     /// Returns `None` when the provider isn't `"ollama:<model>"` (including
     /// when the field is unset, blank, `"cloud"`, or any other prefix).
     /// This is the single source of truth for "is this workload local?" —
-    /// callers MUST NOT consult the legacy `local_ai.usage.*` booleans or
-    /// `memory_tree.llm_backend`. Those fields are deprecated zombies kept
-    /// for migration only.
+    /// callers MUST NOT consult the legacy `local_ai.usage.*` booleans, which are
+    /// deprecated zombies kept for migration only.
     pub fn workload_local_model(&self, workload: &str) -> Option<String> {
         let raw = match workload {
             "chat" => self.chat_provider.as_deref(),
