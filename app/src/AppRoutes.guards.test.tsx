@@ -226,7 +226,8 @@ describe('AppRoutes — the whole route table stays classified', () => {
       // `<Navigate>` internally after copying the query string and hash, so the
       // route body never contains the literal `<Navigate`. Matching only that
       // classified `/skills` as 'none' and silently dropped it from this table.
-      if (/<(?:Navigate|ForwardSearch)\b/.test(body)) out[match[1]] = 'redirect';
+      // `BrainRedirect` wraps a `<Navigate>` the same way.
+      if (/<(?:Navigate|ForwardSearch|BrainRedirect)\b/.test(body)) out[match[1]] = 'redirect';
       else if (/<ProtectedRoute\b[^>]*requireAuth=\{false\}/.test(body))
         out[match[1]] = 'protected-but-open';
       else if (/<ProtectedRoute\b/.test(body)) out[match[1]] = 'protected';
