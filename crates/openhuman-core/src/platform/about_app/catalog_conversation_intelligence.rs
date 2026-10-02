@@ -178,6 +178,16 @@ Capability {
         privacy: None,
     },
 Capability {
+        id: "conversation.thinking_level",
+        name: "Thinking Level",
+        domain: "conversation",
+        category: CapabilityCategory::Conversation,
+        description: "Choose how hard the model thinks before answering: Auto (the provider's default), Off, Low, Medium, High or Max. The choice applies to the conversation's own turns, is remembered as the default for new ones, and is translated into each provider's reasoning setting; delegated sub-agents keep their provider default.",
+        how_to: "Conversations > pick a thinking level beside the model selector in the composer",
+        status: CapabilityStatus::Beta,
+        privacy: None,
+    },
+Capability {
         id: "conversation.subagent_mascots",
         name: "Subagent Mascots",
         domain: "conversation",
