@@ -366,7 +366,10 @@ fn all_builtin_agent_definitions_have_expected_effective_max_iterations() {
 
     let expected: &[(&str, usize)] = &[
         // Extended policy (or high `max_iterations`) -> effective cap raised.
-        ("orchestrator", 15),
+        // Raised from 15 to 50 by 7ad30f7c5 (fix(registry): raise orchestrator
+        // max iterations); the loader registration test moved with it, this
+        // snapshot did not.
+        ("orchestrator", 50),
         // #5204: general-purpose read-only flow context/memory retrieval
         // agent — `iteration_policy = "extended"` so it can loop across
         // several retrievals in one turn. `#[cfg(feature = "flows")]`-gated
