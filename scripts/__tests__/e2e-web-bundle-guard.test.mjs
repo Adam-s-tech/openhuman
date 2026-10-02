@@ -219,9 +219,30 @@ test("CI Full refreshes the E2E marker after restoring its content-keyed artifac
     cacheStep,
     /e2e-playwright-linux-c3c20d625bcc9f75e50c3c2c2b75c88d3e60a3f4352b0f19f5327b490438722d-/,
   );
+  const jobBlock = (id, nextId) => {
+    const start = workflow.indexOf(`  ${id}:\n`);
+    const end = workflow.indexOf(`\n  ${nextId}:\n`, start);
+    return start < 0 || end < 0
+      ? undefined
+      : workflow.slice(start, end);
+  };
+  const pinnedImage =
+    "image: ghcr.io/tinyhumansai/openhuman_ci:latest@sha256:c3c20d625bcc9f75e50c3c2c2b75c88d3e60a3f4352b0f19f5327b490438722d";
+  const producerJob = jobBlock("build-playwright-e2e-artifact", "playwright-e2e");
+  const consumerJob = jobBlock("playwright-e2e", "e2e-desktop");
+  assert.ok(producerJob, "Playwright artifact producer job must exist");
+  assert.ok(consumerJob, "Playwright artifact consumer job must exist");
+  assert.ok(
+    producerJob.includes(pinnedImage),
+    "Playwright artifact producer must use the cache-key CI image",
+  );
+  assert.ok(
+    consumerJob.includes(pinnedImage),
+    "Playwright artifact consumer must use the cache-key CI image",
+  );
   assert.equal(
-    (workflow.match(/image: ghcr\.io\/tinyhumansai\/openhuman_ci:latest@sha256:c3c20d625bcc9f75e50c3c2c2b75c88d3e60a3f4352b0f19f5327b490438722d/g) ?? []).length,
-    2,
+    producerJob.match(/container:\n\s+image: .+/)?.[0],
+    consumerJob.match(/container:\n\s+image: .+/)?.[0],
     "Playwright artifact producer and consumer must use the same pinned CI image",
   );
   assert.match(cacheStep, /crates\/\*\*/);
