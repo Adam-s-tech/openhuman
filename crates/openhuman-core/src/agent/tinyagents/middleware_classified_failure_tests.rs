@@ -317,3 +317,24 @@ fn an_unknown_tool_is_a_correctable_call_not_a_blocker() {
         Some(("authentication", 0))
     );
 }
+
+#[test]
+fn a_mistyped_file_path_is_a_correctable_call_not_a_missing_program() {
+    let error = "Failed to resolve path 'mailbox/2026-09-18-flight.txt': No such file or directory (os error 2)";
+    for tool in ["file_read", "file_write", "apply_patch"] {
+        assert_eq!(
+            super::super::repeated_failure::recovery_policy(tool, error, false),
+            Some(("not_found", 1)),
+            "{tool}"
+        );
+    }
+    // A shell that cannot find a program is still unsupported.
+    assert_eq!(
+        super::super::repeated_failure::recovery_policy(
+            "shell",
+            "bash: jq: command not found",
+            false
+        ),
+        Some(("unsupported", 0))
+    );
+}

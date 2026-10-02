@@ -329,6 +329,24 @@ impl OpenHumanDefinitionRegistry {
                 if let Some(delegation_tools) = self.session_delegation_tools.as_deref() {
                     names.extend(delegation_tools.iter().cloned());
                 }
+                // A curated belt still has to reach the tools a compacted
+                // result names (`tinyjuice_retrieve`, `juice_find`, …). The
+                // session adds them to its visible set; without the same
+                // names here the harness allowlist rejects every call to them
+                // as an unknown tool. A zero-tool belt stays zero-tool.
+                if !named.is_empty() {
+                    if let (Some(config), Some(registered)) =
+                        (self.config.as_deref(), self.registered_tools.as_deref())
+                    {
+                        for name in
+                            crate::inference::tokenjuice::companion_tool_names(&def.id, config)
+                        {
+                            if registered.iter().any(|r| r == name) {
+                                names.push(name.to_string());
+                            }
+                        }
+                    }
+                }
                 // `extra_tools` is an "also include these" hook on top of a
                 // named scope. Under `Wildcard` it is meaningless — everything
                 // is already in scope.
