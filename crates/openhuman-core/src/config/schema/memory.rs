@@ -32,6 +32,11 @@
 //! ([`deserialize_sources`]) so a single entry this build does not understand
 //! is dropped with a warning instead of failing the whole config.
 //!
+//! The `embedding_*` keys also live here. They are not memory v2 settings —
+//! v2 engines embed server-side — but the embedding host (tool discovery,
+//! voice, the `embeddings` RPC) has always read them from `[memory]`, and
+//! moving them would silently reset every user's embedding choice.
+//!
 //! The config holds no credential. The CortexDB key lives in the keychain under
 //! [`MEMORY_CORTEXDB_KEY_NAME`]; the TinyHumans engine borrows the host's
 //! backend credential.
@@ -78,7 +83,27 @@ pub struct MemoryConfig {
         skip_serializing_if = "Vec::is_empty"
     )]
     pub sources: Vec<MemorySourceConfig>,
+    /// Embedding provider of the embedding host (`cloud`, `ollama`, …).
+    pub embedding_provider: String,
+    /// Embedding model id.
+    pub embedding_model: String,
+    /// Embedding dimensions.
+    pub embedding_dimensions: usize,
+    /// Outbound embedding requests per minute for cloud providers; `0`
+    /// disables throttling. Env override: `OPENHUMAN_MEMORY_EMBED_RATE_LIMIT`.
+    pub embedding_rate_limit_per_min: u32,
 }
+
+/// Default `embedding_provider`: the OpenHuman backend (Voyage-backed).
+pub const DEFAULT_EMBEDDING_PROVIDER: &str = "cloud";
+/// Default `embedding_model`; keep in sync with
+/// `embeddings::cloud::DEFAULT_CLOUD_EMBEDDING_MODEL`.
+pub const DEFAULT_EMBEDDING_MODEL: &str = "embedding-v1";
+/// Default `embedding_dimensions`; keep in sync with
+/// `embeddings::cloud::DEFAULT_CLOUD_EMBEDDING_DIMENSIONS`.
+pub const DEFAULT_EMBEDDING_DIMENSIONS: usize = 1024;
+/// Default `embedding_rate_limit_per_min` (cloud backends cap ~60/min).
+pub const DEFAULT_EMBEDDING_RATE_LIMIT_PER_MIN: u32 = 60;
 
 impl Default for MemoryConfig {
     fn default() -> Self {
@@ -88,6 +113,10 @@ impl Default for MemoryConfig {
             conversations: MemoryConversationsConfig::default(),
             context: MemoryContextConfig::default(),
             sources: Vec::new(),
+            embedding_provider: DEFAULT_EMBEDDING_PROVIDER.to_string(),
+            embedding_model: DEFAULT_EMBEDDING_MODEL.to_string(),
+            embedding_dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
+            embedding_rate_limit_per_min: DEFAULT_EMBEDDING_RATE_LIMIT_PER_MIN,
         }
     }
 }
