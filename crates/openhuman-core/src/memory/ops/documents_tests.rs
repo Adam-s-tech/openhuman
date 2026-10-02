@@ -7,9 +7,9 @@ use crate::config::test_env::EnvVarGuard;
 /// workspace for the test (see [`EnvVarGuard`]). Hold the returned
 /// guard for the whole test: `let _env = ensure_memory_client();`.
 #[must_use]
-fn ensure_memory_client() -> EnvVarGuard {
+async fn ensure_memory_client() -> EnvVarGuard {
     let workspace = crate::memory::ops::shared_memory_test_workspace();
-    EnvVarGuard::workspace(&workspace)
+    EnvVarGuard::workspace_async(&workspace).await
 }
 
 fn unique_namespace(prefix: &str) -> String {
@@ -36,7 +36,7 @@ fn sample_put(namespace: String, key: String, title: &str, content: &str) -> Put
 #[tokio::test]
 async fn direct_document_handlers_roundtrip_through_namespace() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
-    let _env = ensure_memory_client();
+    let _env = ensure_memory_client().await;
     let namespace = unique_namespace("memory-docs-direct");
     let key = format!(
         "note{}",
@@ -126,7 +126,7 @@ async fn direct_document_handlers_roundtrip_through_namespace() {
 #[tokio::test]
 async fn envelope_memory_handlers_report_counts_and_statuses() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
-    let _env = ensure_memory_client();
+    let _env = ensure_memory_client().await;
     let namespace = unique_namespace("memory-docs-envelope");
     let key = format!("env{}", &uuid::Uuid::new_v4().as_simple().to_string()[..12]);
 
@@ -238,7 +238,7 @@ async fn envelope_memory_handlers_report_counts_and_statuses() {
 #[tokio::test]
 async fn doc_put_through_the_guard_is_visible_to_the_memory_api() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
-    let _env = ensure_memory_client();
+    let _env = ensure_memory_client().await;
     let namespace = unique_namespace("memory-docs-guard");
     let key = format!(
         "guarded{}",
@@ -275,7 +275,7 @@ async fn doc_put_through_the_guard_is_visible_to_the_memory_api() {
 #[tokio::test]
 async fn destructive_ops_refuse_when_bound_driver_is_null() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
-    let _env = ensure_memory_client();
+    let _env = ensure_memory_client().await;
     let workspace = tempfile::tempdir().unwrap();
     let null_cfg = crate::config::schema::MemorySubsystemConfig {
         driver: "null".into(),
