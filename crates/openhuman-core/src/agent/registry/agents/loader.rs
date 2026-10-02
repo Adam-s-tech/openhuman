@@ -150,12 +150,6 @@ pub const BUILTINS: &[BuiltinAgent] = &[
         prompt_fn: crate::skills::catalog::agent::skill_setup::prompt::build,
         graph_fn: None,
     },
-    BuiltinAgent {
-        id: "agent_memory",
-        toml: include_str!("../../../memory/agent/agent/agent.toml"),
-        prompt_fn: crate::memory::agent::agent::prompt::build,
-        graph_fn: None,
-    },
     // Workflow-authoring specialist (Phase 5a): builds tinyflows automation
     // graphs from natural language and returns a validated PROPOSAL — it never
     // persists or enables a flow. Deliberately narrow propose-or-read tool belt.
