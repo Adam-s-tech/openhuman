@@ -9,7 +9,6 @@
 //!   so every chain's signer derives a deterministic address.
 //! - Sample addresses corresponding to that mnemonic (one per chain).
 
-use parking_lot::Mutex;
 use tempfile::TempDir;
 
 use super::ops::{setup, WalletAccount, WalletChain, WalletSetupParams, WalletSetupSource};
