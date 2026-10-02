@@ -4606,6 +4606,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': '파일 첨부',
   'composer.modelSelector': '모델',
+  'composer.reasoning.label': '사고 수준',
+  'composer.reasoning.default': '사고: 자동',
+  'composer.reasoning.none': '사고: 끔',
+  'composer.reasoning.low': '사고: 낮음',
+  'composer.reasoning.medium': '사고: 보통',
+  'composer.reasoning.high': '사고: 높음',
+  'composer.reasoning.xhigh': '사고: 최대',
   'composer.settings.model': '모델',
   'composer.settings.temperature': '온도',
   'composer.settings.chooseModel': '다른 모델 선택…',

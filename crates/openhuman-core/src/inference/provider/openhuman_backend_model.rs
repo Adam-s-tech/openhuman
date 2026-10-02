@@ -436,29 +436,60 @@ pub(crate) fn without_reasoning(mut request: ModelRequest) -> ModelRequest {
     request
 }
 
-/// Translate the [`without_reasoning`] hint into the managed backend's wire
-/// field. A `reasoning` object the caller already put in provider options wins.
-fn apply_reasoning_hint(request: ModelRequest) -> ModelRequest {
+/// Translate the request's reasoning choice into the managed backend's wire
+/// field: the OpenRouter-style `reasoning` object, which the backend forwards
+/// upstream.
+///
+/// Sources, highest first: a `reasoning` object the caller already put in
+/// provider options (left alone); the [`without_reasoning`] hint, which marks
+/// one helper call specifically; the request's provider-neutral
+/// `ModelRequest::reasoning` (the user's thinking level, from the harness
+/// `RunPolicy::default_reasoning`). The
+/// neutral field is consumed here, so the OpenAI-compatible transport does not
+/// also emit a top-level `reasoning_effort` for the same choice.
+fn apply_reasoning_hint(mut request: ModelRequest) -> ModelRequest {
+    if request.provider_options.get("reasoning").is_some() {
+        return request;
+    }
     let wants_off = request
         .metadata
         .get(REASONING_OFF_METADATA_KEY)
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    if !wants_off || request.provider_options.get("reasoning").is_some() {
+    let neutral = request.reasoning.take();
+    let wire = if wants_off {
+        Some(serde_json::json!({ "enabled": false }))
+    } else {
+        neutral.as_ref().and_then(managed_reasoning_wire)
+    };
+    let Some(wire) = wire else {
         return request;
-    }
+    };
     let mut options = request.provider_options.clone();
     if !options.is_object() {
         options = Value::Object(serde_json::Map::new());
     }
     if let Some(map) = options.as_object_mut() {
-        map.insert(
-            "reasoning".to_string(),
-            serde_json::json!({ "enabled": false }),
-        );
+        map.insert("reasoning".to_string(), wire.clone());
     }
-    log::debug!("[inference][managed] reasoning disabled for this call by request hint");
+    log::debug!("[inference][managed] reasoning for this call: {wire}");
     request.with_provider_options(options)
+}
+
+/// The OpenRouter `reasoning` object for a provider-neutral config: `none`
+/// disables reasoning, an explicit budget becomes `max_tokens`, and any other
+/// effort is sent by name. An empty config sends nothing.
+fn managed_reasoning_wire(reasoning: &tinyinference_llm::model::ReasoningConfig) -> Option<Value> {
+    use tinyinference_llm::model::ReasoningEffort;
+    if reasoning.effort == Some(ReasoningEffort::None) {
+        return Some(serde_json::json!({ "enabled": false }));
+    }
+    if let Some(budget) = reasoning.budget_tokens {
+        return Some(serde_json::json!({ "max_tokens": budget }));
+    }
+    reasoning
+        .effort
+        .map(|effort| serde_json::json!({ "effort": effort.as_str() }))
 }
 
 /// Inject this managed model's explicitly owned thread into provider options.

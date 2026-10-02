@@ -4719,6 +4719,13 @@ const messages: TranslationMap = {
   // Chat composer toolbar
   'composer.attachFile': 'Allega file',
   'composer.modelSelector': 'Modello',
+  'composer.reasoning.label': 'Livello di ragionamento',
+  'composer.reasoning.default': 'Ragionamento: automatico',
+  'composer.reasoning.none': 'Ragionamento: disattivato',
+  'composer.reasoning.low': 'Ragionamento: basso',
+  'composer.reasoning.medium': 'Ragionamento: medio',
+  'composer.reasoning.high': 'Ragionamento: alto',
+  'composer.reasoning.xhigh': 'Ragionamento: massimo',
   'composer.settings.model': 'Modello',
   'composer.settings.temperature': 'Temperatura',
   'composer.settings.chooseModel': 'Scegli un altro modello…',

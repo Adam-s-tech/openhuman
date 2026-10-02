@@ -168,6 +168,7 @@ pub(super) fn handle_update_runtime_settings(params: Map<String, Value>) -> Cont
         let patch = config_rpc::RuntimeSettingsPatch {
             kind: update.kind,
             reasoning_enabled: update.reasoning_enabled,
+            reasoning_effort: update.reasoning_effort,
         };
         to_json(config_rpc::load_and_apply_runtime_settings(patch).await?)
     })
