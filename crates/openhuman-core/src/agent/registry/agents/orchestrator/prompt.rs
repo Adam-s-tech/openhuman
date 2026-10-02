@@ -258,14 +258,24 @@ fn hand_off_route(ctx: &PromptContext<'_>, specialist: &str) -> Option<String> {
         .map(|pack| format!("`{tool}` (`use_skill` skill `{}`)", pack.id))
 }
 
-/// How this session runs an installed skill: its own `run_workflow`, when the
-/// belt carries it. There is no skill-running specialist any more — the
+/// How this session runs an installed skill: its own `run_workflow`, on the
+/// belt directly or, while the `workflows` pack holds it, through `use_skill`. There is no skill-running specialist any more — the
 /// orchestrator's `run_workflow` already spawns the skill as an isolated run
 /// (`spawn_skill_run_background`), so a second hand-off was a second door.
 fn run_workflow_route(ctx: &PromptContext<'_>) -> Option<String> {
     const RUN_WORKFLOW: &str = "run_workflow";
-    (ctx.visible_tool_names.is_empty() || ctx.visible_tool_names.contains(RUN_WORKFLOW))
-        .then(|| format!("`{RUN_WORKFLOW}`"))
+    if ctx.visible_tool_names.is_empty() || ctx.visible_tool_names.contains(RUN_WORKFLOW) {
+        return Some(format!("`{RUN_WORKFLOW}`"));
+    }
+    // Packed: only a route if this session can call `use_skill` itself.
+    if !ctx
+        .visible_tool_names
+        .contains(tinyagents_harness::tool::packs::USE_SKILL)
+    {
+        return None;
+    }
+    toolpacks::pack_for_tool(RUN_WORKFLOW)
+        .map(|pack| format!("`{RUN_WORKFLOW}` (`use_skill` skill `{}`)", pack.id))
 }
 
 /// `prompt.md` with the route-tagged rows this build cannot honour removed.
