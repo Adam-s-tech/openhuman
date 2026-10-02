@@ -30,7 +30,7 @@ omit_profile = false
 # session (KV-cache contract on `AgentDefinition::omit_memory_md`).
 omit_memory_md = false
 # Memory retrieval is ON-DEMAND, not pre-emptive, and it is one direct `memory`
-# tool (`ask` | `keyword_search` | `learn`). The orchestrator used to run
+# tool (`ask` | `keyword_search` | `learn` | `forget`). The orchestrator used to run
 # `agent_memory` eagerly before every turn, then to offer it as a second
 # `retrieve_memory` delegate beside `memory_recall`: two near-identical ways to
 # search the same store. Now there is one. (The frozen MEMORY.md digest still
@@ -233,7 +233,7 @@ named = [
     "web_contents_tool",
     "web_fetch",
     "http_request",
-    # Direct memory surface (#4762): ONE `memory` tool, `ask` | `keyword_search` |
+    # Direct memory surface (#4762): ONE `memory` tool, `ask` | `keyword_search` | `forget` |
     # `learn`. Recall and store are the product's core and must be first-class
     # DIRECT calls, not a sub-agent spawn: a trivial "what is my Q3 OKR" lookup or
     # a "remember my Q3 OKR" write should not pay a blocking agentic round-trip

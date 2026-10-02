@@ -1,4 +1,4 @@
-//! `memory` — the whole agent-facing memory surface as one three-action tool:
+//! `memory` — the whole agent-facing memory surface as one four-action tool:
 //! `memory(action: "ask" | "keyword_search" | "learn" | "forget", text: "...")`.
 //!
 //! * `ask` — a question in plain language; answered by the hybrid
