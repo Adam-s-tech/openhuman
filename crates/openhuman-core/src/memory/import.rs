@@ -127,12 +127,12 @@ pub async fn start(config: &Config, consent: bool) -> MemoryResult<ImportState> 
     }
     let bound = engine::resolve(config).engine()?;
     let workspace_dir = config.workspace_dir.clone();
-    {
-        let mut running = RUNNING.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        if running.contains(&workspace_dir) {
-            return Ok(status(config));
-        }
-        running.insert(workspace_dir.clone());
+    let claimed = RUNNING
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(workspace_dir.clone());
+    if !claimed {
+        return Ok(status(config));
     }
     let scan_dir = workspace_dir.clone();
     let counts = tokio::task::spawn_blocking(move || count_legacy(&scan_dir))
