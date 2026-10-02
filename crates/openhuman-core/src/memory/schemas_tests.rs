@@ -2,6 +2,7 @@ use super::*;
 use crate::core::runtime::context::CoreContext;
 use crate::core::runtime::DomainSet;
 use crate::memory::test_fixtures::{bind_reference, config_in};
+use crate::config::Config;
 use serde_json::{json, Map, Value};
 
 /// Every method of the spec's RPC table (`docs/specs/memory-v2.md`), exactly.
