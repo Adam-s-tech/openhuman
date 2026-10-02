@@ -1,12 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { memoryTreeBackfillStatus } from '../../../utils/tauriCommands/memoryTree';
+import { callCoreRpc } from '../../../services/coreRpcClient';
 import { useReembedBackfillModal } from './useReembedBackfillModal';
 
-vi.mock('../../../utils/tauriCommands/memoryTree', () => ({ memoryTreeBackfillStatus: vi.fn() }));
+vi.mock('../../../services/coreRpcClient', () => ({ callCoreRpc: vi.fn() }));
 
-const status = vi.mocked(memoryTreeBackfillStatus);
+const status = vi.mocked(callCoreRpc);
 
 beforeEach(() => {
   vi.clearAllMocks();
