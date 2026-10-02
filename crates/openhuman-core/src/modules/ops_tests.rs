@@ -381,10 +381,7 @@ fn bundled_dir_ignores_paths_that_do_not_exist() {
         ops::resolve_bundled_dir(None, Some(root.path().join("missing")), None),
         None
     );
-    assert_eq!(
-        ops::resolve_bundled_dir(None, None, Some(root.path().into())),
-        None
-    );
+    assert_eq!(ops::resolve_bundled_dir(None, None, Some(root.path().into())), None);
 }
 
 #[test]
