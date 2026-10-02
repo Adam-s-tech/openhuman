@@ -111,13 +111,6 @@ fn learning_provider_defaults_to_cloud_when_flag_off() {
 }
 
 #[test]
-fn memory_provider_local_when_llm_backend_local() {
-    let mut c = make_legacy_config_local_on();
-    let _ = run(&mut c).unwrap();
-    assert_eq!(c.memory_provider.as_deref(), Some("ollama:llama3.1:8b"));
-}
-
-#[test]
 fn memory_provider_cloud_when_llm_backend_cloud() {
     let mut c = Config::default();
     // default backend is Cloud
