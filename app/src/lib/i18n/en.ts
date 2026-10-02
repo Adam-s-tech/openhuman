@@ -24,35 +24,6 @@ const en: TranslationMap = {
   'nav.avatarMenu.wallet': 'Wallet',
   'nav.feedback': 'Share Feedback',
 
-  // Brain: full-page memory knowledge-graph surface
-  // Per-tab text headers (title reuses brain.tabs.*)
-  'brain.header.graph': "How your agent's knowledge connects: people, topics, and memories.",
-  'brain.header.goals': 'What your agent is working toward, and why.',
-  'brain.header.sources': 'The data your agent learns from.',
-  'brain.header.sync': 'Keep your memory fresh and review what changed.',
-  'brain.tabs.graph': 'Graph',
-  'brain.tabs.goals': 'Goals',
-  'brain.tabs.sources': 'Sources',
-  'brain.tabs.sync': 'Sync',
-  'brain.sync.viewStatus': 'Status',
-  'brain.sync.viewHistory': 'History',
-  'brain.empty': 'Your memory is empty for now: connect a source to start building it.',
-  'brain.error': "Couldn't load your memory. Please try again.",
-  'brain.refreshError': "Couldn't refresh your memory. Showing the last data that loaded.",
-  'brain.goals.title': 'Long-term Goals',
-  'brain.goals.description':
-    "The agent's durable goals for working with you. Edit them here or let Reflect update them.",
-  'brain.goals.reflect': 'Reflect',
-  'brain.goals.reflecting': 'Reflecting…',
-  'brain.goals.reflectDone': 'Goals updated.',
-  'brain.goals.add': 'Add',
-  'brain.goals.addPlaceholder': 'Add a long-term goal…',
-  'brain.goals.empty':
-    'No goals yet. Add one, or use Reflect to populate them from recent context.',
-  'brain.goals.editGoal': 'Edit goal',
-  'brain.goals.deleteGoal': 'Delete goal',
-  'brain.goals.actionError': 'Something went wrong. Please try again.',
-
   // Feedback board
   'feedback.board': 'Feedback board',
   'feedback.header.desc': 'Share ideas and vote on what we build next.',
@@ -120,28 +91,6 @@ const en: TranslationMap = {
   'dataTable.column.scope': 'Scope',
   'dataTable.column.version': 'Version',
   'dataTable.column.source': 'Source',
-  'sync.runs': 'sync runs',
-  'sync.totalCost': 'total',
-  'sync.when': 'When',
-  'sync.source': 'Source',
-  'sync.items': 'Items',
-  'sync.tokens': 'Tokens',
-  'sync.cost': 'Cost',
-  'sync.duration': 'Duration',
-  'sync.noAuditEntries': 'No sync runs recorded yet.',
-  'sync.timeAgo.justNow': 'just now',
-  'sync.timeAgo.minutes': '{n}m ago',
-  'sync.timeAgo.hours': '{n}h ago',
-  'sync.timeAgo.days': '{n}d ago',
-  'sync.status.success': 'Success',
-  'sync.status.failed': 'Failed',
-  'sync.status.partial': 'Fetched, memory ingest failed',
-  'sync.status.partialShort': 'Partial',
-  'sync.statusColumn': 'Status',
-  'sync.auditTitle': 'Sync History',
-  'sync.searchPlaceholder': 'Search sources…',
-  'sync.nowSyncing.title': 'Now syncing',
-  'sync.nowSyncing.empty': 'Nothing is syncing right now.',
   'common.error': 'Error',
   'common.success': 'Success',
   'common.back': 'Back',
@@ -697,84 +646,6 @@ const en: TranslationMap = {
   'memory.analyzeNow': 'Analyze Now',
   'namespaceOverview.entitiesShort': '{count} ent.',
 
-  // Memory Tree status panel (#1856 Part 1)
-  'memoryTree.status.title': 'Memory Tree',
-  'memoryTree.status.autoSyncLabel': 'Auto-sync',
-  'memoryTree.status.autoSyncDescription':
-    'Pause to stop new ingestion. Existing wiki stays queryable.',
-  'memoryTree.status.statusTile': 'Status',
-  'memoryTree.status.lastSyncTile': 'Last sync',
-  'memoryTree.status.totalChunksTile': 'Summary-tree leaves',
-  'memoryTree.status.storedItemsTile': 'Stored items',
-  'memoryTree.status.wikiSizeTile': 'Wiki size',
-  'memoryTree.status.statusRunning': 'Running',
-  'memoryTree.status.statusPaused': 'Paused',
-  'memoryTree.status.statusSyncing': 'Syncing',
-  'memoryTree.status.statusError': 'Error',
-  'memoryTree.status.statusIdle': 'Idle',
-  'memoryTree.status.statusDegraded': 'Degraded',
-  // #5324: a spent embedding budget is a distinct state from a generic error —
-  // memory is paused, not broken, and the fix is the user's to make.
-  'memoryTree.status.statusBudgetExhausted': 'Paused: embedding budget reached',
-  'memoryTree.status.never': 'Never',
-  // #002: degraded badges + typed remediation strings. The Rust core sends a
-  // `remediation_key` (one of memory.health.remediation.*) which the status
-  // panel resolves verbatim, so the cause + fix come from one source of truth.
-  'memoryTree.status.degradedRecall': 'Semantic recall disabled',
-  'memoryTree.status.degradedStructure': 'Wiki structure incomplete',
-  'memoryTree.status.extractionCoverage': 'Extraction coverage: {pct}% of chunks have structure',
-  'memory.health.remediation.budget_exhausted':
-    'Memory embeddings hit the managed budget. Set up local Ollama embeddings (Connections → API keys → Embeddings) or add your own embeddings API key to keep building memory.',
-  'memory.health.remediation.auth_missing':
-    'No embeddings credentials found. Log in to OpenHuman, or set up local Ollama embeddings in Connections → API keys → Embeddings.',
-  'memory.health.remediation.auth_invalid':
-    'Your embeddings credentials were rejected. Re-authenticate, or switch to local Ollama embeddings in Connections → API keys → Embeddings.',
-  'memory.health.remediation.embeddings_unconfigured':
-    'No embeddings provider is configured, so semantic recall is off. Set up local Ollama embeddings (recommended) or add an embeddings key in Connections → API keys → Embeddings.',
-  'memory.health.remediation.embedding_dim_mismatch':
-    'The embedding model returns the wrong vector size (memory expects 1024 dimensions). Pick a 1024-dim model, or request 1024 dimensions for your provider.',
-  'memory.health.remediation.local_model_unavailable':
-    'A required local model is not available. Start your own Ollama server and pull the model there, or switch this workload to a cloud provider in Connections → API keys.',
-  'memory.health.remediation.extraction_timeout':
-    'The memory extraction model is timing out, so the wiki has little structure. Switch the Memory extraction model to a faster one in Connections → API keys → LLM.',
-  'memory.health.remediation.summarizer_unavailable':
-    'No summarization provider is available for Build Summary Trees. Point a workload at your own local endpoint (such as Ollama) in Connections → API keys → LLM, or set memory_tree.cloud_summarization_opt_in=true and configure an LLM provider there.',
-  'memory.health.remediation.empty_input_refused':
-    'A memory item was skipped because its text was empty. No action needed: newer items continue to embed normally.',
-  'memory.health.remediation.storage_unavailable':
-    "OpenHuman can't write to its memory storage: the disk or SD card appears to be failing, full, or read-only. Check the drive and free up space; memory processing resumes automatically once storage is writable again.",
-  'memory.health.remediation.transient':
-    'A temporary error interrupted memory processing. It will retry automatically.',
-  'memory.health.remediation.unknown':
-    'Memory processing encountered an issue. Check Connections → API keys for configuration.',
-  'memoryTree.status.fetchError': "Couldn't fetch Memory Tree status",
-  'memoryTree.status.retry': 'Retry',
-  'memoryTree.status.retryFailed': 'Retry failed jobs',
-  'memoryTree.status.retryFailedBusy': 'Retrying...',
-  'memoryTree.status.retryFailedDone': 'Failed jobs requeued',
-  'memoryTree.status.retryFailedCount': 'Jobs queued to run again: {count}.',
-  'memoryTree.status.retryFailedError': 'Could not requeue the failed jobs',
-  'memoryTree.status.jobQueue': 'Memory jobs: {ready} waiting, {running} running, {failed} failed',
-  'memoryTree.status.toggleFailed': "Couldn't toggle auto-sync",
-  // Relative-time buckets surfaced by the last-sync tile. `{count}` is
-  // replaced client-side at the call site (the runtime `t()` does not
-  // interpolate: see I18nContext.tsx).
-  'memoryTree.status.justNow': 'just now',
-  'memoryTree.status.secondsAgo': '{count}s ago',
-  'memoryTree.status.minuteAgo': '1 min ago',
-  'memoryTree.status.minutesAgo': '{count} min ago',
-  'memoryTree.status.hourAgo': '1 hr ago',
-  'memoryTree.status.hoursAgo': '{count} hr ago',
-  'memoryTree.status.dayAgo': '1 day ago',
-  'memoryTree.status.daysAgo': '{count} days ago',
-  // Per-integration health strip (#2763): rendered between the 4-tile grid
-  // and the auto-sync toggle in MemoryTreeStatusPanel.
-  'memoryTree.status.integrationsTitle': 'Per-integration health',
-  'memoryTree.status.integrationsEmpty': 'No integrations connected',
-  'memoryTree.status.integrationActive': 'Active',
-  'memoryTree.status.integrationStale': 'Stale',
-  'memoryTree.status.integrationChunks': 'Chunks: {count}',
-
   // Notifications / Alerts
   'alerts.title': 'Alerts',
   'alerts.header.desc': 'Agent activity and everything that needs your attention.',
@@ -1013,8 +884,6 @@ const en: TranslationMap = {
     '{writeCount} possible write surfaces · {policyCount} policy surfaces',
   'devOptions.toolPolicyDiagnostics.recentBlocked.title': 'Recent blocked calls',
   'devOptions.toolPolicyDiagnostics.recentBlocked.empty': 'No recent blocked tool calls',
-  'devOptions.debugPanelsDesc': 'Feature flags, state inspection, and debugging tools',
-  'devOptions.memoryInspectionDesc': 'Browse, query, and manage memory entries',
 
   // Voice / Dictation
   'voice.pushToTalk': 'Push to Talk',
@@ -1789,36 +1658,7 @@ const en: TranslationMap = {
   // Local Model
 
   // Memory
-  'memory.documents': 'Documents',
-  'memory.column.document': 'Document',
-  'memory.filterByNamespace': 'Filter by namespace...',
-  'memory.refresh': 'Refresh',
-  'memory.noDocumentsFound': 'No documents found.',
-  'memory.delete': 'Delete',
-  'memory.rawResponse': 'Raw response',
-  'memory.namespaces': 'Namespaces',
-  'memory.noNamespacesFound': 'No namespaces found.',
-  'memory.queryRecall': 'Query & Recall',
-  'memory.namespace': 'Namespace',
-  'memory.queryText': 'Query text...',
-  'memory.defaultMaxChunks': '10',
-  'memory.maxChunks': 'max chunks',
-  'memory.query': 'Query',
   'memory.recall': 'Recall',
-  'memory.queryLabel': 'Query',
-  'memory.recallLabel': 'Recall',
-  'memory.queryResult': 'Query result',
-  'memory.recallResult': 'Recall result',
-  'memory.clearNamespace': 'Clear Namespace',
-  'memory.clearNamespaceDescription': 'Permanently delete all documents within a namespace.',
-  'memory.selectNamespace': 'Select namespace...',
-  'memory.exampleNamespace': 'e.g. skill:gmail:user@example.com',
-  'memory.clear': 'Clear',
-  'memory.deleteConfirm': 'Delete document "{documentId}" in namespace "{namespace}"?',
-  'memory.clearNamespaceConfirm':
-    'This will permanently delete ALL documents in namespace "{namespace}". Continue?',
-  'memory.clearNamespaceSuccess': 'Namespace "{namespace}" cleared.',
-  'memory.clearNamespaceEmpty': 'Nothing to clear in "{namespace}".',
 
   // Webhooks
 
@@ -1982,268 +1822,12 @@ const en: TranslationMap = {
 
   // Calls
 
-  // Workspace
-  'workspace.wipeConfirm': 'Are you sure you want to wipe all memory? This cannot be undone.',
-  'workspace.resetTreeConfirm': 'Are you sure you want to rebuild the memory tree?',
-  'workspace.wipeTitle': 'Wipe Memory',
-  'workspace.resetting': 'Resetting...',
-  'workspace.resetMemory': 'Reset Memory',
-  'workspace.resetTreeTitle': 'Rebuild Memory Tree',
-  'workspace.rebuilding': 'Rebuilding...',
-  'workspace.resetMemoryTree': 'Reset Memory Tree',
-  'workspace.building': 'Building...',
-  'workspace.buildSummaryTrees': 'Build Summary Trees',
-  'workspace.wipeSuccessTitle': 'Memory wiped',
-  'workspace.wipeSuccessMessage':
-    'Removed {rows} row(s) and {dirs} folder(s); cleared {cursors} sync-state cursor(s). Click Sync on a connected source to repopulate.',
-  'workspace.wipeFailedTitle': 'Reset failed',
-  'workspace.resetTreeSuccessTitle': 'Memory tree rebuilding',
-  'workspace.resetTreeSuccessMessage':
-    'Cleared {treeRows} tree row(s); requeued {chunks} chunk(s) ({jobs} extract jobs). The graph will fill back in as the worker drains.',
-  'workspace.resetTreeFailedTitle': 'Could not reset memory tree',
-  'workspace.buildTreesFailedTitle': 'Could not build summary trees',
-  'workspace.viewVault': 'View Vault',
-  'workspace.openingVaultTitle': 'Opening vault in Obsidian',
-  'workspace.openingVaultMessage':
-    "If Obsidian doesn't open, install it from obsidian.md or use Reveal Folder. Vault path:",
-  'workspace.openVaultFailedTitle': "Couldn't open vault in Obsidian",
-  'workspace.openVaultFailedMessage':
-    'Use Reveal Folder to open the vault directory directly. Vault path:',
-  'workspace.revealVaultFailed': "Couldn't reveal vault folder",
-  'workspace.revealFolder': 'Reveal Folder',
-  'workspace.checkingVault': 'Checking…',
-  'workspace.vaultNotRegisteredHelp':
-    'Obsidian only opens folders you\'ve added as a vault. In Obsidian, choose "Open folder as vault" and pick the folder below: you only need to do this once. Then click View Vault again.',
-  'workspace.obsidianNotFoundHelp':
-    "We couldn't find Obsidian on this device. Install it. If it's installed in a non-standard location, set its config folder under Advanced.",
-  'workspace.openAnyway': 'Open in Obsidian anyway',
-  'workspace.installObsidian': 'Install Obsidian',
-  'workspace.obsidianAdvanced': 'Obsidian installed elsewhere?',
-  'workspace.obsidianConfigDirLabel': 'Obsidian config folder',
-  'workspace.obsidianConfigDirHint':
-    'Path to the folder containing obsidian.json (e.g. ~/.config/obsidian). Leave blank to auto-detect.',
-  'workspace.obsidianConfigDirPlaceholder': '~/.config/obsidian',
-  'workspace.graphLoadFailed': 'Failed to load memory graph',
-  'workspace.loadingGraph': 'Loading memory graph...',
-  'workspace.graphViewMode': 'Memory graph view mode',
-  'workspace.trees': 'Trees',
-  'workspace.contacts': 'Contacts',
-
-  // Vault health checklist
-  'vaultHealth.title': 'Vault Health Checklist',
-  'vaultHealth.setupTitle': 'Vault setup health',
-  'vaultHealth.workspaceVault': 'Workspace vault:',
-  'vaultHealth.refresh': 'Refresh',
-  'vaultHealth.refreshing': 'Refreshing…',
-  'vaultHealth.revealFolder': 'Reveal Folder',
-  'vaultHealth.openInObsidian': 'Open in Obsidian',
-  'vaultHealth.installObsidian': 'Install Obsidian',
-  'vaultHealth.openObsidianError': 'Could not open Obsidian',
-  'vaultHealth.revealError': 'Could not reveal vault folder',
-  'vaultHealth.downloadError': 'Could not open Obsidian download page',
-  'vaultHealth.loadError': 'Could not load vault health:',
-  'vaultHealth.lastSync': 'Last sync:',
-  'vaultHealth.passed': 'Passed',
-  'vaultHealth.needsAttention': 'Needs attention',
-  'vaultHealth.existsLabel': 'Workspace vault path exists',
-  'vaultHealth.existsRecovery':
-    'Vault folder is missing. Start a sync or create this folder, then refresh this checklist.',
-  'vaultHealth.writableLabel': 'Vault is writable by OpenHuman',
-  'vaultHealth.writableRecovery':
-    'OpenHuman cannot write to this vault yet. Grant write permissions and refresh.',
-  'vaultHealth.obsidianLabel': 'Vault is registered in Obsidian',
-  'vaultHealth.obsidianRecovery':
-    'In Obsidian, choose "Open folder as vault" for this path, then refresh this checklist.',
-  'vaultHealth.pipelineLabel': 'Memory pipeline is healthy',
-  'vaultHealth.pipelineRecovery':
-    'Memory pipeline is paused or in error. Re-enable Auto-sync in Memory Tree status and retry.',
-  'vaultHealth.timeNever': 'Never',
-  'vaultHealth.timeJustNow': 'just now',
-  'vaultHealth.timeMinAgo': '{n} min ago',
-  'vaultHealth.timeHrAgo': '{n} hr ago',
-  'vaultHealth.timeDayAgo': '{n} day ago',
-  'vaultHealth.timeDaysAgo': '{n} days ago',
-
-  // Cross-host vault (#4278): shared by VaultHealthChecklist + ObsidianVaultSection
-  'crossHostVault.title': 'Vault is on the core host.',
-  'crossHostVault.message':
-    'This memory vault is stored on the openhuman-core host ({os}). It can only be opened or revealed on that machine, not from this device.',
-
-  // Memory data panel (storage explainer)
-  'memoryData.howItWorks': 'How memory storage works',
-  'memoryData.workspaceVault': 'Workspace vault · write',
-  'memoryData.workspaceVaultDesc':
-    'OpenHuman writes generated memory notes to memory_tree/content.',
-  'memoryData.connectedSources': 'Connected sources · read',
-  'memoryData.connectedSourcesDesc':
-    'Folders, mailboxes, chats, and repos are imported for memory indexing: their original files are never rewritten.',
-  'memoryData.internalFiles': 'Internal memory-tree files',
-  'memoryData.internalFilesDesc':
-    'Indexes, queue state, and summaries are managed by OpenHuman to keep recall and sync healthy.',
-  'memoryData.windowError': 'Memory window',
-  'memoryData.windowUpdated': 'Memory window updated',
-  'memoryData.windowUpdatedMsg': 'Set to {window}.',
-
-  // Graph
-  'graph.noContactMentions': 'No contact mentions',
-  'graph.noMemory': 'No memory',
-  'graph.source': 'Source',
-  'graph.document': 'Document',
-  'graph.contact': 'Contact',
-  'graph.nodes': 'nodes',
-  'graph.parentChild': 'parent-child',
-  'graph.documentContact': 'document-contact',
-  'graph.link': 'link',
-  'graph.links': 'links',
-  'graph.children': 'children',
-  'graph.person': 'Person',
-  'graph.resetView': 'Reset view',
-
   // Modal
   'modal.dontShowAgain': "Don't show similar suggestions",
 
   // Reflections
 
   // WhatsApp
-
-  // Sync
-  'sync.active': 'Active',
-  'sync.recent': 'Recent',
-  'sync.idle': 'Idle',
-  'sync.chunks': 'chunks',
-  'sync.lastChunk': 'Last chunk:',
-  'sync.pending': 'pending',
-  'sync.syncing': 'Syncing…',
-  'sync.sync': 'Sync',
-
-  // Data Sync layered pipeline status (GH-4690) — raw sync ≠ retrieval-ready
-  'sync.pipeline.ingestedOnly': 'Ingested only',
-  'sync.pipeline.storedWithoutVectors': 'Stored without vectors. Semantic search unavailable.',
-  'sync.pipeline.vectorsPending':
-    'Chunks waiting for vectors: {count}. Semantic search will cover them shortly.',
-  'sync.pipeline.signInToEnable': 'Sign in to enable',
-  'sync.pipeline.extractionFailed': 'Memory structure extraction failed. Wiki may be incomplete.',
-  'sync.pipeline.treeDegraded': 'Memory tree degraded. Retrieval may return stale results.',
-  'sync.pipeline.viewHealth': 'View memory health',
-
-  // Memory Sync Schedule (global cadence)
-  'memorySyncInterval.title': 'Sync schedule',
-  'memorySyncInterval.lastSynced': 'Last synced',
-  'memorySyncInterval.never': 'never',
-  'memorySyncInterval.everyHours': 'Every {h}h',
-  'memorySyncInterval.everyMinutes': 'Every {m}m',
-  'memorySyncInterval.manual': 'Manual only',
-  'memorySyncInterval.saveFailed': 'Failed to update sync schedule',
-
-  // Memory Sources Registry
-  'memorySources.title': 'Memory Sources',
-  'memorySources.empty': 'No memory sources yet. Add one to start feeding memory.',
-  'memorySources.addSource': 'Add Source',
-  'memorySources.loadingConnections': 'Loading connections…',
-  'memorySources.noConnections':
-    'No active Composio connections found. Connect an integration first.',
-  'memorySources.pickConnection': 'Pick a connection',
-  'memorySources.selectConnection': 'Select a connection',
-  'memorySources.comingSoon': 'Coming soon',
-  'memorySources.composioListFailed': 'Failed to load Composio connections.',
-  'memorySources.browse': 'Browse…',
-  'memorySources.folderPathUnavailable':
-    'Could not determine where that folder is. Type its full path instead.',
-  'memorySources.folderPathPlaceholder': '/Users/you/notes',
-  'memorySources.globPatternPlaceholder': '**/*.md',
-  'memorySources.repoUrlPlaceholder': 'https://github.com/org/repo',
-  'memorySources.branchPlaceholder': 'main',
-  'memorySources.feedUrlPlaceholder': 'https://example.com/feed.xml',
-  'memorySources.pageUrlPlaceholder': 'https://example.com/article',
-  'memorySources.cssSelectorPlaceholder': 'article',
-  'memorySources.searchQueryPlaceholder': 'from:user AI safety',
-  'memorySources.kind.composio': 'Integration',
-  'memorySources.kind.conversation': 'Conversation',
-  'memorySources.kind.folder': 'Local Folder',
-  'memorySources.kind.github_repo': 'GitHub Repo',
-  'memorySources.kind.twitter_query': 'Twitter Search',
-  'memorySources.kind.rss_feed': 'RSS Feed',
-  'memorySources.kind.web_page': 'Web Page',
-  'memorySources.sync.completeTitle': 'Synced',
-  'memorySources.sync.itemsSynced': 'items synced',
-  'memorySources.sync.upToDate': 'Up to date',
-  'memorySources.sync.failedLabel': 'Failed',
-  'memorySources.sync.morePending': 'More to sync. Click Sync again',
-  'memorySources.sync.budgetSpent': "Today's request budget is spent. Try again tomorrow",
-  'memorySources.stage.requested': 'Starting',
-  'memorySources.stage.running': 'Syncing',
-  'memorySources.stage.fetching': 'Fetching',
-  'memorySources.stage.stored': 'Saving',
-  'memorySources.stage.queued': 'Processing into memory',
-  'memorySources.stage.ingesting': 'Processing into memory',
-  'memorySources.stage.unknown': 'Syncing',
-  'time.justNow': 'just now',
-  'time.secondsAgoSuffix': 's ago',
-  'time.minutesAgoSuffix': 'm ago',
-  'time.hoursAgoSuffix': 'h ago',
-  'time.daysAgoSuffix': 'd ago',
-  'memorySources.pickKind': 'What kind of source do you want to add?',
-  'memorySources.backToKinds': 'Back to source types',
-  'memorySources.label': 'Label',
-  'memorySources.labelPlaceholder': 'My research notes',
-  'memorySources.add': 'Add',
-  'memorySources.adding': 'Adding…',
-  'memorySources.added': 'Source added',
-  'memorySources.removed': 'Source removed',
-  'memorySources.remove': 'Remove',
-  'memorySources.enable': 'Enable',
-  'memorySources.disable': 'Disable',
-  'memorySources.toggleFailed': 'Toggle failed',
-  'memorySources.removeFailed': 'Remove failed',
-  'memorySources.folderPath': 'Folder path',
-  'memorySources.globPattern': 'Glob pattern',
-  'memorySources.repoUrl': 'Repository URL',
-  'memorySources.branch': 'Branch',
-  'memorySources.feedUrl': 'Feed URL',
-  'memorySources.pageUrl': 'Page URL',
-  'memorySources.cssSelector': 'CSS selector (optional)',
-  'memorySources.searchQuery': 'Search query',
-  'memorySources.build.title': 'Build',
-  'memorySources.build.building': 'Building…',
-  'memorySources.build.successTitle': 'Tree built',
-  'memorySources.build.failedTitle': 'Build failed',
-  'memorySources.build.sealsMessage': 'seal(s) completed',
-  'memorySources.allIn.button': 'All In',
-  'memorySources.allIn.title': 'Go All In?',
-  'memorySources.allIn.message':
-    'This enables every memory source and removes all sync limits. It builds the richest memory graph, but may use more credits.',
-  'memorySources.allIn.confirm': 'Yes',
-  'memorySources.allIn.cancel': 'No',
-  'memorySources.allIn.success': 'All sources enabled with no limits. Syncing started.',
-  'memorySources.allIn.failed': 'Could not apply All In. Please try again.',
-  'memorySources.allIn.allFailed': 'No sync could start. Check each source for the reason.',
-  'memorySources.allIn.partial': 'Syncs started: {triggered}. Could not start: {failed}.',
-  'memorySources.repair.button': 'Repair older memories',
-  'memorySources.repair.title': 'Repair older memories?',
-  'memorySources.repair.message':
-    'Up to {scanned} synced documents were stored before memory-tree filing was fixed and are invisible to the memory graph. Filing them uses embedding credits. Documents already in the tree are skipped.',
-  'memorySources.repair.confirm': 'Repair',
-  'memorySources.repair.cancel': 'Not now',
-  'memorySources.repair.nothing': 'Nothing to repair. No synced documents are waiting to be filed.',
-  'memorySources.repair.success':
-    'Filed {ingested} into the memory tree ({already} already there, {skipped} skipped).',
-  'memorySources.repair.morePending': 'More remain. Click Repair older memories again.',
-  'memorySources.repair.failed': 'Could not repair older memories.',
-  'memorySources.settings.button': 'Settings',
-  'memorySources.settings.title': 'Sync settings',
-  'memorySources.settings.maxPrs': 'Max pull requests',
-  'memorySources.settings.maxIssues': 'Max issues',
-  'memorySources.settings.maxCommits': 'Max commits',
-  'memorySources.settings.maxItems': 'Max items',
-  'memorySources.settings.sinceDays': 'Lookback (days)',
-  'memorySources.settings.syncDepthDays': 'Sync depth (days)',
-  'memorySources.settings.unlimited': 'Unlimited',
-  'memorySources.settings.unlimitedTooltip':
-    "You've opted in to sync the maximum for {toolkit}. You can change the caps here.",
-  'memorySources.settings.save': 'Save',
-  'memorySources.settings.saving': 'Saving…',
-  'memorySources.settings.saved': 'Settings saved',
-  'memorySources.settings.saveFailed': 'Could not save settings',
 
   // Backend
 
@@ -2414,10 +1998,6 @@ const en: TranslationMap = {
     'Voice transcription is not included in this version of the app. Update OpenHuman to enable it.',
 
   // Reflections: kind labels
-
-  // Graph: tooltip keys
-  'graph.tooltip.summary': 'Summary',
-  'graph.tooltip.contact': 'Contact',
 
   // Local Model: usage labels
 
@@ -3340,7 +2920,6 @@ const en: TranslationMap = {
   'intelligence.memoryChunk.scoreBars.heading': 'w h y   k e p t',
   'intelligence.memoryChunk.scoreBars.kept': 'kept',
   'intelligence.diagram.skillInstallCommand': 'npx skills add yizhiyanhua-ai/fireworks-tech-graph',
-  'intelligence.memoryText.entityTypePrefix': 'Entity type',
   // Worktree manager (#3376): isolated worker git worktrees
   'worktree.label': 'Worktree',
   'worktree.dirty': 'Uncommitted changes',
@@ -4985,25 +4564,6 @@ const en: TranslationMap = {
   'settings.persona.templates.student.desc': 'Encouraging, quizzes, plain language',
   'settings.persona.templates.family.label': 'Family assistant',
   'settings.persona.templates.family.desc': 'Warm, friendly, safe for all ages',
-  'settings.memoryWindow.balanced.badge': 'Recommended',
-  'settings.memoryWindow.balanced.hint':
-    'Sensible default: good continuity without burning extra tokens on every run.',
-  'settings.memoryWindow.balanced.label': 'Balanced',
-  'settings.memoryWindow.description':
-    'How much remembered context OpenHuman injects into every new agent run. Larger windows feel more aware of past conversations but use more tokens (and cost more) on every run.',
-  'settings.memoryWindow.extended.badge': 'More context',
-  'settings.memoryWindow.extended.hint':
-    'More long-term memory injected into each run. Higher token cost per turn.',
-  'settings.memoryWindow.extended.label': 'Extended',
-  'settings.memoryWindow.maximum.badge': 'Highest cost',
-  'settings.memoryWindow.maximum.hint':
-    'The largest safe window. Best continuity, meaningfully higher token bill on every run.',
-  'settings.memoryWindow.maximum.label': 'Maximum',
-  'settings.memoryWindow.minimal.badge': 'Cheapest',
-  'settings.memoryWindow.minimal.hint':
-    'Smallest memory window. Cheapest, fastest, least continuity between runs.',
-  'settings.memoryWindow.minimal.label': 'Minimal',
-  'settings.memoryWindow.title': 'Long-term memory window',
   'skills.card.moreActions': 'More actions',
   'skills.channelIcon.discord': 'Discord',
   'skills.channelIcon.imessage': 'iMessage',
@@ -5475,33 +5035,6 @@ const en: TranslationMap = {
   'memoryBudget.exhaustedMessage':
     'Your embedding budget is used up, so new content is no longer being added to memory. Set up local embeddings or add your own API key to resume.',
   'memoryBudget.cta': 'Set up embeddings',
-  'memorySources.codingSessions.title': 'Coding-agent sessions',
-  'memorySources.codingSessions.description':
-    'Turn your Codex and Claude Code decisions and corrections into private persona memory.',
-  'memorySources.codingSessions.importAll': 'Import all sessions',
-  'memorySources.codingSessions.draining': 'Importing… pass {passes}',
-  'memorySources.codingSessions.stop': 'Stop',
-  'memorySources.codingSessions.progress':
-    '{processed} sessions imported · {observations} observations',
-  'memorySources.codingSessions.remaining': 'about {remaining} left',
-  'memorySources.codingSessions.stopped': 'Import paused',
-  'memorySources.codingSessions.stoppedMessage':
-    'Imported {processed} sessions. Run import again to continue the remaining {remaining}.',
-  'memorySources.codingSessions.claude': 'Claude Code',
-  'memorySources.codingSessions.codex': 'Codex',
-  'memorySources.codingSessions.counts': '{files} sessions · {evidence} human turns',
-  'memorySources.codingSessions.notFound': 'No local history found',
-  'memorySources.codingSessions.scanning': 'Scanning local session history…',
-  'memorySources.codingSessions.truncated': 'Scan limited to the first 1,000 session files.',
-  'memorySources.codingSessions.complete': 'Coding sessions ingested',
-  'memorySources.codingSessions.completeMessage':
-    '{processed} sessions produced {observations} persona observations.',
-  'memorySources.codingSessions.partialFailure':
-    '{failed} sessions failed while {processed} were processed. Run ingestion again to retry them.',
-  'memorySources.codingSessions.stillRunning': 'Import still running',
-  'memorySources.codingSessions.stillRunningMessage':
-    'Sessions imported so far: {processed}. The import did not finish inside its time budget but is still running in the background; check back in a minute rather than starting it again.',
-  'memorySources.codingSessions.failed': 'Coding-session ingestion failed',
   'notifications.configRecovered.title': 'Settings file recovered',
   'notifications.configRecovered.body':
     'Your settings file could not be read, so it was restored from a backup or reset to defaults. The unreadable file was kept with a ".corrupted" suffix in case you need it.',
@@ -5548,8 +5081,6 @@ const en: TranslationMap = {
   'assistantUi.thread.exportAsMarkdown': 'Export as Markdown',
 
   // i18n react-audit sweep: intelligence panels + ai routing
-  'graph.workspacePath': 'workspace:{path}',
-  'sync.tokensInOut': '{in} in / {out} out',
   'settings.ai.routing.providerAndModelLabel': 'Provider and model',
   'settings.ai.routing.changeAction': 'Change',
 
@@ -5560,86 +5091,6 @@ const en: TranslationMap = {
   'webCallback.title': 'Completing sign-in',
   'webCallback.description':
     'OpenHuman is processing your callback and will continue automatically.',
-
-  // Memory engine settings panel
-  'memoryEngine.title': 'Memory engine',
-  'memoryEngine.description':
-    'Choose where OpenHuman stores and recalls your memories. Exactly one engine is active at a time.',
-  'memoryEngine.active': 'Active',
-  'memoryEngine.hostedNote': 'Billed through your OpenHuman plan or credits.',
-  'memoryEngine.signInRequired': 'Sign in to use this engine.',
-  'memoryEngine.endpoint': 'Endpoint',
-  'memoryEngine.deployment': 'Deployment',
-  'memoryEngine.deployment.cloud': 'Cloud',
-  'memoryEngine.deployment.self_hosted': 'Self-hosted',
-  'memoryEngine.apiKey': 'API key',
-  'memoryEngine.apiKeyOptional': 'API key (optional)',
-  'memoryEngine.keySaved': 'A key is saved. Leave blank to keep it.',
-  'memoryEngine.keySavedPlaceholder': 'Saved (hidden)',
-  'memoryEngine.fallback':
-    'Memory is paused: {engine} is unavailable, so nothing is being saved or recalled until it is back. {reason}',
-  'memoryEngine.paused': 'Memory is paused',
-  'memoryEngine.dialog.cancelMigration': 'Cancel copy',
-  'memoryEngine.lastError': 'The last memory engine request failed. Check the engine settings.',
-  'memoryEngine.switch': 'Switch',
-  'memoryEngine.save': 'Save changes',
-  'memoryEngine.dialog.title': 'Switch to {engine}?',
-  'memoryEngine.dialog.body': 'Copy my existing memories to the new engine?',
-  'memoryEngine.dialog.copySwitch': 'Copy & switch',
-  'memoryEngine.dialog.switchOnly': 'Switch without copying',
-  'memoryEngine.dialog.copying': 'Copying your memories…',
-  'memoryEngine.dialog.progress': 'Copied {copied} of {total}',
-  'memoryEngine.dialog.progressUnknown': 'Copied {copied} memories so far',
-  'memoryEngine.dialog.copies':
-    'Copies your memories, document titles and tags, goals, learned profile and conversation history.',
-  'memoryEngine.dialog.replayContent':
-    'Also re-send synced content so the new engine rebuilds its summaries',
-  'memoryEngine.dialog.replayContentHint': 'Re-reading content uses OpenHuman credits.',
-  'memoryEngine.dialog.stepProgress': 'Copying {step}… {count} copied so far',
-  'memoryEngine.step.records': 'memories',
-  'memoryEngine.step.documents': 'document titles and tags',
-  'memoryEngine.step.goals': 'goals',
-  'memoryEngine.step.profile': 'learned profile',
-  'memoryEngine.step.episodic': 'conversation history',
-  'memoryEngine.step.content': 'synced content',
-  'memoryEngine.notCopied':
-    'Switched. The new engine does not support these, so they were not copied: {items}.',
-  'memoryEngine.contentRefused':
-    'The new engine refused some synced content ({count}). Your previous engine still keeps it, and its next sync can bring it again.',
-  'memoryEngine.dialog.lacking':
-    'The new engine does not support these features of your current engine:',
-  'memoryEngine.error.insufficientCredits':
-    'You are out of OpenHuman credits. Add credits to use this engine.',
-  'memoryEngine.error.sessionExpired': 'Your session expired. Sign in again to continue.',
-  'memoryEngine.error.backendUnavailable':
-    'The memory service is unavailable right now. Try again shortly.',
-  'memoryEngine.error.forbidden':
-    'Memory refused the credential for this account. If you use an API key, give it the memory scope.',
-  'memoryEngine.error.generic':
-    'Could not change the memory engine. Check the settings and try again.',
-  'memoryEngine.error.openBilling': 'Open billing',
-  'memoryEngine.error.signIn': 'Sign in',
-  'memoryEngine.row.label': 'Memory engine:',
-  'memoryEngine.row.change': 'Change',
-  'memoryEngine.unavailable': 'Not available with {engine}',
-  'memoryEngine.unavailableHint': 'Switch memory engine to use this feature.',
-  'memoryEngine.engine.tinymemory.label': 'Local (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description':
-    'Stored on this device with TinyCortex. Private, free and the default.',
-  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
-  'memoryEngine.engine.tinyhumans.description':
-    'CortexDB hosted by TinyHumans. Uses your signed-in account, no key needed.',
-  'memoryEngine.engine.cortex.label': 'CortexDB (own key)',
-  'memoryEngine.engine.cortex.description':
-    'Your own CortexDB account or instance, using your API key.',
-  'memoryEngine.engine.supermemory.label': 'Supermemory',
-  'memoryEngine.engine.supermemory.description': 'Supermemory cloud memory, using your API key.',
-  'memoryEngine.engine.mem0.label': 'Mem0',
-  'memoryEngine.engine.mem0.description': 'Mem0 memory layer, cloud or self-hosted.',
-  'memoryEngine.engine.cognee.label': 'Cognee',
-  'memoryEngine.engine.cognee.description': 'Cognee knowledge-graph memory, cloud or self-hosted.',
-  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
-  'memoryEngine.engine.agentmemory.description': 'An AgentMemory server that you run yourself.',
 
   // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
   'chat_error.codex_session_expired':
