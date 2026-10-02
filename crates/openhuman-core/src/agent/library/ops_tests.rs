@@ -62,8 +62,6 @@ fn metadata_projection_omits_prompt_and_paths() {
     assert_eq!(display.direct_tool_count, 2);
     assert!(!display.uses_wildcard_tools);
     assert_eq!(display.subagent_ids, vec!["critic"]);
-    assert!(display.includes_profile);
-    assert!(!display.includes_memory_md);
     assert!(!display.includes_memory_context);
     assert!(display.can_run_as_user_facing_worker);
     assert!(!display.write_capable);

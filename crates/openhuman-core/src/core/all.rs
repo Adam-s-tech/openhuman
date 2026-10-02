@@ -919,11 +919,10 @@ fn build_internal_only_controllers() -> Vec<GroupedController> {
 /// omitted. With no active context, or under `DomainSet::full()`, this returns
 /// the complete set (byte-identical to pre-#4796).
 pub fn all_registered_controllers() -> Vec<RegisteredController> {
-    let caps = crate::core::runtime::context::CoreContext::current_memory_capabilities();
     let view = registry_view();
     let found = view
         .iter()
-        .filter(|g| group_allowed(g.group) && capability_allowed_in(caps, g.capability))
+        .filter(|g| group_allowed(g.group))
         .map(|g| g.controller.clone())
         .collect();
     found
@@ -937,11 +936,10 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
 /// [`all_registered_controllers`], so `/schema` omits gated namespaces
 /// automatically under `harness()`.
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
-    let caps = crate::core::runtime::context::CoreContext::current_memory_capabilities();
     let view = registry_view();
     let found = view
         .iter()
-        .filter(|g| group_allowed(g.group) && capability_allowed_in(caps, g.capability))
+        .filter(|g| group_allowed(g.group))
         .map(|g| g.controller.schema.clone())
         .collect();
     found
@@ -1090,91 +1088,6 @@ pub fn rpc_method_from_parts(namespace: &str, function: &str) -> Option<String> 
     found
 }
 
-/// The memory-driver capability family a controller's surface requires, looked
-/// up in the **UNFILTERED** registry.
-///
-/// Returns `None` when no controller with that `(namespace, function)` is
-/// registered anywhere — a genuine typo. Returns `Some(None)` when the
-/// controller exists and is ungated, and `Some(Some(c))` when it exists and
-/// needs family `c`.
-///
-/// The `Option<Option<_>>` is the whole point: it is what lets the CLI tell
-/// "no such command" apart from "this command exists but the bound driver does
-/// not advertise its family". Every *filtered* lookup ([`schema_for_rpc_method`],
-/// [`all_controller_schemas`]) collapses those two into one absence, which is
-/// correct for `/rpc` and for agent tools (`docs/specs/kernel.md` §3.3) and
-/// wrong for a human at a terminal — the CLI is §3.3's one named exception.
-///
-/// Scoped to the agent-facing [`registry`] exactly like [`rpc_method_from_parts`],
-/// the other lookup that backs CLI routing: an internal-only controller is not
-/// CLI-invokable in any configuration, so reporting a capability fact for one
-/// would name a cause that is not the reason the command is unavailable.
-pub fn capability_for_parts(namespace: &str, function: &str) -> Option<Option<Capability>> {
-    let view = registry_view();
-    let found = view
-        .iter()
-        .find(|g| {
-            g.controller.schema.namespace == namespace && g.controller.schema.function == function
-        })
-        .map(|g| g.capability);
-    found
-}
-
-/// The memory-driver capability family required by an RPC method, looked up in
-/// the **UNFILTERED** registry.
-///
-/// This is the method-name counterpart of [`capability_for_parts`]. The raw
-/// `openhuman call --method …` CLI form has no namespace/function split, but
-/// must still produce the CLI's configuration-fact diagnostic before it
-/// dispatches a capability-gated method.
-pub fn capability_for_rpc_method(method: &str) -> Option<Option<Capability>> {
-    let view = registry_view();
-    let found = view
-        .iter()
-        .find(|g| g.controller.rpc_method_name() == method)
-        .map(|g| g.capability);
-    found
-}
-
-/// The capability a whole namespace's surface requires, when every controller
-/// in it agrees — looked up in the **UNFILTERED** registry.
-///
-/// `None` when the namespace does not exist at all, or when nothing in it is
-/// gated, or when its controllers span more than one family. Used for the
-/// unknown-namespace case: a namespace whose controllers are ALL gated on one
-/// family disappears from the CLI's namespace list entirely, so there is no
-/// function name left to look up.
-///
-/// Deliberately conservative — it reports a family only when that family is the
-/// sole gate across the namespace, so a mixed namespace (like `memory`, which
-/// spans four families plus host surface) yields `None` and falls back to the
-/// ordinary unknown-namespace message rather than naming one family
-/// misleadingly.
-pub fn sole_capability_for_namespace(namespace: &str) -> Option<Capability> {
-    let mut found: Option<Capability> = None;
-    let mut any = false;
-    let view = registry_view();
-    for grouped in view
-        .iter()
-        .filter(|g| g.controller.schema.namespace == namespace)
-    {
-        any = true;
-        match (grouped.capability, found) {
-            // An ungated member means the namespace does not vanish wholesale
-            // because of one family, so naming one would be a lie.
-            (None, _) => return None,
-            (Some(c), None) => found = Some(c),
-            (Some(c), Some(prev)) if c == prev => {}
-            (Some(_), Some(_)) => return None,
-        }
-    }
-    if any {
-        found
-    } else {
-        None
-    }
-}
-
 /// Retrieves the schema for a specific RPC method.
 ///
 /// Checks both the agent-facing registry and the internal registry so that
@@ -1188,18 +1101,12 @@ pub fn schema_for_rpc_method(method: &str) -> Option<ControllerSchema> {
     // call with bad params would return the controller's validation error
     // instead of method-not-found, leaking the hidden RPC surface. No ambient
     // context ⇒ `group_allowed` is `true` ⇒ unfiltered, identical to pre-#4796.
-    //
-    // The memory-capability gate (M5.2) rides here for exactly the same reason:
-    // a `memory_tree.*` method hidden because the bound driver never advertised
-    // `tree` must not leak back out through a param-validation error.
     let view = registry_view();
     let found = view
         .iter()
         .chain(internal_registry().iter())
         .find(|g| {
-            g.controller.rpc_method_name() == method
-                && group_allowed(g.group)
-                && capability_allowed(g.capability)
+            g.controller.rpc_method_name() == method && group_allowed(g.group)
         })
         .map(|g| g.controller.schema.clone());
     found
@@ -1445,17 +1352,6 @@ pub async fn try_invoke_registered_rpc(
         return None;
     }
 
-    // Memory-capability gate (M5.2). Deliberately a SECOND block rather than a
-    // clause folded into the check above, so the two gates log distinguishably:
-    // an operator seeing an absent `memory_tree.*` needs to know whether it was
-    // the DomainSet or the bound driver's advertised capability set.
-    if !capability_allowed(grouped.capability) {
-        log::debug!(
-            "[rpc][capability-gate] method '{method}' suppressed — memory capability {:?} not advertised by the bound driver",
-            grouped.capability
-        );
-        return None;
-    }
     let handler = grouped.controller.handler;
 
     // Establish the ambient CoreContext for the duration of the handler so
