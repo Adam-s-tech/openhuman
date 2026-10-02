@@ -744,12 +744,12 @@ impl OpenHumanTurnPrelude {
             self.tool_dispatcher.tool_call_format(),
         )
         .harness_dispatcher();
-        // The thread's reasoning choice rides the effective config this session
-        // was built from (web_chat writes a per-turn override there).
-        run_context.reasoning = self
-            .runtime_config
-            .as_deref()
-            .and_then(crate::agent::tinyagents::reasoning_for_config);
+        // The thread's reasoning choice is read per turn, so changing it keeps
+        // this warm session; the effective config supplies the default.
+        run_context.reasoning = crate::agent::tinyagents::turn_reasoning(
+            self.thread_id.as_deref(),
+            self.runtime_config.as_deref(),
+        );
         if let Some(reasoning) = run_context.reasoning.as_ref() {
             log::debug!(
                 "[agent][reasoning] turn reasoning effort={:?} budget_tokens={:?} agent={}",
