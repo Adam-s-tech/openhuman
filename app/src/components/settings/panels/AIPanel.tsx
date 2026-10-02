@@ -20,8 +20,6 @@ import {
 } from '../../../services/api/aiSettingsApi';
 import { connectOpenRouterViaOAuth } from '../../../utils/openrouterOAuth';
 import PanelPage from '../../layout/PanelPage';
-import Button from '../../ui/Button';
-import { ModalShell } from '../../ui/ModalShell';
 import SettingsBackButton from '../components/SettingsBackButton';
 import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
 import {
@@ -29,7 +27,6 @@ import {
   BUILTIN_PROVIDER_META,
   type CloudProvider,
   defaultEndpointFor,
-  formatI18n,
   inferRoutingMode,
   ROUTING_WORKLOAD_IDS,
   type WorkloadId,

@@ -3837,9 +3837,6 @@ const en: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'OpenAI URL',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': 'Leave blank to keep existing key',
-  'settings.ai.reindexingMemory': 'Re-indexing memory',
-  'settings.ai.reindexingMemoryMessage':
-    'Embeddings are being reprocessed. {pending} memory item(s) are being re-embedded under the current model: semantic recall is reduced until this finishes. Keyword search keeps working, and re-embedding continues in the background if you close this.',
   'settings.ai.signInWithOpenRouter': 'Sign in with OpenRouter',
   'settings.ai.weekBudget': 'Week budget',
   'settings.ai.cycleRemaining': 'Cycle remaining',

@@ -3214,9 +3214,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'Xqx1xxxxxxxxxxx',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': 'اتركه فارغًا للاحتفاظ بالمفتاح الموجود',
-  'settings.ai.reindexingMemory': 'إعادة فهرسة الذاكرة',
-  'settings.ai.reindexingMemoryMessage':
-    'يتم إعادة تجهيز الامتصاصات ويعاد إدراج مادة (أدوات) ذاكرة &quot; Xqx0xxx &quot; في إطار النموذج الحالي - يخفض التذكر العلماني إلى حين الانتهاء من ذلك. البحث عن الكلمات الرئيسية يستمر في العمل، ويستمر إعادة التفكير في الخلفية إذا أغلقت هذا.',
   'settings.ai.signInWithOpenRouter': 'قم بتسجيل الدخول باستخدام OpenRouter',
   'settings.ai.weekBudget': 'ميزانية الأسبوع',
   'settings.ai.cycleRemaining': 'الدورة المتبقية',

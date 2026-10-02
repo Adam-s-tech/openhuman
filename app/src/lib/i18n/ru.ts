@@ -3303,9 +3303,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'URL OpenAI',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': 'Оставьте пустым, чтобы сохранить существующий ключ.',
-  'settings.ai.reindexingMemory': 'Переиндексация памяти',
-  'settings.ai.reindexingMemoryMessage':
-    'Вложения перерабатываются. Элементы памяти {pending} повторно встраиваются в текущую модель: семантический вызов снижается до тех пор, пока это не завершится. Поиск по ключевым словам продолжает работать, и повторное встраивание продолжается в фоновом режиме, если вы закроете это.',
   'settings.ai.signInWithOpenRouter': 'Войдите с помощью OpenRouter',
   'settings.ai.weekBudget': 'Недельный бюджет',
   'settings.ai.cycleRemaining': 'Оставшийся цикл',

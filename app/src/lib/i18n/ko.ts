@@ -3253,9 +3253,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'OpenAI URL',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': '기존 키를 유지하려면 비워 두세요.',
-  'settings.ai.reindexingMemory': '메모리 재색인 중',
-  'settings.ai.reindexingMemoryMessage':
-    '임베딩을 다시 처리하는 중입니다. {pending}개의 메모리 항목이 현재 모델로 다시 임베딩되고 있습니다. 완료될 때까지 의미 기반 회상 성능이 줄어듭니다. 키워드 검색은 계속 작동하며, 이 창을 닫아도 재임베딩은 백그라운드에서 계속됩니다.',
   'settings.ai.signInWithOpenRouter': 'OpenRouter로 로그인',
   'settings.ai.weekBudget': '주 예산',
   'settings.ai.cycleRemaining': '남은 주기',

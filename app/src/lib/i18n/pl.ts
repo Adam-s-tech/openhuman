@@ -3316,9 +3316,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'URL OpenAI',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': 'Pozostaw puste, aby zachować istniejący klucz',
-  'settings.ai.reindexingMemory': 'Ponowne indeksowanie pamięci',
-  'settings.ai.reindexingMemoryMessage':
-    'Embeddingi są przetwarzane ponownie. Elementy pamięci ({pending}) są ponownie embeddingowane w ramach bieżącego modelu: semantyczne przywoływanie jest ograniczone do czasu zakończenia. Wyszukiwanie słów kluczowych nadal działa, a ponowne embeddingowanie będzie kontynuowane w tle, jeśli zamkniesz ten widok.',
   'settings.ai.signInWithOpenRouter': 'Zaloguj się z OpenRouter',
   'settings.ai.weekBudget': 'Budżet tygodniowy',
   'settings.ai.cycleRemaining': 'Pozostało w cyklu',

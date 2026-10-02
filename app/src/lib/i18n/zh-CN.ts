@@ -3084,9 +3084,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'OpenAI URL',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': '留空以保留现有密钥',
-  'settings.ai.reindexingMemory': '重新索引内存',
-  'settings.ai.reindexingMemoryMessage':
-    '嵌入正在重新处理。{pending} 个记忆项正使用当前模型重新嵌入；完成前语义召回会降低。关键词搜索仍可使用，即使关闭此页面，重新嵌入也会在后台继续。',
   'settings.ai.signInWithOpenRouter': '使用 OpenRouter 登录',
   'settings.ai.weekBudget': '周预算',
   'settings.ai.cycleRemaining': '剩余周期',

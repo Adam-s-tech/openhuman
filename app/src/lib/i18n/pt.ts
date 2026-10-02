@@ -3318,9 +3318,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'URL da OpenAI',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': 'Deixe em branco para manter a chave existente',
-  'settings.ai.reindexingMemory': 'Reindexando a memória',
-  'settings.ai.reindexingMemoryMessage':
-    'Os embeddings estão sendo reprocessados. O(s) item(s) de memória {pending} estão sendo re-embarcados sob o modelo atual: a recordação semântica é reduzida até que isso termine. A busca por palavras-chave continua funcionando, e a re-embarcação continua em segundo plano se você fechar isto.',
   'settings.ai.signInWithOpenRouter': 'Faça login com OpenRouter',
   'settings.ai.weekBudget': 'Orçamento semanal',
   'settings.ai.cycleRemaining': 'Ciclo restante',

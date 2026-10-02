@@ -3275,9 +3275,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'xxxxxxxxxxxx',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': 'मौजूदा कुंजी रखने के लिए खाली छोड़ दें',
-  'settings.ai.reindexingMemory': 'स्मृति को पुनः अनुक्रमित करना',
-  'settings.ai.reindexingMemoryMessage':
-    'एम्बेडिंग को फिर से संसाधित किया जा रहा है। {pending} मेमोरी आइटम (s) को वर्तमान मॉडल के तहत फिर से एम्बेड किया जा रहा है - इस खत्म होने तक शब्दकोष वापस कम हो जाता है। कीवर्ड खोज काम करता रहता है, और यदि आप इसे बंद करते हैं तो पृष्ठभूमि में फिर से एम्बेड करना जारी रहता है।',
   'settings.ai.signInWithOpenRouter': 'OpenRouter से साइन इन करें',
   'settings.ai.weekBudget': 'सप्ताह का बजट',
   'settings.ai.cycleRemaining': 'चक्र शेष है',

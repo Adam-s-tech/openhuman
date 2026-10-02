@@ -3274,9 +3274,6 @@ const messages: TranslationMap = {
   'settings.ai.openAiUrlLabel': 'এক্স.x১xxx xx+qx',
   'settings.ai.openAiUrlPlaceholder': 'https://api.openai.com/v1',
   'settings.ai.keepExistingKeyPlaceholder': 'বিদ্যমান কী রাখার জন্য ফাঁকা ছেড়ে দিন',
-  'settings.ai.reindexingMemory': 'মেমরি পুনঃসূচীকরণ করা হচ্ছে',
-  'settings.ai.reindexingMemoryMessage':
-    'এম্পটগুলো পুনরায় চালু হচ্ছে। xqxqx মেমরি((s) বর্তমান মডেলের মধ্যে পুনরায় বিবাহ করা হচ্ছে- এই ধরনের কাজ শেষ না হওয়া পর্যন্ত তা কমিয়ে আনা হচ্ছে। শব্দ অনুসন্ধান কাজ করছে, এবং পটভূমিতে আবার অনুসন্ধান চালিয়ে যাচ্ছে যদি আপনি এটা বন্ধ করেন।',
   'settings.ai.signInWithOpenRouter': 'xqxqx সহযোগে সাইন করুন',
   'settings.ai.weekBudget': '__BR0__ দিয়ে সাইন ইন করুন',
   'settings.ai.cycleRemaining': 'সপ্তাহের বাজেট',
