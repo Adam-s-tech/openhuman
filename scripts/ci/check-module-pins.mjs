@@ -189,7 +189,7 @@ for (const name of allNames) {
 if (active.length === 0)
   fail("registry.rs: `ALL` resolved to zero usable records");
 
-// ── Check 3 first: is every record accounted for? ─────────────────────────────
+// ── Check 2 first: is every record accounted for? ─────────────────────────────
 //
 // Before checking pins, check that we KNOW about every record. Running the pin
 // checks first would report "all pins agree" on a tree containing a module this
