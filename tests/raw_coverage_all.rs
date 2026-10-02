@@ -30,8 +30,9 @@ use std::sync::{Mutex, OnceLock};
 /// `&`-reference to this one static, so all env mutations across all aggregated
 /// suites serialize on a single mutex while non-env tests keep running in
 /// parallel. Poison is recovered (`into_inner`) at the guard sites, so a
-/// panicking test cannot wedge the whole suite.
-pub static SHARED_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+/// panicking test cannot wedge the whole suite. The lock is a `tokio::sync::Mutex` (never poisoned) so an
+/// async test may hold its guard across `.await`.
+pub static SHARED_ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 
 /// Serializes aggregated suites that reach the Composio connector module.
 ///
