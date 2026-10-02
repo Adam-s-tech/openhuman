@@ -112,5 +112,4 @@ You have a working assistant when **all** of these are true:
 ## Next steps
 
 - [Use OpenHuman with a local model](local-model.md): keep inference on-device.
-- [Connect OpenHuman to Obsidian](connect-obsidian.md): read and edit the memory by hand.
 - [Keep sensitive data private](privacy-sensitive-data.md): understand exactly what leaves your machine.

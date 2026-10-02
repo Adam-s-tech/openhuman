@@ -75,5 +75,3 @@ fn model_matches_rejects_different_base_models() {
     assert!(!model_matches("bge-m3:latest", "bge-m3:v1.0"));
 }
 
-// ── check_memory_tree_db tests (#2206) ───────────────────────────────────────
-
