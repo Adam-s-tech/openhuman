@@ -2083,8 +2083,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
         json!({
             "embedding_provider": "none",
             "embedding_model": "none",
-            "embedding_dimensions": 0,
-            "memory_window": "minimal"
+            "embedding_dimensions": 0
         }),
     )
     .await;
