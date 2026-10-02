@@ -137,13 +137,13 @@ fn identity_override_replaces_root_soul() {
         None,
         Some("Discord"),
         PromptIdentityOverride {
-            soul_md: Some("I am Alice, a meticulous archivist."),
+            soul_md: Some("I am Alice, a meticulous librarian."),
         },
         ProjectContextPlacement::Inline,
     );
 
     assert!(prompt.contains("### SOUL.md"), "SOUL slot keeps its header");
-    assert!(prompt.contains("I am Alice, a meticulous archivist."));
+    assert!(prompt.contains("I am Alice, a meticulous librarian."));
     assert!(
         !prompt.contains("conflicting workspace-root identity"),
         "profile SOUL.md must replace, not accompany, the root file"
@@ -183,7 +183,7 @@ fn empty_identity_override_matches_root_render_byte_for_byte() {
 fn omitted_placement_leaves_the_project_context_to_the_caller() {
     let tmp = identity_workspace();
     let identity = PromptIdentityOverride {
-        soul_md: Some("I am Alice, a meticulous archivist."),
+        soul_md: Some("I am Alice, a meticulous librarian."),
     };
     let mut prompt = build_system_prompt_with_identity(
         tmp.path(),
@@ -211,7 +211,7 @@ fn omitted_placement_leaves_the_project_context_to_the_caller() {
         .find("## Project Context")
         .expect("appended by the caller");
     assert!(ctx > prompt.find("tool schemas go here").unwrap());
-    assert!(prompt.contains("I am Alice, a meticulous archivist."));
+    assert!(prompt.contains("I am Alice, a meticulous librarian."));
     assert!(!prompt.contains("conflicting workspace-root identity"));
     assert!(prompt.contains("Name: OpenHuman"));
 }
