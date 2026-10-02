@@ -10,8 +10,6 @@ use std::sync::{Arc, OnceLock, RwLock};
 
 use serde_json::{Map, Value};
 
-use tinymemory_api::capabilities::{Capabilities, Capability};
-
 use crate::core::ControllerSchema;
 
 /// A pinned, boxed future returned by a controller handler.
@@ -211,50 +209,18 @@ impl DomainGroup {
 #[derive(Clone)]
 struct GroupedController {
     group: DomainGroup,
-    /// The memory-driver capability family this controller's surface needs, if
-    /// any (M5.2, `docs/specs/kernel.md` §3.3).
-    ///
-    /// `None` — the overwhelming majority — means "not gated on memory
-    /// capabilities at all", either because the controller belongs to another
-    /// domain entirely, or because it is host surface that survives any driver
-    /// (`people`, `memory.list_files`, `memory.provider_status`), or because
-    /// its family is MANDATORY and so a gate could never fire.
-    ///
-    /// `Some(c)` means the surface is ABSENT when the bound driver does not
-    /// advertise `c`: unknown-method over `/rpc`, omitted from `/schema`.
-    /// Absence, not a stub that errors — a registered-but-failing method
-    /// teaches a model that the capability exists and makes it retry. Same
-    /// reasoning as the `flows` compile-time gate (see CLAUDE.md) and as
-    /// `tinymemory_api::capabilities`' module docs.
-    capability: Option<Capability>,
     controller: RegisteredController,
 }
 
-/// Append `items` to `dst`, tagging each with `group` and no capability gate.
+/// Append `items` to `dst`, tagging each with `group`.
 /// This is the single seam that attaches a [`DomainGroup`] to every domain's
 /// controllers without the domain modules knowing about groups.
 fn push(dst: &mut Vec<GroupedController>, group: DomainGroup, items: Vec<RegisteredController>) {
-    push_cap(dst, group, None, items);
-}
-
-/// [`push`] plus a memory-capability gate.
-///
-/// Every [`DomainGroup::Memory`] site calls THIS one with an explicit
-/// `Option<Capability>` — including the explicit `None`s — so "which family
-/// does this surface need" is a decision recorded at the registration site
-/// rather than a default nobody chose. `memory_capability_map_is_exhaustive`
-/// in `all_tests.rs` fails if a Memory push site is added without one.
-fn push_cap(
-    dst: &mut Vec<GroupedController>,
-    group: DomainGroup,
-    capability: Option<Capability>,
-    items: Vec<RegisteredController>,
-) {
-    dst.extend(items.into_iter().map(|controller| GroupedController {
-        group,
-        capability,
-        controller,
-    }));
+    dst.extend(
+        items
+            .into_iter()
+            .map(|controller| GroupedController { group, controller }),
+    );
 }
 
 /// The [`DomainSet`](crate::core::runtime::DomainSet) of the ambient dispatch
@@ -270,39 +236,6 @@ fn active_domain_set() -> Option<crate::core::runtime::DomainSet> {
 /// domain, exactly as before #4796.
 fn group_allowed(group: DomainGroup) -> bool {
     active_domain_set().is_none_or(|s| s.allows(group))
-}
-
-/// Whether the given memory capability family is advertised by the bound
-/// driver under the ambient context (M5.2).
-///
-/// **Defaults OPEN**, exactly like [`group_allowed`]: `None` is always allowed,
-/// and with no ambient context / no bound driver
-/// `CoreContext::current_memory_capabilities` returns the full set
-/// (`memory::binding::unbound_default_capabilities`). Roughly 4000 unit tests
-/// run pre-boot with no bound driver; a deny-by-default here would turn every
-/// memory test red at once. Denying is only ever correct AFTER a driver has
-/// actually answered `capabilities()`.
-/// (`pub(crate)` so the agent-tool post-filter in
-/// [`crate::tools::ops::all_tools_with_runtime`] gates on the exact
-/// same predicate the RPC registry does — one definition, two surfaces.)
-pub(crate) fn capability_allowed(capability: Option<Capability>) -> bool {
-    match capability {
-        None => true,
-        Some(_) => capability_allowed_in(
-            crate::core::runtime::context::CoreContext::current_memory_capabilities(),
-            capability,
-        ),
-    }
-}
-
-/// [`capability_allowed`] against an already-resolved set.
-///
-/// The collect-all paths hoist the lookup out of their filter closure:
-/// resolving the set walks `CoreContext -> memory_binding -> RwLock read ->
-/// HashMap<PathBuf, _>`, materially heavier than `group_allowed`'s task-local
-/// read, and would otherwise run once per controller across the whole registry.
-fn capability_allowed_in(caps: Capabilities, capability: Option<Capability>) -> bool {
-    capability.is_none_or(|c| caps.contains(c))
 }
 
 /// The global static registry of all controllers, initialized once on first access.
@@ -411,7 +344,6 @@ pub fn register_controller_extension(ext: ControllerExtension) -> Result<(), Str
     for controller in ext.controllers {
         merged.push(GroupedController {
             group: ext.group,
-            capability: None,
             controller,
         });
     }
@@ -593,12 +525,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         DomainGroup::Agent,
         crate::agent::registry::all_agent_registry_registered_controllers(),
     );
-    // Local procedural operating experience for agent self-learning
-    push(
-        &mut controllers,
-        DomainGroup::Agent,
-        crate::agent::experience::all_agent_experience_registered_controllers(),
-    );
     // System and process health monitoring
     push(
         &mut controllers,
@@ -764,15 +690,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         DomainGroup::Inference,
         crate::inference::embedding_host::all_embeddings_registered_controllers(),
     );
-    // People resolution and interaction scoring
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        // Host-owned address book + interaction scoring, not a driver family:
-        // `people` has no `Capability` and survives every bound driver.
-        None,
-        crate::memory::people::all_people_registered_controllers(),
-    );
     // Sandbox execution backends (Docker, local jail, policy, cleanup)
     push(
         &mut controllers,
@@ -830,133 +747,14 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         DomainGroup::Platform,
         crate::tools::registry::all_tool_registry_registered_controllers(),
     );
-    // Document and knowledge graph storage. The single `memory` RPC namespace
-    // spans four driver capability families plus two host-only surfaces, so it
-    // registers as nine tagged pushes rather than one (M5.2). Order matches
-    // `memory::schemas::all_registered_controllers`, which
-    // `registered_controller_order_is_pinned_to_the_capability_partition_snapshot` pins.
-    push_cap(
+    // Memory v2 (`docs/specs/memory-v2.md`): engines, recall/fetch/learn/
+    // forget, conversations, document sources, context.md and v1 import.
+    // Always registered: with no usable engine the methods answer MEMORY_OFF
+    // (and the settings/import ones still work), so the UI can explain why.
+    push(
         &mut controllers,
         DomainGroup::Memory,
-        // Core + Recall are MANDATORY families — `Capabilities::validate`
-        // refuses to bind a driver missing them — so against a *driver's*
-        // advertised set this gate can never fire. It is tagged anyway,
-        // because one host decision answers below the driver:
-        // `CoreContext::memory_capabilities` returns the EMPTY set for a
-        // deliberate `driver = "null"`, which is how "the operator turned
-        // memory off" removes the mandatory surface too. `Core` alone stands
-        // for the pair — the two are always advertised together, and no
-        // partition here holds only recall methods.
-        Some(Capability::Core),
-        crate::memory::all_memory_core_recall_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Documents),
-        crate::memory::all_memory_documents_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Ingest),
-        crate::memory::all_memory_ingest_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        // Plain workspace file I/O through the host, not a driver family.
-        None,
-        crate::memory::all_memory_files_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Graph),
-        crate::memory::all_memory_kv_graph_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Sources),
-        crate::memory::all_memory_sync_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        // `learn_all` runs the TREE SUMMARIZER over namespaces, so it belongs
-        // to Tree, not Ingest — `Capability::Ingest` is `ingest_document` /
-        // `ingest_chat`, whose RPC surface is `memory.doc_ingest` above.
-        Some(Capability::Tree),
-        crate::memory::all_memory_learn_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        // NEVER gated: `memory.provider_status` is the RPC that REPORTS the
-        // bound driver's capability set. Gating it on a capability would be
-        // self-referential and would hide the explanation for every other
-        // absence in this block.
-        None,
-        crate::memory::all_memory_provider_registered_controllers(),
-    );
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::ToolMemory),
-        crate::memory::all_memory_tool_memory_registered_controllers(),
-    );
-    // Long-term goals list (editable list + turn-based enrichment agent)
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Goals),
-        crate::memory::goals::all_memory_goals_registered_controllers(),
-    );
-    // Memory tree ingestion layer (#707 — canonicalised chunks with provenance)
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        // DELIBERATE, not inherited: `memory/schema/registry.rs`'s ~25 methods
-        // span tree, entities, graph and maintenance, and are tagged as ONE
-        // capability rather than split. Tree and entities are treated here as
-        // parts of a single encapsulated memory surface, not independently
-        // degradable families. The visible consequence: a driver advertising
-        // `entities` but not `tree` still loses `memory_tree.top_entities`.
-        // Split it only when a real driver needs that distinction.
-        Some(Capability::Tree),
-        crate::memory::tree::all_memory_tree_registered_controllers(),
-    );
-    // Memory tree retrieval layer (#710 — LLM-callable read tools over the tree)
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Tree),
-        crate::memory::tree::all_retrieval_registered_controllers(),
-    );
-    // Slack → memory-tree ingestion engine (per-message ingest, no bucketing)
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        // Grouped with the other three sync namespaces rather than `Ingest`: a
-        // driver that cannot accept synced source items should lose the whole
-        // source-sync surface coherently, not half of it.
-        Some(Capability::Sources),
-        crate::integrations::composio::providers::slack::all_slack_memory_registered_controllers(),
-    );
-    // Per-connection memory sync status, controls, and progress (#1136)
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Sources),
-        crate::memory::sync::sync_status::all_memory_sync_status_registered_controllers(),
-    );
-    // Memory sources — user-configured data connectors registry
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Sources),
-        crate::memory::sources::all_memory_sources_registered_controllers(),
+        crate::memory::all_memory_registered_controllers(),
     );
     // The hosted TinyHumans proxies (`billing`, `team`, `referral`,
     // `announcements`, `DomainGroup::Hosted`) are NOT built in: they live in
@@ -1008,19 +806,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         &mut controllers,
         DomainGroup::Platform,
         crate::platform::update::all_update_registered_controllers(),
-    );
-    // Hierarchical knowledge summarization
-    push_cap(
-        &mut controllers,
-        DomainGroup::Memory,
-        Some(Capability::Tree),
-        crate::memory::tree::all_tree_summarizer_registered_controllers(),
-    );
-    // Self-learning and user context enrichment
-    push(
-        &mut controllers,
-        DomainGroup::Agent,
-        crate::agent::learning::all_learning_registered_controllers(),
     );
     // Conversation thread and message management
     push(
