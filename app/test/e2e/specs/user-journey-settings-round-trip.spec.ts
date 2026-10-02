@@ -18,6 +18,7 @@
  */
 import { waitForApp, waitForAppReady } from '../helpers/app-helpers';
 import { textExists, waitForTestId } from '../helpers/element-helpers';
+import { isTauriDriver } from '../helpers/platform';
 import { resetApp } from '../helpers/reset-app';
 import {
   navigateToBilling,
@@ -95,7 +96,8 @@ describe('User journey — settings round-trip', () => {
     console.log(`${LOG_PREFIX} Navigating to /settings/memory-data`);
     await navigateViaHash('/settings/memory-data');
     await waitForPanelLoad('/settings/memory-data');
-    await waitForTestId('memory-page', 10_000);
+    // waitForTestId is tauri-driver only; the marker check below covers Mac2.
+    if (isTauriDriver()) await waitForTestId('memory-page', 10_000);
 
     const dataMarkers = ['Documents', 'Memory', 'Engine'];
     let found = false;

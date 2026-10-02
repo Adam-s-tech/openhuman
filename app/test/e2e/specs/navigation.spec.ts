@@ -15,6 +15,7 @@
  */
 import { waitForApp, waitForAppReady } from '../helpers/app-helpers';
 import { hasAppChrome, waitForTestId } from '../helpers/element-helpers';
+import { isTauriDriver } from '../helpers/platform';
 import { resetApp } from '../helpers/reset-app';
 import { navigateViaHash, waitForHomePage } from '../helpers/shared-flows';
 import { startMockServer, stopMockServer } from '../mock-server';
@@ -97,7 +98,8 @@ describe('Navigation', () => {
       const escaped = route.hash.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(hash).toMatch(new RegExp(`^#${escaped}`));
 
-      if (route.readyTestId) {
+      // waitForTestId is tauri-driver only; Mac2 keeps the hash + char checks.
+      if (route.readyTestId && isTauriDriver()) {
         await waitForTestId(route.readyTestId, 15_000);
       }
 
