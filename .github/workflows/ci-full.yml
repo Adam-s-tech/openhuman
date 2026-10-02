@@ -126,12 +126,12 @@ jobs:
           # tinybus validates every directory ancestor. GitHub mounts the
           # checkout as the host runner uid while this container runs as root,
           # so keep native fixtures in a root-owned, ephemeral tree.
-          # Version and digest are ONE decision and live on adjacent lines for that
-          # reason: the archive name, the release tag and the checksum each used to
-          # carry the version independently, so a bump could update two of the three
-          # and leave a stale digest that only fails after the download. Both values
-          # are the ubuntu-22.04-x86_64 row of `crates/openhuman-core/src/modules/registry.rs`,
-          # which is the authoritative pin — copy them from there, never recompute.
+          # The downloaded tinyjuice archive's version and sha256 are ONE decision:
+          # the archive name, the release tag and the checksum below all carry the
+          # version, so a bump must update every one of them or a stale digest only
+          # fails after the download. They are the ubuntu-22.04-x86_64 row of
+          # `crates/openhuman-core/src/modules/registry.rs`, which is the
+          # authoritative pin — copy them from there, never recompute.
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           juice_dir="$module_root/tinyjuice"
           connectors_dir="$module_root/tinyconnectors"

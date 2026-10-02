@@ -161,7 +161,7 @@ jobs:
           key: core
       - name: Build native test modules
         run: |
-          # Memory and connector tests exercise host/module seams. Supplying
+          # Connector and other module tests exercise host/module seams. Supplying
           # local native fixtures keeps them independent of GitHub's release
           # metadata API and mirrors the Rust E2E and desktop-E2E jobs.
           # tinybus validates every directory ancestor, so a container-root
