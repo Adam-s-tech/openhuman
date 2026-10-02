@@ -24,6 +24,7 @@ pub mod import;
 pub mod ops;
 pub mod schemas;
 pub mod sources;
+pub mod status;
 pub mod tools;
 pub mod types;
 
