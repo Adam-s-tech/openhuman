@@ -159,6 +159,9 @@ pub struct MemoryWriteSection {
     preferences: bool,
     facts: bool,
     delegate: bool,
+    /// The fact-write route to name: `memory_store`, or the collapsed `memory`
+    /// tool's `learn` action.
+    fact_route: &'static str,
 }
 
 impl MemoryWriteSection {
@@ -170,9 +173,21 @@ impl MemoryWriteSection {
             preferences,
             facts,
             delegate,
+            fact_route: FACT_ROUTE_STORE,
         }
     }
+
+    /// Name the collapsed `memory` tool's `learn` action as the fact-write
+    /// route instead of `memory_store`.
+    #[must_use]
+    pub fn via_memory_tool(mut self) -> Self {
+        self.fact_route = FACT_ROUTE_MEMORY;
+        self
+    }
 }
+
+const FACT_ROUTE_STORE: &str = "`memory_store`";
+const FACT_ROUTE_MEMORY: &str = "`memory` (`action: \"learn\"`)";
 
 /// The instruction for a session offering `save_preference` (`preferences`)
 /// and/or `memory_store` (`facts`).
@@ -182,10 +197,23 @@ impl MemoryWriteSection {
 /// the section, so the empty string is a guard, not a path in normal use.
 #[must_use]
 pub fn memory_write_instruction(preferences: bool, facts: bool, delegate: bool) -> String {
+    memory_write_instruction_via(preferences, facts, delegate, FACT_ROUTE_STORE)
+}
+
+/// [`memory_write_instruction`] with the fact-write route named explicitly.
+#[must_use]
+fn memory_write_instruction_via(
+    preferences: bool,
+    facts: bool,
+    delegate: bool,
+    fact_route: &str,
+) -> String {
     let route = match (preferences, facts) {
-        (true, true) => "— `save_preference` for preferences, `memory_store` for everything else",
-        (true, false) => "with `save_preference`",
-        (false, true) => "with `memory_store`",
+        (true, true) => {
+            format!("— `save_preference` for preferences, {fact_route} for everything else")
+        }
+        (true, false) => "with `save_preference`".to_string(),
+        (false, true) => format!("with {fact_route}"),
         // Only when neither direct tool is held, so an agent that has one
         // renders exactly the text it rendered before this arm existed.
         //
@@ -201,6 +229,7 @@ pub fn memory_write_instruction(preferences: bool, facts: bool, delegate: bool) 
         (false, false) if delegate => {
             "with `manage_profile_memory` (pass `blocking: true` so the write \
              gates your reply)"
+                .to_string()
         }
         (false, false) => return String::new(),
     };
@@ -217,10 +246,11 @@ impl PromptSection for MemoryWriteSection {
     }
 
     fn build(&self, _ctx: &PromptContext<'_>) -> Result<String> {
-        Ok(memory_write_instruction(
+        Ok(memory_write_instruction_via(
             self.preferences,
             self.facts,
             self.delegate,
+            self.fact_route,
         ))
     }
 }
@@ -238,13 +268,22 @@ impl PromptSection for MemoryWriteSection {
 ///
 /// [`any_tool_offered`] already receives the delegation tools separately, so
 /// this needed no new plumbing; the list was simply the wrong list.
-pub const MEMORY_READ_TOOLS: [&str; 3] = ["memory_recall", "memory_search", "retrieve_memory"];
+pub const MEMORY_READ_TOOLS: [&str; 4] = [
+    "memory_recall",
+    "memory_search",
+    "retrieve_memory",
+    MEMORY_TOOL,
+];
 
 /// The tool a preference is written through.
 pub const SAVE_PREFERENCE_TOOL: &str = "save_preference";
 
 /// The tool every other remembered fact is written through.
 pub const MEMORY_STORE_TOOL: &str = "memory_store";
+
+/// The collapsed memory tool (`ask` | `keyword_search` | `learn`); it reads and
+/// writes, so it satisfies both the read rule and the fact-write rule.
+pub const MEMORY_TOOL: &str = "memory";
 
 /// The delegate an agent writes through when it holds neither direct write
 /// tool.
@@ -273,8 +312,9 @@ pub const MEMORY_WRITE_DELEGATE_TOOL: &str = "manage_profile_memory";
 /// section names the route it found, so it cannot treat them interchangeably —
 /// but a reader reaching for "what does the write section care about" should get
 /// the whole answer here (#6200 review).
-pub const MEMORY_WRITE_TOOLS: [&str; 3] = [
+pub const MEMORY_WRITE_TOOLS: [&str; 4] = [
     MEMORY_STORE_TOOL,
+    MEMORY_TOOL,
     SAVE_PREFERENCE_TOOL,
     MEMORY_WRITE_DELEGATE_TOOL,
 ];

@@ -29,7 +29,7 @@ fn the_schema_advertises_every_action() {
         .as_array()
         .expect("enum")
         .len();
-    assert_eq!(listed, 11);
+    assert_eq!(listed, 4);
 }
 
 #[test]
@@ -84,13 +84,13 @@ fn an_unknown_action_falls_back_to_the_strictest_level() {
 #[tokio::test]
 async fn an_unknown_action_is_an_error_result_naming_the_valid_ones() {
     let result = tool()
-        .execute(serde_json::json!({"action": "recal"}))
+        .execute(serde_json::json!({"action": "recal", "text": "x"}))
         .await
         .expect("dispatch does not fail the call");
     assert!(result.is_error);
     let text = format!("{result:?}");
     assert!(text.contains("recal"));
-    assert!(text.contains("recall|store|forget"));
+    assert!(text.contains("ask|keyword_search|learn|forget"));
 }
 
 #[test]
@@ -104,4 +104,65 @@ fn the_memory_tree_tool_is_not_a_member() {
             .any(|e| e.tool.name() == "memory_tree"),
         "memory_tree stays a separate tool"
     );
+}
+
+#[test]
+fn each_action_maps_text_onto_its_members_arguments() {
+    let ask = member_args(ACTION_ASK, &serde_json::json!({"text": " who is Ana? "})).unwrap();
+    assert_eq!(ask["query"], "who is Ana?");
+    assert!(
+        ask["namespace"].is_string(),
+        "hybrid search needs a namespace"
+    );
+
+    let keywords = member_args(
+        ACTION_KEYWORD_SEARCH,
+        &serde_json::json!({"text": "ana", "limit": 3}),
+    )
+    .unwrap();
+    assert_eq!(keywords["query"], "ana");
+    assert_eq!(keywords["limit"], 3);
+
+    let learn = member_args(
+        ACTION_LEARN,
+        &serde_json::json!({"text": "Ana prefers email", "limit": 9}),
+    )
+    .unwrap();
+    assert_eq!(learn["content"], "Ana prefers email");
+    assert!(learn.get("limit").is_none(), "a write takes no limit");
+}
+
+#[test]
+fn empty_text_is_refused() {
+    assert!(member_args(ACTION_ASK, &serde_json::json!({"text": "  "})).is_err());
+    assert!(member_args(ACTION_LEARN, &serde_json::json!({})).is_err());
+}
+
+#[test]
+fn forget_takes_the_key_as_text_and_defaults_the_namespace() {
+    let args = member_args(
+        ACTION_FORGET,
+        &serde_json::json!({"text": " ana_email_pref "}),
+    )
+    .unwrap();
+    assert_eq!(args["key"], "ana_email_pref");
+    assert!(args["namespace"].is_string(), "forget requires a namespace");
+    assert!(args.get("query").is_none() && args.get("content").is_none());
+}
+
+#[test]
+fn advertised_actions_match_the_actions_the_tool_serves() {
+    let memory = tool();
+    let served: Vec<String> = memory
+        .actions()
+        .iter()
+        .map(|e| e.action.to_string())
+        .collect();
+    assert_eq!(advertised_actions(&memory), served);
+}
+
+#[test]
+fn a_tool_that_is_not_the_collapsed_memory_tool_advertises_no_actions() {
+    // So a name check elsewhere cannot mistake another tool for the collapsed one.
+    assert!(advertised_actions(&MemoryRecallTool::new()).is_empty());
 }

@@ -339,7 +339,7 @@ const REPRESENTATIVE: &[(&str, crate::core::all::DomainGroup)] = {
         ("composio_execute", G::Integrations),
         ("dashboard_model_health", G::Desktop),
         ("node_exec", G::Runtimes),
-        ("tinyjuice_retrieve", G::Inference),
+        ("juice_retrieve", G::Inference),
         ("shell", G::Platform),
     ]
 };

@@ -177,7 +177,7 @@ pub(super) fn visible_tool_specs_for_policy(
         .collect()
 }
 
-/// Ensure the CCR recovery tool (`tinyjuice_retrieve`) is a member of a
+/// Ensure the CCR recovery tool (`juice_retrieve`) is a member of a
 /// non-empty visibility allowlist. Compaction runs on every agent's tool
 /// output, so any agent with a curated `ToolScope::Named` list must still be
 /// able to act on a `⟦tj:…⟧` marker. Only the live tool is added; the legacy

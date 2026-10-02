@@ -1305,7 +1305,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     }
     // Inference: the CCR retrieval surface. Matched against the crate's own
     // constant list rather than a name prefix — the live tool is
-    // `tinyjuice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
+    // `juice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
     // are migration aliases, so a prefix rule silently missed the real one.
     if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name)
         || crate::inference::tokenjuice::is_repl_tool(name)
