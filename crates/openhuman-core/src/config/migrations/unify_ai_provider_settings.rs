@@ -200,7 +200,6 @@ fn set_primary_cloud(config: &mut Config, stats: &mut MigrationStats) {
 /// fields that were already set by a previous run or a hand-edit.
 fn derive_workload_providers(config: &mut Config, stats: &mut MigrationStats) {
     let runtime_on = config.local_ai.runtime_enabled;
-    let chat_model = config.local_ai.chat_model_id.clone();
     let embed_model = config.local_ai.embedding_model_id.clone();
 
     let set_field = |field: &mut Option<String>, value: String, stats: &mut MigrationStats| {
