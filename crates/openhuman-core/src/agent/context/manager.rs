@@ -148,11 +148,6 @@ impl ContextManager {
         self.stats_state.record_usage(usage);
     }
 
-    /// Bump the session-memory turn counter (called once per user turn).
-    pub fn tick_turn(&mut self) {
-        self.stats_state.tick_turn();
-    }
-
     // ─── Prompt building ───────────────────────────────────────────
 
     /// Assemble the opening system prompt for a session using the
