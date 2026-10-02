@@ -256,7 +256,7 @@ fn env_overlay_auto_update_restart_strategy_accepts_supported_values() {
 #[test]
 fn env_overlay_tool_dispatcher_overrides_the_agent_field_when_non_blank() {
     let mut cfg = Config::default();
-    assert_eq!(cfg.agent.tool_dispatcher, "python");
+    assert_eq!(cfg.agent.tool_dispatcher, "auto");
 
     cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_TOOL_DISPATCHER", " native "));
     assert_eq!(cfg.agent.tool_dispatcher, "native");
@@ -266,6 +266,16 @@ fn env_overlay_tool_dispatcher_overrides_the_agent_field_when_non_blank() {
     assert_eq!(cfg.agent.tool_dispatcher, "native");
     cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_TOOL_DISPATCHER", ""));
     assert_eq!(cfg.agent.tool_dispatcher, "native");
+}
+
+#[test]
+fn env_overlay_composio_mode_overrides_when_non_blank() {
+    let mut cfg = Config::default();
+    assert_eq!(cfg.composio.mode, "backend");
+    cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPOSIO_MODE", " Disabled "));
+    assert_eq!(cfg.composio.mode, "disabled");
+    cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPOSIO_MODE", "  "));
+    assert_eq!(cfg.composio.mode, "disabled");
 }
 
 #[test]
