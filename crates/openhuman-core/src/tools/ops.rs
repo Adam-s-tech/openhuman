@@ -1056,9 +1056,9 @@ pub fn all_tools_with_runtime(
     // through this function.
     crate::tools::toolpacks::append_pack_tools(&mut tools);
     // The lookup half of `ToolExposure::Deferred` is not registered here: the
-    // tinyagents harness advertises its intrinsic `tool_search` / `tool_call`
-    // bridge whenever a run has a deferred tool (`tool::discover`), ranked by
-    // whatever `agent::tinyagents::discovery` installed. A host-registered
+    // tinyagents harness advertises its intrinsic `tool_search` bridge
+    // (a found tool is then called by its own name) whenever a run has a
+    // deferred tool (`tool::discover`), ranked by whatever `agent::tinyagents::discovery` installed. A host-registered
     // `tool_search` would shadow that bridge.
     tools
 }

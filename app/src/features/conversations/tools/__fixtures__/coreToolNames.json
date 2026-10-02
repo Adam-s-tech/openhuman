@@ -195,7 +195,6 @@
   "task_source_update",
   "juice_retrieve",
   "todo",
-  "tool_call",
   "tool_search",
   "uninstall_workflow",
   "update_apply",
