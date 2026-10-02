@@ -50,7 +50,8 @@ const ENGINES = [
   },
 ];
 
-const CONTEXT_MARKDOWN = '# What I know about you\n\n- Prefers concise answers\n- Working on project Atlas';
+const CONTEXT_MARKDOWN =
+  '# What I know about you\n\n- Prefers concise answers\n- Working on project Atlas';
 
 interface FakeOptions {
   /** `memory_engine_get` reports TinyHumans as active (`ok`) when true, off when false. */
@@ -105,12 +106,7 @@ async function installMemoryFake(page: Page, opts: FakeOptions): Promise<MemoryF
     enabled: true,
   });
 
-  const conversations = {
-    enabled: true,
-    batch_turns: 4,
-    idle_secs: 120,
-    recent: [] as unknown[],
-  };
+  const conversations = { enabled: true, batch_turns: 4, idle_secs: 120, recent: [] as unknown[] };
 
   /** The fake's answer per v2 method; `undefined` = not a v2 method, pass through. */
   const handle = (method: string, params: Record<string, unknown>): unknown => {
@@ -303,7 +299,9 @@ test.describe('Memory v2 — engine active', () => {
     await expect(learned).toBeVisible();
     await expect(learned).toContainText('Standups are at 9:30.');
     // The default kind is `fact`; nothing else rides along.
-    expect(fake.paramsOf('memory_learn')).toEqual([{ text: 'Standups are at 9:30.', kind: 'fact' }]);
+    expect(fake.paramsOf('memory_learn')).toEqual([
+      { text: 'Standups are at 9:30.', kind: 'fact' },
+    ]);
 
     // 4. Documents: register a folder source (folder is the default kind).
     await page.getByTestId('brain-tab-documents').click();
@@ -360,12 +358,12 @@ test.describe('Memory v2 — engine active', () => {
     await bootAuthenticatedPage(page, 'pw-memory-v2-legacy');
 
     const cases: Array<[string, RegExp]> = [
-      ['/#/brain?tab=graph', /^#\/connections\?tab=brain&brain=ask$/],
-      ['/#/brain?tab=sources', /^#\/connections\?tab=brain&brain=documents$/],
-      [`${MEMORY_URL}&brain=sync`, /^#\/connections\?tab=brain&brain=documents$/],
-      ['/#/settings/memory-engine', /^#\/connections\?tab=brain&brain=engine$/],
-      ['/#/settings/memory-data', /^#\/connections\?tab=brain&brain=documents$/],
-      ['/#/settings/memory-debug', /^#\/connections\?tab=brain&brain=ask$/],
+      ['/#/brain?tab=graph', /^#\/connections\?tab=brain&brain=ask(?:&|$)/],
+      ['/#/brain?tab=sources', /^#\/connections\?tab=brain&brain=documents(?:&|$)/],
+      [`${MEMORY_URL}&brain=sync`, /^#\/connections\?tab=brain&brain=documents(?:&|$)/],
+      ['/#/settings/memory-engine', /^#\/connections\?tab=brain&brain=engine(?:&|$)/],
+      ['/#/settings/memory-data', /^#\/connections\?tab=brain&brain=documents(?:&|$)/],
+      ['/#/settings/memory-debug', /^#\/connections\?tab=brain&brain=ask(?:&|$)/],
     ];
     for (const [from, to] of cases) {
       await page.goto(from);
