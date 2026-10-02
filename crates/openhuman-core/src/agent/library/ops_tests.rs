@@ -10,8 +10,6 @@ fn definition() -> AgentDefinition {
         omit_identity: true,
         omit_memory_context: true,
         omit_safety_preamble: true,
-        omit_profile: false,
-        omit_memory_md: true,
         model: ModelSpec::Hint("reasoning".to_string()),
         temperature: 0.2,
         tools: ToolScope::Named(vec!["web_search".to_string(), "file_read".to_string()]),
@@ -26,7 +24,6 @@ fn definition() -> AgentDefinition {
         timeout_secs: None,
         sandbox_mode: SandboxMode::ReadOnly,
         background: false,
-        trigger_memory_agent: Default::default(),
         tokenjuice_compression: crate::inference::tokenjuice::AgentTokenjuiceCompression::Auto,
         subagents: vec![
             SubagentEntry::AgentId("critic".to_string()),

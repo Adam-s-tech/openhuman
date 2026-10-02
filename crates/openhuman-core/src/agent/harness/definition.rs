@@ -34,7 +34,7 @@ mod subagents;
 mod tier;
 
 pub use agent_definition::{
-    AgentDefinition, IterationPolicy, TriggerMemoryAgent, EXTENDED_MAX_TOOL_ITERATIONS,
+    AgentDefinition, IterationPolicy, EXTENDED_MAX_TOOL_ITERATIONS,
 };
 pub use execution_spec::{ModelSpec, SandboxMode, ToolScope};
 pub use prompt_source::{PromptBuilder, PromptSource};

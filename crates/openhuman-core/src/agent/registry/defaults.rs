@@ -87,8 +87,6 @@ pub fn definition_from_registry_entry(entry: &AgentRegistryEntry) -> AgentDefini
         omit_identity: true,
         omit_memory_context: true,
         omit_safety_preamble: true,
-        omit_profile: true,
-        omit_memory_md: true,
         model: registry_value_to_model_spec(entry.model.as_deref()),
         temperature: 0.4,
         tools: allowlist_to_tool_scope(&entry.tool_allowlist),
@@ -103,7 +101,6 @@ pub fn definition_from_registry_entry(entry: &AgentRegistryEntry) -> AgentDefini
         timeout_secs: None,
         sandbox_mode: SandboxMode::None,
         background: false,
-        trigger_memory_agent: TriggerMemoryAgent::Never,
         tokenjuice_compression: Default::default(),
         subagents: entry
             .subagents
