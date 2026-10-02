@@ -434,7 +434,7 @@ async fn auto_approve_all_allows_a_remote_triage_dispatch_without_an_audit_row()
 
 #[tokio::test]
 async fn timeout_returns_deny() {
-    let (gate, _dir, env) = expiry_gate();
+    let (gate, _dir, env) = expiry_gate().await;
     let gate = Arc::new(gate);
     let g = gate.clone();
     let handle = tokio::spawn(async move {
@@ -472,7 +472,7 @@ async fn timeout_returns_deny() {
 /// unapproved, mirroring `timeout_returns_deny` above.
 #[tokio::test]
 async fn cancel_flow_run_parks_for_approval_when_a_gate_is_present() {
-    let (gate, _dir, env) = expiry_gate();
+    let (gate, _dir, env) = expiry_gate().await;
     let gate = Arc::new(gate);
     let g = gate.clone();
     let handle = tokio::spawn(async move {
