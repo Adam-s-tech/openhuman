@@ -18,7 +18,6 @@ fn make_legacy_config_local_on() -> Config {
         },
         ..LocalAiConfig::default()
     };
-    c.memory_tree.llm_backend = crate::config::schema::LlmBackend::Local;
     c
 }
 

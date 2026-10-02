@@ -178,15 +178,11 @@ fn memory_sync_settings_rpc_is_registered() {
 #[test]
 fn deserialize_params_parses_memory_settings_update() {
     let mut m = Map::new();
-    m.insert("backend".into(), Value::String("sqlite".into()));
-    m.insert("auto_save".into(), Value::Bool(true));
     m.insert(
         "embedding_dimensions".into(),
         Value::Number(serde_json::Number::from(1536)),
     );
     let out: MemorySettingsUpdate = deserialize_params(m).unwrap();
-    assert_eq!(out.backend.as_deref(), Some("sqlite"));
-    assert_eq!(out.auto_save, Some(true));
     assert_eq!(out.embedding_dimensions, Some(1536));
 }
 

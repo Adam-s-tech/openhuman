@@ -419,47 +419,6 @@ fn env_overlay_analytics_enabled_parses_truthy_falsy() {
 }
 
 #[test]
-fn env_overlay_learning_source_values_and_invalid_ignored() {
-    let mut cfg = Config::default();
-    cfg.apply_env_overlay_with(
-        &HashMapEnv::new().with("OPENHUMAN_LEARNING_REFLECTION_SOURCE", "local"),
-    );
-    assert_eq!(
-        cfg.learning.reflection_source,
-        crate::config::ReflectionSource::Local
-    );
-
-    cfg.apply_env_overlay_with(
-        &HashMapEnv::new().with("OPENHUMAN_LEARNING_REFLECTION_SOURCE", "cloud"),
-    );
-    assert_eq!(
-        cfg.learning.reflection_source,
-        crate::config::ReflectionSource::Cloud
-    );
-
-    // Unknown — ignored, retains cloud from previous step.
-    cfg.apply_env_overlay_with(
-        &HashMapEnv::new().with("OPENHUMAN_LEARNING_REFLECTION_SOURCE", "bogus"),
-    );
-    assert_eq!(
-        cfg.learning.reflection_source,
-        crate::config::ReflectionSource::Cloud
-    );
-}
-
-#[test]
-fn env_overlay_learning_numeric_values_parse() {
-    let mut cfg = Config::default();
-    cfg.apply_env_overlay_with(
-        &HashMapEnv::new()
-            .with("OPENHUMAN_LEARNING_MAX_REFLECTIONS_PER_SESSION", "8")
-            .with("OPENHUMAN_LEARNING_MIN_TURN_COMPLEXITY", "2"),
-    );
-    assert_eq!(cfg.learning.max_reflections_per_session, 8);
-    assert_eq!(cfg.learning.min_turn_complexity, 2);
-}
-
-#[test]
 fn env_overlay_dictation_activation_mode_only_toggle_or_push() {
     let mut cfg = Config::default();
 

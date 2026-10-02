@@ -320,16 +320,12 @@ async fn apply_memory_settings_updates_all_provided_fields() {
     let tmp = tempdir().unwrap();
     let mut cfg = tmp_config(&tmp);
     let patch = MemorySettingsPatch {
-        backend: Some("sqlite".into()),
-        auto_save: Some(true),
         embedding_provider: Some("ollama".into()),
         embedding_model: Some("nomic".into()),
         embedding_dimensions: Some(768),
         memory_window: Some("extended".into()),
     };
     let _ = apply_memory_settings(&mut cfg, patch).await.expect("apply");
-    assert_eq!(cfg.memory.backend, "sqlite");
-    assert!(cfg.memory.auto_save);
     assert_eq!(cfg.memory.embedding_provider, "ollama");
     assert_eq!(cfg.memory.embedding_model, "nomic");
     assert_eq!(cfg.memory.embedding_dimensions, 768);
