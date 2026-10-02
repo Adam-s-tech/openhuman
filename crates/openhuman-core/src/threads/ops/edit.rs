@@ -47,7 +47,7 @@ use tinyagents_session::transcript::{
 };
 
 use crate::core::Outcome;
-use crate::threads::store::{self, reply_run_id, run_reply_message_id};
+use crate::threads::store::{self as conversations, reply_run_id, run_reply_message_id};
 use crate::threads::ThreadsError;
 
 use super::support::workspace_dir;

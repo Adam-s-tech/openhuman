@@ -129,7 +129,7 @@ async fn chat_done_omits_timing_when_no_snapshot_is_supplied() {
 
 #[tokio::test]
 async fn delivery_stores_the_reply_before_announcing_it() {
-    use crate::threads::store::{self, CreateConversationThread};
+    use crate::threads::store::{self as conversations, CreateConversationThread};
 
     let ws = std::env::temp_dir().join(format!("deliver-persist-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&ws).unwrap();

@@ -6,7 +6,7 @@
 //! truncation tests do.
 
 use super::*;
-use crate::threads::store::{self, run_reply_message_id, ConversationMessage};
+use crate::threads::store::{self as conversations, run_reply_message_id, ConversationMessage};
 use serde_json::json;
 use tempfile::TempDir;
 use tinyagents_session::turn_state::store as turn_state_store;

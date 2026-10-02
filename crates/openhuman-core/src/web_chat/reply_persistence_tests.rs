@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use super::persist_delivered_reply;
 use crate::memory::agent::memory_loader::MemoryCitation;
-use crate::threads::store::{self, CreateConversationThread};
+use crate::threads::store::{self as conversations, CreateConversationThread};
 
 fn temp_ws() -> PathBuf {
     let dir = std::env::temp_dir().join(format!("web-chat-reply-{}", uuid::Uuid::new_v4()));

@@ -5,7 +5,7 @@ use super::support::{counts, envelope, thread_to_summary, update_thread_with_fal
 use crate::config::Config;
 use crate::core::Outcome;
 use crate::inference::provider;
-use crate::threads::store;
+use crate::threads::store as conversations;
 use crate::memory::{
     ApiEnvelope, ConversationThreadSummary, GenerateConversationThreadTitleRequest,
 };

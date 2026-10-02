@@ -23,7 +23,7 @@ use std::path::Path;
 use serde_json::json;
 
 use crate::memory::agent::memory_loader::MemoryCitation;
-use crate::threads::store::{self, run_reply_message_id, ConversationMessage};
+use crate::threads::store::{self as conversations, run_reply_message_id, ConversationMessage};
 
 /// Metadata scope stamped on a reply persisted by the web-channel delivery path.
 ///

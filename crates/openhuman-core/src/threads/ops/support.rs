@@ -4,7 +4,7 @@
 
 use crate::config::Config;
 use crate::core::runtime::context::CoreContext;
-use crate::threads::store;
+use crate::threads::store as conversations;
 use crate::threads::store::{ConversationMessage, ConversationThread};
 use crate::memory::{ConversationMessageRecord, ConversationThreadSummary};
 use crate::threads::THREAD_TITLE_LOG_PREFIX;
