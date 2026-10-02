@@ -208,7 +208,10 @@ async fn managed_stream_marks_the_cacheable_prefix_for_anthropic_models_only() {
                 role: SegmentRole::System,
                 cacheable: true,
             }]);
-        let stream = backend.stream(&(), request).await.expect("mock SSE response");
+        let stream = backend
+            .stream(&(), request)
+            .await
+            .expect("mock SSE response");
         let _ = stream.collect::<Vec<_>>().await;
         let body = seen.lock().unwrap().clone().expect("request body captured");
         let markers = body.to_string().matches("cache_control").count();
