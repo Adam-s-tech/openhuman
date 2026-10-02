@@ -135,6 +135,10 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
             inputs: vec![
                 optional_string("kind", "Runtime kind."),
                 optional_bool("reasoning_enabled", "Enable reasoning mode."),
+                optional_string(
+                    "reasoning_effort",
+                    "Default reasoning effort for agent turns: none, minimal, low, medium, high or xhigh. Empty string clears it back to the provider default.",
+                ),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),

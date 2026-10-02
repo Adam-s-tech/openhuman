@@ -267,7 +267,7 @@ compatibility export.
 
 ### Tool dispatch and tool-call dialects
 
-`agent.tool_dispatcher` (overridable for one launch with `OPENHUMAN_TOOL_DISPATCHER`) picks how tools are spoken to the model. `python` (the default) renders the catalogue as Python function signatures and reads code-style calls back. `auto` uses **native tool calling**, structured tool specs through the `ChatModel` adapter and structured calls back, whenever the provider profile supports it, and falls back to JSON-in-tag for prompt-guided providers such as local Ollama. The session composes its prompt for the chosen dialect and pins the same dialect on the turn harness, so a text dialect keeps its schemas off the wire and the harness recovers calls with the matching grammar.
+`agent.tool_dispatcher` (overridable for one launch with `OPENHUMAN_TOOL_DISPATCHER`) picks how tools are spoken to the model. `auto` (the default) uses **native tool calling**, structured tool specs through the `ChatModel` adapter and structured calls back, whenever the provider profile supports it, and falls back to JSON-in-tag for prompt-guided providers such as local Ollama. `python` and `typescript` are opt-in: they render the catalogue as code signatures and read code-style calls back, but mis-parse on some models. The session composes its prompt for the chosen dialect and pins the same dialect on the turn harness, so a text dialect keeps its schemas off the wire and the harness recovers calls with the matching grammar.
 
 Canonical `tinytools_agent::dialect::ToolDialect` implementations provide transcript-compatible parsing and rendering directly; OpenHuman converts durable/provider records only at those I/O boundaries:
 
