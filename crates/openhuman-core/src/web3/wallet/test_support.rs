@@ -81,7 +81,7 @@ pub(crate) struct UnreachableRpcGuard {
 
 impl UnreachableRpcGuard {
     pub(crate) fn set() -> Self {
-        let env_lock = RPC_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let env_lock = RPC_ENV_LOCK.blocking_lock();
         // Bind then drop to learn a port that is free, hence refusing.
         let port = std::net::TcpListener::bind("127.0.0.1:0")
             .and_then(|listener| listener.local_addr())

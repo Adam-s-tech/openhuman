@@ -31,7 +31,11 @@ pub(crate) const WORKSPACE: &str = "OPENHUMAN_WORKSPACE";
 /// `tokio::sync::Mutex` (never poisoned, safe to hold across `.await`), so this
 /// blocking form panics inside a tokio runtime: `#[tokio::test]` bodies use
 /// [`lock_env_async`] instead.
-pub(crate) fn lock_env() -> MutexGuard<'static, ()> {
+pub(crate) fn lock_env() -> tokio::sync::MutexGuard<'static, ()> {
+    TEST_ENV_LOCK.blocking_lock()
+}
+
+pub(crate) async fn lock_env_async() -> tokio::sync::MutexGuard<'static, ()> {
     TEST_ENV_LOCK.blocking_lock()
 }
 

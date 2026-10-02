@@ -7,8 +7,7 @@ use crate::web3::wallet::test_support::RPC_ENV_LOCK as ENDPOINT_ENV_LOCK;
 
 fn with_env<T>(pairs: &[(&str, Option<&str>)], f: impl FnOnce() -> T) -> T {
     let _guard = ENDPOINT_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+        .blocking_lock();
     let previous: Vec<_> = pairs
         .iter()
         .map(|(name, _)| (*name, std::env::var(name).ok()))
