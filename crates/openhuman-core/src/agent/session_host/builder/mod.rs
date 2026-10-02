@@ -250,7 +250,7 @@ pub(super) fn ensure_repl_tools_visible(
 /// Whether TinyJuice may summarize this agent's tool output. Only the
 /// orchestrator gets a summary model, and a zero threshold turns it off.
 pub(super) fn summarizes_tool_output(agent_id: &str, config: &crate::config::Config) -> bool {
-    agent_id == "orchestrator" && config.context.summarizer_payload_threshold_tokens > 0
+    crate::inference::tokenjuice::summarizes_tool_output(agent_id, config)
 }
 
 pub(super) fn should_synthesize_delegation_tools(def: &AgentDefinition) -> bool {

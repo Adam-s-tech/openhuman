@@ -234,6 +234,35 @@ pub(super) fn recovery_policy(
     error: &str,
     body_level_failure: bool,
 ) -> Option<(&'static str, usize)> {
+    let (class, budget) = classified_recovery_policy(tool, error, body_level_failure)?;
+    // A path the model mistyped is a wrong call it can correct, not a missing
+    // program: the classifier files `No such file or directory (os error 2)`
+    // under `MissingApp`, which is right for a shell command and fatal for
+    // `file_read`. One bad relative path ended a whole turn after two calls.
+    if class == "unsupported"
+        && is_path_tool(tool)
+        && error
+            .to_ascii_lowercase()
+            .contains("no such file or directory")
+    {
+        return Some(("not_found", 1));
+    }
+    Some((class, budget))
+}
+
+/// Tools whose first argument is a filesystem path the model typed.
+fn is_path_tool(tool: &str) -> bool {
+    matches!(
+        tool,
+        "file_read" | "file_write" | "apply_patch" | "list_files" | "list" | "grep" | "glob"
+    )
+}
+
+fn classified_recovery_policy(
+    tool: &str,
+    error: &str,
+    body_level_failure: bool,
+) -> Option<(&'static str, usize)> {
     use crate::tools::status::ToolFailureClass as Class;
     if body_level_failure {
         return Some(("validation", 1));
