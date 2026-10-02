@@ -113,15 +113,15 @@ impl Drop for UnreachableRpcGuard {
     }
 }
 
-pub(crate) fn set_workspace_env_for_test(temp: &TempDir) -> EnvVarGuard {
-    EnvVarGuard::workspace(temp.path())
+pub(crate) async fn set_workspace_env_for_test(temp: &TempDir) -> EnvVarGuard {
+    EnvVarGuard::workspace_async(temp.path()).await
 }
 
 pub(crate) async fn setup_wallet_in(temp: &TempDir) -> Result<EnvVarGuard, String> {
     // Wallet state lookups rely on OPENHUMAN_WORKSPACE for the duration of
     // each test. Return a guard so the tempdir path does not leak into later
     // parallel tests after this test's TempDir has been dropped.
-    let workspace_guard = set_workspace_env_for_test(temp);
+    let workspace_guard = set_workspace_env_for_test(temp).await;
     let config = config_rpc::load_config_with_timeout().await?;
     let encrypted = crate::security::encryption::rpc::encrypt_secret(&config, TEST_MNEMONIC)
         .await?
