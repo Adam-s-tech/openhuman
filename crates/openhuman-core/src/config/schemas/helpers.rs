@@ -231,6 +231,10 @@ pub(super) struct AgentSettingsUpdate {
     /// override (back to the orchestrator); omitted leaves it unchanged.
     #[serde(default)]
     pub(super) chat_agent_id: Option<String>,
+    /// `auto | native | xml | pformat | python | typescript`. Validated
+    /// server-side; omitted leaves it unchanged.
+    #[serde(default)]
+    pub(super) tool_dispatcher: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

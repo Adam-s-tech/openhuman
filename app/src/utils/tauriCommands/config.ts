@@ -665,11 +665,19 @@ export interface AgentSettings {
   min_timeout_secs: number;
   /** Highest accepted timeout (seconds). */
   max_timeout_secs: number;
+  /** How tool calls are spoken to the model (`auto` = native/JSON, the default). */
+  tool_dispatcher: ToolDispatcher;
+  /** True when OPENHUMAN_TOOL_DISPATCHER overrides the configured value. */
+  tool_dispatcher_env_override: boolean;
 }
+
+/** Accepted `agent.tool_dispatcher` values. */
+export type ToolDispatcher = 'auto' | 'native' | 'xml' | 'pformat' | 'python' | 'typescript';
 
 /** Partial update — omitted fields are left unchanged. */
 export interface AgentSettingsUpdate {
   agent_timeout_secs?: number;
+  tool_dispatcher?: ToolDispatcher;
 }
 
 export async function openhumanGetAgentSettings(): Promise<CommandResponse<AgentSettings>> {

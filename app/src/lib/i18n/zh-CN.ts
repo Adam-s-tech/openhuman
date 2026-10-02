@@ -4901,6 +4901,17 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': '核准',
   'settings.agentAccess.group.fileSystem': '文件系统',
   'settings.agentAccess.group.limits': '限制',
+  'settings.agentAccess.toolFormat.label': '工具调用格式',
+  'settings.agentAccess.toolFormat.desc':
+    '智能体向模型编写工具调用的方式。JSON 在各种模型上最可靠；代码风格的格式属于实验性，部分模型可能解析错误。适用于新的对话。',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON（推荐）',
+  'settings.agentAccess.toolFormat.option.native': '原生 JSON（提供方的结构化调用）',
+  'settings.agentAccess.toolFormat.option.xml': '标签内 JSON',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (实验性)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (实验性)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (实验性)',
+  'settings.agentAccess.toolFormat.envOverride':
+    '环境变量 OPENHUMAN_TOOL_DISPATCHER 正在覆盖此设置，因此在它被取消设置之前，此处的更改不会生效。',
   'settings.sandbox.backendName.docker': 'Docker',
   'settings.sandbox.backendName.landlock': 'Landlock',
   'settings.sandbox.backendName.firejail': 'Firejail',
