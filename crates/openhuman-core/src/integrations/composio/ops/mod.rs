@@ -31,7 +31,6 @@ mod connector_runs;
 mod direct_mode;
 mod error_utils;
 mod execute;
-mod memory_cleanup;
 mod pass_budget;
 mod pass_failure;
 mod providers_ops;

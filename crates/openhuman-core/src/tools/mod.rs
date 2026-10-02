@@ -1,5 +1,4 @@
 pub mod agent_policy;
-mod capability;
 pub mod host_extensions;
 pub mod ops;
 pub mod orchestrator_tools;
@@ -36,9 +35,7 @@ pub use crate::integrations::task_sources::tools::*;
 pub use crate::integrations::tools::*;
 #[cfg(feature = "mcp")]
 pub use crate::mcp::registry::tools::*;
-pub use crate::memory::agent::tools::*;
-pub use crate::memory::tools::goals::*;
-pub use crate::memory::tools::*;
+pub use crate::memory::tools::{MemoryTool, MEMORY_TOOL_NAME};
 pub use crate::platform::cost::tools::*;
 pub use crate::platform::doctor::tools::*;
 pub use crate::platform::health::tools::*;

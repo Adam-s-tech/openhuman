@@ -21,7 +21,6 @@
 //! `crate::agent::tinyagents`); there is no in-house interrupt fence.
 
 pub mod agent_graph;
-pub mod archivist;
 pub mod artifact_offload;
 pub(crate) mod builtin_definitions;
 pub mod definition;

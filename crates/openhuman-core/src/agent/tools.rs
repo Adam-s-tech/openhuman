@@ -27,23 +27,19 @@
 //! tools into the catalog.
 mod delegate;
 mod plan_exit;
-pub mod remember_preference;
 // Pure `skill_runtime` client (spawn + await a workflow run) — compiled out
 // with the `skills` gate so the tool list OMITS these rather than degrading
 // them to a disabled-error.
 #[cfg(feature = "skills")]
 mod run_workflow;
-pub mod save_preference;
 mod todo;
 
 pub use delegate::DelegateTool;
 pub(crate) use delegate::DelegateToolDispatch;
 pub use plan_exit::{PlanExitTool, PLAN_EXIT_MARKER};
-pub use remember_preference::RememberPreferenceTool;
 #[cfg(feature = "skills")]
 pub use run_workflow::{
     AwaitWorkflowTool, RunWorkflowTool, AWAIT_WORKFLOW_TOOL_NAME, RUN_WORKFLOW_TOOL_NAME,
 };
-pub use save_preference::SavePreferenceTool;
 pub use todo::TodoTool;
 pub(crate) use todo::TodoToolDispatch;
