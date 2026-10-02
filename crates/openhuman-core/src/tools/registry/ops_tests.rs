@@ -228,12 +228,12 @@ fn insert_registry_entry_skips_duplicate_tool_id() {
 
 #[test]
 fn get_tool_trims_and_returns_exact_entry() {
-    // `memory.search` is an MCP-transport entry, so it is absent when the `mcp`
+    // `memory.recall` is an MCP-transport entry, so it is absent when the `mcp`
     // feature is compiled out. The behaviour under test here is id *trimming*,
     // not MCP — so fall back to a controller-transport entry rather than gating
     // the whole test away and losing that coverage in slim builds.
     #[cfg(feature = "mcp")]
-    let tool_id = "memory.search";
+    let tool_id = "memory.recall";
     #[cfg(not(feature = "mcp"))]
     let tool_id = "tools.web_search";
 
