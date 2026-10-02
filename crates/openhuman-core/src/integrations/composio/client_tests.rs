@@ -102,6 +102,32 @@ fn resolve_composio_route_backend_empty_mode_falls_back_to_backend() {
 }
 
 #[test]
+fn resolve_composio_route_disabled_errors_even_with_a_session() {
+    // `disabled` wins over a signed-in session: no route, so no tools register.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let mut config = config_with_session_token(&tmp);
+    config.composio.mode = "disabled".into();
+    let err = resolve_composio_route(&config)
+        .err()
+        .expect("disabled must not resolve a route");
+    assert!(err.to_string().contains("disabled"), "got: {err}");
+}
+
+#[tokio::test]
+async fn disabled_mode_reports_no_integrations_without_a_backend_call() {
+    use crate::integrations::composio::{
+        fetch_connected_integrations_status, FetchConnectedIntegrationsStatus,
+    };
+    // Default config would try the hosted backend; disabled must answer locally.
+    let mut config = Config::default();
+    config.composio.mode = "disabled".into();
+    match fetch_connected_integrations_status(&config).await {
+        FetchConnectedIntegrationsStatus::Authoritative(v) => assert!(v.is_empty()),
+        FetchConnectedIntegrationsStatus::Unavailable => panic!("expected authoritative empty"),
+    }
+}
+
+#[test]
 fn resolve_composio_route_backend_errors_without_session() {
     // Backend mode requires the app-session JWT — without it the
     // factory must return an explicit error (not silently downgrade).

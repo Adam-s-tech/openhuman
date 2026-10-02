@@ -606,6 +606,16 @@ fn env_overlay_tool_dispatcher_overrides_the_agent_field_when_non_blank() {
 }
 
 #[test]
+fn env_overlay_composio_mode_overrides_when_non_blank() {
+    let mut cfg = Config::default();
+    assert_eq!(cfg.composio.mode, "backend");
+    cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPOSIO_MODE", " Disabled "));
+    assert_eq!(cfg.composio.mode, "disabled");
+    cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPOSIO_MODE", "  "));
+    assert_eq!(cfg.composio.mode, "disabled");
+}
+
+#[test]
 fn env_overlay_jev_route_and_base_url_override_tool_search_when_non_blank() {
     let mut cfg = Config::default();
     assert_eq!(cfg.agent.tool_search.jev_route, "auto");
