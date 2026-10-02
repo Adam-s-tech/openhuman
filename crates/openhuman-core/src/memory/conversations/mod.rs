@@ -212,7 +212,6 @@ pub fn pending_turns(workspace_dir: &Path, thread_id: &str) -> usize {
 
 async fn store_batch(config: &Config, batch: Batch) {
     let turns = batch.turns.len();
-    let thread_id = batch.thread_id.clone();
     let record = batch.clone();
     match super::ops::store_item(config, batch.into_item()).await {
         Ok(receipt) => {
@@ -223,14 +222,11 @@ async fn store_batch(config: &Config, batch: Batch) {
             );
             remember_stored(&config.workspace_dir, &record, Utc::now());
         }
-        Err(error) => {
-            tracing::warn!(
-                turns,
-                code = error.code(),
-                "[memory:conversations] storing a batch failed; it is dropped"
-            );
-            let _ = thread_id;
-        }
+        Err(error) => tracing::warn!(
+            turns,
+            code = error.code(),
+            "[memory:conversations] storing a batch failed; it is dropped"
+        ),
     }
 }
 
