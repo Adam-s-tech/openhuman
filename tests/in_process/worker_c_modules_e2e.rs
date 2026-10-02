@@ -4,7 +4,7 @@
 //! composio / threads slice and drives the real HTTP JSON-RPC router against
 //! an isolated workspace. It avoids live network calls.
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::ensure_rpc_auth;
 use crate::rpc_harness::{ok, rpc};
@@ -173,7 +173,7 @@ fn find_status_entry<'a>(entries: &'a [Value], channel: &str, auth_mode: &str) -
 
 #[tokio::test]
 async fn channels_imessage_config_only_connection_reports_status_and_disconnects() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let described = rpc(
@@ -281,7 +281,7 @@ async fn channels_imessage_config_only_connection_reports_status_and_disconnects
 
 #[tokio::test]
 async fn channels_remaining_controller_paths_validate_without_live_services() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     for (id, method) in [
@@ -340,7 +340,7 @@ async fn channels_remaining_controller_paths_validate_without_live_services() {
 
 #[tokio::test]
 async fn composio_direct_mode_api_key_and_static_catalogs_round_trip() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     let (composio_base, composio_hits, composio_join) = serve_composio_direct_fixtures().await;
     let _composio_v2_guard = EnvVarGuard::set("OPENHUMAN_COMPOSIO_DIRECT_BASE_V2", &composio_base);
@@ -473,7 +473,7 @@ async fn composio_direct_mode_api_key_and_static_catalogs_round_trip() {
 
 #[tokio::test]
 async fn composio_remaining_controller_paths_validate_without_live_services() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     for (id, method) in [
@@ -511,7 +511,7 @@ async fn composio_remaining_controller_paths_validate_without_live_services() {
 
 #[tokio::test]
 async fn threads_message_lifecycle_is_persisted_and_validated() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let upsert = rpc(
@@ -630,7 +630,7 @@ async fn threads_message_lifecycle_is_persisted_and_validated() {
 
 #[tokio::test]
 async fn threads_remaining_controller_paths_round_trip() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let created = rpc(
@@ -726,7 +726,7 @@ async fn threads_remaining_controller_paths_round_trip() {
 
 #[tokio::test]
 async fn memory_tree_ingest_feeds_memory_sync_status() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     // `memory_tree_ingest` writes through the bound memory driver, which under
     // the `modules` gate is the loaded tinymemory artifact and resolves its
@@ -802,7 +802,7 @@ async fn memory_tree_ingest_feeds_memory_sync_status() {
 
 #[tokio::test]
 async fn memory_memory_tree_and_sources_controller_surfaces_are_reachable() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let methods = [
@@ -959,7 +959,7 @@ async fn serve_composio_direct_fixtures() -> (
 
 #[tokio::test]
 async fn memory_sources_folder_web_and_rss_readers_sync_through_rpc() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     let (fixture_base, fixture_join) = serve_source_fixtures().await;
 

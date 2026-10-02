@@ -20,7 +20,7 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::memory_rpc::{serve, write_config};
 use crate::rpc_auth::rpc_token;
@@ -99,7 +99,7 @@ fn setup() -> (EnvVarGuard, EnvVarGuard, EnvVarGuard, EnvVarGuard, PathBuf) {
 /// its own `now()` could not satisfy this by coincidence.
 #[tokio::test]
 async fn ingest_echoes_the_caller_supplied_timestamp() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (_home, _ws, _backend, _vite, _oh) = setup();
 
     let (rpc_base, _join) = serve().await;
@@ -183,7 +183,7 @@ async fn ingest_echoes_the_caller_supplied_timestamp() {
 /// constant, a zero instant or an unparseable string fails.
 #[tokio::test]
 async fn ingest_without_a_timestamp_files_under_the_host_clock() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (_home, _ws, _backend, _vite, _oh) = setup();
 
     let (rpc_base, _join) = serve().await;

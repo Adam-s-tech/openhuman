@@ -88,7 +88,7 @@ async fn reset_local_data_tolerates_absent_paths() {
 
 #[test]
 fn env_flag_enabled_recognizes_truthy_forms() {
-    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = ENV_LOCK.blocking_lock();
     let key = "OPENHUMAN_TEST_FLAG_A";
     for truthy in ["1", "true", "TRUE", "yes", "YES"] {
         unsafe {
@@ -112,7 +112,7 @@ fn env_flag_enabled_recognizes_truthy_forms() {
 
 #[test]
 fn core_rpc_url_from_env_returns_default_when_unset() {
-    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = ENV_LOCK.blocking_lock();
     unsafe {
         std::env::remove_var("OPENHUMAN_CORE_RPC_URL");
     }
@@ -121,7 +121,7 @@ fn core_rpc_url_from_env_returns_default_when_unset() {
 
 #[test]
 fn core_rpc_url_from_env_uses_override_when_set() {
-    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = ENV_LOCK.blocking_lock();
     unsafe {
         std::env::set_var("OPENHUMAN_CORE_RPC_URL", "http://1.2.3.4:9999/rpc");
     }
@@ -189,7 +189,7 @@ fn reset_local_data_remove_error_explains_windows_lock_violation() {
 
 #[test]
 fn get_runtime_flags_reads_env_overrides() {
-    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = ENV_LOCK.blocking_lock();
     unsafe {
         std::env::remove_var("OPENHUMAN_BROWSER_ALLOW_ALL");
     }
@@ -201,7 +201,7 @@ fn get_runtime_flags_reads_env_overrides() {
 
 #[test]
 fn set_browser_allow_all_rejects_enable_without_operator_override() {
-    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = ENV_LOCK.blocking_lock();
     let before = std::env::var(BROWSER_ALLOW_ALL_ENV).ok();
     let before_override = std::env::var(BROWSER_ALLOW_ALL_RPC_ENABLE_ENV).ok();
 
@@ -231,7 +231,7 @@ fn set_browser_allow_all_rejects_enable_without_operator_override() {
 
 #[test]
 fn set_browser_allow_all_toggles_env_var_when_operator_override_is_set() {
-    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = ENV_LOCK.blocking_lock();
     let before = std::env::var(BROWSER_ALLOW_ALL_ENV).ok();
     let before_override = std::env::var(BROWSER_ALLOW_ALL_RPC_ENABLE_ENV).ok();
 
@@ -282,7 +282,7 @@ fn set_browser_allow_all_toggles_env_var_when_operator_override_is_set() {
 
 #[test]
 fn set_browser_allow_all_disable_does_not_require_operator_override() {
-    let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _g = ENV_LOCK.blocking_lock();
     let before = std::env::var(BROWSER_ALLOW_ALL_ENV).ok();
     let before_override = std::env::var(BROWSER_ALLOW_ALL_RPC_ENABLE_ENV).ok();
 
@@ -368,7 +368,7 @@ fn workspace_onboarding_flag_exists_returns_false_for_fresh_workspace() {
     let tmp = tempdir().unwrap();
     let res = workspace_onboarding_flag_exists(tmp.path().join("workspace"), "onboarding.done")
         .expect("flag check ok");
-    assert_eq!(res.value, false);
+    assert!(!res.value);
 }
 
 #[test]
@@ -390,7 +390,7 @@ fn workspace_onboarding_flag_exists_true_when_file_present() {
     std::fs::create_dir_all(&ws).unwrap();
     std::fs::write(ws.join("onboarding.done"), "").unwrap();
     let res = workspace_onboarding_flag_exists(ws, "onboarding.done").expect("flag check ok");
-    assert_eq!(res.value, true);
+    assert!(res.value);
 }
 
 #[tokio::test]

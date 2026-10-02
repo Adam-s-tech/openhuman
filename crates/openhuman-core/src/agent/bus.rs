@@ -435,7 +435,7 @@ where
     crate::core::bus_testing::mock_bus_stub::<AgentTurnRequest, AgentTurnResponse, F, Fut, _>(
         AGENT_RUN_TURN_METHOD,
         handler,
-        || register_agent_handlers(),
+        register_agent_handlers,
     )
     .await
 }

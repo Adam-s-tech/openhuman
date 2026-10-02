@@ -103,7 +103,8 @@ fn orchestrator_reaches_mcp_directly_and_skills_through_hand_offs() {
         }
         ToolScope::Wildcard => panic!("orchestrator must have a Named tool scope"),
     }
-    for specialist in ["skill_setup"] {
+    {
+        let specialist = "skill_setup";
         assert!(
             def.subagents
                 .iter()

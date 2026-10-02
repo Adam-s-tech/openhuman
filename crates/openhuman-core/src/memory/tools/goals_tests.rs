@@ -41,7 +41,7 @@ async fn reset_shared_goals() {
 async fn add_then_list_reflects_change() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = EnvVarGuard::workspace(tmp.path());
+    let _workspace = EnvVarGuard::workspace_async(tmp.path()).await;
     reset_shared_goals().await;
 
     let goals = GoalsTool::new(tmp.path().to_path_buf());
@@ -59,7 +59,7 @@ async fn add_then_list_reflects_change() {
 async fn edit_and_delete_unknown_id_error() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = EnvVarGuard::workspace(tmp.path());
+    let _workspace = EnvVarGuard::workspace_async(tmp.path()).await;
     reset_shared_goals().await;
 
     let goals = GoalsTool::new(tmp.path().to_path_buf());
@@ -83,7 +83,7 @@ async fn edit_and_delete_unknown_id_error() {
 async fn add_refuses_pii_bearing_text_with_the_specific_reason() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = EnvVarGuard::workspace(tmp.path());
+    let _workspace = EnvVarGuard::workspace_async(tmp.path()).await;
     reset_shared_goals().await;
 
     let add = GoalsTool::new(tmp.path().to_path_buf());

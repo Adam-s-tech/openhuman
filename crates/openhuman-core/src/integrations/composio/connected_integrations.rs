@@ -15,13 +15,13 @@ mod connectable_slug_tests;
 #[path = "connected_integrations_catalog_description_tests_tests.rs"]
 mod catalog_description_tests;
 
-#[cfg(test)]
-pub(crate) use cache::composio_cache_test_lock;
 pub(crate) use cache::sync_cache_with_connections;
 pub use cache::{
     cached_active_integrations, cached_active_integrations_including_expired, connected_set_hash,
     invalidate_connected_integrations_cache,
 };
+#[cfg(test)]
+pub(crate) use cache::{composio_cache_test_lock, composio_cache_test_lock_async};
 pub use fetch::{
     fetch_connected_integrations, fetch_connected_integrations_status,
     FetchConnectedIntegrationsStatus,

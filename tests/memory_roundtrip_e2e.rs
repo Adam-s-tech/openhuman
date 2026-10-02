@@ -40,7 +40,7 @@
 mod env_guard;
 use env_guard::EnvVarGuard;
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 
 use tempfile::tempdir;
 
@@ -53,15 +53,15 @@ use openhuman_core::memory::rpc_models::{RecallContextRequest, RecallMemoriesReq
 // ── Env isolation ────────────────────────────────────────────────────
 
 /// Serialises tests: `HOME` + `OPENHUMAN_WORKSPACE` are process-global.
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+static ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_ROOT: OnceLock<tempfile::TempDir> = OnceLock::new();
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    match ENV_LOCK.get_or_init(|| Mutex::new(())).lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
+async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock()
+        .await
 }
 
 /// This integration target calls memory operations without constructing a core
@@ -85,6 +85,8 @@ fn ensure_memory_seams(workspace: &Path) {
                 });
                 #[cfg(feature = "modules")]
                 openhuman_core::modules::memory::set_modules_policy(config);
+                #[cfg(not(feature = "modules"))]
+                drop(config);
             })
             .expect("spawn memory roundtrip seam installer")
             .join()
@@ -138,7 +140,7 @@ fn recall_context_request() -> RecallContextRequest {
 /// 8.1.1 store + 8.1.2 recall — the happy-path round-trip.
 #[tokio::test]
 async fn doc_put_then_recall_memories_returns_canary() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = test_root();
     let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
     let workspace_path = tmp.path().join("workspace");
@@ -169,7 +171,7 @@ async fn doc_put_then_recall_memories_returns_canary() {
 /// block, not only in the raw memory list view.
 #[tokio::test]
 async fn doc_put_then_recall_context_renders_llm_context_message() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = test_root();
     let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
     let workspace_path = tmp.path().join("workspace");
@@ -200,7 +202,7 @@ async fn doc_put_then_recall_context_renders_llm_context_message() {
 /// required by gitbooks/developing/testing-strategy.md.
 #[tokio::test]
 async fn clear_namespace_removes_canary_from_recall() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = test_root();
     let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
     let workspace_path = tmp.path().join("workspace");
@@ -308,7 +310,7 @@ async fn seed_namespace(namespace: &str, count: usize) {
 /// Ingesting a batch large enough to queue leaves an exact, reconciled count.
 #[tokio::test]
 async fn namespace_summaries_reconcile_after_a_batch_large_enough_to_queue() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = test_root();
     let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
     let workspace_path = tmp.path().join("workspace");

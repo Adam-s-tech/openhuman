@@ -25,7 +25,6 @@ async fn main() -> anyhow::Result<()> {
 
     // The execute arm spawns background summarise+ingest; exiting now would
     // kill it. Hold the process until the pending count stops moving.
-    let mut last = u64::MAX;
     for i in 0..60 {
         tokio::time::sleep(std::time::Duration::from_secs(15)).await;
         let report = openhuman_core::memory::sources::rpc::reconcile_rpc(
@@ -46,14 +45,11 @@ async fn main() -> anyhow::Result<()> {
             })
             .unwrap_or(0);
         eprintln!("t+{}s pending={pending}", (i + 1) * 15);
-        if pending == 0 || pending == last {
-            if pending == 0 {
-                break;
-            }
-            // Two identical non-zero readings in a row: still draining or
-            // stalled — keep waiting either way, the cap bounds us.
+        if pending == 0 {
+            break;
         }
-        last = pending;
+        // Non-zero readings (identical or not): still draining or stalled —
+        // keep waiting either way, the cap bounds us.
     }
     Ok(())
 }

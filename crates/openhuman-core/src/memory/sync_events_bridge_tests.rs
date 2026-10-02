@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::core::bus::BUS;
 
-fn test_mutex() -> &'static std::sync::Mutex<()> {
-    static LOCK: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| std::sync::Mutex::new(()))
+fn test_mutex() -> &'static tokio::sync::Mutex<()> {
+    static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
 }
 
 #[derive(Clone, Default)]
@@ -32,9 +32,7 @@ impl EventHandler<DomainEvent> for StageCollector {
 
 #[tokio::test]
 async fn document_canonicalized_emits_stored_and_queued_stages() {
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     crate::core::bus::init().await.expect("bus init");
     // The bridge emits through `tinymemory_api::events`' sink, and these tests
     // used to get it installed as a side effect of the memory host seams. Those
@@ -77,9 +75,7 @@ async fn document_canonicalized_emits_stored_and_queued_stages() {
 
 #[tokio::test]
 async fn memory_ingestion_started_emits_ingesting_stage() {
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     crate::core::bus::init().await.expect("bus init");
     // The bridge emits through `tinymemory_api::events`' sink, and these tests
     // used to get it installed as a side effect of the memory host seams. Those
@@ -162,9 +158,7 @@ fn extract_mem_src_id_returns_the_source_segment_of_mem_src_ids() {
 
 #[tokio::test]
 async fn bridge_populates_source_id_for_stored_and_queued_from_mem_src() {
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     crate::core::bus::init().await.expect("bus init");
     // The bridge emits through `tinymemory_api::events`' sink, and these tests
     // used to get it installed as a side effect of the memory host seams. Those
@@ -216,9 +210,7 @@ async fn bridge_populates_source_id_for_stored_and_queued_from_mem_src() {
 
 #[tokio::test]
 async fn bridge_source_id_is_none_for_non_mem_src_canonicalized() {
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     crate::core::bus::init().await.expect("bus init");
     // The bridge emits through `tinymemory_api::events`' sink, and these tests
     // used to get it installed as a side effect of the memory host seams. Those
@@ -269,9 +261,7 @@ async fn bridge_source_id_is_none_for_non_mem_src_canonicalized() {
 
 #[tokio::test]
 async fn bridge_populates_source_id_for_ingesting_from_mem_src() {
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     crate::core::bus::init().await.expect("bus init");
     // The bridge emits through `tinymemory_api::events`' sink, and these tests
     // used to get it installed as a side effect of the memory host seams. Those
@@ -328,9 +318,7 @@ async fn bridge_populates_source_id_for_ingesting_from_mem_src() {
 
 #[tokio::test]
 async fn bridge_source_id_is_none_for_ingesting_non_mem_src() {
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     crate::core::bus::init().await.expect("bus init");
     // The bridge emits through `tinymemory_api::events`' sink, and these tests
     // used to get it installed as a side effect of the memory host seams. Those

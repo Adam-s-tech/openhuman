@@ -52,7 +52,7 @@
 
 use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{OnceLock};
 
 use tempfile::TempDir;
 
@@ -62,7 +62,7 @@ use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
 
-static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 
 fn ensure_memory_seams() {
@@ -78,11 +78,16 @@ fn ensure_memory_seams() {
     });
 }
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .blocking_lock()
+}
+
+async fn env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock().await
 }
 
 fn config_in(tmp: &TempDir) -> Config {
@@ -126,7 +131,7 @@ fn store_session(config: &Config) {
 /// is not.
 #[tokio::test]
 async fn composio_get_user_profile_refuses_cleanly_without_a_loaded_module() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", tmp.path());
     let _home = EnvVarGuard::set_path("HOME", tmp.path());

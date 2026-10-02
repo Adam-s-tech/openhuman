@@ -16,7 +16,7 @@
 //! `env_lock()` across `.await` on purpose, as there.
 #![allow(clippy::await_holding_lock)]
 
-use crate::env_guard::env_lock_with_file_keyring as env_lock;
+use crate::env_guard::env_lock_with_file_keyring_async as env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use crate::scripted_stack::{
@@ -629,7 +629,7 @@ fn run_case(case: Case) {
 }
 
 async fn run_case_inner(case: Case) {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     reset_script(case.scripted_completions);
     let stack = boot_stack(case.extra_config).await;
 
@@ -956,7 +956,7 @@ fn max_consecutive_counts_the_longest_run() {
 #[test]
 fn orchestrator_prompt_names_only_discoverable_delegates() {
     run_on_agent_stack("orchestrator_discoverable_delegates", || async {
-        let _lock = env_lock();
+        let _lock = env_lock_async().await;
         reset_script(vec![text_completion("Hello.")]);
         let stack = boot_stack("").await;
         let client_id = "prompt-discoverable";
