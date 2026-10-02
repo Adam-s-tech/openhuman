@@ -60,7 +60,6 @@ async fn apply_agent_settings_rejects_unknown_chat_agent_id() {
         AgentSettingsPatch {
             chat_agent_id: Some("typoed_agent".into()),
             ..AgentSettingsPatch::default()
-            ..AgentSettingsPatch::default()
         },
     )
     .await
