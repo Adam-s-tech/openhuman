@@ -1,5 +1,5 @@
 use super::*;
-use crate::config::{BrowserConfig, Config, MemoryConfig};
+use crate::config::{BrowserConfig, Config};
 use crate::security::credentials::{AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME};
 use crate::security::AuditLogger;
 use crate::skills::types::ToolContent;
