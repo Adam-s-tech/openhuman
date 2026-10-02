@@ -48,11 +48,6 @@
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
     },
     {
-      "id": "tinyruntime",
-      "expect": "v0.2.9-2-g29195a1",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
       "id": "tinymcp",
       "expect": "v0.3.6-8-g8a25ea4",
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
