@@ -255,6 +255,35 @@ pub async fn composio_delete_connection(
     ))
 }
 
+/// The ids of every active connection of `toolkit` (matched
+/// case-insensitively), through the connector module's `ListConnections`.
+///
+/// # Errors
+///
+/// The connector call fails.
+pub async fn active_connection_ids(config: &Config, toolkit: &str) -> OpResult<Vec<String>> {
+    let toolkit = toolkit.trim().to_ascii_lowercase();
+    let resp =
+        connectors::call_bare::<ComposioConnectionsResponse>(config, methods::LIST_CONNECTIONS)
+            .await
+            .map_err(|error| {
+                report_composio_op_error("active_connection_ids", &anyhow::anyhow!("{error}"));
+                format!("[composio] list_connections failed: {error}")
+            })?;
+    let ids: Vec<String> = resp
+        .connections
+        .into_iter()
+        .filter(|c| c.is_active() && c.normalized_toolkit() == toolkit)
+        .map(|c| c.id)
+        .collect();
+    tracing::debug!(
+        toolkit = %toolkit,
+        active = ids.len(),
+        "[composio] active_connection_ids"
+    );
+    Ok(ids)
+}
+
 /// Look up the toolkit slug for an existing connection.
 pub(super) async fn resolve_toolkit_for_connection(
     config: &Config,
