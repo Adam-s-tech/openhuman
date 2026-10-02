@@ -3,7 +3,7 @@
 //! Slugs match Composio's naming convention (`<TOOLKIT>_<ACTION>`) for
 //! the ClickUp REST surface. See <https://composio.dev/docs/toolkits/clickup>
 //! for the canonical action list; the entries here are the read-oriented
-//! subset the periodic Memory Tree sync relies on, plus the most common
+//! subset the memory document sync relies on, plus the most common
 //! task-write surface the agent already uses through generic tool-calling.
 
 use crate::integrations::composio::contract::scopes::{CuratedTool, ToolScope};

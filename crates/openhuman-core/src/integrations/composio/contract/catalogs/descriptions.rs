@@ -13,8 +13,8 @@ pub fn toolkit_description(slug: &str) -> &'static str {
         }
         "notion" => "Create, read, update, and search notion pages and notion databases",
         "github" => {
-            "Manage repositories, issues, and pull requests on GitHub; sync \
-             assigned issues into Memory Tree"
+            "Manage repositories, issues, and pull requests on GitHub; can be \
+             synced into memory as a document source"
         }
         "slack" => "Send messages, read channels, manage threads, and post updates in Slack",
         "discord" => "Send messages, manage channels, and interact with Discord servers",
@@ -32,15 +32,15 @@ pub fn toolkit_description(slug: &str) -> &'static str {
             "Connect Lark / Feishu workspace chat, docs, wiki, and meetings via Composio"
         }
         "linear" => {
-            "Create, read, and manage issues, projects, and cycles in Linear; sync \
-             assigned issues into Memory Tree"
+            "Create, read, and manage issues, projects, and cycles in Linear; can be \
+             synced into memory as a document source"
         }
         "jira" => "Create and manage issues, projects, and sprints in Jira",
         "trello" => "Create and manage cards, lists, and boards in Trello",
         "asana" => "Create and manage tasks, projects, and sections in Asana",
         "clickup" => {
-            "Create, read, and manage tasks, lists, and docs in ClickUp; sync \
-             assigned tasks into Memory Tree"
+            "Create, read, and manage tasks, lists, and docs in ClickUp; can be \
+             synced into memory as a document source"
         }
         "dropbox" => "Upload, download, and share files in Dropbox",
         "twitter" => "Post tweets, read timelines, and manage Twitter interactions",

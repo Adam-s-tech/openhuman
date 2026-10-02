@@ -11,8 +11,8 @@
 //! `memory::rpc_models`, whose forty-five types were named only by this host.
 //!
 //! The store these wrappers address has since followed them home: `store` is
-//! now [`super`]'s own subtree rather than `tinycortex::memory::conversations`,
-//! and the import below is the only line that changed for it. The item set is
+//! now [`super`]'s own subtree rather than the retired v1 memory engine's
+//! `conversations` module, and the import below is the only line that changed for it. The item set is
 //! the same one the engine exported, so function signatures, argument order,
 //! error strings and the `[conversations]` log prefix stay byte-identical —
 //! `web_chat::run_task` and the RPC layer read them.
