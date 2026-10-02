@@ -17,8 +17,7 @@ async fn call_tool_records_write_argument_rejection() {
         .await
         .expect_err("missing text should reject");
     assert!(
-        err.message()
-            .contains("missing required argument `text`"),
+        err.message().contains("missing required argument `text`"),
         "got: {}",
         err.message()
     );
@@ -68,8 +67,12 @@ async fn call_tool_validates_memory_arguments_before_dispatch() {
         .await
         .expect_err("empty ids rejected before any RPC");
     assert!(err.message().contains("`ids`"), "got: {}", err.message());
-    let err = call_tool("memory.recall", json!({ "question": "q", "filter": { "x": 1 } }), "mcp:test")
-        .await
-        .expect_err("unknown filter field");
+    let err = call_tool(
+        "memory.recall",
+        json!({ "question": "q", "filter": { "x": 1 } }),
+        "mcp:test",
+    )
+    .await
+    .expect_err("unknown filter field");
     assert!(err.message().contains("unexpected filter field"));
 }

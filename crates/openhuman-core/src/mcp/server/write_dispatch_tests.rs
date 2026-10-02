@@ -163,8 +163,7 @@ async fn test_dispatch_write_tool_rpc_error_records_audit_and_returns_tool_error
     // yields a failure instead of a stored item.
     let params = serde_json::Map::new();
 
-    let result =
-        dispatch_write_tool(
+    let result = dispatch_write_tool(
         "memory.learn",
         "openhuman.memory_learn",
         &params,

@@ -402,7 +402,9 @@ fn memory_recall_maps_question_filter_and_limit() {
 #[test]
 fn memory_recall_requires_question_and_omits_unset_fields() {
     let err = build_rpc_params("memory.recall", json!({})).expect_err("must reject");
-    assert!(err.message().contains("missing required argument `question`"));
+    assert!(err
+        .message()
+        .contains("missing required argument `question`"));
     let params = build_rpc_params("memory.recall", json!({"question": "q"})).expect("params");
     assert_eq!(params.len(), 1);
 }
@@ -413,11 +415,17 @@ fn memory_limit_above_max_is_rejected() {
         let mut args = json!({ "limit": MEMORY_MAX_LIMIT + 1 });
         args["question"] = json!("q");
         args["query"] = json!("q");
-        args.as_object_mut()
-            .unwrap()
-            .retain(|k, _| k == "limit" || (tool == "memory.recall" && k == "question") || (tool == "memory.fetch" && k == "query"));
+        args.as_object_mut().unwrap().retain(|k, _| {
+            k == "limit"
+                || (tool == "memory.recall" && k == "question")
+                || (tool == "memory.fetch" && k == "query")
+        });
         let err = build_rpc_params(tool, args).expect_err("limit above cap");
-        assert!(err.message().contains("must not exceed"), "{tool}: {}", err.message());
+        assert!(
+            err.message().contains("must not exceed"),
+            "{tool}: {}",
+            err.message()
+        );
     }
     let ok = build_rpc_params("memory.list", json!({ "limit": MEMORY_MAX_LIMIT })).expect("at cap");
     assert_eq!(ok["limit"], MEMORY_MAX_LIMIT);
@@ -467,7 +475,11 @@ fn memory_filter_rejects_bad_shapes() {
     ] {
         let err = build_rpc_params("memory.list", json!({ "filter": filter.clone() }))
             .expect_err("bad filter");
-        assert!(err.message().contains(needle), "{filter}: {}", err.message());
+        assert!(
+            err.message().contains(needle),
+            "{filter}: {}",
+            err.message()
+        );
     }
 }
 
@@ -521,7 +533,9 @@ fn memory_forget_maps_ids_and_bounds_them() {
     assert!(err.message().contains("`ids`"));
     let err = build_rpc_params("memory.forget", json!({})).expect_err("missing ids");
     assert!(err.message().contains("`ids`"));
-    let too_many = (0..=MEMORY_FORGET_MAX_IDS).map(|i| i.to_string()).collect::<Vec<_>>();
+    let too_many = (0..=MEMORY_FORGET_MAX_IDS)
+        .map(|i| i.to_string())
+        .collect::<Vec<_>>();
     let err = build_rpc_params("memory.forget", json!({ "ids": too_many })).expect_err("cap");
     assert!(err.message().contains("at most"));
 }
