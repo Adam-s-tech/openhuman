@@ -7273,6 +7273,7 @@ dependencies = [
  "flate2",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tar",
  "tempfile",
  "thiserror 2.0.20",
@@ -7750,7 +7751,7 @@ dependencies = [
 
 [[package]]
 name = "tinymemory"
-version = "1.22.3"
+version = "1.22.4"
 dependencies = [
  "anyhow",
  "async-trait",

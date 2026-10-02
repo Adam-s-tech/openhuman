@@ -387,7 +387,7 @@ fn master_agent_has_coding_hint_and_named_tools() {
         }
         ToolScope::Wildcard => panic!("orchestrator must have named tool allowlist"),
     }
-    assert_eq!(def.max_iterations, 15);
+    assert_eq!(def.max_iterations, 50);
     // Memory retrieval is on-demand (via the `agent_memory` subagent,
     // surfaced as `delegate_retrieve_memory`), not an eager pre-turn
     // pre-fetch. The allowlist entry is what makes that route reachable
