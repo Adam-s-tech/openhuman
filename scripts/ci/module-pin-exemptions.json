@@ -11,5 +11,11 @@
     "Delete an entry the moment the pins are reconciled. An exemption that has",
     "stopped being true fails the gate too \u2014 `expect` must still match."
   ],
-  "exemptions": []
+  "exemptions": [
+    {
+      "id": "tinymcp",
+      "expect": "v0.3.6-6-g3a9a27ac",
+      "reason": "The six commits after v0.3.6 externalize or adjust existing tests and update project guidance. The nested TinyBus pin advances to dc8c92f58b5dcb8b8af4a5b3a81aafe3333fa1e4 for the same test-extraction series; diffs show no production behavior or bus-contract changes in TinyMCP. This exact source drift is accepted while the loaded artifact remains the published v0.3.6 release."
+    }
+  ]
 }

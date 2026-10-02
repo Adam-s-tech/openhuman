@@ -13,7 +13,7 @@ use crate::modules::types::{LoadPolicy, ModuleRecord, PlatformAsset};
 /// Lazy, because a host that never runs a skill, a flow step, or a `node_exec`
 /// should not pay a download and a `dlopen` for the ability to.
 ///
-/// The digests below are v0.2.8's, taken verbatim from that release's
+/// The digests below are v0.2.9's, taken verbatim from that release's
 /// `checksum.toml`. Until it existed this record carried no assets at all and
 /// the module was reachable only from a developer build named by
 /// `modules.local` or found on `OPENHUMAN_MODULE_PATH` — so on any machine that
@@ -23,63 +23,63 @@ pub(crate) const TINYRUNTIME: ModuleRecord = ModuleRecord {
     description: "Language runtime resolution, installation, and pooled execution",
     bus_name: "ai.tinyhumans.runtime.Runtime",
     object_path: "/ai/tinyhumans/runtime/Runtime",
-    version: "0.2.8",
-    release_url: "https://github.com/tinyhumansai/tinyruntime/releases/tag/v0.2.8",
+    version: "0.2.9",
+    release_url: "https://github.com/tinyhumansai/tinyruntime/releases/tag/v0.2.9",
     assets: &[
         PlatformAsset {
             host_key: "ubuntu-24.04-x86_64",
-            archive: "tinyruntime-0.2.8-ubuntu-24.04-x86_64.tar.gz",
-            sha256: "826faf52d787694fc6f97d9224c99049c5616105c2b643144e1639909598d778",
+            archive: "tinyruntime-0.2.9-ubuntu-24.04-x86_64.tar.gz",
+            sha256: "499840f1101521c2cc3bd7b515b13adc46ef2fdd8e09fb14729c7b03c857c4e5",
         },
         PlatformAsset {
             host_key: "ubuntu-24.04-arm64",
-            archive: "tinyruntime-0.2.8-ubuntu-24.04-arm64.tar.gz",
-            sha256: "97e6941750310258682a7644d69072d5e5e51e02cc7d353fbbaf086315d44eb5",
+            archive: "tinyruntime-0.2.9-ubuntu-24.04-arm64.tar.gz",
+            sha256: "7c6ec983576c8624e647ce208d801e7c181e34d9c2eb5ff1b23d1fa8fa072149",
         },
         PlatformAsset {
             host_key: "ubuntu-22.04-x86_64",
-            archive: "tinyruntime-0.2.8-ubuntu-22.04-x86_64.tar.gz",
-            sha256: "e79bbca49f71c3d06a88061fd2b915e86fecaf52fe7c14b18c6dd897859ca82e",
+            archive: "tinyruntime-0.2.9-ubuntu-22.04-x86_64.tar.gz",
+            sha256: "58cd6561abaf3cfd4b2ed1a61086d679b2b469c60b67de21baceeac748ecce6d",
         },
         PlatformAsset {
             host_key: "ubuntu-22.04-arm64",
-            archive: "tinyruntime-0.2.8-ubuntu-22.04-arm64.tar.gz",
-            sha256: "0b030b1f336c14e2e9ff8f0247e60a4a063a421d50dbccb693353f85b5b45aa6",
+            archive: "tinyruntime-0.2.9-ubuntu-22.04-arm64.tar.gz",
+            sha256: "88b6950fba1b77a8e50cfa62d3fabbf49cfcacac328da55fffc7c0cd513670fa",
         },
         PlatformAsset {
             host_key: "macos-26-arm64",
-            archive: "tinyruntime-0.2.8-macos-26-arm64.tar.gz",
-            sha256: "f5915a2afa813f36632386e55b9ac315ea4b20a4a37080e90d8a48e7c46ab0bf",
+            archive: "tinyruntime-0.2.9-macos-26-arm64.tar.gz",
+            sha256: "9966db3a782d2f8ebcf00c0404522ad8eb23ac09473e5b84b7755be319e52da5",
         },
         PlatformAsset {
             host_key: "macos-26-x86_64",
-            archive: "tinyruntime-0.2.8-macos-26-x86_64.tar.gz",
-            sha256: "f946d24b3097f266eb0f4b7050dd54b16c69afd9b78c129bd3be3cc49ff724e0",
+            archive: "tinyruntime-0.2.9-macos-26-x86_64.tar.gz",
+            sha256: "0049b39b09f0d46ac0359f607e6b40531aae453732c508236587858d2e478a3e",
         },
         PlatformAsset {
             host_key: "macos-15-arm64",
-            archive: "tinyruntime-0.2.8-macos-15-arm64.tar.gz",
-            sha256: "4edb4773fb4239c1ca9e13ede7505dc25651d7ca74656861409a51c4a4e87ff6",
+            archive: "tinyruntime-0.2.9-macos-15-arm64.tar.gz",
+            sha256: "12cb452485ecb69022e004d7741dbcb4842219532cef27c296087944d2225838",
         },
         PlatformAsset {
             host_key: "macos-15-x86_64",
-            archive: "tinyruntime-0.2.8-macos-15-x86_64.tar.gz",
-            sha256: "6cfc6a3a3fa18dc563febe9fe6f512818c8bac182f8fe9c238a83bad86a8a9e1",
+            archive: "tinyruntime-0.2.9-macos-15-x86_64.tar.gz",
+            sha256: "8737c618f98ba395ea8be684a89e24e688ae8eefebffecce946c72fbfc23a18f",
         },
         PlatformAsset {
             host_key: "windows-2025-x86_64",
-            archive: "tinyruntime-0.2.8-windows-2025-x86_64.zip",
-            sha256: "2a0973f2428ecd7482f35ba5600d171743df8e9cac5b12df5096c230d90b0720",
+            archive: "tinyruntime-0.2.9-windows-2025-x86_64.zip",
+            sha256: "880280175dc06df740add7b31752c5997f7e4d08c63eb227da960d94c69b2d27",
         },
         PlatformAsset {
             host_key: "windows-2022-x86_64",
-            archive: "tinyruntime-0.2.8-windows-2022-x86_64.zip",
-            sha256: "8eaaebdcf4c814367d511d1eb42e3ae5d47294fe03427b13cf768d5577447373",
+            archive: "tinyruntime-0.2.9-windows-2022-x86_64.zip",
+            sha256: "20e03a1499e5c8d878705073d2bc58c8820d86141bc211eaa67b50d3cdc66940",
         },
         PlatformAsset {
             host_key: "windows-11-arm64",
-            archive: "tinyruntime-0.2.8-windows-11-arm64.zip",
-            sha256: "15e74e4dd338eceb2df9f0348b1af61c0d206a95db7b796605abca2daa581739",
+            archive: "tinyruntime-0.2.9-windows-11-arm64.zip",
+            sha256: "50bb5edce0e0ad3bc83106ea27040998ffb7f5df31153993b3fdf9bfd4ee1b29",
         },
     ],
     load: LoadPolicy::Lazy,
