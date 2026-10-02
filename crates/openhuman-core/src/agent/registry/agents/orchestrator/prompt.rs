@@ -55,6 +55,16 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
                 .iter()
                 .any(|tool| tool.name.as_ref() == "mcp_registry_tool_call"));
 
+    // `composio_connect` exists only while Composio is on (the registry builds no
+    // Composio tools under `composio.mode = "disabled"`), so its routing row must
+    // vanish with it. Same sentinel rule as MCP: an empty visible set is unfiltered.
+    let composio_available = ctx.visible_tool_names.is_empty()
+        || ctx.visible_tool_names.contains("composio_connect")
+        || ctx
+            .tools
+            .iter()
+            .any(|tool| tool.name.as_ref() == "composio_connect");
+
     // ── Stable tier: identical across sessions for a given build ─────────
     //
     // Identity leads the prompt (#5701): SOUL.md is the product persona every
@@ -69,6 +79,7 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
             ARCHETYPE,
             skill_run.is_some() || skill_install.is_some(),
             mcp_available,
+            composio_available,
         ),
     );
     // A native-tool-calling provider carries the schemas in the request, and
@@ -301,15 +312,16 @@ fn belt_lists(ctx: &PromptContext<'_>, tool: &str) -> bool {
 
 /// `prompt.md` with the route-tagged rows this build cannot honour removed.
 ///
-/// A row tagged `<!--route:skills-->` or `<!--route:mcp-->` names a hand-off
+/// A row tagged `<!--route:skills-->`, `<!--route:mcp-->` or `<!--route:composio-->` names a hand-off
 /// that exists only while that family is compiled in: with `skills` off the
 /// loader drops `skill_setup` from the builtins, so no
 /// delegate is synthesised and the static row would order the model to call a
 /// tool nobody has — the very failure this issue is about (#6302). The tag is
 /// stripped from every row that stays, so it never reaches the model.
-fn strip_route_lines(archetype: &str, skills: bool, mcp: bool) -> String {
+fn strip_route_lines(archetype: &str, skills: bool, mcp: bool, composio: bool) -> String {
     const SKILLS_TAG: &str = "<!--route:skills-->";
     const MCP_TAG: &str = "<!--route:mcp-->";
+    const COMPOSIO_TAG: &str = "<!--route:composio-->";
     archetype
         .lines()
         .filter(|line| {
@@ -317,11 +329,17 @@ fn strip_route_lines(archetype: &str, skills: bool, mcp: bool) -> String {
                 skills
             } else if line.contains(MCP_TAG) {
                 mcp
+            } else if line.contains(COMPOSIO_TAG) {
+                composio
             } else {
                 true
             }
         })
-        .map(|line| line.replace(SKILLS_TAG, "").replace(MCP_TAG, ""))
+        .map(|line| {
+            line.replace(SKILLS_TAG, "")
+                .replace(MCP_TAG, "")
+                .replace(COMPOSIO_TAG, "")
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
