@@ -7,7 +7,7 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
@@ -251,7 +251,7 @@ async fn setup_embeddings_test() -> (
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_get_settings_returns_catalog() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     let resp = post_json_rpc(&rpc_base, 1, "openhuman.embeddings_get_settings", json!({})).await;
@@ -342,7 +342,7 @@ async fn embeddings_get_settings_returns_catalog() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_switches_provider() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Switch to "none" (noop) which has 0 dimensions — dimension change from
@@ -377,7 +377,7 @@ async fn embeddings_update_settings_switches_provider() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_dimension_change_requires_wipe() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // First set provider to voyage (a provider that supports multiple dims)
@@ -435,7 +435,7 @@ async fn embeddings_update_settings_dimension_change_requires_wipe() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_set_and_clear_api_key() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Store a key for voyage
@@ -521,7 +521,7 @@ async fn embeddings_set_and_clear_api_key() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_test_connection_with_none_provider() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Switch to "none" so test_connection uses the noop provider (no network).
@@ -559,7 +559,7 @@ async fn embeddings_test_connection_with_none_provider() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_embed_with_none_returns_empty_vectors() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Switch to noop so embed() doesn't require network.
@@ -601,7 +601,7 @@ async fn embeddings_embed_with_none_returns_empty_vectors() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_embed_with_custom_openai_endpoint_round_trips_vectors_and_api_key() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
     let (mock_base, mock_state, mock_join) = serve_mock_embeddings().await;
 
@@ -721,7 +721,7 @@ async fn serve_mock_embeddings_no_api(
 /// the 404-on-every-re-embed Sentry flood can never be configured.
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_rejects_endpoint_with_no_embeddings_api() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
     let (mock_base, mock_join) = serve_mock_embeddings_no_api().await;
 
@@ -783,7 +783,7 @@ async fn embeddings_update_settings_rejects_endpoint_with_no_embeddings_api() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn removed_legacy_alias_inference_embed_is_unknown() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // The `openhuman.inference_embed` alias was removed (bfeab2f655); the
@@ -826,7 +826,7 @@ async fn removed_legacy_alias_inference_embed_is_unknown() {
 /// what keeps the live embed path's length guard from rejecting later embeds.
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_adopts_custom_endpoint_native_dimension() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
     let (mock_base, _mock_state, mock_join) = serve_mock_embeddings().await;
 
@@ -887,7 +887,7 @@ async fn embeddings_update_settings_adopts_custom_endpoint_native_dimension() {
 /// field to reopen the populated form after a reload in Disabled mode.
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_get_settings_returns_retained_custom_profile_while_disabled() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, tmp, _guards, _join) = setup_embeddings_test().await;
     for config_path in [
         tmp.path().join(".openhuman").join("config.toml"),
@@ -951,7 +951,7 @@ embedding_dimensions = 2048
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_controllers_reject_missing_required_params() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     for (id, method) in [

@@ -32,8 +32,10 @@ const SCOPE: &str = "memory_flush_latch_raw_coverage_e2e::retry-after-failure";
 #[tokio::test]
 async fn a_failed_flush_source_tree_can_be_retried_for_the_same_scope() {
     let workspace = TempDir::new().expect("workspace tempdir");
-    let mut config = Config::default();
-    config.workspace_dir = workspace.path().to_path_buf();
+    let mut config = Config {
+        workspace_dir: workspace.path().to_path_buf(),
+        ..Default::default()
+    };
     config.subsystems.memory.driver = "null".into();
 
     let first = read_rpc::flush_source_tree_rpc(&config, SCOPE).await;

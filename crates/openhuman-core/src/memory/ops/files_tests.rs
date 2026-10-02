@@ -6,9 +6,7 @@ use crate::config::TEST_ENV_LOCK;
 
 #[tokio::test]
 async fn write_read_and_list_memory_files_roundtrip() {
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -61,9 +59,7 @@ async fn write_read_and_list_memory_files_roundtrip() {
 
 #[tokio::test]
 async fn list_memory_files_skips_internal_sqlite_artifacts() {
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -95,9 +91,7 @@ async fn list_memory_files_skips_internal_sqlite_artifacts() {
 
 #[tokio::test]
 async fn list_memory_files_rejects_non_directory_target() {
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -121,9 +115,7 @@ async fn list_memory_files_rejects_non_directory_target() {
 
 #[tokio::test]
 async fn read_and_write_memory_files_reject_path_traversal() {
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -145,9 +137,7 @@ async fn read_and_write_memory_files_reject_path_traversal() {
 
 #[tokio::test]
 async fn list_and_read_memory_files_reject_absolute_paths() {
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -176,9 +166,7 @@ async fn list_and_read_memory_files_reject_absolute_paths() {
 
 #[tokio::test]
 async fn read_memory_file_surfaces_missing_file_error() {
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -195,9 +183,7 @@ async fn read_memory_file_surfaces_missing_file_error() {
 
 #[tokio::test]
 async fn read_memory_file_surfaces_invalid_utf8_error() {
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -221,9 +207,7 @@ async fn read_memory_file_surfaces_invalid_utf8_error() {
 async fn write_memory_file_rejects_symlink_targets() {
     use std::os::unix::fs::symlink;
 
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
@@ -250,9 +234,7 @@ async fn write_memory_file_rejects_symlink_targets() {
 async fn list_memory_files_skips_symlink_entries() {
     use std::os::unix::fs::symlink;
 
-    let _guard = TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = TEST_ENV_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
     let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 

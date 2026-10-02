@@ -360,7 +360,7 @@ fn render_block_keeps_untrusted_markers_balanced_under_any_budget() {
     let full = render_block(&[], &hits, None).chars().count();
     for cap in [0, 10, 60, 120, 200, 300, full - 1, full, full + 50] {
         let block = render_block(&[], &hits, Some(cap));
-        assert!(block.chars().count() <= cap.max(0), "cap {cap}: {block}");
+        assert!(block.chars().count() <= cap, "cap {cap}: {block}");
         assert_eq!(
             block.matches("<untrusted-source ").count(),
             block.matches("</untrusted-source>").count(),

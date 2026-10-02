@@ -10,9 +10,9 @@ use crate::core::bus::BUS;
 use crate::core::events::DomainEvent;
 use tinybus::EventHandler;
 
-fn test_mutex() -> &'static std::sync::Mutex<()> {
-    static LOCK: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| std::sync::Mutex::new(()))
+fn test_mutex() -> &'static tokio::sync::Mutex<()> {
+    static LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
 }
 
 /// A config on its own temp workspace with a driver bound that reports
@@ -95,9 +95,7 @@ fn sync_result_structs_serialize_expected_fields() {
 #[tokio::test]
 async fn memory_sync_channel_publishes_targeted_event() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     let _ = crate::core::bus::init().await;
     let (tx, mut rx) = mpsc::unbounded_channel();
     let _subscription = BUS
@@ -122,9 +120,7 @@ async fn memory_sync_channel_publishes_targeted_event() {
 #[tokio::test]
 async fn memory_sync_all_publishes_broadcast_event() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
-    let _guard = test_mutex()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = test_mutex().lock().await;
     let _ = crate::core::bus::init().await;
     let (tx, mut rx) = mpsc::unbounded_channel();
     let _subscription = BUS

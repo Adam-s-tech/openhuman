@@ -315,9 +315,7 @@ fn all_tools_registers_brave_engine_lsp_and_tool_stats_when_enabled() {
     cfg.learning.enabled = true;
     cfg.learning.tool_tracking_enabled = true;
 
-    let _env_guard = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let _env_guard = crate::config::TEST_ENV_LOCK.blocking_lock();
     unsafe {
         std::env::set_var(crate::tools::implementations::LSP_ENABLED_ENV, "1");
     }

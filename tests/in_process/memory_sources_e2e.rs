@@ -6,7 +6,7 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::memory_rpc::{ok, serve, write_config};
 use crate::rpc_auth::rpc_token;
@@ -59,7 +59,7 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
 
 #[tokio::test]
 async fn memory_sources_crud_and_folder_read_flow() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -331,7 +331,7 @@ async fn memory_sources_crud_and_folder_read_flow() {
 
 #[tokio::test]
 async fn memory_sources_validation_rejects_bad_input() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -407,7 +407,7 @@ async fn memory_sources_validation_rejects_bad_input() {
 #[tokio::test]
 #[ignore = "needs outbound network to GitHub (kelseyhightower/nocode via the gh CLI / GitHub API); not run in CI. Run: cargo test -p openhuman-cli --test in_process_all memory_sources_github_repo_activity_flow -- --ignored"]
 async fn memory_sources_github_repo_activity_flow() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -587,7 +587,7 @@ async fn memory_sources_github_repo_activity_flow() {
 /// and reader behavior with synthetic config.
 #[tokio::test]
 async fn memory_sources_composio_registry_flow() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -767,7 +767,7 @@ async fn memory_sources_composio_registry_flow() {
 /// workspace, not the process CWD.
 #[tokio::test]
 async fn memory_sources_folder_relative_path_resolves_against_the_workspace() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -868,7 +868,7 @@ async fn memory_sources_folder_relative_path_resolves_against_the_workspace() {
 /// diagnose.
 #[tokio::test]
 async fn memory_sources_missing_relative_folder_reports_the_resolved_path() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -964,7 +964,7 @@ async fn memory_sources_missing_relative_folder_reports_the_resolved_path() {
 /// refused before it is attempted", and that is what this pins.
 #[tokio::test]
 async fn sources_sync_dispatches_to_the_module_rather_than_refusing_the_capability() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -1175,7 +1175,7 @@ async fn sources_sync_dispatches_to_the_module_rather_than_refusing_the_capabili
 /// honestly pin them.
 #[tokio::test]
 async fn tree_reset_and_flush_route_through_the_maintenance_contract() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 
@@ -1259,7 +1259,7 @@ async fn tree_reset_and_flush_route_through_the_maintenance_contract() {
 /// values are mutually distinct, so no single constant satisfies all three.
 #[tokio::test]
 async fn scheduler_override_clamps_its_window_and_reports_the_granted_value() {
-    let _guard = env_lock();
+    let _guard = env_lock_async().await;
     let home = test_home();
     let openhuman_home = home.join(".openhuman");
 

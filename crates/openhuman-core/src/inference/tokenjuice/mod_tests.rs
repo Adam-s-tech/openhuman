@@ -138,9 +138,7 @@ async fn an_off_profile_still_discloses_a_registered_summary() {
 /// module happens to be installed for other tests in this binary.
 #[tokio::test]
 async fn a_module_disabled_in_configuration_discloses_a_wanted_summary() {
-    let _lock = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let _lock = crate::config::TEST_ENV_LOCK.lock().await;
     let previous = std::env::var_os("TINYJUICE_TEST_MODULE");
     // SAFETY: serialized by TEST_ENV_LOCK; restored below for every exit path.
     unsafe { std::env::remove_var("TINYJUICE_TEST_MODULE") };
