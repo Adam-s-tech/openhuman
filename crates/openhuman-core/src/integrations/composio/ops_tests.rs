@@ -21,6 +21,10 @@ fn cache_guard() -> tokio::sync::MutexGuard<'static, ()> {
     crate::integrations::composio::connected_integrations::composio_cache_test_lock()
 }
 
+async fn cache_guard_async() -> tokio::sync::MutexGuard<'static, ()> {
+    crate::integrations::composio::connected_integrations::composio_cache_test_lock_async().await
+}
+
 // ── Mock-backend integration tests for ops ─────────────────────
 
 use crate::config::test_env::EnvVarGuard;

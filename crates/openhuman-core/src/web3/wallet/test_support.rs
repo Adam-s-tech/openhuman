@@ -76,7 +76,7 @@ pub(crate) static RPC_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(())
 /// previous values are restored on drop.
 pub(crate) struct UnreachableRpcGuard {
     previous: Vec<(&'static str, Option<std::ffi::OsString>)>,
-    _env_lock: tokio::sync::MutexGuard<'static, ()>,
+    _env_lock: std::sync::MutexGuard<'static, ()>,
 }
 
 impl UnreachableRpcGuard {
