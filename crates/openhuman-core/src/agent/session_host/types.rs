@@ -154,7 +154,7 @@ pub struct OpenHumanSessionHost {
     /// [`ToolExposure::Deferred`](tinytools::ToolExposure): never in
     /// [`Self::visible_tool_names`], never in the prompt's spec list, but
     /// handed to the harness beside the visible set so its intrinsic
-    /// `tool_search` / `tool_call` bridge can find and run them. Empty for a
+    /// `tool_search` bridge can find them, and they are called by name. Empty for a
     /// belt that did not opt into discovery. Classified `Allow` by the
     /// policy session exactly like a visible tool — a found tool the gate
     /// refused as "prompt-hidden" would be the old unusable find again.

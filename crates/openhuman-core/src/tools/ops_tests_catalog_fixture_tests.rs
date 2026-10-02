@@ -87,13 +87,12 @@ fn full_product_features_enabled() -> bool {
 ///   build may register fewer tools, but every name it registers must be in
 ///   the product catalog. The full product build checks exact equality.
 ///
-/// On top of the domain registry this adds the two harness-intrinsic bridge
-/// tool names, `tool_search` and `tool_call`
-/// (`tinyagents_harness::tool::discover::{TOOL_SEARCH_NAME, TOOL_CALL_NAME}`):
-/// neither is ever a registered [`tinytools::Tool`] — the agent loop answers
-/// both itself once a turn has deferred tools (see that module's doc comment)
-/// — but both are model-visible tool names the frontend's tool-call
-/// presentation must recognize exactly like any other.
+/// On top of the domain registry this adds the harness-intrinsic bridge tool
+/// name, `tool_search` (`tinyagents_harness::tool::discover::TOOL_SEARCH_NAME`):
+/// it is never a registered [`tinytools::Tool`] — the agent loop answers it
+/// itself once a turn has deferred tools (see that module's doc comment) —
+/// but it is a model-visible tool name the frontend's tool-call presentation
+/// must recognize exactly like any other.
 fn full_tool_catalog_names() -> Vec<String> {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
@@ -122,7 +121,6 @@ fn full_tool_catalog_names() -> Vec<String> {
 
     let mut names: Vec<String> = tools.iter().map(|t| t.name().to_string()).collect();
     names.push(tinyagents_harness::tool::discover::TOOL_SEARCH_NAME.to_string());
-    names.push(tinyagents_harness::tool::discover::TOOL_CALL_NAME.to_string());
     names.sort();
     names.dedup();
     // Defensive: a Composio per-connection action tool would be an

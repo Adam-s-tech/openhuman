@@ -4017,8 +4017,8 @@ async fn orchestrator_advertises_direct_mcp_tools_inner() {
     stack.shutdown();
 }
 
-/// Search discovers a connected MCP action with its schema, then `tool_call`
-/// invokes that action on the same orchestrator turn.
+/// Search discovers a connected MCP action with its schema, then the model
+/// calls that action by its own name on the same orchestrator turn.
 #[cfg(feature = "mcp")]
 #[test]
 fn orchestrator_calls_a_connected_mcp_tool_directly() {
@@ -4049,13 +4049,7 @@ async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
             "tool_search",
             json!({ "query": "echo message on my connected MCP server" }),
         ),
-        tool_call_completion(
-            "tool_call",
-            json!({
-                "name": action.clone(),
-                "arguments": json!({ "message": MCP_ECHO_CANARY }).to_string()
-            }),
-        ),
+        tool_call_completion(&action, json!({ "message": MCP_ECHO_CANARY })),
         text_completion("The MCP tool answered."),
     ]);
     let mut events = spawn_sse_collector(format!(
@@ -4117,9 +4111,9 @@ async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
     let belt = advertised_tool_names(requests.first().expect("first model request"));
     assert!(belt.iter().any(|name| name == "tool_search"));
     assert!(!belt.iter().any(|name| name == &action));
-    let result = tool_result_text(&requests, "tool_call").unwrap_or_else(|| {
+    let result = tool_result_text(&requests, &action).unwrap_or_else(|| {
         panic!(
-            "no tool result for MCP tool_call; requests: {}",
+            "no tool result for the MCP action call; requests: {}",
             serde_json::to_string_pretty(&requests).unwrap_or_default()
         )
     });
