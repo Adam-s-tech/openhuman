@@ -153,7 +153,11 @@ fn forget_takes_the_key_as_text_and_defaults_the_namespace() {
 #[test]
 fn advertised_actions_match_the_actions_the_tool_serves() {
     let memory = tool();
-    let served: Vec<String> = memory.actions().iter().map(|e| e.action.to_string()).collect();
+    let served: Vec<String> = memory
+        .actions()
+        .iter()
+        .map(|e| e.action.to_string())
+        .collect();
     assert_eq!(advertised_actions(&memory), served);
 }
 
