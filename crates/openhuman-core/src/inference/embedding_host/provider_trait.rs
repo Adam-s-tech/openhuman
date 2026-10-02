@@ -41,7 +41,7 @@
 use async_trait::async_trait;
 use tinyinference_embeddings::EmbeddingModel;
 
-pub use tinymemory_api::host::{format_embedding_signature, EmbeddingProvider};
+pub use super::embedding_trait::{format_embedding_signature, EmbeddingProvider};
 
 /// Adapts the canonical TinyInference model to the memory-host contract.
 pub struct TinyInferenceEmbeddingProvider {
