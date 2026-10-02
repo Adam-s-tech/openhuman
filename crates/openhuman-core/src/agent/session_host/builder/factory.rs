@@ -397,8 +397,8 @@ impl OpenHumanSessionHost {
             },
             None => SystemPromptBuilder::with_defaults(),
         };
-        let mut post_turn_hooks: Vec<Arc<dyn crate::agent::hooks::PostTurnHook>> = Vec::new();
-        post_turn_hooks.extend(crate::agent::hooks::embedder_post_turn_hooks());
+        let post_turn_hooks: Vec<Arc<dyn crate::agent::hooks::PostTurnHook>> =
+            crate::agent::hooks::embedder_post_turn_hooks();
 
         // Best-effort prewarm from the shared Composio cache. This avoids
         // building the session with a knowingly stale `&[]` integration view
@@ -661,14 +661,11 @@ impl OpenHumanSessionHost {
             .map(|def| def.temperature)
             .unwrap_or(config.default_temperature);
 
-        // Thread PROFILE.md + MEMORY.md inclusion from the resolved
-        // definition. Legacy / no-definition path stays on the safe
-        // `true` default (omit) for both files.
-        let effective_omit_profile = target_def.map(|def| def.omit_profile).unwrap_or(true);
-        let effective_omit_memory_md = target_def.map(|def| def.omit_memory_md).unwrap_or(true);
-        let effective_trigger_memory_agent = target_def
-            .map(|def| def.trigger_memory_agent)
-            .unwrap_or_default();
+        // Whether a new session gets `context.md` prepended to its first user
+        // message; agents without a definition get it.
+        let effective_omit_memory_context = target_def
+            .map(|def| def.omit_memory_context)
+            .unwrap_or(false);
         let effective_tokenjuice_compression = target_def
             .map(|def| def.effective_tokenjuice_compression())
             .unwrap_or(crate::inference::tokenjuice::AgentTokenjuiceCompression::Full);
