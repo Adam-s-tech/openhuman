@@ -751,7 +751,6 @@ async fn serve_on_ephemeral(
     tokio::task::JoinHandle<Result<(), std::io::Error>>,
 ) {
     ensure_test_rpc_auth();
-    ensure_json_rpc_e2e_memory_seams();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind");
@@ -12140,11 +12139,17 @@ async fn json_rpc_memory_diff_surface_is_gone_and_memory_still_answers() {
         assert_unknown_method(&response, method);
     }
 
-    // The other half: the memory domain survived the removal. `memory_init` is
-    // dispatched here purely to prove the namespace still answers — any
-    // response but unknown-method is a pass, because what is under test is
-    // registration, not this call's own outcome.
-    let survivor = post_json_rpc(&rpc_base, 5_839_100, "openhuman.memory_init", json!({})).await;
+    // The other half: the memory domain survived the removal. Memory v2's
+    // `memory_engines_list` is dispatched purely to prove the namespace still
+    // answers — any response but unknown-method is a pass, because what is
+    // under test is registration, not this call's own outcome.
+    let survivor = post_json_rpc(
+        &rpc_base,
+        5_839_100,
+        "openhuman.memory_engines_list",
+        json!({}),
+    )
+    .await;
     let unknown = survivor
         .get("error")
         .and_then(|error| error.get("message"))
