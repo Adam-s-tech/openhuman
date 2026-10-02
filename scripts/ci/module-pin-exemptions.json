@@ -19,7 +19,7 @@
     },
     {
       "id": "tinysearch",
-      "expect": "v0.3.4-2-g2a71ea9",
+      "expect": "v0.3.4-3-g2a71ea9d",
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
     },
     {
@@ -59,17 +59,17 @@
     },
     {
       "id": "tinybox",
-      "expect": "v0.1.12-2-g9106bf3",
+      "expect": "v0.1.12-3-g9106bf33",
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
     },
     {
       "id": "tinychannels",
-      "expect": "v0.1.8-2-gb5efe58",
+      "expect": "v0.1.8-3-gb5efe588",
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
     },
     {
       "id": "tinyhosts",
-      "expect": "v0.2.1-2-gd39dc16",
+      "expect": "v0.2.1-3-gd39dc164",
       "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
     }
   ]
