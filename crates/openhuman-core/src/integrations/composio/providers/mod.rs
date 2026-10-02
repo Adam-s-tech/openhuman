@@ -33,19 +33,19 @@
 //!   an engine provider.
 
 // ── The contract half ───────────────────────────────────────────────────────
-pub use tinymemory_api::composio::catalogs::{
+pub use crate::integrations::composio::contract::catalogs::{
     catalog_for_toolkit, curated_scope_for, has_native_provider, is_action_visible_with_pref,
     native_provider_sync_interval_secs, sync_interval_env_var, toolkit_description,
     toolkit_has_scope, CAPABILITY_TOOLKITS, NATIVE_PROVIDERS,
 };
-pub use tinymemory_api::composio::scopes::{
+pub use crate::integrations::composio::contract::scopes::{
     agent_ready_toolkits, classify_unknown, find_curated, toolkit_from_slug, CuratedTool,
     ToolScope, UserScopePref,
 };
-pub use tinymemory_api::composio::tasks::{
+pub use crate::integrations::composio::contract::tasks::{
     GithubFetchMode, NormalizedTask, TaskContainer, TaskFetchFilter, TaskKind,
 };
-pub use tinymemory_api::composio::{
+pub use crate::integrations::composio::contract::{
     render_connected_identities_section, ConnectedIdentity, ProviderUserProfile, SyncOutcome,
     SyncReason,
 };

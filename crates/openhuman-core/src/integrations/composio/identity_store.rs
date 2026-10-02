@@ -22,7 +22,7 @@
 
 use crate::config::Config;
 use crate::memory::api::provider::FacetType;
-use tinymemory_api::composio::{
+use crate::integrations::composio::contract::{
     canonicalize, normalize_connection_identifier, ConnectedIdentity, IdentityKind,
     ProviderUserProfile,
 };

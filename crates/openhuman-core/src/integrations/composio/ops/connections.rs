@@ -21,7 +21,7 @@ use super::error_utils::{
     COMPOSIO_NO_SESSION,
 };
 use super::memory_cleanup::composio_memory_targets_for_connection;
-use tinymemory_api::composio::normalize_connection_identifier;
+use crate::integrations::composio::contract::normalize_connection_identifier;
 
 pub async fn composio_list_connections(
     config: &Config,

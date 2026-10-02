@@ -20,7 +20,7 @@ use tinymemory_api::provider::ForgetSelector;
 /// field, in the same order, under the same `#[serde(default)]`s. Naming the
 /// contract's is what makes "the shape this reads is the shape that was
 /// written" a fact about the build rather than about two files agreeing.
-use tinymemory_api::composio::{SyncState, STATE_NAMESPACE as SYNC_STATE_NAMESPACE};
+use crate::integrations::composio::contract::{SyncState, STATE_NAMESPACE as SYNC_STATE_NAMESPACE};
 
 /// One thing a connection delete has to remove from memory.
 ///

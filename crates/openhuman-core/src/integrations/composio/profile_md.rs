@@ -8,7 +8,7 @@
 //! v1.13.4 removed it along with the rest of the in-process Composio
 //! pipeline). Nothing here ever depended on that pipeline — it is pure text
 //! manipulation over a host-owned file and [`ProviderUserProfile`], which is
-//! contract vocabulary (`tinymemory_api::composio`) rather than engine state
+//! contract vocabulary (`crate::integrations::composio::contract`) rather than engine state
 //! — so it moves to host code unchanged rather than needing a redesign.
 //!
 //! ## Block convention

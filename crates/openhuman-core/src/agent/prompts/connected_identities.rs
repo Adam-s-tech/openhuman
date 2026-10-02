@@ -24,7 +24,7 @@ pub fn render_connected_identities() -> String {
     crate::integrations::composio::providers::render_connected_identities_section(&identities)
 }
 
-fn fetch_identities_blocking() -> Vec<tinymemory_api::composio::ConnectedIdentity> {
+fn fetch_identities_blocking() -> Vec<crate::integrations::composio::contract::ConnectedIdentity> {
     let Ok(handle) = tokio::runtime::Handle::try_current() else {
         return Vec::new();
     };

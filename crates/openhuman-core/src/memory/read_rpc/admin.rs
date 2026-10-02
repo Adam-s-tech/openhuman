@@ -14,7 +14,7 @@ use crate::memory::api::provider::ForgetSelector;
 // constant rather than copying the literal is what keeps that impossible —
 // and it is the same constant the driver writing those rows reads.
 use tinymemory_api::chunks::SourceKind;
-use tinymemory_api::composio::KV_NAMESPACE;
+use crate::integrations::composio::contract::KV_NAMESPACE;
 use tinymemory_api::provider::types::BackfillTreesRequest;
 
 use super::types::{
