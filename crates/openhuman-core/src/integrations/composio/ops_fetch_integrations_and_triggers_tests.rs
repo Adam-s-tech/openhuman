@@ -393,7 +393,7 @@ async fn composio_list_available_triggers_omits_connection_when_none() {
         "/agent-integrations/composio/triggers/available",
         get(|Query(q): Query<HashMap<String, String>>| async move {
             assert!(
-                q.get("connectionId").is_none(),
+                !q.contains_key("connectionId"),
                 "should not forward connectionId"
             );
             Json(json!({"success": true, "data": {"triggers": []}}))
