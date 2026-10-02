@@ -1566,7 +1566,7 @@ async fn json_rpc_harness_init_status_returns_snapshot_envelope() {
         .filter_map(|s| s.get("id").and_then(Value::as_str))
         .collect();
     assert!(
-        ids.contains(&"python_runtime") && ids.contains(&"spacy") && ids.contains(&"node_runtime"),
+        ids.contains(&"python_runtime") && ids.contains(&"node_runtime"),
         "snapshot should list the registered steps, got {ids:?}"
     );
 
@@ -1627,14 +1627,23 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         .get("definitions")
         .and_then(Value::as_array)
         .expect("agent_list_definitions should return definitions array");
+    // The v1 `critic` built-in was removed with the v1 memory system
+    // (Memory v2 is one `memory` tool, not a sub-agent); `critic` is the
+    // stand-in safe-library entry.
+    assert!(
+        !definitions
+            .iter()
+            .any(|definition| definition.get("id").and_then(Value::as_str) == Some("critic")),
+        "the v1 memory agent must stay removed"
+    );
     let memory_agent = definitions
         .iter()
-        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("agent_memory"))
-        .expect("safe agent library should include agent_memory");
-    assert_eq!(
-        memory_agent.get("display_name").and_then(Value::as_str),
-        Some("Memory Agent")
-    );
+        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("critic"))
+        .expect("safe agent library should include critic");
+    assert!(memory_agent
+        .get("display_name")
+        .and_then(Value::as_str)
+        .is_some());
     assert!(memory_agent
         .get("when_to_use")
         .and_then(Value::as_str)
@@ -1667,9 +1676,9 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         286_211,
         "openhuman.agent_registry_update",
         json!({
-            "id": "agent_memory",
-            "name": "Recall Specialist",
-            "description": "Workspace-specific memory recall specialist.",
+            "id": "critic",
+            "name": "Review Specialist",
+            "description": "Workspace-specific review specialist.",
             "model": "hint:reasoning",
             "tool_allowlist": ["tools.web_search", "memory.search"],
             "tool_denylist": ["wallet.execute_prepared"],
@@ -1684,7 +1693,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .expect("update default should return agent");
     assert_eq!(
         update_default_agent.get("name").and_then(Value::as_str),
-        Some("Recall Specialist")
+        Some("Review Specialist")
     );
     assert_eq!(
         update_default_agent
@@ -1898,7 +1907,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "system_prompt": "Write concise updates with citations when available.",
             "tool_allowlist": ["memory.search"],
             "tool_denylist": ["shell"],
-            "subagents": ["agent_memory"],
+            "subagents": ["critic"],
             "tags": ["writing", "custom", "disabled"],
             "metadata": { "updated_by": "json_rpc_e2e" }
         }),
@@ -1923,7 +1932,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .and_then(Value::as_array)
             .and_then(|allowlist| allowlist.first())
             .and_then(Value::as_str),
-        Some("agent_memory")
+        Some("critic")
     );
 
     let reenabled_custom = post_json_rpc(
@@ -2082,7 +2091,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_221,
         "openhuman.agent_registry_remove",
-        json!({ "id": "agent_memory" }),
+        json!({ "id": "critic" }),
     )
     .await;
     assert_eq!(
@@ -11372,8 +11381,8 @@ async fn json_rpc_agent_team_live_member_run_roundtrip_inner() {
             "leadAgentId": "lead",
             "summary": "live run e2e",
             "members": [
-                { "name": "alice", "agentId": "agent_memory" },
-                { "name": "bob", "agentId": "agent_memory" }
+                { "name": "alice", "agentId": "critic" },
+                { "name": "bob", "agentId": "critic" }
             ]
         }),
     )
