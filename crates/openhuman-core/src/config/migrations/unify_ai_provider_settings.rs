@@ -11,7 +11,6 @@
 //!                                          — per-role chat (#1710, partial)
 //! - `local_ai.usage.{embeddings,heartbeat,learning_reflection,subconscious}`
 //!                                          — local-vs-cloud booleans
-//! - `memory_tree.llm_backend` (+ `cloud_llm_model`) — memory summariser
 //!
 //! After this migration there is one grammar — provider strings parsed by
 //! [`crate::inference::provider::factory`] — addressing every workload
@@ -211,14 +210,9 @@ fn derive_workload_providers(config: &mut Config, stats: &mut MigrationStats) {
         }
     };
 
-    // Memory summariser — `memory_tree.llm_backend` is `LlmBackend::Cloud | Local`.
-    let memory_value = match config.memory_tree.llm_backend {
-        crate::config::schema::LlmBackend::Local if runtime_on && !chat_model.is_empty() => {
-            format!("ollama:{}", chat_model)
-        }
-        _ => "cloud".to_string(),
-    };
-    set_field(&mut config.memory_provider, memory_value, stats);
+    // Memory summariser workload: the memory-tree backend switch it used to
+    // follow is gone with memory v1, so it defaults to cloud.
+    set_field(&mut config.memory_provider, "cloud".to_string(), stats);
 
     // Embeddings — uses the embedding_model_id, not chat_model_id.
     let embeddings_value =

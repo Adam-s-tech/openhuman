@@ -72,7 +72,7 @@ impl RegisteredController {
 ///
 /// - `harness()` claimed "agent + memory + threads + config + security" but
 ///   silently dropped `agent::{harness_init, artifacts, learning}`,
-///   `security::{credentials, devices}`, `config::{workspace, migration_helpers}`,
+///   `security::{credentials, devices}`, `config::workspace`,
 ///   `memory::people` and `skills::webhooks`, all of which sat in `Platform`.
 ///   An agent harness that does not register `harness_init` is a latent bug.
 /// - `embedded()` had to set `platform: true` purely to reach credentials and
@@ -979,7 +979,6 @@ pub fn namespace_description(namespace: &str) -> Option<&'static str> {
         "encrypt" => Some("Encrypt secure values managed by secret storage."),
         "health" => Some("Process and component health snapshots."),
         "inference" => Some("Connect to configured text, vision, and embedding inference runtimes."),
-        "migrate" => Some("Data migration utilities."),
         "javascript" => Some("First-class JavaScript runtime bridge for listing and dispatching tools."),
         "security" => Some("Security policy and autonomy guardrail metadata."),
         "service" => Some("Desktop service lifecycle management."),
