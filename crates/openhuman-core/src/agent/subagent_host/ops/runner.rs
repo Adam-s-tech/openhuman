@@ -33,8 +33,7 @@ use crate::agent::subagent_host::tool_prep::{
     filter_tool_indices, is_subagent_spawn_tool, load_prompt_source, subagent_prompt_protocol,
 };
 use crate::agent::subagent_host::types::{
-    SubagentMode, SubagentRunError, SubagentRunOptions, SubagentRunOutcome, SubagentRunStatus,
-    SubagentUsage,
+    SubagentMode, SubagentRunError, SubagentRunOptions, SubagentRunOutcome,
 };
 use crate::inference::provider::AGENT_TURN_MAX_OUTPUT_TOKENS;
 use tinytools::{SandboxMode as TinyagentsSandboxMode, ToolSpec, WorkspaceDescriptor};
