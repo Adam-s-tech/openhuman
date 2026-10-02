@@ -446,7 +446,7 @@ pub(crate) fn without_reasoning(mut request: ModelRequest) -> ModelRequest {
 /// `RunPolicy::default_reasoning`); the [`without_reasoning`] hint. The
 /// neutral field is consumed here, so the OpenAI-compatible transport does not
 /// also emit a top-level `reasoning_effort` for the same choice.
-pub(super) fn apply_reasoning_hint(mut request: ModelRequest) -> ModelRequest {
+fn apply_reasoning_hint(mut request: ModelRequest) -> ModelRequest {
     if request.provider_options.get("reasoning").is_some() {
         return request;
     }

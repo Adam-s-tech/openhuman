@@ -334,6 +334,65 @@ fn no_hint_leaves_provider_options_untouched() {
 }
 
 #[test]
+fn request_reasoning_effort_becomes_the_managed_reasoning_object() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(
+        ModelRequest::new(vec![Message::user("hi")])
+            .with_reasoning(ReasoningConfig::effort(ReasoningEffort::High)),
+    );
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "effort": "high" })
+    );
+    assert!(
+        request.reasoning.is_none(),
+        "the neutral field is consumed so the transport sends no second `reasoning_effort`"
+    );
+}
+
+#[test]
+fn request_reasoning_none_disables_reasoning_on_the_managed_wire() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(
+        ModelRequest::new(vec![Message::user("hi")])
+            .with_reasoning(ReasoningConfig::effort(ReasoningEffort::None)),
+    );
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+}
+
+#[test]
+fn request_reasoning_budget_becomes_max_tokens() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(ModelRequest::new(vec![Message::user("hi")]).with_reasoning(
+        ReasoningConfig {
+            effort: Some(ReasoningEffort::High),
+            budget_tokens: Some(8_000),
+            summary: None,
+        },
+    ));
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "max_tokens": 8000 })
+    );
+}
+
+#[test]
+fn request_reasoning_wins_over_the_suggestion_off_hint() {
+    use tinyinference_llm::model::{ReasoningConfig, ReasoningEffort};
+    let request = apply_reasoning_hint(
+        without_reasoning(ModelRequest::new(vec![Message::user("hi")]))
+            .with_reasoning(ReasoningConfig::effort(ReasoningEffort::Low)),
+    );
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "effort": "low" })
+    );
+}
+
+#[test]
 fn explicit_reasoning_option_wins_over_the_hint() {
     let request = without_reasoning(ModelRequest::new(vec![Message::user("hi")]))
         .with_provider_options(serde_json::json!({ "reasoning": { "effort": "high" } }));
