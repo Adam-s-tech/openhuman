@@ -3254,8 +3254,7 @@ const messages: TranslationMap = {
   'settings.ai.routing.chatDesc':
     'النماذج المستخدمة أثناء التفاعل المباشر للمستعملين، والردود، والتفسير، وحلقات العملاء، والمساعدة في التدوين.',
   'settings.ai.routing.backgroundTasks': 'مهام الخلفية',
-  'settings.ai.routing.bgTasksDesc':
-    'النماذج المستخدمة خارج التدفق الرئيسي للمحادثات للتلخيص.',
+  'settings.ai.routing.bgTasksDesc': 'النماذج المستخدمة خارج التدفق الرئيسي للمحادثات للتلخيص.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'المحادثة المباشرة ذهابًا وإيابًا: الوضع "السريع" في المحادثات',

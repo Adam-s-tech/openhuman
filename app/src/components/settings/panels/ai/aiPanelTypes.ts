@@ -37,13 +37,7 @@ export type OllamaState = 'disabled' | 'stopped' | 'running' | 'degraded' | 'unr
 
 export type OllamaModel = { id: string; sizeBytes: number; family: string };
 
-export type WorkloadId =
-  | 'chat'
-  | 'reasoning'
-  | 'agentic'
-  | 'coding'
-  | 'vision'
-  | 'memory';
+export type WorkloadId = 'chat' | 'reasoning' | 'agentic' | 'coding' | 'vision' | 'memory';
 
 export type WorkloadGroup = 'chat' | 'background';
 

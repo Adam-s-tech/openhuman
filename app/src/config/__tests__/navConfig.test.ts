@@ -16,11 +16,7 @@ describe('NAV_TABS', () => {
   });
 
   it('has the correct labelKeys', () => {
-    expect(NAV_TABS.map(t => t.labelKey)).toEqual([
-      'nav.chat',
-      'nav.flows',
-      'nav.connections',
-    ]);
+    expect(NAV_TABS.map(t => t.labelKey)).toEqual(['nav.chat', 'nav.flows', 'nav.connections']);
   });
 
   it('has the correct walkthroughAttrs', () => {

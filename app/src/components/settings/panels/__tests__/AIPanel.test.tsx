@@ -2162,9 +2162,7 @@ describe('AIPanel', () => {
 
   it('renders background loop diagnostics with newest spend row and budget math', async () => {
     // BackgroundLoopControls was moved out of AIPanel into standalone panels.
-    renderWithProviders(
-      <BackgroundLoopControls view="all" />
-    );
+    renderWithProviders(<BackgroundLoopControls view="all" />);
 
     await waitFor(() => expect(screen.getByText('Background loops')).toBeInTheDocument());
 
