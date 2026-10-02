@@ -139,6 +139,12 @@ path = "../../tests/x402_twit_sh_live.rs"
 required-features = ["web3"]
 
 [[test]]
+name = "memory_v2_e2e"
+path = "../../tests/memory_v2_e2e.rs"
+# Memory v2 over JSON-RPC against the shared node mock backend
+# (`scripts/mock-api-server.mjs`, which needs `node` on PATH).
+
+[[test]]
 name = "json_rpc_e2e"
 path = "../../tests/json_rpc_e2e.rs"
 # `voice::reply_speech::{test_seam, TEST_SEAM_ENV}` — the reply-speech seam
