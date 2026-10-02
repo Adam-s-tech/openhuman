@@ -72,10 +72,12 @@ function renderAt(search: string) {
 
 beforeEach(() => {
   hoisted.engineGet.mockReset().mockResolvedValue(ON);
-  hoisted.enginesList.mockReset().mockResolvedValue({
-    engines: [{ id: 'tinyhumans', label: 'TinyHumans' }],
-    active: 'tinyhumans',
-  });
+  hoisted.enginesList
+    .mockReset()
+    .mockResolvedValue({
+      engines: [{ id: 'tinyhumans', label: 'TinyHumans' }],
+      active: 'tinyhumans',
+    });
 });
 
 describe('Memory page', () => {
