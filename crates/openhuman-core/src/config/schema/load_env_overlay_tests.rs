@@ -687,6 +687,36 @@ fn env_overlay_tool_dispatcher_overrides_the_agent_field_when_non_blank() {
     assert_eq!(cfg.agent.tool_dispatcher, "native");
 }
 
+#[test]
+fn env_overlay_jev_route_and_base_url_override_tool_search_when_non_blank() {
+    let mut cfg = Config::default();
+    assert_eq!(cfg.agent.tool_search.jev_route, "auto");
+    assert_eq!(cfg.agent.tool_search.jev_base_url, None);
+
+    cfg.apply_env_overlay_with(
+        &HashMapEnv::new()
+            .with("OPENHUMAN_JEV_ROUTE", " OpenRouter ")
+            .with("OPENHUMAN_JEV_BASE_URL", " http://127.0.0.1:18080 "),
+    );
+    assert_eq!(cfg.agent.tool_search.jev_route, "openrouter");
+    assert_eq!(
+        cfg.agent.tool_search.jev_base_url.as_deref(),
+        Some("http://127.0.0.1:18080")
+    );
+
+    // Blank values leave the persisted choice alone.
+    cfg.apply_env_overlay_with(
+        &HashMapEnv::new()
+            .with("OPENHUMAN_JEV_ROUTE", "  ")
+            .with("OPENHUMAN_JEV_BASE_URL", ""),
+    );
+    assert_eq!(cfg.agent.tool_search.jev_route, "openrouter");
+    assert_eq!(
+        cfg.agent.tool_search.jev_base_url.as_deref(),
+        Some("http://127.0.0.1:18080")
+    );
+}
+
 /// Local model tier presets were removed: OpenHuman no longer picks models by
 /// RAM tier. A stale `OPENHUMAN_LOCAL_AI_TIER` in the environment must be
 /// ignored rather than rewriting the user's configured local models.
