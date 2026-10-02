@@ -62,12 +62,12 @@ async fn persists_inbound_and_processed_turns_into_workspace_thread() {
         .await;
 
     let threads =
-        crate::memory::conversations::list_threads(temp.path().to_path_buf()).expect("threads");
+        crate::threads::store::list_threads(temp.path().to_path_buf()).expect("threads");
     assert_eq!(threads.len(), 1);
     assert_eq!(threads[0].id, "channel:slack_alice_general_thread:thread-1");
 
     let messages =
-        crate::memory::conversations::get_messages(temp.path().to_path_buf(), &threads[0].id)
+        crate::threads::store::get_messages(temp.path().to_path_buf(), &threads[0].id)
             .expect("messages");
     assert_eq!(messages.len(), 2);
     assert_eq!(messages[0].id, "user:m1");
@@ -115,7 +115,7 @@ async fn telegram_thread_ts_does_not_split_persisted_thread() {
         .await;
 
     let threads =
-        crate::memory::conversations::list_threads(temp.path().to_path_buf()).expect("threads");
+        crate::threads::store::list_threads(temp.path().to_path_buf()).expect("threads");
     assert_eq!(threads.len(), 1);
     assert_eq!(threads[0].id, "channel:telegram_alice_chat-1");
 }
@@ -139,7 +139,7 @@ async fn duplicate_events_do_not_append_duplicate_messages() {
     subscriber.handle(&event).await;
     subscriber.handle(&event).await;
 
-    let messages = crate::memory::conversations::get_messages(
+    let messages = crate::threads::store::get_messages(
         temp.path().to_path_buf(),
         "channel:discord_alice_room-1",
     )
@@ -196,7 +196,7 @@ async fn received_matching_workspace_is_persisted() {
         })
         .await;
 
-    let messages = crate::memory::conversations::get_messages(
+    let messages = crate::threads::store::get_messages(
         temp.path().to_path_buf(),
         "channel:slack_bob_dev",
     )
@@ -228,7 +228,7 @@ async fn received_stale_workspace_is_dropped() {
 
     // No thread should have been created in temp (the subscriber's workspace).
     let threads =
-        crate::memory::conversations::list_threads(temp.path().to_path_buf()).expect("threads");
+        crate::threads::store::list_threads(temp.path().to_path_buf()).expect("threads");
     assert!(
         threads.is_empty(),
         "stale-workspace event must not create a thread"
@@ -273,7 +273,7 @@ async fn processed_matching_workspace_is_appended() {
         })
         .await;
 
-    let messages = crate::memory::conversations::get_messages(
+    let messages = crate::threads::store::get_messages(
         temp.path().to_path_buf(),
         "channel:slack_alice_general",
     )
@@ -323,7 +323,7 @@ async fn processed_stale_workspace_is_dropped() {
         })
         .await;
 
-    let messages = crate::memory::conversations::get_messages(
+    let messages = crate::threads::store::get_messages(
         temp.path().to_path_buf(),
         "channel:slack_alice_general",
     )
@@ -395,7 +395,7 @@ async fn workspace_switch_mid_conversation() {
         })
         .await;
 
-    let messages = crate::memory::conversations::get_messages(
+    let messages = crate::threads::store::get_messages(
         workspace_a.path().to_path_buf(),
         "channel:telegram_alice_chat-1",
     )
@@ -436,7 +436,7 @@ async fn multiple_stale_workspaces_all_dropped() {
     }
 
     let threads =
-        crate::memory::conversations::list_threads(temp.path().to_path_buf()).expect("threads");
+        crate::threads::store::list_threads(temp.path().to_path_buf()).expect("threads");
     assert!(
         threads.is_empty(),
         "no events from wrong workspaces should create a thread"
@@ -479,7 +479,7 @@ async fn correct_workspace_after_stale_events() {
         })
         .await;
 
-    let messages = crate::memory::conversations::get_messages(
+    let messages = crate::threads::store::get_messages(
         temp.path().to_path_buf(),
         "channel:slack_alice_general",
     )

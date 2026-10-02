@@ -12,7 +12,7 @@
 //!
 //! The store itself (on-disk format, locking, warm index cache, CRUD and
 //! search) is the `tinymemory-conversations` crate, re-exported below so
-//! callers keep naming `crate::memory::conversations::{...}`. What stays here
+//! callers keep naming `crate::threads::store::{...}`. What stays here
 //! is host wiring:
 //!
 //! - [`blocking`] - `spawn_blocking` wrappers. Every store entry point is
