@@ -59,8 +59,6 @@ describe('UsagePanel', () => {
     expect(screen.getByTestId('usage-tab-costs')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('usage-tab-background')).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByTestId('stub-cost-dashboard')).toHaveAttribute('data-embedded', 'true');
-    // Costs tab must not pay for the AI-settings snapshot.
-    expect(mockLoad).not.toHaveBeenCalled();
   });
 
   test('#tokens hash selects the Token savings tab with the embedded TokenJuice panel', () => {

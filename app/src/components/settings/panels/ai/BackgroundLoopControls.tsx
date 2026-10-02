@@ -18,12 +18,9 @@ import {
   type TeamUsage,
 } from '../../../../services/api/creditsApi';
 import { Badge, Button, Card, StatusLine } from '../../../ui';
-import type { RoutingMap } from './aiPanelTypes';
 import {
   activeConnection,
-  type BackgroundLoopProviderView,
   COMPOSIO_PERIODIC_TICK_MINUTES,
-  describeProvider,
   formatCount,
   spendAmount,
   summarizeSpendByAction,
@@ -38,13 +35,9 @@ const log = debug('settings:background-loops');
 type BackgroundLoopControlsView = 'all' | 'ledger';
 
 export const BackgroundLoopControls = ({
-  routing,
-  cloudProviders,
   view = 'all',
   hideHeader = false,
 }: {
-  routing: RoutingMap;
-  cloudProviders: BackgroundLoopProviderView[];
   view?: BackgroundLoopControlsView;
   hideHeader?: boolean;
 }) => {

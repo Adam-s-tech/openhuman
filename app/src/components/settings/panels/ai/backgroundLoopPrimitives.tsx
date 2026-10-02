@@ -4,7 +4,6 @@
  */
 import type { ComposioConnection } from '../../../../lib/composio/types';
 import type { CreditTransaction } from '../../../../services/api/creditsApi';
-import type { ProviderRef } from './aiPanelTypes';
 
 export const USD = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -97,24 +96,6 @@ export function summarizeSpendSample(transactions: CreditTransaction[]) {
   const spendPerHour = sampleHours > 0 ? total / sampleHours : 0;
   const rowsPerHour = sampleHours > 0 ? rows.length / sampleHours : 0;
   return { rows, total, avgRowUsd, sampleHours, spendPerHour, rowsPerHour };
-}
-
-/** Minimal cloud-provider shape consumed by `describeProvider` — only
- *  slug/label/id are read. Accepting this narrower shape lets external panels
- *  (UsagePanel) feed in the API view (`CloudProviderView`) without copying the
- *  AIPanel-internal extras (`authStyle`, `maskedKey`). */
-export type BackgroundLoopProviderView = { id: string; slug: string; label: string };
-
-export function describeProvider(
-  ref: ProviderRef,
-  providers: BackgroundLoopProviderView[]
-): string {
-  if (ref.kind === 'openhuman') return 'Managed · OpenHuman';
-  if (ref.kind === 'default') return 'Default route';
-  if (ref.kind === 'local') return `Local ${ref.model}`;
-  if (ref.kind === 'claude-code') return `Claude Code CLI ${ref.model || 'default model'}`;
-  const provider = providers.find(p => p.slug === ref.providerSlug);
-  return `${provider?.label ?? ref.providerSlug} ${ref.model || 'custom model'}`;
 }
 
 export const MetricTile = ({
