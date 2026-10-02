@@ -314,6 +314,6 @@ test.describe('Brain — the UI tells the truth about embedding state', () => {
 
     await expect
       .poll(async () => page.evaluate(() => window.location.hash), { timeout: 20_000 })
-      .toMatch(/^#\/brain\?tab=sync/);
+      .toMatch(/^#\/connections\?.*tab=brain.*brain=sync/);
   });
 });

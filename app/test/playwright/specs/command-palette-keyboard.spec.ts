@@ -53,7 +53,7 @@ const ITEM = '[cmdk-item]';
 const DESTINATIONS: Record<string, RegExp> = {
   'nav.home': /^#\/chat(?:[/?]|$)/, // /home -> /chat
   'nav.chat': /^#\/chat(?:[/?]|$)/,
-  'nav.intelligence': /^#\/brain(?:[?]|$)/, // /settings/intelligence -> /brain
+  'nav.intelligence': /^#\/connections\?.*tab=brain/, // /settings/intelligence -> /brain
   'nav.skills': /^#\/connections(?:[?]|$)/,
   'nav.activity': /^#\/settings\/notifications(?:[?]|$)/, // /activity -> here
   'nav.settings': /^#\/settings\/account(?:[?]|$)/, // /settings index -> account
