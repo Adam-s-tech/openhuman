@@ -14,7 +14,7 @@ Under the hood, the connector layer is powered by [Composio](https://composio.de
 Once a service is connected, it shows up in four places at once:
 
 1. As an **agent tool**, the model can call it directly.
-2. As a **memory source**, [auto-fetch](../memory.md) syncs it into the [Memory Tree](../memory.md) every twenty minutes.
+2. As a **memory source**, [auto-fetch](../memory.md) syncs it into the [Memory](../memory.md) every twenty minutes.
 3. As a **profile signal**, your activity across services feeds your personalization.
 4. As a **trigger source**, live events (a new email, a new charge, an inbound DM) flow into the [Triggers](triggers.md) pipeline and can fire off agent actions automatically.
 
@@ -86,5 +86,5 @@ See [Privacy & Security](../privacy-and-security.md) for the full boundary.
 ## See also
 
 - [Triggers](triggers.md), live events from connected integrations and how they fire agent actions.
-- [Auto-fetch from Integrations](../memory.md)
-- [Memory Tree](../memory.md)
+- [Memory sources](../memory.md)
+- [Memory](../memory.md)

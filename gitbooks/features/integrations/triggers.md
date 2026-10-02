@@ -133,4 +133,4 @@ Triggers follow the same boundary as the rest of the product (see [Privacy & Sec
 ## See also
 
 - [Third-party Integrations](README.md), the catalog of services triggers come from.
-- [Auto-fetch from Integrations](../memory.md), the polling counterpart, periodic ingest of source data into the Memory Tree.
+- [Memory sources](../memory.md), the polling counterpart, periodic ingest of source data into the Memory Tree.

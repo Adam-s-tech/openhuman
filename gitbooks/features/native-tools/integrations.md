@@ -20,7 +20,7 @@ A few examples of what becomes available:
 
 ## Native vs proxied
 
-Some services have **native providers** - Rust modules that know how to ingest the service into the [Memory Tree](../memory.md) directly (e.g. Gmail's native ingest path). Others are exposed as **proxied tools** only: the agent can call them, but there's no automatic ingest yet. New native providers are added as features land.
+Some services have **native providers** - Rust modules that know how to ingest the service into the [Memory](../memory.md) directly (e.g. Gmail's native ingest path). Others are exposed as **proxied tools** only: the agent can call them, but there's no automatic ingest yet. New native providers are added as features land.
 
 Lark / Feishu currently has two surfaces: a native real-time channel for message send/receive, and a Composio-proxied workspace toolkit entry for chat, docs, wiki, and meeting actions when the backend allowlist exposes it. Historical chat/doc backfill into the Memory Tree is not yet a native provider; track that separately from the live channel connector.
 

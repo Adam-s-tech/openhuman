@@ -46,4 +46,4 @@ goal on screen for the many turns after the one that set it.
 
 ## See also
 
-- [Memory Tree](memory.md): what goal reflection reads from.
+- [Memory](memory.md): what goal reflection reads from.

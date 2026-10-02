@@ -49,7 +49,7 @@ If you're not sure, pick **Cloud**. You can change any of this later in **Settin
 An assistant with no memory is just a chatbot. Connect at least one source so it has context to draw on:
 
 - Open **Settings** and connect an integration (Gmail is the common starting point). Each connection is a one-click OAuth approval.
-- Once connected, [auto-fetch](../features/memory.md) starts pulling data into your [Memory Tree](../features/memory.md) on a schedule (the first Gmail tick lands within about twenty minutes).
+- Once connected, [auto-fetch](../features/memory.md) starts pulling data into your [Memory](../features/memory.md) on a schedule (the first Gmail tick lands within about twenty minutes).
 
 ### 4. Set your boundaries
 

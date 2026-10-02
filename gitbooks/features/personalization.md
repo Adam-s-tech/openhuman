@@ -118,6 +118,6 @@ Everything learned is inspectable and reversible:
 
 ## See also
 
-- [Memory Tree](memory.md), where recurring people, topics, and threads live and are recalled per-turn.
+- [Memory](memory.md), where recurring people, topics, and threads live and are recalled per-turn.
 - [Goals & To-dos](goals-and-todos.md), the goal-tracking surface that pairs with learned `goal/*` facets.
 - [Cron & Scheduling](native-tools/cron.md), the scheduled runs that keep working your workspace between turns.

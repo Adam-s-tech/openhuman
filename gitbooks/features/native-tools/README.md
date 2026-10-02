@@ -31,7 +31,7 @@ A plugin-only model means tools live in different processes, behind RPC, with th
 | [Browser & Computer Control](browser-and-computer.md) | Open URLs, inspect DOM snapshots, click, type, move the mouse.                                                                               |
 | [Cron & Scheduling](cron.md)                          | Recurring jobs, one-off reminders, scheduled agent runs.                                                                                     |
 | [Voice](voice.md)                                     | Speech-to-text in, text-to-speech out, live Google Meet agent.                                                                               |
-| [Memory Tools](memory-tools.md)                       | Recall, store, forget, and search the [Memory Tree](../memory.md).                                                        |
+| [Memory Tools](memory-tools.md)                       | Recall, store, forget, and search the [Memory](../memory.md).                                                        |
 | [Third-party Integrations](../integrations/README.md) | The agent's view of the [118+ connected services](../integrations/README.md).                                                                |
 | [Agent Coordination](agent-coordination.md)           | Spawn subagents, delegate to skills, plan, ask the user.                                                                                     |
 | [System & Utilities](system-and-utilities.md)         | Shell, node, SQL, current time, push notifications, LSP.                                                                                     |
