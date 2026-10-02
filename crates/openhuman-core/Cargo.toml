@@ -602,6 +602,10 @@ windows-sys = { version = "0.61", features = [
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
 
 [dev-dependencies]
+# The TinyMemory reference engine (an in-memory `MemoryEngine`) and the
+# behavioural suite every engine must pass. Memory unit tests bind it as the
+# engine instead of talking to CortexDB.
+tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-features = false, features = ["conformance"] }
 # Turns on `tinyflows-sqlite`'s `test-fixtures` gate for test builds only: the
 # flows test suite stages a terminal run flipped back to `running` and a
 # `graph_json` column that does not deserialize, neither of which any production
