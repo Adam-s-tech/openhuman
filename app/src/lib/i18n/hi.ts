@@ -4386,9 +4386,6 @@ const messages: TranslationMap = {
     'पसंद, गोपनीयता और सूचनाएं यहां हैं। आप इस पेज से यह टूर कभी भी फिर शुरू कर सकते हैं।',
   'walkthrough.steps.chatTab.title': 'चैट पर वापस जाएं',
   'walkthrough.steps.chatTab.content': 'जब भी बातचीत पर लौटना हो, Chat टैब का उपयोग करें।',
-  'walkthrough.steps.brainTab.title': 'अपना Brain खोलें',
-  'walkthrough.steps.brainTab.content':
-    'Brain मेमोरी ग्राफ है: यहां देखें कि OpenHuman क्या जानता है और विचार कैसे जुड़े हैं।',
   'walkthrough.steps.connectionsTab.title': 'कनेक्शन प्रबंधित करें',
   'walkthrough.steps.connectionsTab.content':
     'सेवाएं जोड़ने या बदलने के लिए Connections हमेशा मुख्य नेविगेशन में उपलब्ध है।',

@@ -4448,9 +4448,6 @@ const messages: TranslationMap = {
     'Preferências, privacidade e notificações ficam aqui. Você pode reiniciar este tour por esta página a qualquer momento.',
   'walkthrough.steps.chatTab.title': 'Volte ao chat',
   'walkthrough.steps.chatTab.content': 'Use a aba Chat sempre que quiser retornar às conversas.',
-  'walkthrough.steps.brainTab.title': 'Abra seu Brain',
-  'walkthrough.steps.brainTab.content':
-    'Brain é o grafo de memória: o lugar para ver o que o OpenHuman sabe e como as ideias se conectam.',
   'walkthrough.steps.connectionsTab.title': 'Gerencie conexões',
   'walkthrough.steps.connectionsTab.content':
     'Connections está sempre na navegação principal quando você quiser adicionar ou ajustar serviços.',

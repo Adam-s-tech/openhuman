@@ -4440,9 +4440,6 @@ const messages: TranslationMap = {
     'Preferencje, prywatność i powiadomienia są tutaj. Możesz uruchomić tę prezentację ponownie z tej strony.',
   'walkthrough.steps.chatTab.title': 'Wróć do czatu',
   'walkthrough.steps.chatTab.content': 'Użyj karty Chat, gdy chcesz wrócić do rozmów.',
-  'walkthrough.steps.brainTab.title': 'Otwórz Brain',
-  'walkthrough.steps.brainTab.content':
-    'Brain to graf pamięci: miejsce, w którym sprawdzisz, co wie OpenHuman i jak łączą się idee.',
   'walkthrough.steps.connectionsTab.title': 'Zarządzaj połączeniami',
   'walkthrough.steps.connectionsTab.content':
     'Connections jest zawsze dostępne w głównej nawigacji, gdy chcesz dodać lub zmienić usługi.',

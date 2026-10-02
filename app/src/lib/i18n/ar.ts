@@ -4302,9 +4302,6 @@ const messages: TranslationMap = {
     'التفضيلات والخصوصية والإشعارات كلها هنا. يمكنك إعادة تشغيل هذه الجولة من هذه الصفحة في أي وقت.',
   'walkthrough.steps.chatTab.title': 'ارجع إلى الدردشة',
   'walkthrough.steps.chatTab.content': 'استخدم تبويب Chat عندما تريد الرجوع إلى محادثاتك.',
-  'walkthrough.steps.brainTab.title': 'افتح Brain',
-  'walkthrough.steps.brainTab.content':
-    'Brain هو مخطط الذاكرة: المكان الذي تفحص فيه ما يعرفه OpenHuman وكيف ترتبط الأفكار.',
   'walkthrough.steps.connectionsTab.title': 'إدارة الاتصالات',
   'walkthrough.steps.connectionsTab.content':
     'Connections متاح دائماً في التنقل الرئيسي عندما تريد إضافة الخدمات أو تعديلها.',

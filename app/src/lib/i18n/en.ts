@@ -5189,9 +5189,6 @@ const en: TranslationMap = {
   'walkthrough.steps.chatTab.title': 'Jump back to chat',
   'walkthrough.steps.chatTab.content':
     'Use the Chat tab whenever you want to return to conversations.',
-  'walkthrough.steps.brainTab.title': 'Open your Brain',
-  'walkthrough.steps.brainTab.content':
-    'Brain is the memory graph: the place to inspect what OpenHuman knows and how ideas connect.',
   'walkthrough.steps.connectionsTab.title': 'Manage connections',
   'walkthrough.steps.connectionsTab.content':
     'Connections is always available from the main nav when you want to add or adjust services.',

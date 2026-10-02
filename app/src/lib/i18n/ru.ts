@@ -4427,9 +4427,6 @@ const messages: TranslationMap = {
   'walkthrough.steps.chatTab.title': 'Вернуться в чат',
   'walkthrough.steps.chatTab.content':
     'Используйте вкладку Chat, когда хотите вернуться к разговорам.',
-  'walkthrough.steps.brainTab.title': 'Откройте Brain',
-  'walkthrough.steps.brainTab.content':
-    'Brain: это граф памяти: здесь можно увидеть, что знает OpenHuman и как связаны идеи.',
   'walkthrough.steps.connectionsTab.title': 'Управляйте подключениями',
   'walkthrough.steps.connectionsTab.content':
     'Connections всегда доступен в основной навигации, когда нужно добавить или настроить сервисы.',

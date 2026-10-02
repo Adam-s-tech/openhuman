@@ -4141,9 +4141,6 @@ const messages: TranslationMap = {
     '偏好、隐私和通知都在这里。你可以随时从此页面重新开始本引导。',
   'walkthrough.steps.chatTab.title': '返回聊天',
   'walkthrough.steps.chatTab.content': '想回到对话时，使用 Chat 标签。',
-  'walkthrough.steps.brainTab.title': '打开 Brain',
-  'walkthrough.steps.brainTab.content':
-    'Brain 是记忆图谱，用来查看 OpenHuman 知道什么，以及想法如何相互连接。',
   'walkthrough.steps.connectionsTab.title': '管理连接',
   'walkthrough.steps.connectionsTab.content':
     '想添加或调整服务时，Connections 始终可从主导航进入。',

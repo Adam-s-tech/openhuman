@@ -4414,9 +4414,6 @@ const messages: TranslationMap = {
   'walkthrough.steps.chatTab.title': 'Kembali ke chat',
   'walkthrough.steps.chatTab.content':
     'Gunakan tab Chat kapan pun Anda ingin kembali ke percakapan.',
-  'walkthrough.steps.brainTab.title': 'Buka Brain Anda',
-  'walkthrough.steps.brainTab.content':
-    'Brain adalah grafik memori: tempat melihat apa yang diketahui OpenHuman dan bagaimana ide saling terhubung.',
   'walkthrough.steps.connectionsTab.title': 'Kelola koneksi',
   'walkthrough.steps.connectionsTab.content':
     'Connections selalu tersedia di navigasi utama saat Anda ingin menambah atau menyesuaikan layanan.',

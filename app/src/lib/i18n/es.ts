@@ -4464,9 +4464,6 @@ const messages: TranslationMap = {
   'walkthrough.steps.chatTab.title': 'Vuelve al chat',
   'walkthrough.steps.chatTab.content':
     'Usa la pestaña Chat cuando quieras volver a tus conversaciones.',
-  'walkthrough.steps.brainTab.title': 'Abre tu Brain',
-  'walkthrough.steps.brainTab.content':
-    'Brain es el grafo de memoria: el lugar para revisar qué sabe OpenHuman y cómo se conectan las ideas.',
   'walkthrough.steps.connectionsTab.title': 'Gestiona conexiones',
   'walkthrough.steps.connectionsTab.content':
     'Connections siempre está disponible en la navegación principal para agregar o ajustar servicios.',

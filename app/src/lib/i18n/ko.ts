@@ -4350,9 +4350,6 @@ const messages: TranslationMap = {
     '환경설정, 개인정보, 알림이 모두 여기에 있습니다. 이 페이지에서 언제든 투어를 다시 시작할 수 있습니다.',
   'walkthrough.steps.chatTab.title': '채팅으로 돌아가기',
   'walkthrough.steps.chatTab.content': '대화로 돌아가고 싶을 때 Chat 탭을 사용하세요.',
-  'walkthrough.steps.brainTab.title': 'Brain 열기',
-  'walkthrough.steps.brainTab.content':
-    'Brain은 메모리 그래프입니다. OpenHuman이 무엇을 알고 아이디어가 어떻게 연결되는지 확인하는 곳입니다.',
   'walkthrough.steps.connectionsTab.title': '연결 관리',
   'walkthrough.steps.connectionsTab.content':
     '서비스를 추가하거나 조정하고 싶을 때 Connections는 항상 기본 내비게이션에 있습니다.',

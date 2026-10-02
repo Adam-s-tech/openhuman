@@ -128,7 +128,10 @@ export function settingsRouteElements(): ReactNode {
 
       {/* ── Data ────────────────────────────────────────────────── */}
       {/* Data Sync is a first-class surface on the Brain page now. */}
-      <Route path="memory-sync" element={<Navigate to="/connections?tab=brain&brain=sync" replace />} />
+      <Route
+        path="memory-sync"
+        element={<Navigate to="/connections?tab=brain&brain=sync" replace />}
+      />
       {/* Wallet balances moved to the Connections page (Integrations group). */}
       <Route path="wallet-balances" element={<Navigate to="/connections?tab=wallet" replace />} />
       <Route path="recovery-phrase" element={wrapSettingsPage(<RecoveryPhrasePanel />)} />
