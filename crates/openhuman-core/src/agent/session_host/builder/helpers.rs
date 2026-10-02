@@ -137,7 +137,11 @@ pub(super) fn add_memory_prompt_sections(
     // is given, so a profile carrying only one write tool must not be told
     // about the other (review finding).
     let preferences = any_tool_offered(&[SAVE_PREFERENCE_TOOL], tools, delegation_tools, visible);
-    let facts = any_tool_offered(&[MEMORY_STORE_TOOL], tools, delegation_tools, visible);
+    let store_offered = any_tool_offered(&[MEMORY_STORE_TOOL], tools, delegation_tools, visible);
+    // The collapsed `memory` tool writes through its `learn` action; the legacy
+    // `memory_store` wins the wording only when both are held.
+    let memory_offered = any_tool_offered(&[MEMORY_TOOL], tools, delegation_tools, visible);
+    let facts = store_offered || memory_offered;
     // #6200: asked for as well as the pair, not instead of it. An agent whose
     // only write path is the delegate held the tool and no rule about using it
     // — the write-side twin of the read-side gap #6183 closed.
@@ -148,11 +152,11 @@ pub(super) fn add_memory_prompt_sections(
         visible,
     );
     if preferences || facts || delegate {
-        prompt_builder = prompt_builder.add_section(Box::new(MemoryWriteSection::new(
-            preferences,
-            facts,
-            delegate,
-        )));
+        let mut section = MemoryWriteSection::new(preferences, facts, delegate);
+        if memory_offered && !store_offered {
+            section = section.via_memory_tool();
+        }
+        prompt_builder = prompt_builder.add_section(Box::new(section));
         log::debug!(
             "[memory_write] prompt section registered for agent={agent_id} \
              save_preference={preferences} memory_store={facts} \
