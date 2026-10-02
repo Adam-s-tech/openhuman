@@ -56,16 +56,11 @@ pub struct AgentSettingsPatch {
     /// running core writes wherever `Config::save` actually points.
     pub chat_agent_id: Option<String>,
     /// How tool calls are spoken to the model (`[agent] tool_dispatcher`):
-    /// one of [`TOOL_DISPATCHER_CHOICES`] (case-insensitive). `None` leaves it
+    /// one of [`super::tool_dispatcher::TOOL_DISPATCHER_CHOICES`] (case-insensitive). `None` leaves it
     /// unchanged. Takes effect for new sessions; a resumed thread keeps the
     /// dialect its prompt was frozen with.
     pub tool_dispatcher: Option<String>,
 }
-
-/// Accepted spellings of `[agent] tool_dispatcher`. `auto` is the default:
-/// native structured calls when the provider supports them, else JSON-in-tag.
-pub const TOOL_DISPATCHER_CHOICES: [&str; 6] =
-    ["auto", "native", "xml", "pformat", "python", "typescript"];
 
 /// Partial update for the agent's editable filesystem roots.
 ///
@@ -222,6 +217,34 @@ pub async fn apply_agent_settings(
     update: AgentSettingsPatch,
 ) -> Result<Outcome<serde_json::Value>, String> {
     use crate::tools::timeout::{MAX_TIMEOUT_SECS, MIN_TIMEOUT_SECS};
+
+    if let Some(timeout_secs) = update.agent_timeout_secs {
+        if !(MIN_TIMEOUT_SECS..=MAX_TIMEOUT_SECS).contains(&timeout_secs) {
+            log::warn!(
+                "[config][agent] rejected agent_timeout_secs={timeout_secs} (valid {MIN_TIMEOUT_SECS}..={MAX_TIMEOUT_SECS})"
+            );
+            return Err(format!(
+                "agent_timeout_secs must be between {MIN_TIMEOUT_SECS} and {MAX_TIMEOUT_SECS} seconds (got {timeout_secs})"
+            ));
+        }
+    }
+
+    if let Some(chat_agent_id) = update.chat_agent_id.as_deref() {
+        let trimmed = chat_agent_id.trim();
+        if !trimmed.is_empty()
+            && !crate::agent::OpenHumanSessionHost::is_runnable_agent_id(config, trimmed)
+        {
+            return Err(format!(
+                "chat_agent_id '{trimmed}' is not a runnable agent definition"
+            ));
+        }
+    }
+
+    let tool_dispatcher = update
+        .tool_dispatcher
+        .as_deref()
+        .map(super::tool_dispatcher::normalize_tool_dispatcher)
+        .transpose()?;
 
     if let Some(timeout_secs) = update.agent_timeout_secs {
         if !(MIN_TIMEOUT_SECS..=MAX_TIMEOUT_SECS).contains(&timeout_secs) {

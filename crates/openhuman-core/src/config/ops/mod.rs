@@ -5,6 +5,7 @@ mod loader;
 mod model;
 mod privacy;
 mod sandbox;
+mod tool_dispatcher;
 mod search;
 mod ui;
 
