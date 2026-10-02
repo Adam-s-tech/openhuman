@@ -34,7 +34,7 @@ function WindowControls() {
   }, []);
 
   const buttonClass =
-    'flex h-8 w-[46px] items-center justify-center text-content-primary transition-colors hover:bg-content-faint/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-content-primary';
+    'flex h-8 w-[46px] items-center justify-center text-content transition-colors hover:bg-content-faint/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-content';
 
   return (
     <div
