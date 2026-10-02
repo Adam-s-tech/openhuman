@@ -9,7 +9,6 @@ use crate::agent::host_runtime;
 use crate::agent::prompts::SystemPromptBuilder;
 use crate::agent::session_host::types::OpenHumanSessionHost;
 use crate::config::Config;
-use crate::inference::provider;
 use crate::security::SecurityPolicy;
 use crate::tools;
 use anyhow::Result;
@@ -349,7 +348,7 @@ impl OpenHumanSessionHost {
         // fetched asynchronously on session start land in the prompt.
         // `Inline`/`File` sources still resolve to just the archetype
         // body and get wrapped by [`SystemPromptBuilder::for_subagent`].
-        let mut prompt_builder = match target_def {
+        let prompt_builder = match target_def {
             Some(def) => match &def.system_prompt {
                 PromptSource::Dynamic(build) => SystemPromptBuilder::from_dynamic(*build),
                 PromptSource::Inline(text) => SystemPromptBuilder::for_subagent(

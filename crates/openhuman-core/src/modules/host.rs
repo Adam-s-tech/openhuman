@@ -32,7 +32,6 @@
 //! and also prevents an embedding host from accidentally tying module lifetime
 //! to an independently managed application task runtime.
 
-use std::sync::Arc;
 use std::sync::OnceLock;
 
 use tinybus::broker::Broker;

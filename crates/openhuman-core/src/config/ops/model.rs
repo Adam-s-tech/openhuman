@@ -249,12 +249,6 @@ pub async fn apply_model_settings(
     config: &mut Config,
     update: ModelSettingsPatch,
 ) -> Result<Outcome<serde_json::Value>, String> {
-    // #5324: snapshot the embedder selection BEFORE applying the patch so the
-    // failed-job un-park below only fires when the embedder actually changed.
-    // This path also saves chat/reasoning/vision/etc. providers; without this
-    // gate, saving an unrelated model setting would restart every terminally
-    // `unrecoverable` embedding job and re-run the same external failure.
-    let prev_embeddings_provider = config.embeddings_provider.clone();
     if let Some(api_url) = update.api_url {
         config.api_url = if api_url.trim().is_empty() {
             None
