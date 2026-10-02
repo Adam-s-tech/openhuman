@@ -190,6 +190,7 @@ async fn spawn_capturing_sse_server() -> (String, std::sync::Arc<std::sync::Mute
 /// other, otherwise every call re-bills the whole stable prefix.
 #[tokio::test]
 async fn managed_stream_marks_the_cacheable_prefix_for_anthropic_models_only() {
+    use futures::StreamExt;
     use tinyinference_llm::model::{PromptSegment, SegmentRole};
 
     for (model, expect_markers) in [

@@ -263,12 +263,6 @@ impl OpenHumanBackendModel {
         Ok(
             OpenAiModel::compatible_provider(PROVIDER_LABEL, token, base_url, &self.default_model)
                 .with_native_tool_calling(self.native_tool_calling)
-                // The backend relays any caller-named upstream; Anthropic's prompt
-                // cache is opt-in, so a Claude model needs `cache_control`
-                // breakpoints (other upstreams cache on their own and never get
-                // them). Managed aliases (`hint:*`) resolve server-side, where the
-                // backend places the breakpoints itself.
-                .with_anthropic_cache_control(true)
                 .with_request_options(ProviderRequestOptions {
                     http: Some(managed_inference_http_client()),
                     ..ProviderRequestOptions::default()
