@@ -101,19 +101,19 @@ async fn pick_listen_port_openhuman_listener_falls_back_when_asked() {
     let holder = reserve_port();
     let preferred = holder.local_addr().expect("preferred local addr").port();
     drop(holder);
-    let fallback_holder = reserve_port();
-    let fallback = fallback_holder
-        .local_addr()
-        .expect("fallback local addr")
-        .port();
-    drop(fallback_holder);
+    // Use the same neighbouring-port candidates as production instead of
+    // sampling and releasing one ephemeral port. Other parallel tests can
+    // claim a released ephemeral port before this listener binds it.
+    let fallbacks: Vec<u16> = (1..=10)
+        .filter_map(|delta| preferred.checked_add(delta))
+        .collect();
 
     let (server_task, shutdown_tx) = spawn_openhuman_probe_listener(preferred).await;
 
     let picked = pick_listen_port_with_policy(
         "127.0.0.1",
         preferred,
-        &[fallback],
+        &fallbacks,
         RetryPolicy {
             attempts: 1,
             backoff: Duration::from_millis(10),
@@ -122,7 +122,7 @@ async fn pick_listen_port_openhuman_listener_falls_back_when_asked() {
     )
     .await
     .expect("a live neighbouring core should not block a headless core");
-    assert_eq!(picked.port, fallback);
+    assert!(fallbacks.contains(&picked.port));
     assert_eq!(picked.fallback_from, Some(preferred));
 
     let _ = shutdown_tx.send(());
