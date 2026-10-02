@@ -43,6 +43,10 @@ budget_tokens = 2000
 
 Old `[subsystems.memory]` and v1 `[memory]` keys are ignored.
 
+Out of scope: `memory::conversations` (the chat thread/message JSONL store over
+`tinymemory-conversations`) is thread persistence, not memory. It stays, and
+moves to `threads::store` so that `memory/` holds only v2.
+
 ## Agent tool: `memory`
 
 There is one tool. Its `action` is `recall` | `fetch` | `learn` | `forget`:
