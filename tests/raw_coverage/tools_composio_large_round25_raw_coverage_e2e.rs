@@ -27,7 +27,7 @@ use openhuman_core::integrations::composio::{
 use openhuman_core::tools::ComposioListToolsTool;
 use tinytools::{Tool, ToolCallOptions};
 
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 #[derive(Clone, Debug)]
 struct RecordedRequest {

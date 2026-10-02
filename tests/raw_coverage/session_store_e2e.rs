@@ -52,7 +52,7 @@ static AUTH_INIT: OnceLock<()> = OnceLock::new();
 /// nothing: every `tests/raw_coverage/` suite is a module in the one
 /// `raw_coverage_all` binary, so libtest runs them concurrently in one process
 /// and only the shared mutex actually excludes another suite's `set_var`.
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 // ── Env isolation ─────────────────────────────────────────────────────────
 

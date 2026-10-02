@@ -53,7 +53,7 @@ fn json_rpc_e2e_env_lock() -> tokio::sync::MutexGuard<'static, ()> {
         std::env::set_var("OPENHUMAN_KEYRING_BACKEND", "file");
     });
     let mutex = JSON_RPC_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    // Recover from poison so that a panic in one test does not cascade to all others.
+    // A tokio mutex is never poisoned, so a panic in one test cannot cascade to the others.
     mutex.blocking_lock()
 }
 
@@ -62,7 +62,7 @@ async fn json_rpc_e2e_env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
         std::env::set_var("OPENHUMAN_KEYRING_BACKEND", "file");
     });
     let mutex = JSON_RPC_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    // Recover from poison so that a panic in one test does not cascade to all others.
+    // A tokio mutex is never poisoned, so a panic in one test cannot cascade to the others.
     mutex.lock().await
 }
 

@@ -38,7 +38,7 @@ pub const SESSION_USER_ID: &str = "w4-user";
 
 static AUTH_INIT: OnceLock<String> = OnceLock::new();
 /// The crate-wide env mutex, not a private one — see the module note above.
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 static KEYRING_INIT: OnceLock<()> = OnceLock::new();
 
 /// Serializes every case that touches process-global env (`HOME`,

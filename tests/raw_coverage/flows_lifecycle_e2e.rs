@@ -44,7 +44,7 @@ static AUTH_INIT: OnceLock<()> = OnceLock::new();
 /// The crate-wide env lock, not a private one. Every aggregated suite in
 /// `raw_coverage_all` shares one process, so libtest runs them concurrently
 /// and a lock local to this file would isolate nothing.
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 /// Serializes every case in this binary: `HOME` and the backend-URL overrides
 /// are process-global, so two cases running in parallel would resolve each

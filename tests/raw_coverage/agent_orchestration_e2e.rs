@@ -43,7 +43,7 @@ static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 /// The crate-wide env lock, not a private one. Every aggregated suite in
 /// `raw_coverage_all` shares one process, so libtest runs them concurrently
 /// and a lock local to this file would isolate nothing.
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK

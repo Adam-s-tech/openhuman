@@ -54,7 +54,7 @@ struct SeenRequest {
 /// as a flaky failure under `cargo llvm-cov` (the coverage job does not pass
 /// `--test-threads=1`). Every test takes this guard up front so the suite is
 /// effectively serialized regardless of the runner's thread count.
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK

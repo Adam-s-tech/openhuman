@@ -55,7 +55,7 @@ use openhuman_core::inference::host_runtime::all_local_inference_registered_cont
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK

@@ -35,7 +35,7 @@ use openhuman_rpc::server::build_core_http_router;
 const TEST_RPC_TOKEN: &str = "tool-registry-approval-raw-e2e-token";
 
 static AUTH_INIT: OnceLock<()> = OnceLock::new();
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 struct TestHarness {
     _tmp: TempDir,

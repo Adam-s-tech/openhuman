@@ -49,7 +49,7 @@ static AUTH_INIT: OnceLock<()> = OnceLock::new();
 
 /// Crate-wide, not file-local: all aggregated suites share one process, so a
 /// private mutex would not mutually exclude with anyone else's env mutation.
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK

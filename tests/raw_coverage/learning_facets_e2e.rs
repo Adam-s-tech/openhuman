@@ -60,7 +60,7 @@ static AUTH_INIT: OnceLock<()> = OnceLock::new();
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 
 /// The crate-wide env lock — see the module docs.
-static ENV_LOCK: &OnceLock<tokio::sync:: tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK
