@@ -196,457 +196,148 @@ fn render_subagent_system_prompt_honors_identity_safety_and_skills_flags() {
     let _ = std::fs::remove_dir_all(workspace);
 }
 
-#[test]
-fn render_subagent_system_prompt_injects_profile_md_even_when_identity_omitted() {
-    // Regression: an agent with `omit_identity = true` drops the SOUL/IDENTITY
-    // preamble but still needs PROFILE.md if `include_profile = true`.
-    // PROFILE.md is gated on its own flag so agents can opt in without
-    // pulling SOUL/IDENTITY back in.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_profile_nosoul_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(workspace.join("SOUL.md"), "# Soul\nShould be hidden").unwrap();
-    std::fs::write(
-        workspace.join("IDENTITY.md"),
-        "# Identity\nShould be hidden",
-    )
-    .unwrap();
-    std::fs::write(
-        workspace.join("PROFILE.md"),
-        "# User Profile\nName: Jane Doe\nRole: Data scientist",
-    )
-    .unwrap();
-
+/// Render a sub-agent prompt over a scratch workspace holding `files`, with the
+/// PFormat tool-call format and the single `TestTool`.
+fn render_with_files(files: &[(&str, &str)], options: SubagentRenderOptions) -> String {
+    let workspace = tempfile::tempdir().expect("tempdir");
+    for (name, body) in files {
+        std::fs::write(workspace.path().join(name), body).unwrap();
+    }
     let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
+    render_subagent_system_prompt(
+        workspace.path(),
         "test-model",
         &[0],
         &tools,
         &[],
         "You are a specialist agent.",
-        SubagentRenderOptions {
-            include_identity: false,
-            include_safety_preamble: false,
-            include_profile: true,
-            include_memory_md: false,
-        },
+        options,
         ToolCallFormat::PFormat,
         &[],
-    );
+    )
+}
 
-    assert!(
-        rendered.contains("### PROFILE.md"),
-        "PROFILE.md header must appear when include_profile=true, got:\n{rendered}"
-    );
-    assert!(
-        rendered.contains("Jane Doe"),
-        "PROFILE.md body must be injected when include_profile=true, got:\n{rendered}"
-    );
-    assert!(
-        !rendered.contains("## Project Context"),
-        "identity preamble must still be suppressed when include_identity=false"
-    );
+fn only(identity: bool, profile: bool, memory: bool) -> SubagentRenderOptions {
+    SubagentRenderOptions {
+        include_identity: identity,
+        include_safety_preamble: false,
+        include_profile: profile,
+        include_memory_md: memory,
+    }
+}
+
+const PROFILE: &str = "# User Profile\nName: Jane Doe\nRole: Data scientist";
+const MEMORY: &str = "# Long-term memory\nUser prefers terse Rust answers.";
+
+#[test]
+fn subagent_profile_md_follows_include_profile_flag_independent_of_identity() {
+    // include_profile=true injects PROFILE.md even with the identity preamble
+    // omitted (SOUL/IDENTITY stay hidden); with identity on, all three appear.
+    let soul = [
+        ("SOUL.md", "# Soul\nctx"),
+        ("IDENTITY.md", "# Identity\nctx"),
+        ("PROFILE.md", PROFILE),
+    ];
+    let rendered = render_with_files(&soul, only(false, true, false));
+    assert!(rendered.contains("### PROFILE.md"), "{rendered}");
+    assert!(rendered.contains("Jane Doe"), "{rendered}");
+    assert!(!rendered.contains("## Project Context"), "{rendered}");
     assert!(
         !rendered.contains("### SOUL.md") && !rendered.contains("### IDENTITY.md"),
-        "SOUL/IDENTITY must still be suppressed when include_identity=false"
+        "{rendered}"
     );
 
-    let _ = std::fs::remove_dir_all(workspace);
-}
+    let rendered = render_with_files(&soul, only(true, true, false));
+    for header in [
+        "## Project Context",
+        "### SOUL.md",
+        "### IDENTITY.md",
+        "### PROFILE.md",
+    ] {
+        assert!(rendered.contains(header), "{header}: {rendered}");
+    }
 
-#[test]
-fn render_subagent_system_prompt_skips_profile_md_when_include_profile_false() {
-    // Mirror of the opt-in regression above: narrow specialists
-    // (planner, code_executor, critic, …) set `omit_profile = true`
-    // and must NOT see PROFILE.md even when the file is on disk —
-    // otherwise every sub-agent pays the token cost of onboarding
-    // enrichment output that is irrelevant to their task.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_profile_opt_out_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(
-        workspace.join("PROFILE.md"),
-        "# User Profile\nName: Jane Doe\nRole: Data scientist",
-    )
-    .unwrap();
-
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a narrow specialist.",
-        SubagentRenderOptions::narrow(), // include_profile defaults to false
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
-    assert!(
-        !rendered.contains("### PROFILE.md"),
-        "PROFILE.md must NOT appear when include_profile=false, got:\n{rendered}"
-    );
-    assert!(
-        !rendered.contains("Jane Doe"),
-        "PROFILE.md body must NOT be leaked when include_profile=false"
-    );
-
-    let _ = std::fs::remove_dir_all(workspace);
-}
-
-#[test]
-fn render_subagent_system_prompt_frames_memory_md_as_background() {
-    // GH-4745 regression for the sub-agent path: Inline/File sub-agents inject
-    // MEMORY.md through `render_subagent_system_prompt`, a separate renderer
-    // from `UserFilesSection`. It must share the same background-memory frame,
-    // otherwise a fresh thread reads the bare `### MEMORY.md` block as prior
-    // in-thread conversation and asserts continuity that isn't there.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_subagent_memory_framing_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(
-        workspace.join("MEMORY.md"),
-        "# Long-term memory\nReviewed `def f(x)` last week; user prefers terse notes.",
-    )
-    .unwrap();
-
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a specialist agent.",
-        SubagentRenderOptions {
-            include_identity: false,
-            include_safety_preamble: false,
-            include_profile: false,
-            include_memory_md: true,
-        },
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
-    assert!(
-        rendered.contains("### MEMORY.md") && rendered.contains("terse notes"),
-        "MEMORY.md must still be injected in the sub-agent path, got:\n{rendered}"
-    );
-    assert!(
-        rendered.contains("background — not this conversation"),
-        "sub-agent MEMORY.md must be framed as durable background memory, got:\n{rendered}"
-    );
-    let frame_at = rendered.find("background — not this conversation").unwrap();
-    let heading_at = rendered.find("### MEMORY.md").unwrap();
-    assert!(
-        frame_at < heading_at,
-        "the guardrail note must precede the MEMORY.md block, got:\n{rendered}"
-    );
-
-    let _ = std::fs::remove_dir_all(workspace);
-}
-
-#[test]
-fn render_subagent_system_prompt_omits_memory_framing_when_no_memory_content() {
-    // Companion to the framing test: with `include_memory_md = true` but no
-    // MEMORY.md on disk (a genuinely fresh workspace) the dangling frame must
-    // NOT appear — emitting a "background memory" note pointing at nothing
-    // would itself imply phantom history.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_subagent_memory_noframe_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a specialist agent.",
-        SubagentRenderOptions {
-            include_identity: false,
-            include_safety_preamble: false,
-            include_profile: false,
-            include_memory_md: true,
-        },
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
-    assert!(
-        !rendered.contains("background — not this conversation"),
-        "no MEMORY.md content → no dangling framing note in sub-agent path, got:\n{rendered}"
-    );
-
-    let _ = std::fs::remove_dir_all(workspace);
-}
-
-#[test]
-fn render_subagent_system_prompt_injects_profile_md_when_identity_included() {
-    // When identity is on, PROFILE.md must still be injected alongside
-    // SOUL/IDENTITY — the split must not regress the non-welcome path.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_profile_with_identity_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(workspace.join("SOUL.md"), "# Soul\nctx").unwrap();
-    std::fs::write(workspace.join("IDENTITY.md"), "# Identity\nctx").unwrap();
-    std::fs::write(workspace.join("PROFILE.md"), "# User Profile\nhello").unwrap();
-
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a specialist.",
-        SubagentRenderOptions {
-            include_identity: true,
-            include_safety_preamble: false,
-            include_profile: true,
-            include_memory_md: false,
-        },
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
-    assert!(rendered.contains("## Project Context"));
-    assert!(rendered.contains("### SOUL.md"));
-    assert!(rendered.contains("### IDENTITY.md"));
-    assert!(rendered.contains("### PROFILE.md"));
-    assert!(rendered.contains("hello"));
-
-    let _ = std::fs::remove_dir_all(workspace);
+    // include_profile=false never leaks the file, even when it is on disk.
+    let rendered = render_with_files(&soul, SubagentRenderOptions::narrow());
+    assert!(!rendered.contains("### PROFILE.md"), "{rendered}");
+    assert!(!rendered.contains("ctx"), "{rendered}");
 }
 
 #[test]
 fn render_subagent_system_prompt_silently_skips_missing_profile_md() {
-    // Pre-onboarding workspaces have no PROFILE.md. The renderer must
-    // not emit a noisy "[File not found: PROFILE.md]" placeholder or
-    // an orphan "### PROFILE.md" header — the subagent prompt stays
-    // focused on tools.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_profile_missing_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a specialist agent.",
-        SubagentRenderOptions::narrow(),
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
-    assert!(
-        !rendered.contains("### PROFILE.md"),
-        "empty/missing PROFILE.md should not emit a header, got:\n{rendered}"
-    );
+    // Pre-onboarding workspaces have no PROFILE.md: no orphan header, no
+    // "[File not found]" placeholder.
+    let rendered = render_with_files(&[], only(false, true, false));
+    assert!(!rendered.contains("### PROFILE.md"), "{rendered}");
     assert!(
         !rendered.contains("[File not found: PROFILE.md]"),
-        "missing PROFILE.md should be silent, not a noisy placeholder"
+        "{rendered}"
     );
-
-    let _ = std::fs::remove_dir_all(workspace);
 }
 
 #[test]
-fn narrow_agent_with_omit_identity_still_loads_profile_md() {
-    // Verify that an agent configured with omit_identity=true/
-    // omit_safety_preamble=true/omit_profile=false still gets PROFILE.md injected.
-    // This exercises the SubagentRenderOptions::from_definition_flags path for agents
-    // that want PROFILE.md without the full SOUL/IDENTITY preamble.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_narrow_agent_flags_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(
-        workspace.join("PROFILE.md"),
-        "# User Profile\nTimezone: PST\nRole: Crypto trader",
-    )
-    .unwrap();
-
-    let options = SubagentRenderOptions::from_definition_flags(
-        true,  // omit_identity
-        true,  // omit_safety_preamble
-        false, // omit_profile   — opts IN to PROFILE.md
-        false, // omit_memory_md — opts IN to MEMORY.md too
+fn subagent_definition_flags_gate_profile_md() {
+    // omit_profile=false opts IN even with omit_identity=true.
+    let rendered = render_with_files(
+        &[("PROFILE.md", PROFILE)],
+        SubagentRenderOptions::from_definition_flags(true, true, false, false),
     );
+    assert!(rendered.contains("### PROFILE.md"), "{rendered}");
+    assert!(rendered.contains("Jane Doe"), "{rendered}");
 
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "# Specialist Agent\n\nYou are a specialist.",
-        options,
-        ToolCallFormat::PFormat,
-        &[],
+    // A narrow specialist (every omit_* true) must not see it.
+    let rendered = render_with_files(
+        &[("PROFILE.md", PROFILE)],
+        SubagentRenderOptions::from_definition_flags(true, true, true, true),
     );
-
-    assert!(
-        rendered.contains("### PROFILE.md"),
-        "agent with omit_profile=false must load PROFILE.md, got:\n{rendered}"
-    );
-    assert!(
-        rendered.contains("Crypto trader"),
-        "PROFILE.md body must reach the agent prompt"
-    );
-
-    let _ = std::fs::remove_dir_all(workspace);
+    assert!(!rendered.contains("### PROFILE.md"), "{rendered}");
+    assert!(!rendered.contains("Jane Doe"), "{rendered}");
 }
 
 #[test]
-fn narrow_subagent_definition_flags_skip_profile_md() {
-    // Inverse of `welcome_agent_definition_flags_still_load_profile_md`:
-    // a narrow specialist (e.g. `code_executor`, `critic`) leaves
-    // `omit_profile` at its default `true`. PROFILE.md must NOT be
-    // injected even when present on disk — the narrow runner is
-    // task-focused and should not pay the token cost.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_narrow_flags_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(
-        workspace.join("PROFILE.md"),
-        "# User Profile\nTimezone: PST\nRole: Crypto trader",
-    )
-    .unwrap();
-
-    // Mirrors e.g. `critic/agent.toml` — all omit_* default-true.
-    let options = SubagentRenderOptions::from_definition_flags(true, true, true, true);
-
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a narrow specialist.",
-        options,
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
-    assert!(
-        !rendered.contains("### PROFILE.md"),
-        "narrow specialist (omit_profile=true) must NOT load PROFILE.md, got:\n{rendered}"
+fn render_subagent_system_prompt_frames_memory_md_as_background() {
+    // GH-4745: sub-agent MEMORY.md must share the background-memory frame so a
+    // fresh thread does not read it as prior in-thread conversation.
+    let rendered = render_with_files(
+        &[(
+            "MEMORY.md",
+            "# Long-term memory\nReviewed `def f(x)` last week; user prefers terse notes.",
+        )],
+        only(false, false, true),
     );
     assert!(
-        !rendered.contains("Crypto trader"),
-        "narrow specialist must not leak PROFILE.md body"
+        rendered.contains("### MEMORY.md") && rendered.contains("terse notes"),
+        "{rendered}"
     );
-
-    let _ = std::fs::remove_dir_all(workspace);
+    let frame_at = rendered
+        .find("background — not this conversation")
+        .unwrap_or_else(|| panic!("missing background frame: {rendered}"));
+    let heading_at = rendered.find("### MEMORY.md").unwrap();
+    assert!(
+        frame_at < heading_at,
+        "frame must precede block: {rendered}"
+    );
 }
 
 #[test]
-fn render_subagent_system_prompt_injects_memory_md_when_enabled() {
-    // Opt-in agents with `omit_memory_md = false` must see MEMORY.md
-    // (archivist-curated long-term memory) in their rendered prompt.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_memory_on_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(
-        workspace.join("MEMORY.md"),
-        "# Long-term memory\nUser prefers terse Rust answers.",
-    )
-    .unwrap();
-
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a specialist agent.",
-        SubagentRenderOptions {
-            include_identity: false,
-            include_safety_preamble: false,
-            include_profile: false,
-            include_memory_md: true,
-        },
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
+fn render_subagent_system_prompt_omits_memory_framing_when_no_memory_content() {
+    // include_memory_md=true but no MEMORY.md on disk: no dangling frame.
+    let rendered = render_with_files(&[], only(false, false, true));
     assert!(
-        rendered.contains("### MEMORY.md"),
-        "MEMORY.md header must appear when include_memory_md=true, got:\n{rendered}"
+        !rendered.contains("background — not this conversation"),
+        "{rendered}"
     );
-    assert!(
-        rendered.contains("terse Rust answers"),
-        "MEMORY.md body must be injected when include_memory_md=true"
-    );
-
-    let _ = std::fs::remove_dir_all(workspace);
 }
 
 #[test]
-fn render_subagent_system_prompt_skips_memory_md_when_disabled() {
-    // Narrow specialists with `omit_memory_md = true` (the default)
-    // must NOT see MEMORY.md even when it exists on disk.
-    let workspace = std::env::temp_dir().join(format!(
-        "openhuman_prompt_memory_off_{}",
-        uuid::Uuid::new_v4()
-    ));
-    std::fs::create_dir_all(&workspace).unwrap();
-    std::fs::write(
-        workspace.join("MEMORY.md"),
-        "# Long-term memory\nUser prefers terse Rust answers.",
-    )
-    .unwrap();
+fn subagent_memory_md_follows_include_memory_flag() {
+    let rendered = render_with_files(&[("MEMORY.md", MEMORY)], only(false, false, true));
+    assert!(rendered.contains("### MEMORY.md"), "{rendered}");
+    assert!(rendered.contains("terse Rust answers"), "{rendered}");
 
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
-    let rendered = render_subagent_system_prompt(
-        &workspace,
-        "test-model",
-        &[0],
-        &tools,
-        &[],
-        "You are a narrow specialist.",
-        SubagentRenderOptions::narrow(),
-        ToolCallFormat::PFormat,
-        &[],
-    );
-
-    assert!(
-        !rendered.contains("### MEMORY.md"),
-        "MEMORY.md must NOT appear when include_memory_md=false, got:\n{rendered}"
-    );
-    assert!(
-        !rendered.contains("terse Rust answers"),
-        "MEMORY.md body must not leak when include_memory_md=false"
-    );
-
-    let _ = std::fs::remove_dir_all(workspace);
+    let rendered = render_with_files(&[("MEMORY.md", MEMORY)], SubagentRenderOptions::narrow());
+    assert!(!rendered.contains("### MEMORY.md"), "{rendered}");
+    assert!(!rendered.contains("terse Rust answers"), "{rendered}");
 }
 
 #[test]

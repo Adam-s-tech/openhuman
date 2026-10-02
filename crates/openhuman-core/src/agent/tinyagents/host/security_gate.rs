@@ -79,7 +79,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use tinyagents_harness::error::{Result as TaResult, TinyAgentsError};
+use tinyagents_harness::error::Result as TaResult;
 use tinyagents_harness::host::security_gate::{
     ContentOrigin, GateDecision, ScreenOutcome, SecurityGate, ToolCallRequest,
 };
@@ -305,11 +305,15 @@ impl OpenHumanSecurityGate {
 
     /// Parks the turn on the human approval flow and reports how it settled.
     ///
-    /// Returns [`GateDecision::Prompted`] whichever way it resolves — including
-    /// the TTL timeout, which `ApprovalGate` itself renders as a `Deny`. That is
-    /// the whole point of the `Prompted` variant: the interactive flow stays
-    /// host-side and the runtime only sees the settled answer, never a hint that
-    /// a human was (or was not) at the keyboard.
+    /// An approval returns [`GateDecision::Prompted`]; a refusal — a Deny, the
+    /// TTL timeout, or a dropped channel, all of which `ApprovalGate` renders as
+    /// a `Deny` — returns [`GateDecision::Deny`] via [`decision_for_outcome`].
+    /// A `Prompted { approved: false }` carries no reason, so the harness fell
+    /// back to a bare "tool call was not approved": the model then asked the
+    /// user to approve, or reached the same result through `shell` instead.
+    /// The Deny text gives it the parity `ApprovalSecurityMiddleware` already
+    /// had, while still never hinting that a human was (or was not) at the
+    /// keyboard.
     async fn park_for_approval(&self, call: &ToolCallRequest) -> GateDecision {
         let Some(gate) = ApprovalGate::try_global() else {
             // Parity with `ApprovalSecurityMiddleware`: no gate installed means
@@ -340,30 +344,50 @@ impl OpenHumanSecurityGate {
         let (outcome, request_id) = gate
             .intercept_audited(&call.tool_name, &summary, redacted)
             .await;
-        match outcome {
-            GateOutcome::Allow => {
-                // Only an approval that persisted a row yields an id; the
-                // session-allowlist shortcut returns `None` and has nothing to
-                // record. A call with no `call_id` cannot be correlated back,
-                // so the id is dropped rather than stored under a key no
-                // executor can ask for.
-                if let (Some(request_id), Some(call_id)) = (request_id, call.call_id.as_ref()) {
-                    self.pending_audit
-                        .lock()
-                        .unwrap_or_else(|poisoned| poisoned.into_inner())
-                        .insert(call_id.as_str().to_string(), request_id);
-                }
-                GateDecision::Prompted { approved: true }
+        if matches!(outcome, GateOutcome::Allow) {
+            // Only an approval that persisted a row yields an id; the
+            // session-allowlist shortcut returns `None` and has nothing to
+            // record. A call with no `call_id` cannot be correlated back, so
+            // the id is dropped rather than stored under a key no executor can
+            // ask for.
+            if let (Some(request_id), Some(call_id)) = (request_id, call.call_id.as_ref()) {
+                self.pending_audit
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .insert(call_id.as_str().to_string(), request_id);
             }
-            GateOutcome::Deny { reason } => {
-                tracing::warn!(
-                    target: "tinyagents",
-                    tool = %call.tool_name,
-                    reason = %reason,
-                    "[tinyagents::host::security] approval flow declined the tool call"
-                );
-                GateDecision::Prompted { approved: false }
-            }
+        }
+        decision_for_outcome(&call.tool_name, outcome)
+    }
+}
+
+/// Maps how the approval flow settled to what the runtime is told.
+///
+/// A refusal is a `Deny` whose text names no human and no timeout — every
+/// refusal reads the same — and rules out other routes explicitly, because
+/// `shell` never prompts while autonomy is disabled (`[autonomy] enabled =
+/// false`, the default) and was used to redo a refused call.
+///
+/// The text carries no `[policy-denied]` marker on purpose. The marker
+/// classifies as a policy failure with a zero recovery budget
+/// (`middleware::repeated_failure`), which pauses the turn before the model can
+/// answer. The model must get this turn to tell the user the action was not
+/// done, as it did with the harness's unmarked fallback text.
+fn decision_for_outcome(tool_name: &str, outcome: GateOutcome) -> GateDecision {
+    match outcome {
+        GateOutcome::Allow => GateDecision::Prompted { approved: true },
+        GateOutcome::Deny { reason } => {
+            tracing::warn!(
+                target: "tinyagents",
+                tool = %tool_name,
+                reason = %reason,
+                "[tinyagents::host::security] approval flow declined the tool call"
+            );
+            GateDecision::deny(
+                "This action was refused and must not be performed this turn — do not retry this \
+                 call and do not achieve the same result another way (shell, CLI, another tool). \
+                 Tell the user it was not done.",
+            )
         }
     }
 }
@@ -650,16 +674,6 @@ impl SecurityGate for OpenHumanSecurityGate {
             }
         }
     }
-}
-
-/// Marks a verdict the gate could not reach at all (storage down, config
-/// unreadable). Callers fail closed on it; a *policy* refusal is a `Deny`, not
-/// an error. Nothing in this adapter currently produces one — every branch
-/// reaches a decision — but the helper keeps the distinction explicit for the
-/// storage-backed checks a later slice may add.
-#[allow(dead_code)]
-pub(crate) fn gate_unavailable(detail: impl std::fmt::Display) -> TinyAgentsError {
-    TinyAgentsError::Capability(format!("security gate could not reach a verdict: {detail}"))
 }
 
 #[cfg(test)]

@@ -130,11 +130,6 @@ impl CollapsedDelegationTool {
                 .collect(),
         )
     }
-
-    /// The routable names, for the prompt renderer and the tests.
-    pub fn target_names(&self) -> Vec<&str> {
-        self.agent_enum()
-    }
 }
 
 fn build_description(targets: &[DelegateTarget]) -> String {
@@ -401,7 +396,6 @@ pub(crate) async fn execute_collapsed_delegation_with_live_parent(
         &target.agent_id,
         &target.tool_name,
         &prompt,
-        None,
         model_override,
         tool_context,
         mode,

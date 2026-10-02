@@ -16,10 +16,10 @@ use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ModelRequest, ModelResponse, ResolvedModelRoute};
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
-use crate::agent::harness::tool_result_artifacts::ToolResultArtifactStore;
 use crate::agent::tinyagents::payload_summarizer::PayloadSummarizer;
 use crate::agent::tinyagents::turn_outcome::ToolCallOutcome;
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
+use tinyagents_harness::artifacts::tool_results::ToolResultArtifactStore;
 
 use super::tool_output::ToolOutputMiddleware;
 
@@ -285,18 +285,16 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 guard.input_tokens += usage.input_tokens;
                 guard.output_tokens += usage.output_tokens;
                 guard.cached_input_tokens += usage.cache_read_tokens;
-                let host_usage = crate::agent::tinyagents::model::usage_info_from_response(
-                    response,
-                )
-                .unwrap_or(crate::inference::provider::UsageInfo {
-                    input_tokens: usage.input_tokens,
-                    output_tokens: usage.output_tokens,
-                    context_window: 0,
-                    cached_input_tokens: usage.cache_read_tokens,
-                    cache_creation_tokens: usage.cache_creation_tokens,
-                    reasoning_tokens: usage.reasoning_tokens,
-                    charged_amount_usd: 0.0,
-                });
+                let host_usage =
+                    crate::agent::tinyagents::model::usage_info_from_response(response).unwrap_or(
+                        crate::inference::provider::BilledUsage::from_counts(
+                            usage.input_tokens,
+                            usage.output_tokens,
+                        )
+                        .with_cached_input_tokens(usage.cache_read_tokens)
+                        .with_cache_creation_tokens(usage.cache_creation_tokens)
+                        .with_reasoning_tokens(usage.reasoning_tokens),
+                    );
                 // Use the host's per-call pricing helper whenever the provider
                 // omitted an authoritative amount. `route` is preferred over a
                 // construction-time model because it preserves fallback pricing.

@@ -13,7 +13,8 @@ use crate::tools::agent_policy::{
     TaskProfile, TaskRiskLevel, ToolCapability, ToolPolicyAction, ToolPolicyDecision,
     ToolPolicySession,
 };
-use crate::tools::toolpacks::{append_pack_tools, bind_pack_registry, USE_SKILL};
+use crate::tools::toolpacks::{append_pack_tools, bind_pack_registry};
+use tinyagents_harness::tool::packs::USE_SKILL;
 use tinytools::{PermissionLevel, ToolResult};
 
 struct RoutingFakeTool(&'static str);
@@ -395,7 +396,7 @@ async fn a_prompt_hidden_delegate_is_not_offered_as_a_direct_route() {
     // delegate prompt-hidden and therefore NOT directly callable.
     let mut visible: std::collections::HashSet<String> =
         tools.iter().map(|t| t.name().to_string()).collect();
-    strip_packed_from_visible(&mut visible, "orchestrator");
+    strip_packed_from_visible(&mut visible, "unrelated_agent");
     assert!(
         !visible.contains("build_workflow"),
         "precondition: the delegate is prompt-hidden here"

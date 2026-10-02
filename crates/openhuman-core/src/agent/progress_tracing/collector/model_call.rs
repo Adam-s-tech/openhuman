@@ -3,10 +3,10 @@
 
 use std::collections::BTreeMap;
 
-use crate::agent::progress_tracing::serialize::{
+use tinyagents_harness::observability::trace_export::serialize::{
     capture_model_content, json_f64, json_str, json_u32, json_u64,
 };
-use crate::agent::progress_tracing::types::{SpanKind, SpanStatus};
+use tinyagents_harness::observability::trace_export::{SpanKind, SpanStatus};
 
 use super::state::SpanCollector;
 
@@ -20,7 +20,7 @@ impl SpanCollector {
     ///    (`gen_ai.provider`) and the pricing basis the local estimator uses;
     /// 2. record the captured request messages (incl. the system prompt) and
     ///    completion as the generation's input/output, gated on
-    ///    `capture_content` and truncated to [`crate::agent::progress_tracing::serialize::MAX_MODEL_CONTENT_CHARS`];
+    ///    `capture_content` and truncated to [`tinyagents_harness::observability::trace_export::serialize::MAX_MODEL_CONTENT_CHARS`];
     /// 3. accumulate reasoning / cache-creation tokens onto the root turn
     ///    span, which `TurnCostUpdated` (cumulative rollup) does not carry —
     ///    and, for child calls, roll model + usage onto the subagent span so
@@ -73,6 +73,13 @@ impl SpanCollector {
             .and_then(|idx| self.spans.get(idx))
             .map(|span| span.start_unix_ms)
             .unwrap_or(now_unix_ms);
+        // Consume this call's first-delta stamps so the next call on the same
+        // iteration (a retry, a repair) starts clean.
+        let first_deltas = match subagent_task_id.and_then(|id| self.subagents.get_mut(id)) {
+            Some(state) => std::mem::take(&mut state.first_deltas),
+            None if subagent_task_id.is_some() => Default::default(),
+            None => std::mem::take(&mut self.first_deltas),
+        };
 
         let labeled_model = format!("{provider_id}.{model}");
         let pricing = crate::agent::cost::lookup_pricing(model);
@@ -107,6 +114,26 @@ impl SpanCollector {
             );
         }
         attrs.insert("gen_ai.usage.cost_usd".to_string(), json_f64(cost_usd));
+        // Time to first token. Deltas only arrive on streamed calls, so a
+        // unary call carries neither attribute. Clamped to the span start: the
+        // iteration span opening is the call's approximate start.
+        if let Some(first) = first_deltas.any_unix_ms {
+            let first = first.max(start_unix_ms);
+            attrs.insert(
+                "gen_ai.response.first_token_unix_ms".to_string(),
+                json_u64(first),
+            );
+            attrs.insert(
+                "gen_ai.response.time_to_first_token_ms".to_string(),
+                json_u64(first - start_unix_ms),
+            );
+        }
+        if let Some(first_text) = first_deltas.text_unix_ms {
+            attrs.insert(
+                "gen_ai.response.time_to_first_text_ms".to_string(),
+                json_u64(first_text.max(start_unix_ms) - start_unix_ms),
+            );
+        }
         // Pricing basis so Langfuse cost figures are auditable against the
         // client-side estimator (USD per million tokens).
         attrs.insert(
@@ -125,8 +152,15 @@ impl SpanCollector {
         log::debug!(
             "[agent-tracing] generation span model={labeled_model} \
              iteration={iteration} child={} in={input_tokens} out={output_tokens} \
+             cached={cached_input_tokens} ttft_ms={:?} ttft_text_ms={:?} \
              cost_usd={cost_usd:.6} input_captured={} output_captured={}",
             subagent_task_id.is_some(),
+            first_deltas
+                .any_unix_ms
+                .map(|first| first.saturating_sub(start_unix_ms)),
+            first_deltas
+                .text_unix_ms
+                .map(|first| first.saturating_sub(start_unix_ms)),
             input.is_some(),
             output.is_some(),
         );

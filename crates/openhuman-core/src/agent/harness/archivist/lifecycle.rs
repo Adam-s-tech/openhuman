@@ -652,6 +652,14 @@ impl ArchivistHook {
                     }
                 }
             }
+            // A driver that embeds only what it stores (hosted memory) has no
+            // embed-on-request route: that is its shape, not a failure.
+            Err(e @ crate::memory::api::error::MemoryError::Unsupported { .. }) => {
+                tracing::debug!(
+                    "[archivist] driver does not embed on request — skipping segment embedding \
+                     segment={segment_id} model={model_signature}: {e}"
+                );
+            }
             Err(e) => {
                 tracing::warn!(
                     "[archivist] embed call failed (non-fatal) segment={segment_id} model={model_signature}: {e}"

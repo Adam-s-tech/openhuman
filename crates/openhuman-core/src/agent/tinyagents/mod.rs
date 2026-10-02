@@ -5,7 +5,7 @@
 //! openhuman's agent execution runs on the `tinyagents` crate
 //! (LangGraph/LangChain-style durable graphs + an agent-loop harness with model/
 //! tool registries, middleware, retry/fallback, and limits). This module is the
-//! **adapter seam**: it bridges openhuman's `Provider`, `Tool`, and `ChatMessage`
+//! **adapter seam**: it bridges openhuman's `Provider`, `Tool`, and `TranscriptMessage`
 //! types onto the crate's `ChatModel`, `Tool`, and `Message` traits, then drives
 //! a turn through [`AgentHarness::invoke`]. The chat / channel / sub-agent
 //! routes call [`run_turn_via_tinyagents_shared`] (default ON in production).
@@ -19,7 +19,6 @@
 //! `ask_user_clarification` early-exit pause are all re-wired onto the
 //! tinyagents harness.
 
-pub(crate) mod abort_guard;
 pub mod config;
 pub mod discovery;
 mod embeddings;
@@ -27,6 +26,7 @@ mod harness_assembly;
 mod harness_context_ladder;
 mod harness_tool_registration;
 pub mod host;
+pub(crate) mod hosted_error;
 pub(crate) mod journal;
 pub(crate) mod middleware;
 pub(crate) mod model;
@@ -51,7 +51,6 @@ pub(crate) mod retriever;
 mod routes;
 mod steering_forwarder;
 pub(crate) mod stop_hooks;
-mod summarize;
 pub mod todos;
 pub(crate) mod tools;
 mod topology;
@@ -95,6 +94,9 @@ use turn_policy::{
     run_policy_for, DEFAULT_AGENT_TURN_TIMEOUT_SECS, DEFAULT_MODEL_CALL_TIMEOUT_SECS,
 };
 
+#[cfg(test)]
+#[path = "prompt_cache_golden_tests.rs"]
+mod prompt_cache_golden_tests;
 #[cfg(test)]
 #[path = "tinyagents_tests.rs"]
 mod tests;

@@ -13,7 +13,7 @@
 //! `#[serde(skip)]` field that has no place in `config.toml` to be saved into,
 //! carried per call. The route pins only the four roles a turn actually runs on
 //! (chat, reasoning, agentic, coding) and deliberately leaves the background
-//! roles — memory, embeddings, heartbeat, learning — alone, because those run
+//! roles — memory, embeddings, learning — alone, because those run
 //! tier-specific models a chat endpoint generally cannot serve.
 
 use crate::turn::Route;

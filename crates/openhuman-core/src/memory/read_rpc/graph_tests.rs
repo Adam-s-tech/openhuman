@@ -24,10 +24,15 @@
 //! 4. **The node budget cuts the document tail, never the summaries.** The
 //!    summaries are the skeleton — a budget that dropped them would leave
 //!    document leaves parented to nodes that are not in the response.
+//! 5. **A summary served with its text is labelled by it, and has no file.**
+//!    Hosted memory's concepts, beliefs and facts live on the server; a path
+//!    into the local content vault would open nothing.
+//! 6. **A child is drawn once.** A document leaf stands in for a child the leaf
+//!    listing does not return, and goes when the listing returns it.
 
 use chrono::{TimeZone, Utc};
 
-use super::shape_summary_nodes;
+use super::{drop_stand_ins, scope_display_label, shape_summary_nodes};
 use crate::memory::api::tree::TreeSummary;
 
 const BUDGET: usize = 10_000;
@@ -49,6 +54,7 @@ fn summary(
         child_ids: children.iter().map(|c| (*c).to_string()).collect(),
         time_range_start: Utc.timestamp_opt(1_700_000_000, 0).unwrap(),
         time_range_end: Utc.timestamp_opt(1_700_000_900, 0).unwrap(),
+        preview: None,
     }
 }
 
@@ -242,4 +248,75 @@ fn an_empty_forest_shapes_to_no_nodes_at_all() {
     // store that has sealed nothing renders as empty rather than as one bare
     // root per scope it has never seen.
     assert!(shape_summary_nodes(Vec::new(), BUDGET).is_empty());
+}
+
+#[test]
+fn a_summary_served_with_its_text_is_labelled_by_it_and_has_no_file() {
+    let mut concept = summary("concept_job", "sources/email", 3, None, &["belief_1"]);
+    concept.preview = Some(format!("Alice's new job — {}", "detail ".repeat(20)));
+    let nodes = shape_summary_nodes(
+        vec![concept, summary("s1", "sources/email", 1, None, &[])],
+        BUDGET,
+    );
+    let node = |id: &str| nodes.iter().find(|n| n.id == id).expect("node");
+    let concept = node("concept_job");
+    assert!(concept.label.starts_with("Alice's new job — "));
+    assert_eq!(concept.label.chars().count(), super::SUMMARY_LABEL_CHARS);
+    assert_eq!(concept.file_basename, None, "no vault file to open");
+    let sealed = node("s1");
+    assert_eq!(sealed.label, "L1 · sources/email");
+    assert!(sealed.file_basename.is_some());
+}
+
+#[test]
+fn a_child_the_leaf_listing_returns_is_drawn_once() {
+    let nodes = shape_summary_nodes(
+        vec![summary(
+            "fact_1",
+            "sources/email",
+            1,
+            None,
+            &["evt_1", "evt_2"],
+        )],
+        BUDGET,
+    );
+    let leaves: std::collections::HashSet<String> = ["evt_1".to_string()].into();
+    let kept = drop_stand_ins(nodes, &leaves);
+    let ids: Vec<&str> = kept.iter().map(|n| n.id.as_str()).collect();
+    assert!(
+        ids.contains(&"doc:sources/email:evt_2"),
+        "an unlisted child keeps its stand-in"
+    );
+    assert!(
+        !ids.contains(&"doc:sources/email:evt_1"),
+        "a listed child is drawn as itself"
+    );
+    assert!(ids.contains(&"fact_1") && ids.contains(&"source:sources/email"));
+}
+
+#[test]
+fn hosted_namespaces_read_as_what_they_hold() {
+    let hosted = "understanding";
+    assert_eq!(scope_display_label("global", hosted), "Memory");
+    assert_eq!(scope_display_label("sources/chat", hosted), "Chat");
+    assert_eq!(scope_display_label("sources/email", hosted), "Email");
+    assert_eq!(
+        scope_display_label("sources/documents", hosted),
+        "Documents"
+    );
+    assert_eq!(scope_display_label("slack:#eng", hosted), "Slack · #eng");
+}
+
+/// The embedded engine has a `global` tree of its own; renaming it would be a
+/// change to a mode this work does not touch.
+#[test]
+fn another_drivers_scopes_are_left_alone() {
+    for kind in ["global", "source", "topic"] {
+        assert_eq!(scope_display_label("global", kind), "global");
+        assert_eq!(scope_display_label("sources/email", kind), "sources/email");
+    }
+    assert_eq!(
+        scope_display_label("gmail:a-at-b-dot-com", "source"),
+        "Gmail · a@b.com"
+    );
 }

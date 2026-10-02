@@ -131,43 +131,31 @@ async fn memory_ingestion_started_emits_ingesting_stage() {
 // ── extract_mem_src_id tests ──────────────────────────────────────────
 
 #[test]
-fn extract_mem_src_id_parses_simple_source() {
-    // "mem_src:<source_id>:<item_id>" → source_id
-    assert_eq!(
-        extract_mem_src_id("mem_src:src-abc-123:item-1"),
-        Some("src-abc-123")
-    );
-}
-
-#[test]
-fn extract_mem_src_id_parses_item_id_with_colons_in_it() {
-    // item_id may contain colons (e.g. RSS GUIDs that are URLs).
-    // source_id is the first segment after "mem_src:"; item_id is everything after.
-    assert_eq!(
-        extract_mem_src_id("mem_src:src-rss-42:https://example.com/feed/item-7"),
-        Some("src-rss-42")
-    );
-    // Web-page item ids may also contain colons.
-    assert_eq!(
-        extract_mem_src_id("mem_src:src-web-99:https://blog.example.com/2024/post"),
-        Some("src-web-99")
-    );
-}
-
-#[test]
-fn extract_mem_src_id_returns_none_for_non_mem_src() {
-    // Channel-provider syncs like "slack:workspace-1" have no mem_src prefix.
-    assert_eq!(extract_mem_src_id("slack:workspace-1"), None);
-    assert_eq!(extract_mem_src_id("gmail:alice-thread-1"), None);
-    assert_eq!(extract_mem_src_id("no-prefix"), None);
-}
-
-#[test]
-fn extract_mem_src_id_returns_none_for_missing_item_id() {
-    // "mem_src:<source_id>" with no item_id separator is invalid.
-    assert_eq!(extract_mem_src_id("mem_src:source-only-no-item"), None);
-    // "mem_src:<source_id>:" with empty item_id is also invalid.
-    assert_eq!(extract_mem_src_id("mem_src:src-abc:"), None);
+fn extract_mem_src_id_returns_the_source_segment_of_mem_src_ids() {
+    // "mem_src:<source_id>:<item_id>" -> source_id. The item id may itself
+    // contain colons (RSS GUIDs / URLs); only the first segment is the source.
+    let cases = [
+        // (input, expected)
+        ("mem_src:src-abc-123:item-1", Some("src-abc-123")),
+        (
+            "mem_src:src-rss-42:https://example.com/feed/item-7",
+            Some("src-rss-42"),
+        ),
+        (
+            "mem_src:src-web-99:https://blog.example.com/2024/post",
+            Some("src-web-99"),
+        ),
+        // Channel-provider syncs have no mem_src prefix.
+        ("slack:workspace-1", None),
+        ("gmail:alice-thread-1", None),
+        ("no-prefix", None),
+        // Missing / empty item id is invalid.
+        ("mem_src:source-only-no-item", None),
+        ("mem_src:src-abc:", None),
+    ];
+    for (input, expected) in cases {
+        assert_eq!(extract_mem_src_id(input), expected, "{input}");
+    }
 }
 
 // ── bridge populates source_id for Stored/Queued (DocumentCanonicalized) ──

@@ -1,6 +1,4 @@
 use super::approval::approval_tool_name;
-use super::artifact_index_toc::NO_WINDOW_ALLOWANCE;
-use super::message_trim::{estimate_message_tokens, estimate_text_tokens, IMAGE_MARKER_TOKEN_COST};
 use super::repeated_failure::{is_body_level_failure, user_actionable_escalation};
 use super::tool_output::{
     is_compaction_exempt, is_truncation_exempt, COMPACTION_EXEMPT_TOOLS, SAMPLING_TOOLS,
@@ -16,8 +14,7 @@ use async_trait::async_trait;
 
 use tinyagents_harness::middleware::{AgentRun, BudgetTracker, Middleware, ToolInvocationIdentity};
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
-use tinyinference_llm::message::{ContentBlock, Message as TaMessage};
-use tinyinference_llm::model::{ModelResponse, SegmentRole};
+use tinyinference_llm::message::Message as TaMessage;
 use tinyinference_llm::tool::{ToolCall as TaToolCall, ToolSchema};
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
@@ -25,9 +22,6 @@ use crate::agent::context::CLEARED_PLACEHOLDER;
 use crate::agent::tinyagents::payload_summarizer::PayloadSummarizer;
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
 use tinyagents_harness::context::{RunConfig, RunContext};
-use tinyagents_harness::no_progress::{
-    DEFAULT_REPEAT_CALL_THRESHOLD, DEFAULT_REPEAT_OUTPUT_THRESHOLD,
-};
 use tinyinference_llm::model::ModelRequest;
 use tinytools::Tool;
 
@@ -335,81 +329,6 @@ fn body_failure_result(name: &str, extra: serde_json::Value) -> TaToolResult {
     tool_result(name, &serde_json::to_string_pretty(&body).unwrap())
 }
 
-// ── RepeatProgressMiddleware / crate SuccessfulRepeatTracker ───────────
-
-fn repeated_success_response(tool: &str, args: serde_json::Value) -> ModelResponse {
-    ModelResponse {
-        message: tinyinference_llm::message::AssistantMessage {
-            id: None,
-            content: vec![ContentBlock::Text("working".to_string())],
-            tool_calls: vec![TaToolCall::new("repeat-1", tool, args)],
-            usage: None,
-            origin: None,
-        },
-        usage: None,
-        finish_reason: Some("tool_calls".to_string()),
-        raw: None,
-        resolved_model: None,
-        continue_turn: None,
-        served_from_cache: false,
-        correlation: None,
-        resolved_route: None,
-    }
-}
-
-async fn run_successful_repeat_cycle(
-    mw: &RepeatProgressMiddleware,
-    tool: &str,
-    args: serde_json::Value,
-    output: &str,
-    error: Option<&str>,
-) {
-    let mut response = repeated_success_response(tool, args);
-    mw.after_model(&mut ctx(), &(), &mut response)
-        .await
-        .unwrap();
-    let mut result = match error {
-        Some(error) => TaToolResult::error(error),
-        None => tool_result(tool, output),
-    };
-    let invocation = ToolInvocationIdentity::new("repeat-1", tool);
-    mw.after_tool(&mut ctx(), &(), &invocation, &mut result)
-        .await
-        .unwrap();
-}
-
-// ── MemoryProtocolMiddleware (issue #4116) ──────────────────────────────
-
-use crate::agent::harness::memory_protocol::MEMORY_PROTOCOL_MARKER;
-
-/// Drive one full tool cycle through the middleware: `before_tool` (captures
-/// the arguments the result won't carry) then `after_tool`, correlated by a
-/// shared call id. Returns the (possibly annotated) result.
-async fn run_cycle(
-    mw: &MemoryProtocolMiddleware,
-    name: &str,
-    args: serde_json::Value,
-    content: &str,
-    error: Option<&str>,
-) -> TaToolResult {
-    let mut call = TaToolCall {
-        id: "c1".into(),
-        name: name.into(),
-        arguments: args,
-        invalid: None,
-    };
-    mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
-    let mut result = match error {
-        Some(error) => TaToolResult::error(error),
-        None => tool_result(name, content),
-    };
-    let invocation = ToolInvocationIdentity::new("c1", name);
-    mw.after_tool(&mut ctx(), &(), &invocation, &mut result)
-        .await
-        .unwrap();
-    result
-}
-
 // ── EmbedderToolHooksMiddleware ──────────────────────────────────────────
 
 /// Records lifecycle notifications for a test hook, optionally vetoing every
@@ -476,21 +395,15 @@ mod approval_guard_tests;
 mod classified_failure_tests;
 #[path = "middleware_loop_guard_tests.rs"]
 mod loop_guard_tests;
-#[path = "middleware_prompt_cache_tests.rs"]
-mod prompt_cache_tests;
-#[path = "middleware_repeat_progress_tests.rs"]
-mod repeat_progress_tests;
 
 #[path = "middleware_research_budget_tests.rs"]
 mod research_budget_tests;
 
+#[path = "middleware_memory_and_hooks_tests.rs"]
+mod memory_and_hooks_tests;
 #[path = "middleware_tool_output_artifact_tests.rs"]
 mod tool_output_artifact_tests;
 #[path = "middleware_tool_output_tests.rs"]
 mod tool_output_tests;
 #[path = "middleware_tool_policy_tests.rs"]
 mod tool_policy_tests;
-#[path = "middleware_wrap_up_final_write_tests.rs"]
-mod wrap_up_final_write_tests;
-#[path = "middleware_wrap_up_toc_tests.rs"]
-mod wrap_up_toc_tests;

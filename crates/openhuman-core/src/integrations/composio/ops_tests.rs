@@ -3,7 +3,7 @@ use crate::agent::prompts::IntegrationConnection;
 
 use crate::integrations::composio::module_client::module_guard;
 
-// ── resolve_client / ops auth errors ──────────────────────────
+// ── ops auth errors ──────────────────────────
 
 fn test_config(tmp: &tempfile::TempDir) -> Config {
     let mut c = Config::default();
@@ -23,6 +23,7 @@ fn cache_guard() -> std::sync::MutexGuard<'static, ()> {
 
 // ── Mock-backend integration tests for ops ─────────────────────
 
+use crate::config::test_env::EnvVarGuard;
 use axum::{
     extract::{Path, Query, State},
     http::HeaderMap,
@@ -33,61 +34,6 @@ use chrono::{TimeZone, Utc};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use tinymemory_api::chunks::{chunk_id, Chunk, Metadata, SourceKind, SourceRef};
-
-struct WorkspaceEnvGuard {
-    previous: Option<std::ffi::OsString>,
-}
-
-impl WorkspaceEnvGuard {
-    fn set(path: &std::path::Path) -> Self {
-        let previous = std::env::var_os("OPENHUMAN_WORKSPACE");
-        unsafe {
-            std::env::set_var("OPENHUMAN_WORKSPACE", path);
-        }
-        Self { previous }
-    }
-}
-
-impl Drop for WorkspaceEnvGuard {
-    fn drop(&mut self) {
-        match self.previous.take() {
-            Some(prev) => unsafe {
-                std::env::set_var("OPENHUMAN_WORKSPACE", prev);
-            },
-            None => unsafe {
-                std::env::remove_var("OPENHUMAN_WORKSPACE");
-            },
-        }
-    }
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: &str) -> Self {
-        let previous = std::env::var_os(key);
-        unsafe {
-            std::env::set_var(key, value);
-        }
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match self.previous.take() {
-            Some(prev) => unsafe {
-                std::env::set_var(self.key, prev);
-            },
-            None => unsafe {
-                std::env::remove_var(self.key);
-            },
-        }
-    }
-}
 
 struct DirectAuthFailureGuard {
     key_id: u64,
@@ -272,7 +218,7 @@ fn conn(id: &str, toolkit: &str, status: &str) -> super::super::types::ComposioC
 // where the data is (or isn't) coming from.
 
 /// Set up a config with `composio.mode = "direct"` and a stored
-/// direct-mode API key (so `create_composio_client` succeeds).
+/// direct-mode API key (so `resolve_composio_route` succeeds).
 fn direct_mode_config(tmp: &tempfile::TempDir) -> Config {
     let mut c = Config::default();
     c.workspace_dir = tmp.path().join("workspace");

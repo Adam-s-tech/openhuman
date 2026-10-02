@@ -7,32 +7,6 @@ fn recovery_tool_aliases_remain_stable() {
     assert!(!is_recovery_tool("shell"));
 }
 
-#[tokio::test]
-async fn disabled_compaction_is_an_exact_pass_through_without_loading_the_module() {
-    let content = "exact tool output".to_string();
-    let output = compact_output_with_policy(
-        content.clone(),
-        "shell",
-        false,
-        AgentTokenjuiceCompression::Full,
-    )
-    .await;
-    assert_eq!(output, content);
-}
-
-#[tokio::test]
-async fn off_profile_is_an_exact_pass_through_without_loading_the_module() {
-    let content = "exact tool output".to_string();
-    let output = compact_output_with_policy(
-        content.clone(),
-        "shell",
-        true,
-        AgentTokenjuiceCompression::Off,
-    )
-    .await;
-    assert_eq!(output, content);
-}
-
 /// The whole summary path over the real bus: `CompactWith` into the module,
 /// `MlHost.Generate` back out to a registered call, the summary back in.
 /// Runs where CI builds the module (`TINYJUICE_TEST_MODULE`); skipped
@@ -40,6 +14,11 @@ async fn off_profile_is_an_exact_pass_through_without_loading_the_module() {
 #[tokio::test]
 async fn the_module_calls_back_for_a_summary_written_for_the_focus() {
     if std::env::var_os("TINYJUICE_TEST_MODULE").is_none() {
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYJUICE_TEST_MODULE is not set. Build \
+             vendor/tinyjuice and export TINYJUICE_TEST_MODULE=<path to libtinyjuice_module>, \
+             or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let seen = std::sync::Arc::new(std::sync::Mutex::new(None::<types::GenerateRequest>));
@@ -297,4 +276,49 @@ fn a_legacy_compact_reply_is_silent_when_no_summary_was_wanted() {
 #[test]
 fn a_failed_legacy_compact_reply_gives_up() {
     assert!(finish_legacy_compact_reply(Err(method_failed_error()), true).is_none());
+}
+
+#[test]
+fn install_request_turns_on_the_handle_preview_by_default() {
+    let config = crate::config::Config::default();
+    assert!(repl_handle_active(&config));
+    let request = install_request(&config);
+    assert!(request.options.router_enabled);
+    assert!(request.options.ccr_enabled);
+    assert!(request.options.repl_handle);
+    // The plain-text copy on disk is opt-in.
+    assert_eq!(request.options.repl_save_dir, None);
+}
+
+#[test]
+fn install_request_handle_mode_follows_every_switch_it_needs() {
+    for flip in [
+        (|c: &mut crate::config::Config| c.context.compaction_enabled = false)
+            as fn(&mut crate::config::Config),
+        |c| c.tokenjuice.router_enabled = false,
+        |c| c.tokenjuice.ccr_enabled = false,
+        |c| c.tokenjuice.repl_handle_enabled = false,
+    ] {
+        let mut config = crate::config::Config::default();
+        flip(&mut config);
+        config.tokenjuice.repl_save_enabled = true;
+        let request = install_request(&config);
+        assert!(!request.options.repl_handle);
+        assert_eq!(
+            request.options.repl_save_dir, None,
+            "no handle, so nothing to save a copy of"
+        );
+    }
+}
+
+#[test]
+fn install_request_saves_a_copy_under_the_workspace_when_asked() {
+    let mut config = crate::config::Config::default();
+    config.workspace_dir = std::path::PathBuf::from("/ws");
+    config.tokenjuice.repl_save_enabled = true;
+    let request = install_request(&config);
+    assert_eq!(
+        request.options.repl_save_dir,
+        Some(std::path::PathBuf::from("/ws/.tokenjuice/repl"))
+    );
 }

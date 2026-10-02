@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::api::provider::ForgetSelector;
-use crate::rpc::RpcOutcome;
 // The KV namespace the Composio sync pipelines keep their per-connection
 // cursor state under, named at the **contract** (#5560).
 //
@@ -40,7 +40,7 @@ use super::types::{
 /// decides where they live, and `purge_all`'s own contract says a driver must
 /// not reach into a host-owned path. `dirs_removed` therefore stays here,
 /// unchanged, and stays outside the driver call.
-pub async fn wipe_all_rpc(config: &Config) -> Result<RpcOutcome<WipeAllResponse>, String> {
+pub async fn wipe_all_rpc(config: &Config) -> Result<Outcome<WipeAllResponse>, String> {
     // No `spawn_blocking` around either driver call — the driver owns whether
     // its own reads block, and the module's do not run on this thread at all
     // (the same reasoning `flush_now_rpc` below already carries). The directory
@@ -120,7 +120,7 @@ pub async fn wipe_all_rpc(config: &Config) -> Result<RpcOutcome<WipeAllResponse>
         "memory_tree::read: wipe_all rows={} dirs={:?} sync_state={}",
         resp.rows_deleted, resp.dirs_removed, resp.sync_state_cleared
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 /// Clear the composio sync-state namespace from the bound driver's key/value
@@ -207,7 +207,7 @@ pub(crate) async fn clear_composio_sync_state(config: &Config) -> Result<u64, St
 /// Drop everything derived from stored content and schedule its re-derivation
 /// via the bound driver — deletion and rebuild must be one operation, so it
 /// belongs to the driver that owns the derived tables.
-pub async fn reset_tree_rpc(config: &Config) -> Result<RpcOutcome<ResetTreeResponse>, String> {
+pub async fn reset_tree_rpc(config: &Config) -> Result<Outcome<ResetTreeResponse>, String> {
     // The derived-index reset — the table deletes, the chunk requeue and the
     // re-extraction enqueue — is the driver's now (`Maintenance::
     // reset_derived_index`), where the tables live. What stays here is what is
@@ -274,7 +274,7 @@ pub async fn reset_tree_rpc(config: &Config) -> Result<RpcOutcome<ResetTreeRespo
         "memory_tree::read: reset_tree tree_rows={} chunks={} jobs={}",
         resp.tree_rows_deleted, resp.chunks_requeued, resp.jobs_enqueued
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 // ── flush_source_tree ────────────────────────────────────────────────────
@@ -312,7 +312,7 @@ pub async fn reset_tree_rpc(config: &Config) -> Result<RpcOutcome<ResetTreeRespo
 pub async fn flush_source_tree_rpc(
     config: &Config,
     source_scope: &str,
-) -> Result<RpcOutcome<FlushSourceTreeResponse>, String> {
+) -> Result<Outcome<FlushSourceTreeResponse>, String> {
     use std::collections::HashSet;
     use std::sync::Mutex;
 
@@ -339,7 +339,7 @@ pub async fn flush_source_tree_rpc(
     {
         let mut active = ACTIVE.lock().unwrap_or_else(|e| e.into_inner());
         if !active.insert(scope.clone()) {
-            return Ok(RpcOutcome::single_log(
+            return Ok(Outcome::single_log(
                 FlushSourceTreeResponse {
                     tree_scope: scope,
                     seals_fired: 0,
@@ -378,7 +378,7 @@ pub async fn flush_source_tree_rpc(
         "memory_tree::read: flush_source_tree scope={} seals={}",
         resp.tree_scope, resp.seals_fired
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 // ── flush_now ─────────────────────────────────────────────────────────────
@@ -386,7 +386,7 @@ pub async fn flush_source_tree_rpc(
 /// Flush buffered work old enough to be written out, via the bound driver —
 /// flush deduplication is keyed engine-side, so only the driver can promise
 /// one enqueue per window.
-pub async fn flush_now_rpc(config: &Config) -> Result<RpcOutcome<FlushNowResponse>, String> {
+pub async fn flush_now_rpc(config: &Config) -> Result<Outcome<FlushNowResponse>, String> {
     // Asked of the driver (`Maintenance::flush_pending`): the buffer walk, the
     // window-keyed dedupe and the enqueue were engine mechanics the host was
     // re-implementing. No `spawn_blocking` — the driver owns whether its own
@@ -412,7 +412,7 @@ pub async fn flush_now_rpc(config: &Config) -> Result<RpcOutcome<FlushNowRespons
         "memory_tree::read: flush_now enqueued={} stale_buffers={}",
         resp.enqueued, resp.stale_buffers
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 // ── backfill_connector_trees ───────────────────────────────────────────────
@@ -439,7 +439,7 @@ pub async fn backfill_connector_trees_rpc(
     config: &Config,
     limit: Option<u64>,
     dry_run: bool,
-) -> Result<RpcOutcome<BackfillConnectorTreesResponse>, String> {
+) -> Result<Outcome<BackfillConnectorTreesResponse>, String> {
     let binding = crate::memory::binding::for_config(config)?;
     let Some(maintenance) = binding.provider().as_maintenance() else {
         return Err(format!(
@@ -473,7 +473,7 @@ pub async fn backfill_connector_trees_rpc(
         resp.skipped,
         resp.more_pending
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 // ── delete_source ──────────────────────────────────────────────────────────
@@ -512,7 +512,7 @@ pub async fn backfill_connector_trees_rpc(
 pub async fn delete_source_rpc(
     config: &Config,
     source_id: String,
-) -> Result<RpcOutcome<DeleteSourceResponse>, String> {
+) -> Result<Outcome<DeleteSourceResponse>, String> {
     let source_id = source_id.trim().to_string();
     if source_id.is_empty() {
         return Err("delete_source: source_id must be a non-empty string".to_string());
@@ -540,6 +540,9 @@ pub async fn delete_source_rpc(
         })
         .await
         .map_err(|e| format!("delete_source: {e}"))?;
+    // A host-synced source's record of what it sent would otherwise skip the
+    // items just forgotten on its next sync.
+    crate::memory::sources::hosted_sync::forget_state(config, &source_id);
 
     let resp = DeleteSourceResponse {
         // `deleted` is true if we removed chunks OR cleaned a stale orphaned
@@ -558,7 +561,7 @@ pub async fn delete_source_rpc(
         resp.chunks_removed,
         outcome.trees_cleaned
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 #[cfg(test)]

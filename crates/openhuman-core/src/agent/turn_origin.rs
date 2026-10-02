@@ -1,7 +1,7 @@
 //! Agent turn origin — the trust/routing label attached to every agent
 //! `run_turn` invocation. Read by [`crate::security::approval::ApprovalGate`]
 //! and [`crate::tools::agent_policy::ToolPolicyEngine`] to make
-//! consistent decisions across web, channel, subconscious, and cron entry
+//! consistent decisions across web, channel, cron, and background entry
 //! points without relying on the *absence* of other task-locals as a signal.
 //!
 //! Every entry point that drives the agent loop ([`crate::web_chat`],
@@ -54,7 +54,7 @@ pub enum AgentTurnOrigin {
         message_id: String,
     },
     /// Internal automation the user explicitly authorized (cron job the
-    /// user created, subconscious tick on internal-only memory). `source`
+    /// user created, internal background job on local data). `source`
     /// carries enough info for the gate to apply the right per-source
     /// allowlist.
     TrustedAutomation {
@@ -88,15 +88,9 @@ pub enum AgentTurnOrigin {
 pub enum TrustedAutomationSource {
     /// Cron job created and authorized by the user.
     Cron,
-    /// Subconscious tick whose memory context is internal-only.
-    Subconscious,
-    /// Subconscious tick whose memory context includes chunks ingested
-    /// from an external sync source (Gmail / Slack / Notion / etc.).
-    /// Treated as untrusted: external-effect tool surface blocked.
-    SubconsciousTainted,
-    /// Autonomous continuation of a thread goal: the heartbeat injected a turn
-    /// to keep working an idle `active` goal the user explicitly created.
-    GoalContinuation,
+    /// Internal background job over locally-stored data (e.g. goals
+    /// enrichment). No external content reaches its prompt.
+    Background,
     /// A saved, enabled `flows::Flow` (tinyflows workflow) executing via
     /// `flows::ops::flows_run` / `flows_resume` (issue B2, see
     /// `my_docs/ohxtf/b2-triggers-trust/01-triggers-and-trust.md` §3). The
@@ -111,8 +105,7 @@ pub enum TrustedAutomationSource {
     Workflow {
         /// Mirrors `Flow::require_approval`: when `true` the gate does NOT
         /// auto-allow this trust root — every external_effect call still
-        /// parks for a real decision (same shape as `GoalContinuation`),
-        /// letting a user force human review on a specific flow's outbound
+        /// parks for a real decision, letting a user force human review on a specific flow's outbound
         /// actions regardless of the trust root above.
         require_approval: bool,
     },
@@ -145,8 +138,7 @@ impl AgentTurnOrigin {
     ///
     /// `WebChat`, `ExternalChannel`, and `DirectChat` carry what a human sent.
     /// Every other origin carries text the host wrote for an agent to act on: a
-    /// `TrustedAutomation` prompt (cron, subconscious, goal continuation,
-    /// workflow), a `Cli` invocation — which this module documents as
+    /// `TrustedAutomation` prompt (cron, background job, workflow), a `Cli` invocation — which this module documents as
     /// "command-line / **sub-agent** / one-off internal" — or an unscoped
     /// `Unknown`.
     ///
@@ -180,7 +172,7 @@ pub fn current_is_user_authored() -> bool {
 
 tokio::task_local! {
     /// Per-turn agent origin. Scoped by entry points (web channel, channel
-    /// runtime dispatch, subconscious loop, cron scheduler, CLI) around the
+    /// runtime dispatch, cron scheduler, background jobs, CLI) around the
     /// `run_turn` invocation. Read by the approval gate to make
     /// origin-aware decisions.
     pub static AGENT_TURN_ORIGIN: AgentTurnOrigin;
@@ -196,8 +188,8 @@ tokio::task_local! {
 /// streaming), and stacking two task-local scopes plus the agent loop on a
 /// 2 MiB worker stack reliably blows the test runtime — same shape as the
 /// fix in PR #3151. Box-pinning here is the single-point remediation that
-/// covers every caller (web channel, channel runtime, subconscious, cron,
-/// CLI).
+/// covers every caller (web channel, channel runtime, cron, background
+/// jobs, CLI).
 pub async fn with_origin<F: std::future::Future>(origin: AgentTurnOrigin, fut: F) -> F::Output {
     AGENT_TURN_ORIGIN.scope(origin, Box::pin(fut)).await
 }
@@ -353,35 +345,6 @@ where
     // `propagate` is evaluated here, on the caller's task, which is the whole
     // point of routing through this function.
     tokio::spawn(propagate(fut))
-}
-
-/// `tokio::spawn` for work that must deliberately **not** carry the caller's
-/// origin, naming why.
-///
-/// Dropping the origin is sometimes right — a detached background job that is
-/// not a continuation of the caller's turn should not inherit that turn's
-/// authority. The problem is that a bare `tokio::spawn` looks identical whether
-/// the author decided that or simply did not think about it, so a reviewer
-/// cannot tell a deliberate choice from a regression.
-///
-/// This is a plain `tokio::spawn` — the behaviour is the same — but the name and
-/// the `reason` make the choice explicit at the call site and greppable across
-/// the tree. The reason is emitted at `trace` so a live process can be asked
-/// which spawns dropped their label.
-///
-/// Prefer [`spawn`] unless the work genuinely is not a continuation of the
-/// caller's turn.
-pub fn spawn_unlabelled<F>(reason: &'static str, fut: F) -> tokio::task::JoinHandle<F::Output>
-where
-    F: std::future::Future + Send + 'static,
-    F::Output: Send + 'static,
-{
-    tracing::trace!(
-        reason,
-        parent_origin = ?current().as_ref().map(AgentTurnOrigin::class),
-        "[turn_origin] spawning without the caller's origin"
-    );
-    tokio::spawn(fut)
 }
 
 /// Read the ambient web-chat `request_id` for the current turn, when one was

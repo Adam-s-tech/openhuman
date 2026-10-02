@@ -2,7 +2,7 @@
 //!
 //! Scope: the handler layer specifically — param parsing, default
 //! fallbacks, `SourceKind` / `EntityKind` validation, the scope each call
-//! forwards to the contract, `RpcOutcome` envelope shape, and PII-redacted
+//! forwards to the contract, `Outcome` envelope shape, and PII-redacted
 //! log formatting. Retrieval correctness is the driver's and is covered by
 //! the engine's own tests; these deliberately do NOT re-verify it.
 //!

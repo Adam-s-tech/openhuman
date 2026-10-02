@@ -19,7 +19,7 @@ pub async fn flows_build(
     config: &Config,
     req: crate::flows::agents::workflow_builder::builder_prompt::BuilderRequest,
     stream: Option<FlowStreamTarget>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     flows_build_with_extra_hidden_tools(config, req, stream, &[]).await
 }
 
@@ -34,7 +34,7 @@ pub(crate) async fn flows_build_with_extra_hidden_tools(
     req: crate::flows::agents::workflow_builder::builder_prompt::BuilderRequest,
     stream: Option<FlowStreamTarget>,
     extra_hidden_tools: &[&str],
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     use crate::agent::OpenHumanSessionHost;
     use crate::flows::agents::workflow_builder::builder_prompt::render_prompt;
 
@@ -51,7 +51,7 @@ pub(crate) async fn flows_build_with_extra_hidden_tools(
             if let Some(target) = &stream {
                 finalize_flow_stream(target, &Ok(assistant_text.clone()), &prompt).await;
             }
-            return Ok(RpcOutcome::single_log(
+            return Ok(Outcome::single_log(
                 json!({
                     "proposal": Value::Null,
                     "assistant_text": assistant_text,
@@ -320,7 +320,7 @@ pub(crate) async fn flows_build_with_extra_hidden_tools(
             has_proposal = proposal.is_some(),
             "[flows] flows_build: workflow builder turn cancelled by user"
         );
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             json!({
                 "proposal": proposal,
                 "assistant_text": assistant_text,
@@ -407,7 +407,7 @@ pub(crate) async fn flows_build_with_extra_hidden_tools(
         trail_off,
         "[flows] flows_build: workflow_builder turn complete"
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({
             "proposal": proposal,
             "assistant_text": assistant_text,
@@ -436,7 +436,7 @@ pub(crate) async fn flows_build_with_extra_hidden_tools(
 pub async fn flows_build_cancel(
     thread_id: &str,
     request_id: Option<&str>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let cancelled = build_registry::cancel_build_turn_scoped(thread_id, request_id);
     tracing::info!(
         target: "flows",
@@ -445,7 +445,7 @@ pub async fn flows_build_cancel(
         cancelled,
         "[flows] flows_build_cancel: cancel request handled"
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({ "cancelled": cancelled }),
         if cancelled {
             "workflow builder turn cancellation requested"
@@ -461,12 +461,12 @@ pub async fn flows_build_cancel(
 /// their tool result, so we match on that (the same gate the frontend uses) and
 /// return the LAST one — the most recent proposal in the turn.
 pub(super) fn extract_workflow_proposal(
-    history: &[crate::agent::messages::ConversationMessage],
+    history: &[tinytools_agent::dialect::TranscriptEntry],
 ) -> Option<Value> {
-    use crate::agent::messages::ConversationMessage;
+    use tinytools_agent::dialect::TranscriptEntry;
     let mut latest = None;
     for message in history {
-        if let ConversationMessage::ToolResults(results) = message {
+        if let TranscriptEntry::ToolResults(results) = message {
             for result in results {
                 if let Ok(value) = serde_json::from_str::<Value>(&result.content) {
                     if value.get("type").and_then(Value::as_str) == Some("workflow_proposal") {

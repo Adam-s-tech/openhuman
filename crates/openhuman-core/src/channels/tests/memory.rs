@@ -87,7 +87,7 @@ async fn process_channel_message_restores_per_sender_history_on_follow_ups() {
             provider_impl.clone(),
         )),
         default_provider: Arc::new("test-provider".to_string()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
         model: Arc::new("test-model".to_string()),

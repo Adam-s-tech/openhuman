@@ -145,6 +145,7 @@ error) before Tauri's deep-link forwarding path is installed.
 | --------------------------- | ---------- | ---------------------------------------------------------------------- |
 | `TAURI_DRIVER_PORT`         | `4444`     | Port `tauri-driver` listens on; `wdio.conf.ts` connects here           |
 | `E2E_MOCK_PORT`             | `18473`    | Mock backend server port                                               |
+| `E2E_PORT_BASE`             | unset      | Web lane port block: mock `base`, core `base+1`, web host `base+2`     |
 | `OPENHUMAN_WORKSPACE`       | (temp dir) | App workspace directory                                                |
 | `OPENHUMAN_SERVICE_MOCK`    | `0`        | Enable service mock mode                                               |
 | `OPENHUMAN_E2E_MODE`        | unset      | Enables destructive test-support RPCs; the E2E runner sets this to `1` |
@@ -152,13 +153,25 @@ error) before Tauri's deep-link forwarding path is installed.
 | `DEBUG_E2E_DEEPLINK`        | (verbose)  | Set to `0` to silence deep link logs                                   |
 | `E2E_FORCE_CARGO_CLEAN`     | unset      | Force cargo clean before E2E build                                     |
 
+Two web E2E sessions on one machine need separate ports. The lane refuses to
+start when any of its three ports is already listening, because its readiness
+probes are ordinary HTTP GETs that the other session's mock, core and web host
+answer just as happily — and `openhuman-core run` falls back to a neighbouring
+port rather than exiting, so it would stay alive on a port nothing probes
+(#5918). Set `E2E_PORT_BASE` for the build and the run alike: the mock and core
+ports are compiled into the bundle and cannot be changed afterwards (#6478).
+
+```bash
+E2E_PORT_BASE=31000 pnpm --filter openhuman-app test:e2e:web
+```
+
 ---
 
 ## CI workflows
 
 ### Push / PR checks
 
-The default pull-request gate is `.github/workflows/ci-lite.yml` (quick lane: quality checks plus complete unit-test suites for each changed area). E2E suites do not run on PRs to `main`. The full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
+The default pull-request gate is `.github/workflows/ci-fast.yml` (quality checks plus complete unit-test suites for changed areas). E2E suites do not run on PRs to `main`. The full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
 
 macOS and Windows desktop E2E do not run on pushes or PRs. `.github/workflows/e2e.yml` is a manually dispatched workflow whose `run_macos` / `run_windows` inputs default to `false` until #5485 lands a native driver for each platform; someone has to opt in explicitly to get cross-platform desktop signal before promotion.
 

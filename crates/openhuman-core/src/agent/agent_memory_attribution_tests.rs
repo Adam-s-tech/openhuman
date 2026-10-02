@@ -121,7 +121,7 @@ async fn an_automation_turn_does_not_store_its_prompt_as_the_users_memory() {
 
     let origin = AgentTurnOrigin::TrustedAutomation {
         job_id: "memory_goals:enrich:1".into(),
-        source: TrustedAutomationSource::Subconscious,
+        source: TrustedAutomationSource::Background,
     };
     let _ = with_origin(origin, agent.turn("Maintain the existing goals list."))
         .await

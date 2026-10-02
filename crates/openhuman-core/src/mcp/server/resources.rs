@@ -20,6 +20,10 @@
 //! a matching catalog entry fails that test and therefore CI.
 
 use serde_json::{json, Value};
+use tinymcp::{ResourceSpec, ToolCallError};
+
+/// Every bundled prompt is markdown.
+const MIME_TYPE: &str = "text/markdown";
 
 struct PromptResource {
     uri: &'static str,
@@ -175,62 +179,30 @@ const RESOURCE_CATALOG: &[PromptResource] = &[
     },
 ];
 
-/// Returns the `resources/list` result payload listing every catalog entry.
-pub fn list_resources_result() -> Value {
-    let resources: Vec<Value> = RESOURCE_CATALOG
+/// The catalog as `resources/list` advertises it.
+pub fn resource_specs() -> Vec<ResourceSpec> {
+    let resources = RESOURCE_CATALOG
         .iter()
         .map(|r| {
-            json!({
-                "uri": r.uri,
-                "name": r.name,
-                "description": r.description,
-                "mimeType": "text/markdown"
-            })
+            ResourceSpec::new(r.uri, r.name)
+                .with_description(r.description)
+                .with_mime_type(MIME_TYPE)
         })
-        .collect();
+        .collect::<Vec<_>>();
     log::debug!("[mcp_server] resources/list count={}", resources.len());
-    json!({ "resources": resources })
+    resources
 }
 
-/// Returns the `resources/templates/list` result payload.
-///
-/// The catalog is fully static — every URI is concrete, none are templated —
-/// so the response is always an empty `resourceTemplates` array. The handler
-/// exists so MCP clients that probe `resources/templates/list` after seeing
-/// the `resources` capability get a well-formed result instead of
-/// `-32601 Method not found`.
-pub fn list_resource_templates_result() -> Value {
-    log::debug!("[mcp_server] resources/templates/list count=0 (catalog is static)");
-    json!({ "resourceTemplates": [] })
-}
-
-/// Returns the `resources/read` result payload for the given URI, or a JSON-RPC
-/// error value when the URI is unknown (`-32002`) or missing (`-32602`).
-pub fn read_resource_result(params: &Value) -> Result<Value, (i64, &'static str, String)> {
-    let uri = params
-        .as_object()
-        .and_then(|obj| obj.get("uri"))
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|uri| !uri.is_empty())
-        .ok_or_else(|| {
-            (
-                -32602_i64,
-                "Invalid params",
-                "resources/read params.uri must be a non-empty string".to_string(),
-            )
-        })?;
-
+/// The `resources/read` result for `uri`, or
+/// [`ToolCallError::ResourceNotFound`] (`-32002`) when the catalog has no such
+/// entry. `tinymcp` has already rejected a missing or blank `uri`.
+pub fn read_resource(uri: &str) -> Result<Value, ToolCallError> {
     let resource = RESOURCE_CATALOG
         .iter()
         .find(|r| r.uri == uri)
         .ok_or_else(|| {
             log::debug!("[mcp_server] resources/read unknown uri={uri}");
-            (
-                -32002_i64,
-                "Resource not found",
-                format!("no resource with uri `{uri}`"),
-            )
+            ToolCallError::ResourceNotFound(format!("no resource with uri `{uri}`"))
         })?;
 
     log::debug!(
@@ -241,7 +213,7 @@ pub fn read_resource_result(params: &Value) -> Result<Value, (i64, &'static str,
     Ok(json!({
         "contents": [{
             "uri": resource.uri,
-            "mimeType": "text/markdown",
+            "mimeType": MIME_TYPE,
             "text": resource.content
         }]
     }))

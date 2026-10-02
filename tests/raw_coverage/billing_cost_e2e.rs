@@ -1,5 +1,3 @@
-#![cfg(any())] // TODO(#6382): migrate this legacy TinyAgents fixture to the hosted public API.
-
 //! RPC-level e2e coverage for `openhuman.billing_*`, `openhuman.cost_*` and
 //! `openhuman.dashboard_model_health`.
 //!
@@ -19,6 +17,18 @@ mod support;
 
 use serde_json::{json, Value};
 use support::{assert_error, assert_no_error, error_message, logs, mock_log, peel, Harness};
+
+/// Bind the process-global cost tracker to this test's workspace.
+///
+/// `resolve_tracker` prefers the process-global tracker, which the first core
+/// boot in the binary binds to *its* workspace and later boots leave alone. The
+/// aggregated target runs several harnesses in one process, so without this a
+/// test's answer depends on which test happened to boot first.
+fn bind_cost_tracker(workspace: &std::path::Path, cost: Value) {
+    let cost: openhuman_core::config::CostConfig =
+        serde_json::from_value(cost).expect("cost config");
+    openhuman_core::platform::cost::rebind_global(cost, workspace);
+}
 
 /// Every persisted cost record the seeding helper writes, as one JSONL line.
 fn cost_record_line(id: &str, model: &str, cost_usd: f64, input: u64, output: u64) -> String {
@@ -246,7 +256,11 @@ async fn billing_uncovered_controllers_round_trip_against_the_backend() {
     let coupons_arr = coupons
         .as_array()
         .unwrap_or_else(|| panic!("expected an array of coupons: {coupons}"));
-    assert_eq!(coupons_arr.len(), 1, "seeded one redeemed coupon: {coupons}");
+    assert_eq!(
+        coupons_arr.len(),
+        1,
+        "seeded one redeemed coupon: {coupons}"
+    );
     assert_eq!(
         coupons_arr[0].get("code").and_then(Value::as_str),
         Some("WELCOME10")
@@ -283,7 +297,11 @@ async fn billing_rejects_bad_input_before_it_reaches_the_backend() {
     log.clear();
 
     let blank_code = harness
-        .call(31, "openhuman.billing_redeem_coupon", json!({ "code": "  " }))
+        .call(
+            31,
+            "openhuman.billing_redeem_coupon",
+            json!({ "code": "  " }),
+        )
         .await;
     assert!(
         error_message(&blank_code, "blank coupon").contains("code is required"),
@@ -324,8 +342,7 @@ async fn billing_without_a_session_refuses_locally() {
         .await;
     let message = error_message(&balance, "billing_get_balance with no session");
     assert!(
-        message.contains("no backend session token")
-            && message.contains("auth_store_session"),
+        message.contains("no backend session token") && message.contains("auth_store_session"),
         "the error must name the missing session *and* the call that fixes it, \
          so the UI can route to sign-in rather than show a bare failure; got: {message}"
     );
@@ -394,6 +411,19 @@ alert_threshold = 0.9
         0,
     ));
     std::fs::write(state_dir.join("costs.jsonl"), &jsonl).expect("seed costs.jsonl");
+    bind_cost_tracker(
+        &harness.workspace(),
+        json!({
+            "enabled": true,
+            "monthly_limit_usd": 10.0,
+            "dashboard": {
+                "enabled": true,
+                "currency": "USD",
+                "warn_threshold": 0.5,
+                "alert_threshold": 0.9
+            }
+        }),
+    );
 
     // --- cost_get_summary ---------------------------------------------------
     let summary = harness
@@ -469,7 +499,11 @@ alert_threshold = 0.9
         .get("by_model")
         .and_then(Value::as_array)
         .unwrap_or_else(|| panic!("dashboard must carry `by_model`: {dashboard}"));
-    assert_eq!(by_model.len(), 3, "three distinct models seeded: {by_model:?}");
+    assert_eq!(
+        by_model.len(),
+        3,
+        "three distinct models seeded: {by_model:?}"
+    );
     let managed = by_model
         .iter()
         .find(|m| m.get("model").and_then(Value::as_str) == Some("chat-v1"))
@@ -493,11 +527,7 @@ alert_threshold = 0.9
 
     // --- cost_get_daily_history --------------------------------------------
     let history = harness
-        .call(
-            52,
-            "openhuman.cost_get_daily_history",
-            json!({ "days": 3 }),
-        )
+        .call(52, "openhuman.cost_get_daily_history", json!({ "days": 3 }))
         .await;
     let history = peel(assert_no_error(&history, "cost_get_daily_history"));
     let entries = history
@@ -567,7 +597,9 @@ alert_threshold = 0.9
         .map(|c| {
             (
                 c.get("category").and_then(Value::as_str).unwrap_or(""),
-                c.get("cost_usd").and_then(Value::as_f64).unwrap_or(f64::NAN),
+                c.get("cost_usd")
+                    .and_then(Value::as_f64)
+                    .unwrap_or(f64::NAN),
             )
         })
         .collect();
@@ -582,8 +614,9 @@ alert_threshold = 0.9
         .unwrap_or_else(|| panic!("usage log must carry `records`: {usage}"));
     assert_eq!(records.len(), 3);
     assert!(
-        records.iter().all(|r| r.get("cost_source").and_then(Value::as_str)
-            == Some("estimated")),
+        records
+            .iter()
+            .all(|r| r.get("cost_source").and_then(Value::as_str) == Some("estimated")),
         "persisted cost provenance must survive into the DTO: {records:?}"
     );
 
@@ -610,6 +643,7 @@ async fn cost_controllers_answer_on_a_workspace_with_no_history() {
     crate::tinyhumans_boot::boot();
     let _lock = support::env_lock();
     let harness = Harness::start("", true).await;
+    bind_cost_tracker(&harness.workspace(), json!({}));
 
     let summary = harness
         .call(60, "openhuman.cost_get_summary", json!({}))
@@ -635,7 +669,10 @@ async fn cost_controllers_answer_on_a_workspace_with_no_history() {
         "no records, but the envelope must still be well formed: {usage}"
     );
     assert_eq!(
-        usage.get("by_category").and_then(Value::as_array).map(Vec::len),
+        usage
+            .get("by_category")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0)
     );
 }
@@ -697,7 +734,10 @@ vision = false
         2,
         "one row per registry entry, in registry order: {health}"
     );
-    assert_eq!(models[0].get("id").and_then(Value::as_str), Some("w4/alpha"));
+    assert_eq!(
+        models[0].get("id").and_then(Value::as_str),
+        Some("w4/alpha")
+    );
     assert_eq!(
         models[0].get("cost_per_1m_output").and_then(Value::as_f64),
         Some(6.0),
@@ -708,7 +748,10 @@ vision = false
         Some(200_000)
     );
     assert_eq!(models[0].get("vision").and_then(Value::as_bool), Some(true));
-    assert_eq!(models[1].get("vision").and_then(Value::as_bool), Some(false));
+    assert_eq!(
+        models[1].get("vision").and_then(Value::as_bool),
+        Some(false)
+    );
 
     // The placeholder contract, which the frontend reads as "no signal".
     for row in models {

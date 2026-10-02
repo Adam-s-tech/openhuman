@@ -481,7 +481,7 @@ fn quota_exhausted_filter_matches_responses_usage_limit_reached_event() {
     // so this stays coupled to the actual wire format rather than a loose
     // substring. No "monthly"/"quota" co-marker, so it exercises the AFE
     // phrase extension reaching the before_send net on both message and
-    // exception paths (the subconscious loop retries until `resets_at`).
+    // exception paths (a background retry loop waits until `resets_at`).
     let body = "openai Responses API error (429): {\"error\":{\"type\":\
         \"usage_limit_reached\",\"message\":\"The usage limit has been reached\",\
         \"plan_type\":\"plus\",\"resets_at\":1750000000}}";

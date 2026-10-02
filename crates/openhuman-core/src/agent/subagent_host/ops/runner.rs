@@ -10,7 +10,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::agent::file_state::with_file_state_agent_id;
 use crate::agent::harness::agent_graph::{AgentTurnRequest, AgentTurnUsage};
 use crate::agent::harness::artifact_offload::{
     effective_offload_threshold, extract_artifact_paths, new_artifact_offload,
@@ -41,6 +40,7 @@ use crate::inference::provider::AGENT_TURN_MAX_OUTPUT_TOKENS;
 use crate::memory::api::provider::retrieval::{FastRetrieveQuery, RetrievalResponse};
 use crate::memory::source_scope::as_bus_scope;
 use tinytools::{SandboxMode as TinyagentsSandboxMode, ToolSpec, WorkspaceDescriptor};
+use tinytools_std::file_state::with_file_state_agent_id;
 
 use super::prompt::{
     append_artifact_offload_contract, append_subagent_role_contract, dedup_tool_specs_by_name,
@@ -517,7 +517,7 @@ pub(crate) async fn run_subagent_direct(
         // forbids never reaches a user script, and before config load so a
         // denied spawn has no side effects at all.
         if let Err(reason) = crate::hooks::ops::subagent_starting(
-            crate::hooks::context::TurnIdentity {
+            tinyagents_runtime::command_hooks::context::TurnIdentity {
                 conversation_id: Some(parent.session_id.clone()),
                 session_id: Some(parent.session_id.clone()),
                 agent_id: Some(parent.agent_definition_id.clone()),
@@ -548,7 +548,7 @@ pub(crate) async fn run_subagent_direct(
         // Deliberately placed *after* `tier_gate_decision`: `load_or_init` can
         // initialize config on first run, and a spawn the tier gate rejects
         // should not have that side effect.
-        let loaded_config: LoadedConfig = crate::config::Config::load_or_init()
+        let loaded_config: LoadedConfig = Box::pin(crate::config::Config::load_or_init())
             .await
             .map(std::sync::Arc::new)
             .map_err(|e| e.to_string());
@@ -561,13 +561,13 @@ pub(crate) async fn run_subagent_direct(
         // to the full sub-agent when the fast path is disabled/errs/finds
         // nothing (the empty/degraded case is handled by #4655).
         if definition.id == AGENT_MEMORY_ID {
-            if let Some(outcome) = try_deterministic_memory_retrieval(
+            if let Some(outcome) = Box::pin(try_deterministic_memory_retrieval(
                 task_prompt,
                 definition,
                 &task_id,
                 started,
                 &loaded_config,
-            )
+            ))
             .await
             {
                 // The fast path completes a real delegation and returns here,
@@ -630,7 +630,7 @@ pub(crate) async fn run_subagent_direct(
                 "[subagent_host] worktree-isolated worker: descriptor will route acting-tool CWD"
             );
         }
-        let run_result = with_spawn_depth(attempted_depth, async {
+        let run_result = Box::pin(with_spawn_depth(attempted_depth, async {
             with_file_state_agent_id(task_id.clone(), async {
                 with_current_sandbox_mode(definition.sandbox_mode, async {
                     Box::pin(run_typed_mode(
@@ -646,7 +646,7 @@ pub(crate) async fn run_subagent_direct(
                 .await
             })
             .await
-        })
+        }))
         .await;
 
         // Feed this delegation's wall-clock into the turn's running maximum,
@@ -685,7 +685,7 @@ pub(crate) async fn run_subagent_direct(
         // an abstract and the full-fidelity body survives on disk instead of
         // being cut. A refused or failed offload is soft: the inline payload
         // continues on to the cap and the summarizer detour exactly as before.
-        offload_outcome_artifacts(&mut outcome, definition, &options, &task_id).await;
+        Box::pin(offload_outcome_artifacts(&mut outcome, definition, &options, &task_id)).await;
 
         // Truncate result to the definition's cap if set (shared with the
         // deterministic memory fast path via `apply_max_result_chars`).
@@ -780,8 +780,8 @@ async fn offload_outcome_artifacts(
 
     // Offload at the tighter of the global default and this agent's own result
     // cap, so a definition capped below the default (flow_memory_agent at 4 000
-    // chars, context_scout at 5 000) gets its full body on disk instead of
-    // truncated by `apply_max_result_chars` immediately after.
+    // chars) gets its full body on disk instead of truncated by
+    // `apply_max_result_chars` immediately after.
     let threshold =
         effective_offload_threshold(DEFAULT_OFFLOAD_THRESHOLD_BYTES, definition.max_result_chars);
 
@@ -946,7 +946,6 @@ async fn run_typed_mode(
     };
 
     // ── Filter tools per definition + per-spawn override ───────────────
-    let toolkit_filter = options.toolkit_override.as_deref();
     let mut allowed_indices = filter_tool_indices(
         &parent.all_tools,
         &definition.tools,
@@ -1029,19 +1028,12 @@ async fn run_typed_mode(
         definition.omit_memory_md,
     );
 
-    let narrowed_integrations: Vec<crate::agent::prompts::ConnectedIntegration> =
-        match toolkit_filter {
-            Some(tk) => live_integrations
-                .iter()
-                .filter(|ci| ci.connected && ci.toolkit.eq_ignore_ascii_case(tk))
-                .cloned()
-                .collect(),
-            None => live_integrations
-                .iter()
-                .filter(|ci| ci.connected)
-                .cloned()
-                .collect(),
-        };
+    let connected_integrations_for_prompt: Vec<crate::agent::prompts::ConnectedIntegration> =
+        live_integrations
+            .iter()
+            .filter(|ci| ci.connected)
+            .cloned()
+            .collect();
 
     let prompt_tools: Vec<PromptTool<'_>> = allowed_indices
         .iter()
@@ -1097,7 +1089,7 @@ async fn run_typed_mode(
         learned: crate::agent::prompts::LearnedContextData::default(),
         visible_tool_names: &visible_tool_names,
         tool_call_format: prompt_tool_call_format,
-        connected_integrations: &narrowed_integrations,
+        connected_integrations: &connected_integrations_for_prompt,
         connected_identities_md: crate::agent::prompts::render_connected_identities(),
         include_profile: !definition.omit_profile,
         include_memory_md: !definition.omit_memory_md,
@@ -1126,7 +1118,7 @@ async fn run_typed_mode(
                 &archetype_prompt_body,
                 render_options,
                 prompt_tool_call_format,
-                &narrowed_integrations,
+                &connected_integrations_for_prompt,
                 agents_md.global.as_deref(),
                 agents_md.local.as_deref(),
             )
@@ -1157,7 +1149,7 @@ async fn run_typed_mode(
     if let Some(ref ctx) = options.context {
         context_parts.push(ctx);
     }
-    let mut history: Vec<crate::agent::messages::ChatMessage> =
+    let mut history: Vec<tinyagents_session::transcript::TranscriptMessage> =
         if let Some(ref initial) = options.initial_history {
             tracing::info!(
                 agent_id = %definition.id,
@@ -1173,8 +1165,8 @@ async fn run_typed_mode(
                 format!("[Context]\n{}\n\n{task_prompt}", context_parts.join("\n\n"))
             };
             vec![
-                crate::agent::messages::ChatMessage::system(system_prompt),
-                crate::agent::messages::ChatMessage::user(user_message),
+                tinyagents_session::transcript::TranscriptMessage::system(system_prompt),
+                tinyagents_session::transcript::TranscriptMessage::user(user_message),
             ]
         };
 

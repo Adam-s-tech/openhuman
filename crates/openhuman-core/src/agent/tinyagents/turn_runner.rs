@@ -17,7 +17,6 @@ use tinyagents_registry::DiagnosticSeverity;
 
 use crate::agent::harness::tool_result_artifacts::TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE;
 use crate::agent::harness::MAX_SPAWN_DEPTH;
-use crate::agent::messages::ChatMessage;
 use crate::agent::tinyagents::harness_assembly::{assemble_turn_harness, AssembledTurnHarness};
 use crate::agent::tinyagents::host::steering::shared_steering_registry;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
@@ -31,6 +30,7 @@ use crate::agent::tinyagents::turn_run_finalize::finalize_turn_outcome;
 use crate::agent::tinyagents::{journal, routes, steering_forwarder};
 use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::RunQueue;
+use tinyagents_session::transcript::TranscriptMessage;
 
 use super::ToolPolicyEnforcement;
 
@@ -46,11 +46,6 @@ use turn_runner_hosted::{root_hosted_harness, PrecomposedRootContext};
 #[cfg(test)]
 #[path = "turn_runner_tests.rs"]
 mod tests;
-#[cfg(test)]
-#[path = "turn_runner_thin.rs"]
-mod thin;
-#[cfg(test)]
-pub(crate) use thin::run_turn_via_tinyagents;
 
 /// Drive a turn through the tinyagents harness over the routes' **shared**,
 /// `Arc`-owned tool registry sets (`Arc<Vec<Box<dyn Tool>>>`), advertising
@@ -91,7 +86,7 @@ pub(crate) async fn run_turn_via_tinyagents_shared(
     turn_models: TurnModels,
     provider_id: String,
     model: &str,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
     tool_sets: Vec<Arc<Vec<Box<dyn tinytools::Tool>>>>,
     allowed: Option<HashSet<String>>,
     max_iterations: usize,
@@ -152,7 +147,7 @@ pub(crate) async fn run_root_turn_via_hosted_agent(
     turn_models: TurnModels,
     provider_id: String,
     model: &str,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
     tool_sets: Vec<Arc<Vec<Box<dyn tinytools::Tool>>>>,
     allowed: Option<HashSet<String>>,
     max_iterations: usize,
@@ -195,7 +190,7 @@ async fn run_turn_via_tinyagents_inner(
     turn_models: TurnModels,
     provider_id: String,
     model: &str,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
     tool_sets: Vec<Arc<Vec<Box<dyn tinytools::Tool>>>>,
     allowed: Option<HashSet<String>>,
     max_iterations: usize,
@@ -241,10 +236,9 @@ async fn run_turn_via_tinyagents_inner(
     // tool's OWN `display_label`/`display_detail` instead of only ever
     // guessing from the bare name (issue: tool-call presentation).
     let bridge_tool_sets = tool_sets.clone();
-    // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry
-    // id are built by the caller via `build_turn_models` — the seam entry is
-    // crate-native and no longer names `Provider` (issue #4249, Phase 5). The
-    // telemetry id (`{provider_id}.{model}` in Langfuse) rides in as a param.
+    // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry id are built by
+    // the caller via `build_turn_models`: the seam is crate-native and names no `Provider` (#4249,
+    // Phase 5). The telemetry id (`{provider_id}.{model}` in Langfuse) rides in as a param.
     let AssembledTurnHarness {
         harness,
         cursor,
@@ -281,6 +275,7 @@ async fn run_turn_via_tinyagents_inner(
         hosted_root.is_some(),
         pause_at_cap,
         run_context.tool_dialect,
+        Arc::clone(&run_context.deferred_tool_names),
         run_context
             .thread_id
             .as_deref()
@@ -343,7 +338,7 @@ async fn run_turn_via_tinyagents_inner(
             "openhuman-agent-turn"
         })
         .with_max_model_calls(max_iterations)
-        .with_max_tool_calls(max_iterations.saturating_mul(8).max(8))
+        .with_max_tool_calls(crate::agent::stop_hooks::tool_call_limit(max_iterations))
         .with_max_depth(MAX_SPAWN_DEPTH)
         .with_tag("openhuman")
         .with_tag(if subagent_scope.is_some() {
@@ -388,6 +383,7 @@ async fn run_turn_via_tinyagents_inner(
     run_context.tool_result_artifact_index = tool_result_artifact_index.clone();
     run_context.tool_outcomes = Some(tool_outcome_sink.clone());
     let mut ctx = run_context.clone().into_tinyagents(config);
+    let run_instance_id = ctx.instance_id();
     // Assemble the run's store registry: the tool-result artifact index (when
     // present) and — behind the default-ON session dual-write flag — the
     // session KV store, so the harness carries a handle to the same
@@ -440,7 +436,7 @@ async fn run_turn_via_tinyagents_inner(
     // with it (`with_stream_id`), so every persisted observation's `event_id` is
     // the restart-stable `{run_id}-evt-{offset}` a late-attach replay
     // reconstructs the timeline from (05.1). The same id keys the journal + status.
-    let journal_run_id = journal::mint_run_id();
+    let journal_run_id = tinyagents_harness::observability::mint_run_id();
     if let Some(scope) = &subagent_scope {
         if let Some(slot) = &scope.journal_run_id {
             *slot
@@ -594,7 +590,7 @@ async fn run_turn_via_tinyagents_inner(
             steering_forwarder::forward_collects(&queue, &handle, &steer_thread_label).await;
         }
         ctx = ctx.with_steering(handle.clone());
-        Some(steering_forwarder::SteeringForwarderGuard::new(
+        Some(steering_forwarder::arm_guard(
             handle,
             run_queue,
             registry_task_id,
@@ -645,41 +641,26 @@ async fn run_turn_via_tinyagents_inner(
         .with_replayed_prefix(request_base_len.saturating_sub(1)) // #6710: only the new input is screened
         .with_runtime(InvocationRuntime::new(harness));
         let state = ();
-        if streaming {
-            let stream = root_hosted_harness()
-                .invoke_agent_stream(invocation, &state)
-                .await;
-            match stream {
-                Ok(mut stream) => {
-                    let mut terminal = None;
-                    while let Some(item) = stream.next().await {
-                        match item {
-                            AgentStreamItem::Event(_) => {}
-                            AgentStreamItem::Completed(run) => {
-                                terminal = Some(Ok(*run));
-                                break;
-                            }
-                            AgentStreamItem::Failed { error, .. } => {
-                                terminal =
-                                    Some(Err(tinyagents_harness::TinyAgentsError::Model(error)));
-                                break;
-                            }
-                        }
-                    }
-                    terminal.unwrap_or_else(|| {
-                        Err(tinyagents_harness::TinyAgentsError::Model(
-                            "hosted agent stream ended without terminal run".to_string(),
-                        ))
-                    })
-                }
-                Err(error) => Err(error),
-            }
+        // Both surfaces return the harness's typed `HostedError`, so a timeout,
+        // a limit and a provider failure keep their kind through the turn error
+        // and `web_errors` can classify them (#6375). Draining
+        // `invoke_agent_stream` instead would collapse every failure to one
+        // sanitized string. Streaming still drives every model call through
+        // `ChatModel::stream`; this path reads only the terminal run.
+        let hosted = root_hosted_harness();
+        let outcome = if streaming {
+            hosted.invoke_agent_streaming(invocation, &state).await
         } else {
-            root_hosted_harness()
-                .invoke_agent(invocation, &state)
-                .await
-                .map_err(|error| tinyagents_harness::TinyAgentsError::Model(error.to_string()))
-        }
+            hosted.invoke_agent(invocation, &state).await
+        };
+        outcome.map_err(|error| {
+            tracing::debug!(
+                kind = ?error.kind,
+                streaming,
+                "[tinyagents] hosted root turn failed; keeping the typed kind"
+            );
+            super::hosted_error::run_error_from_hosted(error)
+        })
     } else if streaming {
         let mut stream = Box::pin(harness.invoke_stream_in_context(&(), ctx, input));
         let mut terminal = None;
@@ -742,6 +723,7 @@ async fn run_turn_via_tinyagents_inner(
         early_exit_hook,
         &halt_summary,
         &wrap_up_fired,
+        run_instance_id,
         &tool_outcome_sink,
         resolved_route,
         request_base_len,

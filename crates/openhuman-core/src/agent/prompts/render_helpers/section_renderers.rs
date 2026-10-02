@@ -25,19 +25,6 @@ pub fn render_user_files(ctx: &PromptContext<'_>) -> Result<String> {
     UserFilesSection.build(ctx)
 }
 
-/// Render the tree-summariser user-memory block.
-pub fn render_user_memory(ctx: &PromptContext<'_>) -> Result<String> {
-    UserMemorySection.build(ctx)
-}
-
-/// Render the `## Project instructions (AGENTS.md)` block from the pre-loaded
-/// global + local content on [`PromptContext`]. Empty when neither layer
-/// carries content. Dynamic `agents/<id>/prompt.rs` builders call this so they
-/// inherit the same AGENTS.md injection as the default section chain.
-pub fn render_agents_md(ctx: &PromptContext<'_>) -> Result<String> {
-    AgentsInstructionsSection.build(ctx)
-}
-
 /// Render the privileged `## User Reflections` block. Empty when the
 /// learning subsystem has not captured any reflections yet.
 pub fn render_user_reflections(ctx: &PromptContext<'_>) -> Result<String> {
@@ -54,14 +41,6 @@ pub fn render_safety() -> String {
     SafetySection
         .build(&empty_prompt_context_for_static_sections())
         .expect("SafetySection::build is infallible")
-}
-
-/// Render the canonical grounding / anti-hallucination contract
-/// ([`GROUNDING_BODY`]). Dynamic `agents/<id>/prompt.rs` builders call this
-/// so they inherit the exact same anti-fabrication floor as the static
-/// section chain — single source of truth, no drift.
-pub fn render_grounding() -> &'static str {
-    GROUNDING_BODY
 }
 
 // `render_skills` and `render_connected_integrations` helpers are

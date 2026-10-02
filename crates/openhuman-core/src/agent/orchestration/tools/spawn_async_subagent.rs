@@ -6,9 +6,8 @@
 
 use super::subagent_abort_report::AbortReport;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
-use crate::agent::messages::ChatMessage;
 use crate::agent::orchestration::fleet_tools::FleetToolSet;
-use crate::agent::orchestration::running_subagents::{self, SubagentStatus};
+use crate::agent::orchestration::running_subagents;
 use crate::agent::orchestration::subagent_sessions::{
     self, DurableSubagentStatus, SubagentSessionSelector, SubagentSessionStore,
     SubagentSessionUpsert,
@@ -24,10 +23,16 @@ use std::sync::Arc;
 use tinyagents_harness::context::{RunConfig, RunContext};
 use tinyagents_harness::run_queue::RunQueue;
 use tinyagents_harness::tool::{ToolDispatch, ToolExecutionContext};
+use tinyagents_orchestration::subagent::DetachedSubagentStatus;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::ToolRunContext;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 
-pub struct SpawnAsyncSubagentTool;
+pub struct SpawnAsyncSubagentTool {
+    /// The ids this instance advertises in its `agent_id` enum. Empty means
+    /// the whole registry. See [`SpawnAsyncSubagentTool::scoped`].
+    advertised_ids: Vec<String>,
+}
 
 /// Harness dispatch for the detached child path. It owns the typed parent run
 /// so the spawned child receives the caller's carrier before `tokio::spawn`.
@@ -80,7 +85,27 @@ impl ToolDispatch<(), crate::agent::tinyagents::host::OpenHumanRunContext>
 
 impl SpawnAsyncSubagentTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            advertised_ids: Vec::new(),
+        }
+    }
+
+    /// An instance whose schema advertises only `ids`, the parent's
+    /// `[subagents]` allowlist.
+    ///
+    /// [`scope_spawn_async_subagent_spec`] narrows the session's spec view,
+    /// but on native tool calling the wire schema is read from the registered
+    /// tool itself (`CanonicalSharedToolAdapter::for_name` → `Tool::spec`),
+    /// so the narrowed view never reached the provider: a captured
+    /// orchestrator request carried all 19 registry ids. The session builder
+    /// swaps this instance in so both views agree. Execution is unchanged;
+    /// `execute` enforces the allowlist either way.
+    pub fn scoped(mut ids: Vec<String>) -> Self {
+        ids.sort();
+        ids.dedup();
+        Self {
+            advertised_ids: ids,
+        }
     }
 }
 
@@ -139,9 +164,14 @@ impl Tool for SpawnAsyncSubagentTool {
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
-        let agent_ids: Vec<String> = AgentDefinitionRegistry::global()
-            .map(|reg| reg.list().iter().map(|d| d.id.clone()).collect())
-            .unwrap_or_default();
+        let scoped = !self.advertised_ids.is_empty();
+        let agent_ids: Vec<String> = if scoped {
+            self.advertised_ids.clone()
+        } else {
+            AgentDefinitionRegistry::global()
+                .map(|reg| reg.list().iter().map(|d| d.id.clone()).collect())
+                .unwrap_or_default()
+        };
 
         let agent_id_schema = if agent_ids.is_empty() {
             json!({
@@ -152,7 +182,11 @@ impl Tool for SpawnAsyncSubagentTool {
             json!({
                 "type": "string",
                 "enum": agent_ids,
-                "description": "Sub-agent id from the registry."
+                "description": if scoped {
+                    "Sub-agent id (only these are dispatchable from here)."
+                } else {
+                    "Sub-agent id from the registry."
+                }
             })
         };
 
@@ -172,10 +206,6 @@ impl Tool for SpawnAsyncSubagentTool {
                 "model": {
                     "type": "string",
                     "description": "Optional exact model id for this spawn only."
-                },
-                "toolkit": {
-                    "type": "string",
-                    "description": "Optional Composio toolkit slug (e.g. `gmail`). Narrows the Connected Integrations section of the sub-agent's prompt to that toolkit."
                 },
                 "task_title": {
                     "type": "string",
@@ -466,7 +496,7 @@ fn durable_task_key_source(
 /// dependency on the feature-gated flows domain — it is a generic scan for a
 /// structured tool payload.
 pub(crate) fn extract_workflow_proposal_from_history(
-    history: &[ChatMessage],
+    history: &[TranscriptMessage],
 ) -> Option<serde_json::Value> {
     history
         .iter()
@@ -491,7 +521,7 @@ fn attach_workflow_proposal(
     parent_thread_id: Option<&str>,
     task_id: &str,
     agent_id: &str,
-    final_history: &[ChatMessage],
+    final_history: &[TranscriptMessage],
     summary: String,
 ) -> String {
     let Some(proposal) = extract_workflow_proposal_from_history(final_history) else {

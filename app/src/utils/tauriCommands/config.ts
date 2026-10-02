@@ -115,9 +115,7 @@ export interface ModelSettingsUpdate {
   vision_provider?: string | null;
   memory_provider?: string | null;
   embeddings_provider?: string | null;
-  heartbeat_provider?: string | null;
   learning_provider?: string | null;
-  subconscious_provider?: string | null;
 }
 
 /**
@@ -184,9 +182,7 @@ export interface LocalAiSettingsUpdate {
   model_id?: string | null;
   chat_model_id?: string | null;
   usage_embeddings?: boolean | null;
-  usage_heartbeat?: boolean | null;
   usage_learning_reflection?: boolean | null;
-  usage_subconscious?: boolean | null;
 }
 
 export interface RuntimeFlags {
@@ -265,9 +261,7 @@ export interface ClientConfig {
   vision_provider: string | null;
   memory_provider: string | null;
   embeddings_provider: string | null;
-  heartbeat_provider: string | null;
   learning_provider: string | null;
-  subconscious_provider: string | null;
 }
 
 export async function openhumanGetClientConfig(): Promise<CommandResponse<ClientConfig>> {
@@ -326,6 +320,9 @@ export type ClaudeCodeAuthStatus =
  * Recheck, not on a tight loop.
  */
 export async function openhumanClaudeCodeAuthStatus(): Promise<ClaudeCodeAuthStatus> {
+  if (!isTauri()) {
+    throw new Error('Not running in Tauri');
+  }
   // The core handler returns the value via `RpcOutcome::new(_, vec![])` with no
   // logs, which `into_cli_compatible_json` serializes as the BARE value (not a
   // `{ result, logs }` envelope). `callCoreRpc` returns the JSON-RPC `result`,
@@ -474,8 +471,8 @@ export interface AutonomySettings {
   /**
    * When true, the approval gate auto-approves ALL tool calls without
    * prompting — a blanket bypass, not just the `auto_approve` allowlist
-   * above. Subconscious-tainted and unlabelled origins are still denied by
-   * the gate regardless of this flag; hard security blocks are unaffected.
+   * above. Unlabelled origins are still denied by the gate regardless of
+   * this flag; hard security blocks are unaffected.
    * Defaults to `false`.
    */
   auto_approve_all?: boolean;
@@ -516,12 +513,18 @@ export async function openhumanGetAutonomySettings(): Promise<CommandResponse<Au
  * - `action_dir_source` — where the effective `action_dir` came from:
  *   `'env'` (pinned by OPENHUMAN_ACTION_DIR — UI must disable editing),
  *   `'override'` (a persisted user choice), or `'default'`.
+ * - `files_dir` — the visible folder agent deliverables are written to
+ *   (#5505); `default_files_dir` is `~/OpenHuman/projects/Files`, and
+ *   `files_dir_source` says whether the user chose another one.
  */
 export interface AgentPaths {
   action_dir: string;
   workspace_dir: string;
   projects_dir: string;
   action_dir_source: 'env' | 'override' | 'default';
+  files_dir: string;
+  default_files_dir: string;
+  files_dir_source: 'override' | 'default';
 }
 
 export async function openhumanGetAgentPaths(): Promise<CommandResponse<AgentPaths>> {
@@ -530,9 +533,14 @@ export async function openhumanGetAgentPaths(): Promise<CommandResponse<AgentPat
   });
 }
 
-/** Partial update for the agent's editable filesystem roots (issue #3240). */
+/**
+ * Partial update for the agent's editable filesystem roots (#3240, #5505).
+ * An empty string reverts a field to its default; an omitted field is left
+ * unchanged.
+ */
 export interface AgentPathsUpdate {
   action_dir?: string;
+  files_dir?: string;
 }
 
 export async function openhumanUpdateAgentPaths(

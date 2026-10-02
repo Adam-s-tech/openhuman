@@ -25,6 +25,7 @@ const repoRoot = path.join(
   "..",
 );
 const MARKER = "openhuman-e2e-bundle.marker";
+const BUNDLE_INPUTS = ["src/App.tsx", "public/favicon.ico", "index.html", "vite.config.ts"];
 
 function writeExecutable(file, body) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -40,11 +41,23 @@ function makeTree(script) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-web-bundle-guard-"));
   const bin = path.join(root, "bin");
   const log = path.join(root, "calls.log");
+  const mockStarted = path.join(root, "mock-started");
   fs.mkdirSync(path.join(root, "app", "scripts"), { recursive: true });
-  fs.copyFileSync(
-    path.join(repoRoot, "app", "scripts", script),
-    path.join(root, "app", "scripts", script),
-  );
+  // Both scripts source the shared port helper (#5918).
+  for (const file of [script, "e2e-ports.sh"]) {
+    fs.copyFileSync(
+      path.join(repoRoot, "app", "scripts", file),
+      path.join(root, "app", "scripts", file),
+    );
+  }
+  // e2e-web-session.sh checks these paths before starting the mock or core.
+  // The fixture needs the same bundle inputs as the port-guard tests so this
+  // suite reaches the guard under test instead of failing on its test tree.
+  for (const rel of BUNDLE_INPUTS) {
+    const file = path.join(root, "app", rel);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, "");
+  }
   fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
   fs.copyFileSync(
     path.join(repoRoot, "scripts", "load-dotenv.sh"),
@@ -57,14 +70,17 @@ function makeTree(script) {
   // The mock backend "starts" and exits at once. Its launch is a background
   // job, so the health probe waits for the stub to record the launch before
   // reporting ready; otherwise a fast runner can race the child process.
-  writeExecutable(path.join(bin, "node"), `#!/usr/bin/env bash\n${record("node")}\n`);
+  writeExecutable(
+    path.join(bin, "node"),
+    `#!/usr/bin/env bash\n${record("node")}\ntouch "${mockStarted}"\n`,
+  );
   writeExecutable(
     path.join(bin, "curl"),
     `#!/usr/bin/env bash
 ${record("curl")}
-if [[ "$1" == *"/__admin/health" ]]; then
-  for _ in {1..100}; do
-    grep -q 'mock-api-server.mjs' "${log}" && exit 0
+if [[ "$*" == *"/__admin/health"* ]]; then
+  for _ in {1..500}; do
+    [ -f "${mockStarted}" ] && exit 0
     sleep 0.01
   done
   exit 1

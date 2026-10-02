@@ -343,6 +343,16 @@ Capability {
         privacy: LOCAL_RAW,
     },
 Capability {
+        id: "intelligence.memory_engine",
+        name: "Memory Engine",
+        domain: "intelligence",
+        category: CapabilityCategory::Intelligence,
+        description: "Choose which engine stores and recalls the assistant's memory: the built-in local TinyCortex (default), CortexDB hosted by TinyHumans (billed in credits, uses your signed-in session), or your own Supermemory, Mem0, Cognee, CortexDB or AgentMemory service. Switching applies immediately without a restart, and existing memories can be copied to the new engine first, with their document titles and tags, goals, the learned profile and conversation history; synced content can be re-sent so the new engine rebuilds its summaries (hosted memory bills for what it reads again). Keys live in the OS keychain, never in config. Hosted memory also keeps documents, goals, tool rules, the learned profile and episodic memory, takes connector and local-folder syncs, and draws the Brain graph from what the server understood; the local chunk store and its tools (vault, pipeline status, tree rebuild) are only available on the local engine, and other remote engines keep the core memory only.",
+        how_to: "Settings > Memory Engine. Pick an engine, enter its endpoint and key if it needs them, then switch or migrate.",
+        status: CapabilityStatus::Beta,
+        privacy: MEMORY_TO_REMOTE_ENGINE,
+    },
+Capability {
         id: "intelligence.memory_workspace",
         name: "Memory Workspace",
         domain: "intelligence",
@@ -502,9 +512,9 @@ Capability {
              managed cloud (default, Voyage-backed via api.tinyhumans.ai), OpenAI, \
              Cohere, local Ollama, or a custom OpenAI-compatible endpoint. API keys \
              are stored encrypted via the local keyring under `embeddings:<slug>`; \
-             model name and embedding dimensions are tunable per provider. The \
-             legacy `inference_embed` RPC is aliased to `embeddings_embed` so \
-             existing callers continue to work.",
+             model name and embedding dimensions are tunable per provider. A \
+             local Ollama model must already be pulled (`ollama pull bge-m3`); \
+             OpenHuman does not download it.",
         how_to: "Connections → API keys → Embeddings",
         status: CapabilityStatus::Beta,
         // Privacy depends on the selected provider — see

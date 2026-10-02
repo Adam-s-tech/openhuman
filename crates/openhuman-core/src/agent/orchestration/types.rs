@@ -19,8 +19,6 @@ pub struct SpawnAgentRequest {
     #[serde(default)]
     pub context: Option<String>,
     #[serde(default)]
-    pub toolkit: Option<String>,
-    #[serde(default)]
     pub model: Option<String>,
     #[serde(default)]
     pub parent_agent_id: Option<String>,

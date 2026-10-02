@@ -9,6 +9,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { CodingSessionsCard } from '../components/intelligence/CodingSessionsCard';
 import GoalsPanel from '../components/intelligence/GoalsPanel';
 import { MemoryControls } from '../components/intelligence/MemoryControls';
+import MemoryEngineRow from '../components/intelligence/MemoryEngineRow';
+import MemoryFamilyGate from '../components/intelligence/MemoryFamilyGate';
 import { MemoryGraph } from '../components/intelligence/MemoryGraph';
 import { MemorySourcesRegistry } from '../components/intelligence/MemorySourcesRegistry';
 import { MemoryTreeStatusPanel } from '../components/intelligence/MemoryTreeStatusPanel';
@@ -19,7 +21,10 @@ import PageWelcome from '../components/layout/PageWelcome';
 import { SidebarContent } from '../components/layout/shell/SidebarSlot';
 import TwoPaneNav from '../components/layout/TwoPaneNav';
 import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage';
+import MemoryEngineErrorAlert from '../components/settings/panels/MemoryEngineErrorAlert';
+import { classifyMemoryEngineError } from '../components/settings/panels/memoryEngineUtils';
 import { Alert, AlertDescription, Card } from '../components/ui';
+import { CenteredLoadingState } from '../components/ui/LoadingState';
 import { useT } from '../lib/i18n/I18nContext';
 import { useCoreState } from '../providers/CoreStateProvider';
 import type { ToastNotification } from '../types/intelligence';
@@ -364,16 +369,17 @@ export default function Brain() {
                       : 'w-full space-y-5'
                   }>
                   {activeTab === 'graph' && (
-                    <div className="space-y-5 animate-fade-up">
-                      <MemoryControls
-                        mode={mode}
-                        onModeChange={setMode}
-                        onRefresh={refresh}
-                        onToast={addToast}
-                        contentRootAbs={graph?.content_root_abs}
-                      />
+                    <MemoryFamilyGate family="tree">
+                      <div className="space-y-5 animate-fade-up">
+                        <MemoryControls
+                          mode={mode}
+                          onModeChange={setMode}
+                          onRefresh={refresh}
+                          onToast={addToast}
+                          contentRootAbs={graph?.content_root_abs}
+                        />
 
-                      {/*
+                        {/*
                         A failed refresh AFTER a good load keeps the graph on
                         screen and warns, rather than replacing it with an
                         error. The graph is expensive to rebuild and stays
@@ -390,60 +396,95 @@ export default function Brain() {
                         this one means "what you see is old", the one below
                         means "there is nothing to see".
                       */}
-                      {/*
+                        {/*
                         `error !== null`, not truthiness: `load()`'s catch does
                         `setError(err.message)`, and an Error carrying an empty
                         message yields `''`, which is falsy. Under a truthiness
                         test that failure suppresses BOTH alerts and is silent
                         again — the exact defect this PR exists to remove.
                       */}
-                      {error !== null && graph ? (
-                        <Alert variant="warning">
-                          <AlertDescription>{t('brain.refreshError')}</AlertDescription>
-                        </Alert>
-                      ) : null}
+                        {error !== null && graph ? (
+                          classifyMemoryEngineError(error) !== 'other' ? (
+                            <MemoryEngineErrorAlert error={error} />
+                          ) : (
+                            <Alert variant="warning">
+                              <AlertDescription>{t('brain.refreshError')}</AlertDescription>
+                            </Alert>
+                          )
+                        ) : null}
 
-                      {graph ? (
-                        <MemoryGraph
-                          nodes={graph.nodes}
-                          edges={graph.edges}
-                          mode={mode}
-                          emptyHint={t('brain.empty')}
-                        />
-                      ) : error !== null ? (
-                        <Alert variant="destructive">
-                          <AlertDescription>{t('brain.error')}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                    </div>
+                        {graph ? (
+                          <MemoryGraph
+                            nodes={graph.nodes}
+                            edges={graph.edges}
+                            mode={mode}
+                            emptyHint={t('brain.empty')}
+                          />
+                        ) : error !== null ? (
+                          <MemoryEngineErrorAlert error={error} fallbackText={t('brain.error')} />
+                        ) : (
+                          // The first load can take seconds — a hosted engine
+                          // builds the graph from its derived layers — and an
+                          // empty canvas meanwhile reads as a broken page.
+                          <div role="status" data-testid="brain-graph-loading">
+                            <CenteredLoadingState
+                              label={t('workspace.loadingGraph')}
+                              className="h-[640px] rounded-lg border border-line-subtle bg-surface-muted/40"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </MemoryFamilyGate>
                   )}
 
-                  {activeTab === 'goals' && <GoalsPanel />}
+                  {activeTab === 'goals' && (
+                    <MemoryFamilyGate family="goals">
+                      <GoalsPanel />
+                    </MemoryFamilyGate>
+                  )}
 
                   {activeTab === 'sources' && (
                     <div className="space-y-5 animate-fade-up">
-                      <CodingSessionsCard onToast={addToast} />
-                      <MemorySourcesRegistry onToast={addToast} />
+                      <MemoryEngineRow />
+                      {/* Coding sessions are a family of their own: an engine
+                      can accept synced items without reading local agent
+                      transcripts (hosted memory does exactly that). */}
+                      <MemoryFamilyGate family="coding_sessions">
+                        <CodingSessionsCard onToast={addToast} />
+                      </MemoryFamilyGate>
+                      <MemoryFamilyGate family="sources">
+                        <MemorySourcesRegistry onToast={addToast} />
+                      </MemoryFamilyGate>
                     </div>
                   )}
 
                   {activeTab === 'sync' && syncView === 'status' && (
                     <div className="space-y-5 animate-fade-up">
-                      <Card padded divided={false}>
-                        <MemoryTreeStatusPanel onToast={addToast} />
-                      </Card>
+                      {/* The ingest pipeline's status is the local chunk store's:
+                      hosted memory draws a tree but keeps no such store. */}
+                      <MemoryFamilyGate family="tree">
+                        <MemoryFamilyGate family="chunks">
+                          <Card padded divided={false}>
+                            <MemoryTreeStatusPanel onToast={addToast} />
+                          </Card>
+                        </MemoryFamilyGate>
+                      </MemoryFamilyGate>
                       {/* openhuman#6257: what is syncing right now, beside the
                       history of what already ran. */}
-                      <Card padded divided={false} data-testid="brain-sync-activity">
-                        <SyncActivityCard />
-                      </Card>
+                      <MemoryFamilyGate family="sources">
+                        <Card padded divided={false} data-testid="brain-sync-activity">
+                          <SyncActivityCard />
+                        </Card>
+                      </MemoryFamilyGate>
                     </div>
                   )}
 
                   {/* Sync → History: the run history as a full-height table. */}
                   {activeTab === 'sync' && syncView === 'history' && (
                     <div className="flex min-h-0 flex-1 flex-col" data-testid="brain-sync-history">
-                      <SyncAuditPanel fill />
+                      <MemoryFamilyGate family="sources">
+                        <SyncAuditPanel fill />
+                      </MemoryFamilyGate>
                     </div>
                   )}
                 </div>

@@ -371,7 +371,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
   });
 
   // Covers the page-mode sidebar (TwoPanelLayout, id `chat`) once opened. The
-  // General/Subconscious/Tasks filter chips were removed, and so was the thread
+  // General/Tasks filter chips were removed, and so was the thread
   // search; the section header's "new conversation" affordance is now the stable
   // top-of-sidebar control.
   it('renders the sidebar thread list chrome in page mode', async () => {
@@ -1422,10 +1422,14 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     });
   });
 
-  it('clears the pending guard when the 120s silence timer fires', async () => {
+  it('warns but keeps the turn when the 120s silence window elapses', async () => {
+    // Regression: the watchdog used to clear the runtime and drop the thread
+    // from the active set after 120s of silence, killing a turn that was still
+    // reasoning or running a long tool. Silence now only warns; the turn stays
+    // live and Stop remains the way to end it.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      const { textarea } = await renderSelectedConversation();
+      const { textarea, store, thread } = await renderSelectedConversation();
 
       await act(async () => {
         setComposerText(textarea, 'hang the backend');
@@ -1443,13 +1447,19 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         await vi.advanceTimersByTimeAsync(120_000);
       });
 
-      // After the safety timeout, typing should re-enable Send — proves the
-      // pending guard was reset inside the timeout callback.
+      const warning = await screen.findByTestId('chat-stall-warning');
+      expect(warning).toHaveAttribute('data-chat-stall-phase', 'thinking');
+      expect(warning).toHaveTextContent('Still thinking');
+      expect(screen.queryByTestId('chat-send-error')).toBeNull();
+      expect(store!.getState().thread.activeThreadIds[thread.id]).toBe(true);
+      expect(threadApi.getTurnState).toHaveBeenCalledWith(thread.id);
+
+      // The next signal clears the warning — the turn was alive all along.
       await act(async () => {
-        setComposerText(textarea, 'retry after timeout');
+        store!.dispatch(bumpInferenceHeartbeatForThread({ threadId: thread.id }));
       });
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Send message' })).not.toBeDisabled();
+        expect(screen.queryByTestId('chat-stall-warning')).toBeNull();
       });
     } finally {
       vi.useRealTimers();
@@ -1496,9 +1506,10 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         await vi.advanceTimersByTimeAsync(120_000);
       });
 
-      const banner = await screen.findByTestId('chat-send-error');
-      expect(banner).toHaveAttribute('data-chat-send-error-code', 'safety_timeout');
-      expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeUndefined();
+      // Warned, not torn down: the core still reports the turn running.
+      expect(await screen.findByTestId('chat-stall-warning')).toBeInTheDocument();
+      expect(screen.queryByTestId('chat-send-error')).toBeNull();
+      expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeDefined();
     } finally {
       vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
       vi.useRealTimers();
@@ -1509,7 +1520,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     'does not arm the silence timer for a %s snapshot',
     async lifecycle => {
       // A terminal snapshot has no live driver. Arming here would fire a
-      // spurious `safety_timeout` on a thread that has already settled.
+      // spurious silence warning on a thread that has already settled.
       vi.useFakeTimers({ shouldAdvanceTime: true });
       vi.mocked(threadApi.getTurnState).mockResolvedValue({ ...inFlightSnapshot(), lifecycle });
       try {
@@ -1520,6 +1531,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         });
 
         expect(screen.queryByTestId('chat-send-error')).toBeNull();
+        expect(screen.queryByTestId('chat-stall-warning')).toBeNull();
         expect(
           store?.getState().chatRuntime.inferenceStatusByThread['send-thread']
         ).toBeUndefined();
@@ -1553,7 +1565,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       });
 
       // 160s since hydration, but only 80s since the beat — still armed.
-      expect(screen.queryByTestId('chat-send-error')).toBeNull();
+      expect(screen.queryByTestId('chat-stall-warning')).toBeNull();
 
       // Control: the timer was rearmed, NOT cancelled. Without this, the
       // assertion above would pass just as well if the heartbeat had cleared
@@ -1561,8 +1573,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(60_000);
       });
-      const banner = await screen.findByTestId('chat-send-error');
-      expect(banner).toHaveAttribute('data-chat-send-error-code', 'safety_timeout');
+      expect(await screen.findByTestId('chat-stall-warning')).toBeInTheDocument();
     } finally {
       vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
       vi.useRealTimers();
@@ -1599,8 +1610,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         await vi.advanceTimersByTimeAsync(120_000);
       });
 
-      const banner = await screen.findByTestId('chat-send-error');
-      expect(banner).toHaveAttribute('data-chat-send-error-code', 'safety_timeout');
+      expect(await screen.findByTestId('chat-stall-warning')).toBeInTheDocument();
     } finally {
       vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
       vi.useRealTimers();
@@ -1674,7 +1684,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     // `streamingAssistantByThread` references can stay put while
     // `toolTimelineByThread` ticks. The rearm effect must watch that timeline —
     // otherwise a long sub-agent loop
-    // trips the 120s safety timer even though the user can see tools
+    // trips the 120s silence warning even though the user can see tools
     // firing in the timeline.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
@@ -1715,14 +1725,11 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       // window). The tool-timeline dispatch should have re-armed the
       // timer at the 80s mark, so the silence timer is now at 80s of
       // its fresh 120s budget and has NOT fired — the thread therefore
-      // stays marked active. (The safety timeout would have dispatched
-      // `clearThreadInferenceActive`, dropping it from `activeThreadIds`.)
-      // We assert the active flag directly rather than the Send button:
-      // a streaming thread now keeps the composer open for follow-up
-      // queueing, so Send is intentionally enabled here.
+      // shows no silence warning.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(80_000);
       });
+      expect(screen.queryByTestId('chat-stall-warning')).toBeNull();
       expect(store!.getState().thread.activeThreadIds[thread.id]).toBe(true);
     } finally {
       vi.useRealTimers();
@@ -1760,18 +1767,19 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         });
       }
 
-      // The beats kept rearming the timer → the turn is still marked active
-      // (a fired safety timeout would have dispatched `clearThreadInferenceActive`).
+      // The beats kept rearming the timer → no warning, turn still active.
+      expect(screen.queryByTestId('chat-stall-warning')).toBeNull();
       expect(store!.getState().thread.activeThreadIds[thread.id]).toBe(true);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('still fails fast when heartbeats stop — genuine disconnect surfaces (#4270 regression safety)', async () => {
-    // Regression safety: the heartbeat is the liveness signal, so a real
-    // connectivity drop (core/socket dead → no more beats) MUST still trip the
-    // 120s silence timer rather than hanging forever.
+  it('surfaces a warning when heartbeats stop, without killing the turn (#4270)', async () => {
+    // The heartbeat is the liveness signal, so a real connectivity drop
+    // (core/socket dead → no more beats) must still be surfaced after 120s —
+    // as a warning. The turn is not cleared: the core may still be working,
+    // and Stop is how the user ends it.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const { textarea, store, thread } = await renderSelectedConversation();
@@ -1794,13 +1802,95 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         store!.dispatch(bumpInferenceHeartbeatForThread({ threadId: thread.id }));
       });
 
-      // No more beats for a full 120s window → the silence timer fires and
-      // drops the thread from the active set.
+      // No more beats for a full 120s window → the warning appears, and the
+      // thread stays active.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(120_000);
       });
-      expect(store!.getState().thread.activeThreadIds[thread.id]).toBeFalsy();
+      expect(await screen.findByTestId('chat-stall-warning')).toBeInTheDocument();
+      expect(store!.getState().thread.activeThreadIds[thread.id]).toBe(true);
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('words the silence warning for a running step when a tool is in flight', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { textarea, store, thread } = await renderSelectedConversation();
+      await act(async () => {
+        setComposerText(textarea, 'run a slow shell loop');
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+      });
+      await waitFor(() => {
+        expect(chatSend).toHaveBeenCalledTimes(1);
+      });
+      await act(async () => {
+        store!.dispatch(
+          setInferenceStatusForThread({
+            threadId: thread.id,
+            status: { phase: 'tool_use', iteration: 2, maxIterations: 8 },
+          })
+        );
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000);
+      });
+
+      const warning = await screen.findByTestId('chat-stall-warning');
+      expect(warning).toHaveAttribute('data-chat-stall-phase', 'tool_use');
+      expect(warning).toHaveTextContent('Still working');
+      expect(store!.getState().thread.activeThreadIds[thread.id]).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('settles quietly when the core reports the silent turn already completed', async () => {
+    // The one case the watchdog may clear local state: the core says the turn
+    // is over, so its terminal event was lost. Nothing live is discarded, and
+    // no warning is shown for a turn that finished.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { textarea, store, thread } = await renderSelectedConversation();
+      await act(async () => {
+        setComposerText(textarea, 'turn whose done event is lost');
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+      });
+      await waitFor(() => {
+        expect(chatSend).toHaveBeenCalledTimes(1);
+      });
+      expect(store!.getState().thread.activeThreadIds[thread.id]).toBe(true);
+
+      vi.mocked(threadApi.getTurnState).mockResolvedValue({
+        threadId: thread.id,
+        requestId: 'req-done',
+        lifecycle: 'completed',
+        iteration: 3,
+        maxIterations: 8,
+        phase: 'thinking' as const,
+        streamingText: '',
+        thinking: '',
+        toolTimeline: [],
+        startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000);
+      });
+
+      await waitFor(() => {
+        expect(store!.getState().thread.activeThreadIds[thread.id]).toBeFalsy();
+      });
+      expect(screen.queryByTestId('chat-stall-warning')).toBeNull();
+      expect(screen.queryByTestId('chat-send-error')).toBeNull();
+    } finally {
+      vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
       vi.useRealTimers();
     }
   });
@@ -1809,7 +1899,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     // Regression for the per-thread dependency scoping: the rearm effect must
     // react only to the SENDING thread's slices. A different thread churning
     // (background triage, another conversation) must not keep the foreground
-    // turn's 120s timer alive — otherwise a truly hung send never fails fast.
+    // turn's 120s timer alive — otherwise a truly silent send never warns.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const { textarea, store } = await renderSelectedConversation();
@@ -1846,17 +1936,11 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       });
 
       // Cross the original 120s deadline (80s + 50s = 130s). Because the
-      // unrelated-thread churn did NOT rearm, the safety timer fires: the
-      // pending guard is released and Send re-enables once the user types.
+      // unrelated-thread churn did NOT rearm, the silence warning fires.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(50_000);
       });
-      await act(async () => {
-        setComposerText(textarea, 'retry after timeout');
-      });
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Send message' })).not.toBeDisabled();
-      });
+      expect(await screen.findByTestId('chat-stall-warning')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -1991,9 +2075,9 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     });
   });
 
-  // The General/Subconscious/Tasks filter chips were removed — the thread list
-  // is now fixed to the General bucket with no in-sidebar bucket switcher.
-  // Subconscious reflections and task/worker threads have dedicated surfaces.
+  // The General/Tasks filter chips were removed — the thread list is now fixed
+  // to the General bucket with no in-sidebar bucket switcher. Task/worker
+  // threads have a dedicated surface.
   it('does not render the removed bucket filter tabs', async () => {
     await act(async () => {
       await renderConversations({ thread: emptyThreadState });
@@ -2003,7 +2087,6 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     await openSidebar();
 
     expect(screen.queryByRole('tab', { name: 'General' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Subconscious' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Tasks' })).not.toBeInTheDocument();
   });
 });
@@ -2069,7 +2152,7 @@ describe('Conversations — active-thread restore across in-app navigation', () 
     await waitFor(() => {
       expect(threadApi.createNewThread).not.toHaveBeenCalled();
     });
-    // Main removed the visible General/Subconscious/Tasks chips; restoring a
+    // Main removed the visible General/Tasks chips; restoring a
     // task session should not reintroduce that tab UI.
     await openSidebar();
     expect(screen.queryByRole('tab', { name: 'Tasks' })).not.toBeInTheDocument();

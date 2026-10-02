@@ -25,6 +25,7 @@
 //! `web_errors*.rs` (provider error classification), `schemas.rs` (RPC
 //! contract), `types.rs` (shared param/state types).
 
+mod channel_event;
 mod egress_surface;
 mod event_bus;
 mod journal_shadow;
@@ -46,12 +47,15 @@ pub(crate) use web_errors::classify_inference_error;
 #[cfg(any(test, debug_assertions))]
 #[allow(unused_imports)]
 pub(crate) use web_errors::{
-    extract_provider_error_detail, extract_provider_name, generic_inference_error_user_message,
-    is_action_budget_exhausted, is_fallback_chain_exhausted, is_non_retryable_rate_limit_text,
-    parse_retry_after_secs_from_str, retry_after_hint, with_provider_detail, ClassifiedError,
+    generic_inference_error_user_message, is_action_budget_exhausted,
+    is_non_retryable_rate_limit_text, retry_after_hint, ClassifiedError,
 };
 
 // Public API — event bus
+pub use channel_event::{
+    ChatSuggestion, GuardrailPayload, GuardrailReason, QueueItemPayload, SubagentProgressDetail,
+    SubagentUsagePayload, TurnTimingPayload, TurnUsagePayload, WebChannelEvent,
+};
 pub use egress_surface::register_egress_surface_subscriber;
 pub use event_bus::{
     approval_request_event, plan_review_request_event, publish_web_channel_event,
@@ -59,6 +63,7 @@ pub use event_bus::{
     register_artifact_surface_subscriber, register_memory_activity_surface_subscriber,
     subscribe_web_channel_events,
 };
+pub use progress_bridge::unix_epoch_ms;
 
 // Test-only: OnceLock-bypassing approval bridge for per-runtime integration tests.
 // Compiled only in debug builds so it cannot be linked into a release binary.

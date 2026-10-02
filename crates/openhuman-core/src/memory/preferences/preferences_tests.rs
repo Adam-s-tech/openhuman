@@ -330,6 +330,25 @@ async fn situational_recall_filters_on_the_vector_component_not_the_final_score(
     assert_eq!(out, vec!["Prefers vim.".to_string()]);
 }
 
+/// A retrieval family that ranks without measuring any signal (hosted
+/// CortexDB) is the unscored engine under another name: no floor can tell a
+/// preference that fits from one that does not, so neither lane injects one.
+#[tokio::test]
+async fn a_driver_ranking_without_signals_yields_no_preferences() {
+    let guard = scripted(vec![
+        ("editor", "Prefers vim.", 0.0),
+        ("tone", "Be terse.", 0.0),
+    ]);
+    assert!(recall_situational_preferences(&guard, "which editor?")
+        .await
+        .is_empty());
+    assert!(
+        recall_related_preferences(&guard, "Be brief.", "verbosity", 4)
+            .await
+            .is_empty()
+    );
+}
+
 #[tokio::test]
 async fn an_empty_query_recalls_nothing_without_asking_the_driver() {
     let guard = scripted(vec![("editor", "Prefers vim.", 0.99)]);

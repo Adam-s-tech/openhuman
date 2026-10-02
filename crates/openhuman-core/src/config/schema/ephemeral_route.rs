@@ -25,7 +25,7 @@
 //!
 //! [`apply`] pins the four roles an agent turn actually runs on — chat,
 //! reasoning, agentic, coding. It deliberately leaves the background roles
-//! (memory, embeddings, heartbeat, learning, subconscious) and `vision` alone:
+//! (memory, embeddings, learning) and `vision` alone:
 //! those run tier-specific models a coding endpoint generally cannot serve, and
 //! silently sending an embeddings request to a chat model is worse than ignoring
 //! the route for that workload.

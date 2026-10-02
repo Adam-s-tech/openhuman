@@ -73,6 +73,20 @@ pub struct Config {
     /// overrides at runtime so existing env-driven deployments are unaffected.
     #[serde(default)]
     pub action_dir_override: Option<PathBuf>,
+    /// Persisted user choice for the folder agent deliverables are written to,
+    /// set via Settings → Agent OS access (`config.update_agent_paths`,
+    /// #5505). `None` means the default, `~/OpenHuman/projects/Files`. Read it
+    /// through [`Self::files_dir`]. Changing it affects new artifacts only;
+    /// existing ones keep the folder recorded in their metadata.
+    #[serde(default)]
+    pub files_dir_override: Option<PathBuf>,
+    /// Files folders used before the current one. Artifacts created there keep
+    /// resolving, because the artifact escape guard trusts only folders the
+    /// core records here (plus the current one and the default), never a
+    /// folder an artifact's own metadata claims. Appended by
+    /// `config.update_agent_paths`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub files_dir_history: Vec<PathBuf>,
     #[serde(skip)]
     pub config_path: PathBuf,
     /// Per-load snapshot used to remove standalone CLI inference overrides
@@ -224,15 +238,6 @@ pub struct Config {
 
     #[serde(default)]
     pub embedding_routes: Vec<EmbeddingRouteConfig>,
-
-    #[serde(default)]
-    pub heartbeat: HeartbeatConfig,
-
-    /// Subconscious engine selection (local tinyagents graph vs. local
-    /// retired engine). Default `local` — omitting this block preserves
-    /// the historical behavior exactly.
-    #[serde(default)]
-    pub subconscious: crate::config::schema::SubconsciousConfig,
 
     #[serde(default)]
     pub cron: CronConfig,
@@ -419,17 +424,9 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_embeddings: Option<CustomEmbeddingsConfig>,
 
-    /// Provider string for the heartbeat background-reasoning loop.
-    #[serde(default)]
-    pub heartbeat_provider: Option<String>,
-
     /// Provider string for learning / reflection passes.
     #[serde(default)]
     pub learning_provider: Option<String>,
-
-    /// Provider string for subconscious evaluation and drift checks.
-    #[serde(default)]
-    pub subconscious_provider: Option<String>,
 
     /// Node.js managed runtime configuration (skills that need `node`/`npm`).
     #[serde(default)]

@@ -4,8 +4,8 @@ use serde_json::{Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -36,12 +36,6 @@ struct AuthListProviderCredentialsParams {
     provider: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AuthOauthFetchClientKeyParams {
-    integration_id: String,
-}
-
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 struct AuthClearCredentialParams {
@@ -58,7 +52,6 @@ pub fn all_controller_schemas() -> Vec<ControllerSchema> {
         schemas("auth_store_provider_credentials"),
         schemas("auth_remove_provider_credentials"),
         schemas("auth_list_provider_credentials"),
-        schemas("auth_oauth_fetch_client_key"),
     ]
 }
 
@@ -91,10 +84,6 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: schemas("auth_list_provider_credentials"),
             handler: handle_auth_list_provider_credentials,
-        },
-        RegisteredController {
-            schema: schemas("auth_oauth_fetch_client_key"),
-            handler: handle_auth_oauth_fetch_client_key,
         },
     ]
 }
@@ -186,16 +175,6 @@ pub fn schemas(function: &str) -> ControllerSchema {
             description: "List stored provider credentials.",
             inputs: vec![optional_string("provider", "Optional provider filter.")],
             outputs: vec![json_output("profiles", "Listed provider credentials.")],
-        },
-        "auth_oauth_fetch_client_key" => ControllerSchema {
-            namespace: "auth",
-            function: "oauth_fetch_client_key",
-            description: "Fetch one-time client key share for an encrypted OAuth integration.",
-            inputs: vec![required_string(
-                "integrationId",
-                "Integration id (24-char hex).",
-            )],
-            outputs: vec![json_output("result", "Client key share payload (base64).")],
         },
         _ => ControllerSchema {
             namespace: "auth",
@@ -309,20 +288,6 @@ fn handle_auth_list_provider_credentials(params: Map<String, Value>) -> Controll
     })
 }
 
-fn handle_auth_oauth_fetch_client_key(params: Map<String, Value>) -> ControllerFuture {
-    Box::pin(async move {
-        let config = config_rpc::load_config_with_timeout().await?;
-        let payload = deserialize_params::<AuthOauthFetchClientKeyParams>(params)?;
-        to_json(
-            crate::security::credentials::rpc::oauth_fetch_client_key(
-                &config,
-                payload.integration_id.trim(),
-            )
-            .await?,
-        )
-    })
-}
-
 fn deserialize_params<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T, String> {
     serde_json::from_value(Value::Object(params)).map_err(|e| format!("invalid params: {e}"))
 }
@@ -372,7 +337,7 @@ fn json_output(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

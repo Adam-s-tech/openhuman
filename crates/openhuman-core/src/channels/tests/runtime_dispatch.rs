@@ -122,7 +122,7 @@ async fn message_dispatch_processes_messages_in_parallel() {
                 }),
             )),
             default_provider: Arc::new("test-provider".to_string()),
-            memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+            memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
             tools_registry: Arc::new(vec![]),
             system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
             model: Arc::new("test-model".to_string()),
@@ -197,7 +197,7 @@ async fn process_channel_message_cancels_scoped_typing_task() {
             }),
         )),
         default_provider: Arc::new("test-provider".to_string()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
         model: Arc::new("test-model".to_string()),
@@ -287,7 +287,7 @@ async fn dispatch_routes_through_agent_run_turn_bus_handler() {
             Arc::new(super::common::DummyModel),
         )),
         default_provider: Arc::new("test-provider".to_string()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
         model: Arc::new("test-model".to_string()),
@@ -373,7 +373,7 @@ async fn channel_processed_event_records_resolved_agent_route() {
             Arc::new(super::common::DummyModel),
         )),
         default_provider: Arc::new("requested-provider".to_string()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
         model: Arc::new("requested-model".to_string()),
@@ -487,7 +487,7 @@ async fn process_channel_message_hardens_multimodal_files_against_smuggled_marke
             Arc::new(super::common::DummyModel),
         )),
         default_provider: Arc::new("test-provider".to_string()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
         model: Arc::new("test-model".to_string()),
@@ -572,7 +572,7 @@ async fn process_channel_message_hardens_against_relative_path_markers() {
             Arc::new(super::common::DummyModel),
         )),
         default_provider: Arc::new("test-provider".to_string()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
         model: Arc::new("test-model".to_string()),
@@ -615,4 +615,20 @@ async fn process_channel_message_hardens_against_relative_path_markers() {
         .expect("agent.run_turn handler must have been invoked");
     assert_eq!(observed.max_files, 0);
     assert!(!observed.allow_remote_fetch);
+}
+
+#[tokio::test]
+async fn dispatch_replies_with_timeout_notice_when_handler_exceeds_deadline() {
+    let timed_out = run_dispatch_harness(DispatchHarnessOptions {
+        channel_name: "email".to_string(),
+        content: "force timeout".to_string(),
+        handler_delay_ms: 1_200,
+        timeout_secs: 1,
+        ..Default::default()
+    })
+    .await;
+    assert!(timed_out
+        .sends
+        .iter()
+        .any(|send| send.content.contains("Request timed out")));
 }

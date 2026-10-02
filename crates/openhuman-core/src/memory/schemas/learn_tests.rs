@@ -7,11 +7,6 @@ fn learn_schema_only_exposes_learn_all() {
 }
 
 #[test]
-fn unknown_learn_schema_returns_none() {
-    assert!(schema("not_real").is_none());
-}
-
-#[test]
 fn learn_all_schema_has_optional_namespaces_input() {
     let schema = schema("learn_all").unwrap();
     assert_eq!(schema.inputs.len(), 1);

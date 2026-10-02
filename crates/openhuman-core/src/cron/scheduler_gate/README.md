@@ -16,15 +16,16 @@ Gates background AI work (memory-tree digests, embeddings, summarisation, triage
 | File | Role |
 | --- | --- |
 | `crates/openhuman-core/src/cron/scheduler_gate/mod.rs` | Module docstring + re-exports of the public surface. |
-| `crates/openhuman-core/src/cron/scheduler_gate/gate.rs` | Process-wide singleton: cached `State` (config + signals + policy), the 30s sampler task, the single-slot LLM semaphore, `LlmPermit` RAII guard, signed-out override, and `init_global`/`update_config`/`current_policy`/`current_signals`/`wait_for_capacity`. Holds the per-tokio-runtime test-state scaffolding. |
-| `crates/openhuman-core/src/cron/scheduler_gate/policy.rs` | Pure decision logic: `decide(signals, cfg) -> Policy`, the `Policy` and `PauseReason` enums, and their `as_str` / `pause_reason` helpers. Evaluation order: user mode override → server mode → power-aware stand-down → hard CPU ceiling → battery/CPU headroom. |
-| `crates/openhuman-core/src/cron/scheduler_gate/signals.rs` | `Signals` snapshot + `Signals::sample()`. Probes battery (via `starship_battery`), CPU usage (via `sysinfo`, two-refresh delta), and detects server/container mode. Honours `OPENHUMAN_ON_AC_POWER`, `OPENHUMAN_BATTERY_CHARGE`, `OPENHUMAN_DEPLOYMENT` env overrides plus Kubernetes / `/.dockerenv` heuristics. |
+| `crates/openhuman-core/src/cron/scheduler_gate/gate.rs` | The host's wiring of `tinymemory-gate`: the process-wide `SharedCore`, the signed-out override, the resume `Notify`, the single-slot LLM semaphore, `init_global(SchedulerGateConfig)`/`update_config`/`current_policy`/`wait_for_capacity`, and the per-tokio-runtime test-state scaffolding. |
+| `tinymemory-gate` (vendored) | The machinery: `GateCore` (config + signals + policy), the 30s `spawn_sampler` task, `wait_for_capacity` over a host-owned semaphore, the `LlmPermit` RAII guard, and `signals::sample(&SignalEnv)` which probes battery (via `starship_battery`, its `battery` feature), CPU usage (via `sysinfo`, two-refresh delta), and detects server/container mode. |
+| `tinymemory-api` (`host::scheduler_gate_decide`, vendored) | Pure decision logic: `decide(signals, cfg) -> Policy`, the `Signals` snapshot, with `Policy` / `PauseReason` beside `SchedulerGateConfig` in `host::scheduler_gate`. Evaluation order: user mode override → server mode → power-aware stand-down → hard CPU ceiling → battery/CPU headroom. |
+| `SIGNAL_ENV` in `gate.rs` | The env-override names the host hands `tinymemory-gate`: `OPENHUMAN_ON_AC_POWER`, `OPENHUMAN_BATTERY_CHARGE`, `OPENHUMAN_DEPLOYMENT` (plus the crate's Kubernetes / `/.dockerenv` heuristics). |
 
 ## Public surface
 
 From `mod.rs`:
 
-- Functions (`gate`): `init_global(&Config)`, `current_policy() -> Policy`, `current_signals() -> Signals`, `wait_for_capacity() -> Option<LlmPermit>`, `is_signed_out() -> bool`, `set_signed_out(bool)`.
+- Functions (`gate`): `init_global(SchedulerGateConfig)`, `current_policy() -> Policy`, `wait_for_capacity() -> Option<LlmPermit>`, `is_signed_out() -> bool`, `set_signed_out(bool)`.
 - Types: `LlmPermit` (RAII semaphore guard, `#[must_use]`), `Policy` (`Aggressive` / `Normal` / `Throttled` / `Paused { reason }`), `PauseReason` (`UserDisabled` / `OnBattery` / `CpuPressure` / `SignedOut` / `Unknown`), `Signals`.
 - Not re-exported but `pub` on `gate`: `update_config(SchedulerGateConfig)`.
 - Test-only: `SignedOutTestGuard` (RAII flag snapshot/restore), `try_acquire_llm_permit`, `available_llm_permits`.
@@ -56,10 +57,10 @@ No dependency on any other `openhuman` domain or on `crate::core::*`.
 
 Consumed in-process across the codebase (discoverable via `grep scheduler_gate`):
 
-- Background workers / pipelines: `memory/schema.rs`, `memory_queue/worker.rs`, `memory_tree/tree/rpc.rs`, `memory_sync/composio/periodic.rs`, `subconscious/engine.rs`, `learning/reflection.rs`, `autocomplete/core/engine.rs`, `task_sources/route.rs`, `agent/triage/evaluator.rs`.
+- Background workers / pipelines: `memory/schema.rs`, `memory_queue/worker.rs`, `memory_tree/tree/rpc.rs`, `memory_sync/composio/periodic.rs`, `learning/reflection.rs`, `autocomplete/core/engine.rs`, `task_sources/route.rs`, `agent/triage/evaluator.rs`.
 - Inference layer: `inference/provider/openhuman_backend.rs`, `inference/provider/factory.rs`, `inference/local/service/{vision_embed.rs,public_infer.rs}`, `inference/voice/postprocess.rs`.
 - Credentials lifecycle (signed-out kill switch): `credentials/ops.rs`, `credentials/bus.rs`.
-- Bootstrap / transport: `core/jsonrpc.rs` (calls `init_global` during server bootstrap), `core/observability.rs`, plus the domain wiring in `openhuman/mod.rs` and config schema in `config/schema/scheduler_gate.rs`.
+- Bootstrap / transport: `core/runtime/subscribers.rs` (calls `init_global` during server bootstrap), `core/observability.rs`, plus the domain wiring in `openhuman/mod.rs` and config schema in `config/schema/scheduler_gate.rs`.
 
 ## Notes / gotchas
 

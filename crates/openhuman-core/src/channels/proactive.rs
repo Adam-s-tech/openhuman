@@ -21,8 +21,8 @@
 
 use crate::channels::{Channel, ChannelSendExt, SendMessage};
 use crate::core::events::DomainEvent;
-use crate::core::socketio::WebChannelEvent;
 use crate::web_chat::publish_web_channel_event;
+use crate::web_chat::WebChannelEvent;
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -202,13 +202,14 @@ impl EventHandler<DomainEvent> for ProactiveMessageSubscriber {
             error_retry_after_ms: None,
             error_provider: None,
             error_fallback_available: None,
+            copy_key: None,
+            copy_params: None,
             tool_name: None,
             skill_id: None,
             args: None,
             output: None,
             success: Some(true),
             round: None,
-            reaction_emoji: None,
             segment_index: None,
             segment_total: None,
             delta: None,

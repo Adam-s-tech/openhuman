@@ -46,8 +46,8 @@ use tinyagents_session::transcript::{
     TranscriptMeta, TruncateCut,
 };
 
+use crate::core::Outcome;
 use crate::memory::conversations::{self, reply_run_id, run_reply_message_id};
-use crate::rpc::RpcOutcome;
 use crate::threads::ThreadsError;
 
 use super::support::workspace_dir;
@@ -80,7 +80,7 @@ pub struct EditOrRegenerateResponse {
 /// Edit a past user message: cancel the in-flight turn (if any), fork the
 /// session transcript and message log to drop that message and everything
 /// after it, then restart the turn with `content` in its place.
-pub async fn edit_message(request: EditMessageRequest) -> Result<RpcOutcome<Value>, ThreadsError> {
+pub async fn edit_message(request: EditMessageRequest) -> Result<Outcome<Value>, ThreadsError> {
     let client_id = request.client_id.unwrap_or_else(|| "system".to_string());
     let thread_id = request.thread_id;
     let dir = workspace_dir().await.map_err(ThreadsError::Message)?;
@@ -132,7 +132,7 @@ pub async fn edit_message(request: EditMessageRequest) -> Result<RpcOutcome<Valu
     .await
     .map_err(|e| ThreadsError::Message(e.to_string()))?;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!(EditOrRegenerateResponse {
             request_id: new_request_id,
         }),
@@ -144,7 +144,7 @@ pub async fn edit_message(request: EditMessageRequest) -> Result<RpcOutcome<Valu
 /// last turn): cancel the in-flight turn (if any), fork the session
 /// transcript and message log to drop the answer and everything after it,
 /// then restart the turn with the same user prompt that produced it.
-pub async fn regenerate(request: RegenerateRequest) -> Result<RpcOutcome<Value>, ThreadsError> {
+pub async fn regenerate(request: RegenerateRequest) -> Result<Outcome<Value>, ThreadsError> {
     let client_id = request.client_id.unwrap_or_else(|| "system".to_string());
     let thread_id = request.thread_id;
     let dir = workspace_dir().await.map_err(ThreadsError::Message)?;
@@ -199,7 +199,7 @@ pub async fn regenerate(request: RegenerateRequest) -> Result<RpcOutcome<Value>,
     .await
     .map_err(|e| ThreadsError::Message(e.to_string()))?;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!(EditOrRegenerateResponse {
             request_id: new_request_id,
         }),
@@ -234,7 +234,7 @@ async fn next_reply_request_id_after(
 /// needs); the actual head — walking any compaction/edit generations already
 /// on disk — is then resolved through the locator itself
 /// (`TranscriptLocator::head_generation`), never by trusting file-name sort
-/// order (`threads::transcript_view::resolve`'s module doc explains why that
+/// order (`tinyagents_session::transcript::view`'s resolver module doc explains why that
 /// is unsafe: `.g1` sorts before the un-suffixed root).
 fn resolve_head_transcript(
     workspace_dir: &std::path::Path,
@@ -361,7 +361,8 @@ async fn clear_dropped_turn_states(
     let thread_id_owned = thread_id.to_string();
     let cut_request_id_owned = cut_request_id.to_string();
     let result = tokio::task::spawn_blocking(move || {
-        let turns = crate::threads::turn_state::store::list_thread(dir.clone(), &thread_id_owned)?;
+        let turns =
+            tinyagents_session::turn_state::store::list_thread(dir.clone(), &thread_id_owned)?;
         let Some(cut_started_at) = turns
             .iter()
             .find(|t| t.request_id == cut_request_id_owned)
@@ -369,7 +370,7 @@ async fn clear_dropped_turn_states(
         else {
             // Never got a snapshot (e.g. a turn that errored before its
             // first progress event) — nothing to drop but itself.
-            return crate::threads::turn_state::store::delete_turn(
+            return tinyagents_session::turn_state::store::delete_turn(
                 dir,
                 &thread_id_owned,
                 &cut_request_id_owned,
@@ -377,7 +378,7 @@ async fn clear_dropped_turn_states(
         };
         let mut removed_any = false;
         for turn in turns.into_iter().filter(|t| t.started_at >= cut_started_at) {
-            if crate::threads::turn_state::store::delete_turn(
+            if tinyagents_session::turn_state::store::delete_turn(
                 dir.clone(),
                 &thread_id_owned,
                 &turn.request_id,

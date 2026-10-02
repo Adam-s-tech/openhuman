@@ -4,8 +4,8 @@ use serde_json::{Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 
 /// Params for `agent.chat` and `agent.chat_simple`.
 ///
@@ -467,6 +467,12 @@ fn handle_triage_evaluate(params: Map<String, Value>) -> ControllerFuture {
                     "dry_run": dry_run,
                 }))
             }
+            crate::agent::triage::TriageOutcome::Terminal { reason } => Ok(serde_json::json!({
+                "decision": "terminal",
+                "resolution_path": "terminal",
+                "reason": reason,
+                "dry_run": dry_run,
+            })),
         }
     })
 }
@@ -731,7 +737,7 @@ fn json_output(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

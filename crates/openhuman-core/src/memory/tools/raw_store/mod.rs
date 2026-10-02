@@ -1,27 +1,16 @@
 //! Raw search/retrieve tools surfaced to the agent harness.
 //!
 //! These tools expose the storage layer directly — no policy, no scoring
-//! beyond what the underlying backend already applies. They exist so an agent
-//! can drop one layer below the curated `memory_tree_*` tools when it needs
-//! to inspect or operate on raw memory_store rows.
-//!
-//! Three tools, one per major access pattern:
-//! - [`MemoryStoreRawSearchTool`]  — hybrid (vector+keyword) namespace query.
-//! - [`MemoryStoreRawChunksTool`]  — structured chunk filter by source/owner/
-//!   time/tags.
-//! - [`MemoryStoreKindsTool`]      — introspection: enumerate every
-//!   [`MemoryKind`] the store supports.
-//!
-//! All three are async, return JSON, and follow the project Tool trait.
+//! beyond what the underlying backend already applies. They are
+//! `tinymemory-tools`' (`raw_store`); these aliases run them under this host.
 
-mod kinds;
-mod raw_chunks;
-mod raw_search;
+use crate::memory::tools::host::HostMemoryTools;
 
-pub use kinds::MemoryStoreKindsTool;
-pub use raw_chunks::MemoryStoreRawChunksTool;
-pub use raw_search::MemoryStoreRawSearchTool;
-
-#[cfg(test)]
-#[path = "mod_tests.rs"]
-mod tests;
+/// `memory_store_kinds` over this host.
+pub type MemoryStoreKindsTool = tinymemory_tools::raw_store::MemoryStoreKindsTool<HostMemoryTools>;
+/// `memory_store_raw_chunks` over this host.
+pub type MemoryStoreRawChunksTool =
+    tinymemory_tools::raw_store::MemoryStoreRawChunksTool<HostMemoryTools>;
+/// `memory_store_raw_search` over this host.
+pub type MemoryStoreRawSearchTool =
+    tinymemory_tools::raw_store::MemoryStoreRawSearchTool<HostMemoryTools>;

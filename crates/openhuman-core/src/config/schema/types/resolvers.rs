@@ -7,6 +7,13 @@ use super::output_language::output_language_directive;
 use crate::config::schema::Config;
 
 impl Config {
+    /// The folder agent deliverables are written to (#5505): the Settings
+    /// override when set, else `~/OpenHuman/projects/Files`. Every producer
+    /// and the boot migration read it through here.
+    pub fn files_dir(&self) -> PathBuf {
+        crate::config::resolve_files_dir(&self.files_dir_override)
+    }
+
     /// Resolve the root directory where chunk `.md` files are stored.
     ///
     /// Resolution order:
@@ -26,8 +33,8 @@ impl Config {
     /// when the workload is routed to Ollama.
     ///
     /// Recognised workload names:
-    /// `"chat"`, `"reasoning"`, `"agentic"`, `"coding"`, `"memory"`, `"embeddings"`,
-    /// `"heartbeat"`, `"learning"`, `"subconscious"`.
+    /// `"chat"`, `"reasoning"`, `"agentic"`, `"coding"`, `"vision"`, `"memory"`,
+    /// `"embeddings"`, `"learning"`.
     ///
     /// Returns `None` when the provider isn't `"ollama:<model>"` (including
     /// when the field is unset, blank, `"cloud"`, or any other prefix).
@@ -44,9 +51,7 @@ impl Config {
             "vision" => self.vision_provider.as_deref(),
             "memory" => self.memory_provider.as_deref(),
             "embeddings" => self.embeddings_provider.as_deref(),
-            "heartbeat" => self.heartbeat_provider.as_deref(),
             "learning" => self.learning_provider.as_deref(),
-            "subconscious" => self.subconscious_provider.as_deref(),
             _ => None,
         }?;
         let trimmed = raw.trim();

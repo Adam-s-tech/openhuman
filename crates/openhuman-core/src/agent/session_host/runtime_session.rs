@@ -16,6 +16,7 @@ use tinyagents_session::transcript::TranscriptMeta;
 use tinyinference_llm::message::Message;
 
 use crate::agent::{
+    message_convert::{user_message_from_text, user_text_with_markers},
     session_host::{
         driver::OpenHumanSessionDriver, OpenHumanSessionHooks, OpenHumanTranscriptCodec,
     },
@@ -123,6 +124,8 @@ struct OpenHumanTurnToolSurface {
     deferred_tool_names: std::collections::HashSet<String>,
     /// Whether this belt reaches deferred tools at all; fixed at build.
     discovery_enabled: bool,
+    /// The definition's own `deferred_tools`; see `meta::deferred_set`.
+    requested_deferred_tools: Arc<[String]>,
     /// Whether newly connected delegates may enter the visible belt without a
     /// caller explicitly allowing them. A hide/named restriction turns this
     /// off so refresh cannot reopen withdrawn authority.
@@ -148,6 +151,10 @@ struct OpenHumanTurnPreludeMutable {
     /// turn so disconnects remove their deferred executors immediately.
     #[cfg(feature = "mcp")]
     connected_mcp_tools: Vec<crate::mcp::registry::types::ConnectedServerOverview>,
+    /// `mcp_*` tool names a resumed thread was sent, so a tool recorded under
+    /// its pre-readable hashed name is restored under that name too.
+    #[cfg(feature = "mcp")]
+    recorded_mcp_tool_names: std::collections::HashSet<String>,
     announced_skills: std::collections::HashSet<String>,
     pending_skill_announcement: Vec<String>,
     pending_skill_retraction: Vec<String>,
@@ -187,6 +194,16 @@ impl OpenHumanTurnPrelude {
             surface.event_session_id.clone(),
             surface.event_channel.clone(),
         )
+    }
+
+    /// The session's deferred set for this turn; see
+    /// `OpenHumanRunContext::deferred_tool_names`.
+    fn current_deferred_tool_names(&self) -> std::collections::HashSet<String> {
+        self.tool_surface
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .deferred_tool_names
+            .clone()
     }
 
     fn replace_tool_surface(&self, surface: OpenHumanTurnToolSurface) {
@@ -481,11 +498,11 @@ impl OpenHumanTurnPrelude {
         // a `Deferred` synthesised tool leaves the wire and joins the
         // searchable set, on a belt that opted into discovery.
         if surface.discovery_enabled {
-            let mut deferred =
-                crate::tools::implementations::meta::deferred_tool_names(surface.tools.as_slice());
-            deferred.extend(crate::tools::implementations::meta::deferred_tool_names(
+            let deferred = crate::tools::implementations::meta::deferred_set(
+                surface.tools.as_slice(),
                 synthesized.as_slice(),
-            ));
+                &surface.requested_deferred_tools,
+            );
             surface
                 .visible_tool_names
                 .retain(|name| !deferred.contains(name));
@@ -727,9 +744,6 @@ impl OpenHumanTurnPrelude {
             self.tool_dispatcher.tool_call_format(),
         )
         .harness_dispatcher();
-        run_context
-            .stop_hooks
-            .extend(crate::agent::stop_hooks::current_stop_hooks());
         self.context
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -1007,9 +1021,13 @@ impl OpenHumanTurnPrelude {
                 log::warn!("[session-store] dual-write transcript read-back failed");
                 return;
             };
-            if let Err(error) =
-                crate::agent::session_import::live::write_live_turn(&workspace, &stem, &transcript)
-                    .await
+            if let Err(error) = tinyagents_session::transcript::import::live::write_live_turn(
+                &workspace,
+                &stem,
+                &transcript,
+                crate::agent::session_import::projector::journal_message_from_transcript,
+            )
+            .await
             {
                 log::warn!("[session-store] dual-write failed stem={stem}: {error:#}");
             }
@@ -1307,25 +1325,12 @@ impl OpenHumanSessionHost {
         context.workspace = self.workspace_descriptor.clone();
         let cancellation = context.cancellation.clone();
         let root_config = context.root_run_config("openhuman-session");
-        let mut options = TurnOptions {
+        let options = TurnOptions {
             request_id: crate::agent::turn_origin::current_request_id(),
             thread_id: self.thread_id.clone(),
             stream: self.on_progress.is_some(),
             session: self.session.clone(),
-            resume: if self.session.is_some() {
-                // Exact, identity-keyed resume. Unlike `LatestForAgent` it
-                // cannot splice a different thread's transcript into this
-                // turn, and the file it reads is the file the turn appends to.
-                ResumeMode::Session
-            } else if self
-                .runtime_session
-                .as_ref()
-                .is_some_and(|session| session.history().is_empty())
-            {
-                ResumeMode::LatestForAgent
-            } else {
-                ResumeMode::Never
-            },
+            resume: self.turn_resume_mode(),
             cancellation,
             run_context: context.into_tinyagents(root_config),
         };
@@ -1360,23 +1365,12 @@ impl OpenHumanSessionHost {
                 }
             }
         }
-        // Resume restores the exact leading prompt messages from the durable
-        // transcript. Carry their count to the cache stamper: a later System
-        // compaction summary may be adjacent, but is not a frozen prompt tier.
-        let runtime = self
-            .runtime_session
-            .as_ref()
-            .expect("runtime session initialized");
-        let frozen_prefix_len = runtime.prefix_snapshot().messages().len();
-        if frozen_prefix_len > 0 || !runtime.history().is_empty() {
-            options.run_context.data.cacheable_system_prefix_len = Some(frozen_prefix_len);
-        }
         let outcome = self
             .runtime_session
             .as_mut()
             .expect("runtime session initialized")
             .turn(
-                SessionTurnRequest::new(Message::user(user_message)),
+                SessionTurnRequest::new(user_message_from_text(user_message)),
                 options,
             )
             .await
@@ -1430,7 +1424,6 @@ impl OpenHumanSessionHost {
             self.model_name.clone(),
             self.temperature,
             self.config.max_tool_iterations,
-            self.config.max_history_messages,
             self.model_vision,
             self.run_queue.clone(),
             self.workspace_descriptor.clone(),
@@ -1522,6 +1515,7 @@ impl OpenHumanSessionHost {
                     visible_tool_names: self.visible_tool_names.clone(),
                     deferred_tool_names: self.deferred_tool_names.clone(),
                     discovery_enabled: self.discovery_enabled,
+                    requested_deferred_tools: self.requested_deferred_tools.clone(),
                     auto_include_new_synthesized_tools: true,
                     synthesized_tool_names: self.synthesized_tool_names.clone(),
                     tool_policy_session: self.tool_policy_session.clone(),
@@ -1537,6 +1531,8 @@ impl OpenHumanSessionHost {
                     pending_mcp_announcement: self.pending_mcp_announcement.clone(),
                     #[cfg(feature = "mcp")]
                     connected_mcp_tools: Vec::new(),
+                    #[cfg(feature = "mcp")]
+                    recorded_mcp_tool_names: std::collections::HashSet::new(),
                     announced_skills: self.announced_skills.clone(),
                     pending_skill_announcement: self.pending_skill_announcement.clone(),
                     pending_skill_retraction: self.pending_skill_retraction.clone(),
@@ -1610,7 +1606,7 @@ impl OpenHumanSessionHost {
                             .lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
                             .context_window = context_window;
-                        let original_user_message = request.input.text();
+                        let original_user_message = user_text_with_markers(&request.input);
                         prelude.begin_user_effects(
                             &mut state
                                 .lock()
@@ -1630,7 +1626,7 @@ impl OpenHumanSessionHost {
                                 &mut options.run_context.data,
                             )
                             .await;
-                        request.input = Message::user(enriched);
+                        request.input = user_message_from_text(&enriched);
                         let mut preparation = prelude
                             .prepare(!view.resumed && view.history.is_empty())
                             .await
@@ -1666,6 +1662,10 @@ impl OpenHumanSessionHost {
                         middleware.transcript_snapshot = Some(transcript_snapshot);
                         options.run_context.data.context_middleware = Some(middleware);
                         options.run_context.data.current_tools = Some(current_tools);
+                        if !overrides.suppress_tools {
+                            options.run_context.data.deferred_tool_names =
+                                Arc::new(prelude.current_deferred_tool_names());
+                        }
                         options.run_context.data.current_synthesized_tools =
                             Some(current_synthesized_tools);
                         options.run_context.data.tool_policy =
@@ -1725,10 +1725,8 @@ impl OpenHumanSessionHost {
                             .history
                             .iter()
                             .rev()
-                            .find_map(|message| match message {
-                                Message::User(_) => Some(message.text()),
-                                _ => None,
-                            })
+                            .find(|message| matches!(message, Message::User(_)))
+                            .map(user_text_with_markers)
                             .unwrap_or_default();
                         let sidecar = receipt
                             .options
@@ -1890,6 +1888,7 @@ impl OpenHumanSessionHost {
             visible_tool_names: self.visible_tool_names.clone(),
             deferred_tool_names: self.deferred_tool_names.clone(),
             discovery_enabled: self.discovery_enabled,
+            requested_deferred_tools: self.requested_deferred_tools.clone(),
             auto_include_new_synthesized_tools: auto_include_new_synthesized_tools
                 .unwrap_or(prior_auto_include),
             synthesized_tool_names: self.synthesized_tool_names.clone(),

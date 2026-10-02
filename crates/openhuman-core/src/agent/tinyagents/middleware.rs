@@ -25,19 +25,13 @@
 //! re-exports them so `tinyagents::middleware::*` paths stay stable.
 
 mod approval;
-mod arg_recovery;
-mod artifact_index_toc;
 mod cli_rpc_only;
 mod cost_budget;
 mod credential_scrub;
 mod embedder_hooks;
-mod final_call_wrap_up;
 mod loop_guards;
 mod memory_protocol;
-mod message_trim;
 mod packed_tool_route;
-mod prompt_cache;
-mod repeat_progress;
 mod repeated_failure;
 mod research_budget;
 mod tool_exposure;
@@ -47,18 +41,13 @@ mod tool_policy;
 mod turn_context;
 
 pub(crate) use approval::ApprovalSecurityMiddleware;
-pub(crate) use arg_recovery::ArgRecoveryMiddleware;
-pub(crate) use artifact_index_toc::{split_input_allowance, ArtifactIndexTocMiddleware};
 pub(crate) use cli_rpc_only::CliRpcOnlyMiddleware;
 pub(crate) use cost_budget::CostBudgetMiddleware;
-pub(crate) use credential_scrub::CredentialScrubMiddleware;
+pub(crate) use credential_scrub::credential_scrub_middleware;
 pub(crate) use embedder_hooks::EmbedderToolHooksMiddleware;
-pub(crate) use final_call_wrap_up::FinalCallWrapUpMiddleware;
-pub use memory_protocol::MemoryProtocolMiddleware;
-pub(crate) use message_trim::{legacy_max_input_tokens, ImageAwareMessageTrimMiddleware};
+pub(crate) use loop_guards::is_repeat_call_exempt;
+pub use memory_protocol::memory_protocol_middleware;
 pub(crate) use packed_tool_route::PackedToolRouteMiddleware;
-pub(crate) use prompt_cache::PromptCacheSegmentMiddleware;
-pub(crate) use repeat_progress::RepeatProgressMiddleware;
 pub(crate) use repeated_failure::RepeatedToolFailureMiddleware;
 pub(crate) use research_budget::ResearchBudgetMiddleware;
 pub(crate) use tool_exposure::OpenHumanToolExposureShadowMiddleware;

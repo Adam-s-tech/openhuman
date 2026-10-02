@@ -4,7 +4,7 @@
 //! preferences rather than on files, memory, or the network. Wire names are
 //! given in parentheses where they differ from the type name:
 //!
-//! - [`AskClarificationTool`] (`ask_user_clarification`) — returns the
+//! - `AskClarificationTool` (`ask_user_clarification`, from `tinyagents_harness::tools`) — returns the
 //!   question as its output; the turn actually pauses only because callers
 //!   list this name in the harness seam's `early_exit_tools`.
 //! - [`DelegateTool`] — hands a subtask to a named agent with its own
@@ -25,7 +25,6 @@
 //! `crate::tools` re-exports everything here (`pub use
 //! crate::agent::tools::*;` in `tools/mod.rs`); `tools::ops` registers the
 //! tools into the catalog.
-mod ask_clarification;
 mod delegate;
 mod plan_exit;
 pub mod remember_preference;
@@ -37,7 +36,6 @@ mod run_workflow;
 pub mod save_preference;
 mod todo;
 
-pub use ask_clarification::AskClarificationTool;
 pub use delegate::DelegateTool;
 pub(crate) use delegate::DelegateToolDispatch;
 pub use plan_exit::{PlanExitTool, PLAN_EXIT_MARKER};

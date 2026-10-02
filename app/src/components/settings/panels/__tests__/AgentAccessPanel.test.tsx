@@ -64,8 +64,20 @@ vi.mock('../../../../utils/tauriCommands', async () => {
     openhumanUpdateAutonomySettings: vi.fn(),
     openhumanGetAgentSettings: vi.fn(),
     openhumanUpdateAgentSettings: vi.fn(),
-    // The advanced panel no longer calls the agent-paths RPCs (action-dir
-    // moved to PermissionsPanel) — no mock needed, but keep the import clean.
+    // The "Files folder" row (#5505) reads the agent paths on mount.
+    openhumanGetAgentPaths: vi.fn(async () => ({
+      result: {
+        action_dir: '/home/u/OpenHuman/projects',
+        workspace_dir: '/home/u/.openhuman/users/u/workspace',
+        projects_dir: '/home/u/OpenHuman/projects',
+        action_dir_source: 'default',
+        files_dir: '/home/u/OpenHuman/projects/Files',
+        default_files_dir: '/home/u/OpenHuman/projects/Files',
+        files_dir_source: 'default',
+      },
+      logs: [],
+    })),
+    openhumanUpdateAgentPaths: vi.fn(),
   };
 });
 
@@ -94,6 +106,7 @@ describe('AgentAccessPanel (advanced)', () => {
     expect(await screen.findByText('Confine to workspace')).toBeInTheDocument();
     expect(screen.getByText('Granted folders')).toBeInTheDocument();
     expect(screen.getByText('Always-allowed tools')).toBeInTheDocument();
+    expect(screen.getByText('Files folder')).toBeInTheDocument();
   });
 
   it('toggling "confine to workspace" persists workspace_only', async () => {

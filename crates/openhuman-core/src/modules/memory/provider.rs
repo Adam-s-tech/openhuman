@@ -120,6 +120,8 @@ const BOUNDED_READ_OPERATIONS: &[&str] = &[
     "entities",
     "entity_chunk_ids",
     "entity_edges",
+    // tinymemory#178: one page of the episodic record, for an engine switch.
+    "export_episodic",
     "estimate_sync_cost_usd",
     "export_page",
     "extract_entities",

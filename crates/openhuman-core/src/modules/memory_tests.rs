@@ -235,7 +235,7 @@ async fn shutdown_on_an_unused_driver_is_a_no_op() {
 
 #[tokio::test]
 async fn a_read_against_a_loading_module_reports_unavailable_within_its_grace() {
-    use crate::modules::resolution::{self, Resolution};
+    use tinybus::module::resolution::{self, Resolution};
     use tinymemory_api::provider::mandatory::MemoryCore;
 
     // Plant an in-flight slot for the memory module. The table is process-wide
@@ -243,8 +243,8 @@ async fn a_read_against_a_loading_module_reports_unavailable_within_its_grace() 
     // removed before this test returns; a parallel caller sees, at worst, a
     // brief "loading" followed by the terminal failure it would have reached
     // anyway with downloads off.
-    let table = resolution::table();
-    let sender = table.mark_in_flight_for_test(MODULE_ID);
+    let table = resolution::global();
+    let sender = table.mark_in_flight(MODULE_ID);
     let provider = ModuleMemoryProvider::new(Arc::new(Config::default()))
         .with_loading_grace(std::time::Duration::from_millis(30));
 
@@ -261,7 +261,7 @@ async fn a_read_against_a_loading_module_reports_unavailable_within_its_grace() 
         Resolution::Failed("planted by a test".to_string()),
         sender,
     );
-    table.reset_for_test(MODULE_ID);
+    table.forget(MODULE_ID);
 
     // Loading is degraded, never down: `Down` is what rebinds the fallback.
     assert!(
@@ -449,7 +449,6 @@ fn the_ci_workflows_pin_the_same_module_digest_as_the_registry() {
 
     let workflows = [
         "../.github/workflows/ci-full.yml",
-        "../.github/workflows/ci-lite.yml",
         "../.github/workflows/e2e-reusable.yml",
     ];
     let root = std::path::Path::new(env!("OPENHUMAN_REPOSITORY_ROOT"));

@@ -3,19 +3,6 @@ use super::*;
 // ── Schema catalog coverage ────────────────────────────────────
 
 #[test]
-fn catalog_counts_match() {
-    let schemas = all_controller_schemas();
-    let handlers = all_registered_controllers();
-    assert_eq!(schemas.len(), handlers.len());
-    // The account-bound `auth.oauth_*` / `auth.create_channel_link_token`
-    // controllers moved to `openhuman-tinyhumans`; the core keeps the rest.
-    assert!(
-        schemas.len() >= 8,
-        "auth namespace should expose ≥8 core fns"
-    );
-}
-
-#[test]
 fn all_schemas_use_auth_namespace_and_have_descriptions() {
     for s in all_controller_schemas() {
         assert_eq!(s.namespace, "auth", "function {}", s.function);
@@ -26,13 +13,6 @@ fn all_schemas_use_auth_namespace_and_have_descriptions() {
             s.function
         );
     }
-}
-
-#[test]
-fn unknown_function_returns_unknown_fallback() {
-    let s = schemas("no_such_fn");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.namespace, "auth");
 }
 
 #[test]
@@ -59,7 +39,6 @@ fn every_known_schema_key_returns_a_non_unknown_schema() {
         "auth_store_provider_credentials",
         "auth_remove_provider_credentials",
         "auth_list_provider_credentials",
-        "auth_oauth_fetch_client_key",
     ];
     for k in keys {
         let s = schemas(k);
@@ -206,9 +185,9 @@ fn deserialize_params_parses_optional_provider_filter() {
 
 #[test]
 fn to_json_emits_logs_and_result_envelope() {
-    let outcome = RpcOutcome::single_log(serde_json::json!({"ok": true}), "my-log");
+    let outcome = Outcome::single_log(serde_json::json!({"ok": true}), "my-log");
     let v = to_json(outcome).unwrap();
-    // `into_cli_compatible_json` wraps RpcOutcome as `{logs, result}`.
+    // `into_cli_compatible_json` wraps Outcome as `{logs, result}`.
     assert!(v.get("logs").is_some(), "expected a `logs` field: {v}");
     assert!(
         v.get("result").is_some(),

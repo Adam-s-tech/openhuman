@@ -29,6 +29,7 @@
 //!    `cache_stats` is asserted as "at least mine", and `reset_cache` is checked
 //!    by what happened to this suite's two facets, not by the totals.
 
+use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -39,12 +40,12 @@ use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::agent::learning::candidate::{
     self, CueFamily, EvidenceRef, FacetClass, LearningCandidate,
 };
 use openhuman_core::config::Config;
+use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
+use openhuman_rpc::server::build_core_http_router;
 
 /// Preferred bearer. Only the real one if this module wins the process-global
 /// `OnceLock` race — send [`rpc_bearer`], never this.
@@ -69,40 +70,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
 }
 
 // ── Env isolation ─────────────────────────────────────────────────────────
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
 
 // ── Shared memory workspace ───────────────────────────────────────────────
 
@@ -273,7 +240,7 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
 }
 
-/// The payload of a successful dispatch, unwrapping the `RpcOutcome`
+/// The payload of a successful dispatch, unwrapping the `Outcome`
 /// `{ result, logs }` envelope when the handler produced one.
 fn payload(value: &Value, context: &str) -> Value {
     if let Some(error) = value.get("error") {
@@ -421,7 +388,11 @@ async fn learning_facet_lifecycle_from_rebuild_to_reset() {
     );
     assert_eq!(seeded.get("class").and_then(Value::as_str), Some("style"));
     assert!(
-        seeded.get("stability").and_then(Value::as_f64).unwrap_or(0.0) > 0.0,
+        seeded
+            .get("stability")
+            .and_then(Value::as_f64)
+            .unwrap_or(0.0)
+            > 0.0,
         "a promoted facet carries a positive stability: {seeded}"
     );
     assert!(

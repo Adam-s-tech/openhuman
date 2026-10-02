@@ -32,11 +32,11 @@ use std::sync::Arc;
 use anyhow::Result;
 use tokio::sync::mpsc::Sender;
 
-use crate::agent::messages::ChatMessage;
 use crate::agent::progress::AgentProgress;
 use crate::agent::tinyagents::run_turn_via_tinyagents_shared;
 use crate::agent::tinyagents::TurnModelSource;
 use crate::config::{MultimodalConfig, MultimodalFileConfig};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::Tool;
 
 /// Drive a channel/CLI turn on the graph engine. Returns the explicit turn
@@ -46,7 +46,7 @@ use tinytools::Tool;
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_channel_turn_via_graph(
     source: TurnModelSource,
-    history: &mut Vec<ChatMessage>,
+    history: &mut Vec<TranscriptMessage>,
     tools_registry: Arc<Vec<Box<dyn Tool>>>,
     extra_tools: Vec<Box<dyn Tool>>,
     visible_tool_names: Option<&HashSet<String>>,
@@ -186,7 +186,7 @@ pub(crate) async fn run_channel_turn_via_graph(
         // and there is no final assistant turn, so `outcome.text` (the question)
         // stands in for one. Without this the next turn's history would not show
         // that the agent had asked anything.
-        history.push(ChatMessage::assistant(outcome.text.clone()));
+        history.push(TranscriptMessage::assistant(outcome.text.clone()));
     }
     Ok(outcome)
 }

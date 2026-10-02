@@ -7,31 +7,19 @@ use crate::runtime::python::PythonBootstrap;
 use crate::security::{AuditLogger, SecurityPolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tinyagents_harness::tools::{self as harness_tools, CurrentTimeTool, ResolveTimeTool};
 use tinytools::Tool;
 #[cfg(test)]
-use tinytools::{ToolResult, ToolSpec};
+use tinytools::ToolResult;
+use tinytools_std::detect_tools::DetectToolsTool;
+use tinytools_std::filesystem::{
+    ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,
+    GlobTool, GrepTool, ImageInfoTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
+    UpdateMemoryMdTool, WorkspaceStateTool,
+};
+use tinytools_std::network::{CurlTool, PushoverTool};
 
 pub(crate) use super::capability::tool_capability;
-
-/// Derive the browser tool's host allowlist from the unified web-access list
-/// (`http_request.allowed_domains`).
-///
-/// The browser tool shares the single fetch allowlist rather than the
-/// deprecated `[browser].allowed_domains`, but the `"*"` allow-all wildcard is
-/// stripped on purpose: `web_fetch`/`curl` treat `"*"` as "open to all public
-/// sites", whereas the browser (a real Chromium with JS, cookies, and
-/// logged-in sessions) must NOT inherit blanket access from a fetch-side
-/// toggle. Browser allow-all stays gated by `OPENHUMAN_BROWSER_ALLOW_ALL`
-/// (`allow_all_browser_domains()`), and the tool itself stays behind
-/// `browser.enabled`. Net effect is fail-safe: unifying can only ever narrow
-/// the browser's reach, never widen it.
-pub(crate) fn browser_allowed_domains(http_allowed_domains: &[String]) -> Vec<String> {
-    http_allowed_domains
-        .iter()
-        .filter(|domain| domain.as_str() != "*")
-        .cloned()
-        .collect()
-}
 
 /// Create the default tool registry
 pub fn default_tools(security: Arc<SecurityPolicy>) -> Vec<Box<dyn Tool>> {
@@ -185,7 +173,7 @@ pub fn all_tools_with_runtime(
         // Several agent scopes (orchestrator, crypto, markets, scheduler,
         // desktop control) name it, so it must exist in the base
         // registry or none of them can actually ask the user anything.
-        Box::new(AskClarificationTool::new()),
+        Box::new(harness_tools::AskClarificationTool::new()),
         // Read-only project overview (git status, recent commits, top-level
         // tree) rooted at the agent action dir. Named by the orchestrator and
         // planner scopes.
@@ -194,8 +182,8 @@ pub fn all_tools_with_runtime(
         // durable `subagent_session_id` (preferred) or transient `task_id`.
         Box::new(ListSubagentsTool::new()),
         Box::new(SteerSubagentTool::new()),
-        Box::new(WaitTool::new()),
-        Box::new(WaitLoopTool::new()),
+        Box::new(harness_tools::WaitTool::new()),
+        Box::new(harness_tools::WaitLoopTool::new()),
         Box::new(WaitSubagentTool::new()),
         Box::new(CloseSubagentTool::new()),
         Box::new(ContinueSubagentTool::new()),
@@ -227,7 +215,7 @@ pub fn all_tools_with_runtime(
         // Reversibility for native tool-output compaction (Stage 1a): when a
         // large result is compacted with a `retrieve_tool_output("<hash>")`
         // marker, this hands the original back from the CCR store on demand.
-        Box::new(RetrieveToolOutputTool::new()),
+        Box::new(retrieve_tool_output_tool()),
         // TokenJuice 2.0 content-router retrieval: fetches the original (full or
         // by byte/line range) for a `⟦tj:<hash>⟧` marker from the CCR cache.
         // Supersedes `retrieve_tool_output`; both are kept live during migration.
@@ -378,19 +366,20 @@ pub fn all_tools_with_runtime(
         // Wallet tools — expose wallet operations to the agent tool-call pipeline
         // so the crypto sub-agent can prepare transfers, check status, etc.
         // Gated with the `web3` feature (the wallet domain is compiled out when
-        // web3 is disabled; the concrete tool types live under `wallet::tools`).
+        // web3 is disabled; the concrete tool types live in `tinywallet-web3`,
+        // re-exported under `wallet::tools`, and run over the process-wide engine).
         #[cfg(feature = "web3")]
-        Box::new(WalletStatusTool::new()),
+        Box::new(WalletStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletChainStatusTool::new()),
+        Box::new(WalletChainStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletPrepareTransferTool::new()),
+        Box::new(WalletPrepareTransferTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxStatusTool::new()),
+        Box::new(WalletTxStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxReceiptTool::new()),
+        Box::new(WalletTxReceiptTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletLookupTxTool::new()),
+        Box::new(WalletLookupTxTool::new(crate::web3::seams::engine())),
         // The memory surface the model sees. The eleven per-operation tools it
         // dispatches to stay registered as `ToolExposure::Hidden` so a
         // replayed transcript or a saved skill naming `memory_*` still works —
@@ -423,15 +412,15 @@ pub fn all_tools_with_runtime(
         // anti_preferences) that persona ingestion builds but nothing
         // previously surfaced to the agent loop.
         Box::new(MemoryFlavourTool::new(config.clone())),
-        Box::new(MemoryQueryTool),
+        Box::new(MemoryQueryTool::default()),
         // memory_search tools — vector search, chunk context, hybrid search,
         // and previously unregistered raw store tools.
-        Box::new(MemoryVectorSearchTool),
-        Box::new(MemoryChunkContextTool),
-        Box::new(MemoryHybridSearchTool),
-        Box::new(MemoryStoreRawSearchTool),
-        Box::new(MemoryStoreRawChunksTool),
-        Box::new(MemoryStoreKindsTool),
+        Box::new(MemoryVectorSearchTool::default()),
+        Box::new(MemoryChunkContextTool::default()),
+        Box::new(MemoryHybridSearchTool::default()),
+        Box::new(MemoryStoreRawSearchTool::default()),
+        Box::new(MemoryStoreRawChunksTool::default()),
+        Box::new(MemoryStoreKindsTool::default()),
         // Explicit user-preference pinning — always registered so the model
         // can save user-stated preferences regardless of whether the full
         // inference-based learning subsystem is enabled.  The preference
@@ -454,15 +443,9 @@ pub fn all_tools_with_runtime(
         // diff, lint and test the working tree in the action sandbox. They
         // were defined but never registered, so the belts naming them held
         // nothing. `Deferred`, so they cost no schema until found.
-        Box::new(crate::tools::implementations::ReadDiffTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(crate::tools::implementations::RunLinterTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(crate::tools::implementations::RunTestsTool::new(
-            action_dir.to_path_buf(),
-        )),
+        Box::new(ReadDiffTool::new(action_dir.to_path_buf())),
+        Box::new(RunLinterTool::new(action_dir.to_path_buf())),
+        Box::new(RunTestsTool::new(action_dir.to_path_buf())),
         Box::new(PushoverTool::new(
             security.clone(),
             action_dir.to_path_buf(),
@@ -650,13 +633,16 @@ pub fn all_tools_with_runtime(
          memory_hybrid_search, memory_store_raw_search, memory_store_raw_chunks, memory_store_kinds"
     );
 
+    // `juice_find` / `juice_extract` / `juice_summarize`: only while a handle can name them.
+    tools.extend(crate::inference::tokenjuice::repl_tools_for(root_config));
+
     // Presentation generation (#2778). Native-Rust engine (ppt-rs
     // backed) as of the #2780-follow-up rust-engine refactor — no
     // managed Python venv, no first-call install latency. Always
     // registered.
     #[cfg(feature = "documents")]
-    tools.push(Box::new(PresentationTool::new(
-        root_config.workspace_dir.clone(),
+    tools.push(Box::new(PresentationTool::for_config(
+        root_config,
         security.clone(),
     )));
 
@@ -665,8 +651,8 @@ pub fn all_tools_with_runtime(
     // real `.docx` through the same byte-agnostic artifact pipeline as
     // the presentation tool. Always registered; same constructor shape.
     #[cfg(feature = "documents")]
-    tools.push(Box::new(DocumentTool::new(
-        root_config.workspace_dir.clone(),
+    tools.push(Box::new(DocumentTool::for_config(
+        root_config,
         security.clone(),
     )));
 
@@ -683,18 +669,7 @@ pub fn all_tools_with_runtime(
     // thread is resolved from the ambient `thread_id`, so no thread arg is
     // taken. `goal_get`/`goal_set`/`goal_complete` — pause/resume/budget are
     // system-driven and have no model tool.
-    {
-        let goal_dir = root_config.workspace_dir.clone();
-        tools.push(Box::new(crate::agent::goals::GoalGetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalSetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalCompleteTool::new(
-            goal_dir,
-        )));
-    }
+    tools.extend(crate::agent::goals::goal_tools(&root_config.workspace_dir));
 
     #[cfg(feature = "modules")]
     if browser_config.enabled {
@@ -716,7 +691,7 @@ pub fn all_tools_with_runtime(
     // + `security` still gate which hosts are reachable; there is no
     // enable flag because every session needs basic HTTP as a baseline
     // capability.
-    tools.push(Box::new(HttpRequestTool::new(
+    tools.push(Box::new(http_request_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         http_config.max_response_size,
@@ -728,13 +703,13 @@ pub fn all_tools_with_runtime(
     // or SPL payment signing, and ledger recording. Gated with the `web3`
     // feature (the x402 domain is compiled out when web3 is disabled).
     #[cfg(feature = "web3")]
-    tools.push(Box::new(crate::web3::x402::tools::X402RequestTool::new()));
+    tools.push(Box::new(crate::web3::x402::request_tool()));
 
     // Coding-harness baseline `web_fetch` (issue #1205) — single-purpose
     // GET-and-read primitive that reuses the same allowed-domains gate
     // as `http_request`. Use this for docs/READMEs; reach for
     // `http_request` only when you need richer HTTP semantics.
-    tools.push(Box::new(WebFetchTool::new(
+    tools.push(Box::new(web_fetch_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         Some(http_config.max_response_size),
@@ -806,13 +781,26 @@ pub fn all_tools_with_runtime(
         if !mcp_registry.is_empty() {
             tools.push(Box::new(McpListServersTool::new(Arc::clone(&mcp_registry))));
             tools.push(Box::new(McpListToolsTool::new(Arc::clone(&mcp_registry))));
-            tools.push(Box::new(McpCallTool::new(
+            tools.push(Box::new(mcp_call_tool(
                 Arc::clone(&mcp_registry),
                 security.clone(),
             )));
             tracing::debug!(
                 count = mcp_registry.list().len(),
                 "[mcp_client] registered generic MCP bridge tools"
+            );
+            // And every cached server tool as its own `mcp_<server>_<tool>`,
+            // deferred unless the server asks for direct exposure. Names
+            // already taken keep their owner.
+            let reserved: std::collections::HashSet<String> =
+                tools.iter().map(|tool| tool.name().to_string()).collect();
+            tools.extend(
+                crate::tools::implementations::network::configured_server_tools(
+                    root_config,
+                    &mcp_registry,
+                    security,
+                    &reserved,
+                ),
             );
         } else {
             tracing::debug!("[mcp_client] no MCP servers registered — bridge tools skipped");
@@ -981,25 +969,21 @@ pub fn all_tools_with_runtime(
         } else {
             tracing::debug!("[integrations] twilio disabled — skipping");
         }
-
-        // Composio — backend-proxied 1000+ OAuth integrations. Registers
-        // five agent tools (list_toolkits, list_connections, authorize,
-        // list_tools, execute) when the composio toggle is on. See
-        // `crates/openhuman-core/src/integrations/composio/tools.rs` for per-tool details.
-        let composio_tools = crate::integrations::composio::all_composio_agent_tools(root_config);
-        if !composio_tools.is_empty() {
-            tracing::debug!(
-                count = composio_tools.len(),
-                "[integrations] registered composio tools"
-            );
-            tools.extend(composio_tools);
-        } else {
-            tracing::debug!("[integrations] composio disabled — skipping");
-        }
     } else {
         tracing::debug!(
             "[integrations] build_client returned None — integration tools not registered"
         );
+    }
+
+    let composio_tools = crate::integrations::composio::all_composio_agent_tools(root_config);
+    if composio_tools.is_empty() {
+        tracing::debug!("[integrations] composio unavailable — skipping");
+    } else {
+        tracing::debug!(
+            count = composio_tools.len(),
+            "[integrations] registered composio tools"
+        );
+        tools.extend(composio_tools);
     }
 
     // Coding-harness `lsp` tool (issue #1205) — capability-gated by the
@@ -1164,7 +1148,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         "audio_generate_and_email_podcast",
     ];
     // Threads: thread_* / todo_* handled by prefix below; these are the extras.
-    // Subconscious monitor + proactive-notify tools (Automation family).
+    // Monitor + proactive-notify tools (Automation family).
     const MONITORS: &[&str] = &[
         "monitor",
         "monitor_list",
@@ -1269,7 +1253,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // leak the #4808 review flagged. Keep these in
     // lockstep with the `push(...)` tags in `core::all`.
     //
-    // Automation: scheduled jobs (`cron_*`) plus the subconscious monitor +
+    // Automation: scheduled jobs (`cron_*`) plus the monitor +
     // proactive-notify surface.
     if name.starts_with("cron_") || name == "schedule" || MONITORS.contains(&name) {
         return DomainGroup::Automation;
@@ -1323,7 +1307,9 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // constant list rather than a name prefix — the live tool is
     // `tinyjuice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
     // are migration aliases, so a prefix rule silently missed the real one.
-    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name) {
+    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name)
+        || crate::inference::tokenjuice::is_repl_tool(name)
+    {
         return DomainGroup::Inference;
     }
     // Everything else — shell/file and other kernel utilities — is Platform:

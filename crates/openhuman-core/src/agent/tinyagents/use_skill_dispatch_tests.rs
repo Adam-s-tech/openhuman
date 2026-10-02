@@ -18,13 +18,13 @@ use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::ParentExecutionContext;
 use crate::agent::prompts::ToolCallFormat;
 use crate::agent::tinyagents::tools::CanonicalSharedToolAdapter;
-use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
-use crate::tools::toolpacks::tools::{PackRegistryHandle, UseSkillTool};
+use crate::memory::test_support::NoopMemory;
 use async_trait::async_trait;
 use serde_json::json;
 use std::path::Path;
 use std::sync::Arc;
 use tinyagents_harness::context::RunConfig;
+use tinyagents_harness::tool::packs::{PackRegistryHandle, UseSkillTool};
 use tinyagents_harness::CallId;
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
@@ -82,64 +82,6 @@ impl ChatModel<()> for AnyAnswerModel {
 #[allow(dead_code)]
 fn unused_message_ref(_m: &Message) {}
 
-struct NoopMemory;
-
-#[async_trait]
-impl Memory for NoopMemory {
-    async fn store(
-        &self,
-        _namespace: &str,
-        _key: &str,
-        _value: &str,
-        _category: MemoryCategory,
-        _source: Option<&str>,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    async fn recall(
-        &self,
-        _query: &str,
-        _limit: usize,
-        _opts: RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn get(&self, _namespace: &str, _key: &str) -> anyhow::Result<Option<MemoryEntry>> {
-        Ok(None)
-    }
-
-    async fn list(
-        &self,
-        _namespace: Option<&str>,
-        _category: Option<&MemoryCategory>,
-        _source: Option<&str>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn forget(&self, _namespace: &str, _key: &str) -> anyhow::Result<bool> {
-        Ok(false)
-    }
-
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(0)
-    }
-
-    async fn health_check(&self) -> bool {
-        true
-    }
-
-    fn name(&self) -> &str {
-        "noop"
-    }
-}
-
 fn parent_execution_context(workspace_dir: &Path) -> ParentExecutionContext {
     ParentExecutionContext {
         workspace_descriptor: None,
@@ -178,14 +120,19 @@ fn parent_execution_context(workspace_dir: &Path) -> ParentExecutionContext {
 /// wrapping `use_skill` that the harness would have registered.
 fn build_use_skill_dispatch() -> UseSkillDispatch {
     let handle = PackRegistryHandle::default();
-    let use_skill_tool: Box<dyn Tool> = Box::new(UseSkillTool::new(handle.clone()));
+    let use_skill_tool: Box<dyn Tool> = Box::new(UseSkillTool::new(
+        handle.clone(),
+        crate::tools::toolpacks::CATALOG,
+    ));
     let create_image_tool: Box<dyn Tool> = Box::new(StubCreateImage);
     let durable: Arc<Vec<Box<dyn Tool>>> = Arc::new(vec![use_skill_tool, create_image_tool]);
     handle.bind(Arc::downgrade(&durable));
 
-    let adapter =
-        CanonicalSharedToolAdapter::for_name(vec![durable], crate::tools::toolpacks::USE_SKILL)
-            .expect("use_skill resolves in the durable registry it was just placed in");
+    let adapter = CanonicalSharedToolAdapter::for_name(
+        vec![durable],
+        tinyagents_harness::tool::packs::USE_SKILL,
+    )
+    .expect("use_skill resolves in the durable registry it was just placed in");
     UseSkillDispatch::new(Arc::new(adapter), handle)
 }
 

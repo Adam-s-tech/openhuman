@@ -20,7 +20,7 @@
 //! result, channel-less users silently got **no** learning at all.
 //!
 //! [`register_learning_subscribers`] is invoked from the always-on Platform
-//! boot path (`core::jsonrpc::register_domain_subscribers`, the unconditional
+//! boot path (`core::runtime::subscribers::register_domain_subscribers`, the unconditional
 //! `DomainGroup::Platform` block), where the memory client and workspace dir are
 //! already available. Registration is idempotent, so both boot paths (and repeat
 //! calls) install each subscriber exactly once.
@@ -29,6 +29,8 @@ use std::path::Path;
 use std::sync::OnceLock;
 
 use tinybus::SubscriptionHandle;
+
+use crate::config::schema::MemorySubsystemConfig;
 
 static EMAIL_SIG_HANDLE: OnceLock<Option<SubscriptionHandle>> = OnceLock::new();
 
@@ -41,8 +43,14 @@ static EMAIL_SIG_HANDLE: OnceLock<Option<SubscriptionHandle>> = OnceLock::new();
 /// lifetime of the process (same pattern as `TracingSubscriber`).
 ///
 /// `workspace_dir` is the resolved workspace directory used by the
-/// `ProfileMdRenderer` to locate `PROFILE.md`.
-pub fn register_learning_subscribers(workspace_dir: std::path::PathBuf) {
+/// `ProfileMdRenderer` to locate `PROFILE.md`, and `memory` its
+/// `[subsystems.memory]` block: the engine learning reads and writes facets
+/// through until the workspace's context exists. This runs at boot before it
+/// does.
+pub fn register_learning_subscribers(
+    workspace_dir: std::path::PathBuf,
+    memory: MemorySubsystemConfig,
+) {
     // Phase 2 learning producer: email-signature subscriber reacts to
     // DocumentCanonicalized events and emits Identity candidates into the
     // buffer. Needs no memory client, so it always registers.
@@ -57,8 +65,8 @@ pub fn register_learning_subscribers(workspace_dir: std::path::PathBuf) {
     // process globals.
     static CLIENT_HANDLES: OnceLock<(Option<SubscriptionHandle>, Option<SubscriptionHandle>)> =
         OnceLock::new();
-    let memory_ready = memory_is_bindable(&workspace_dir);
-    CLIENT_HANDLES.get_or_init(|| register_with_memory(memory_ready, &workspace_dir));
+    let memory_ready = memory_is_bindable(&workspace_dir, &memory);
+    CLIENT_HANDLES.get_or_init(|| register_with_memory(memory_ready, &workspace_dir, &memory));
 }
 
 /// Whether this workspace has a usable memory driver to register learning
@@ -76,9 +84,19 @@ pub fn register_learning_subscribers(workspace_dir: std::path::PathBuf) {
 /// negative here is `MemoryBinding::disables_memory`: memory explicitly
 /// configured off, which is the one state in which a rebuild loop has nothing
 /// to rebuild against.
-fn memory_is_bindable(workspace_dir: &Path) -> bool {
-    use crate::config::schema::MemorySubsystemConfig;
-    match crate::memory::binding::for_workspace(workspace_dir, &MemorySubsystemConfig::default()) {
+fn memory_is_bindable(workspace_dir: &Path, memory: &MemorySubsystemConfig) -> bool {
+    // An explicit `driver = "null"` advertises no capabilities at all, which is
+    // how the context reports "memory is off" without exposing the binding.
+    if let Some(ctx) = ambient_context_for(workspace_dir) {
+        if ctx.memory_capabilities().iter().next().is_none() {
+            tracing::warn!(
+                "[learning::startup] memory is disabled for this workspace — learning subscribers will not register"
+            );
+            return false;
+        }
+        return true;
+    }
+    match crate::memory::binding::for_workspace(workspace_dir, memory) {
         Ok(binding) if binding.disables_memory() => {
             tracing::warn!(
                 driver = %binding.driver_id(),
@@ -100,6 +118,20 @@ fn memory_is_bindable(workspace_dir: &Path) -> bool {
     }
 }
 
+/// The ambient context serving `workspace_dir`, if any.
+///
+/// It carries the workspace's `[subsystems.memory]` config (including a
+/// memory-engine switch), so learning binds to the engine the user chose rather
+/// than always to the default module. `None` means no context serves this
+/// workspace yet, as at boot, where the registration runs before the context
+/// is installed: the caller's own copy of that config stands in.
+fn ambient_context_for(
+    workspace_dir: &Path,
+) -> Option<std::sync::Arc<crate::core::runtime::context::CoreContext>> {
+    crate::core::runtime::context::CoreContext::current()
+        .filter(|ctx| ctx.workspace_dir().ok().as_deref() == Some(workspace_dir))
+}
+
 fn register_email_signature_once<F>(handle_cell: &OnceLock<Option<SubscriptionHandle>>, register: F)
 where
     F: FnOnce() -> Option<SubscriptionHandle>,
@@ -119,29 +151,24 @@ where
     });
 }
 
-/// Register the client-dependent learning subscribers.
+/// The profile facet cache for `workspace_dir`, for a subscriber that lives as
+/// long as the process: it resolves the workspace's driver on every call (see
+/// [`FacetCache::for_workspace`]), so it reaches the engine the user chose at
+/// boot and follows a switch made later.
 ///
-/// The profile facet cache for `workspace_dir`.
-///
-/// Resolved through the memory binding rather than the process-global client:
-/// facets live behind the driver now, and `binding::for_workspace` is
-/// synchronous and cached, so this stays callable from the boot path without
-/// an await.
+/// [`FacetCache::for_workspace`]: crate::agent::learning::cache::FacetCache::for_workspace
 fn facet_cache_for(
-    workspace_dir: &std::path::Path,
-) -> Option<crate::agent::learning::cache::FacetCache> {
-    use crate::config::schema::MemorySubsystemConfig;
-    match crate::memory::binding::for_workspace(workspace_dir, &MemorySubsystemConfig::default()) {
-        Ok(binding) => Some(crate::agent::learning::cache::FacetCache::new(
-            binding.guard(),
-        )),
-        Err(error) => {
-            tracing::warn!("[learning::startup] no memory binding for facet cache: {error}");
-            None
-        }
-    }
+    workspace_dir: &Path,
+    memory: &MemorySubsystemConfig,
+) -> crate::agent::learning::cache::FacetCache {
+    crate::agent::learning::cache::FacetCache::for_workspace(
+        workspace_dir.to_path_buf(),
+        memory.clone(),
+    )
 }
 
+/// Register the client-dependent learning subscribers.
+///
 /// Returns `(rebuild_trigger_handle, profile_md_renderer_handle)`.
 ///
 /// When `memory_ready` is true, both the Phase 3 rebuild trigger (plus its
@@ -157,6 +184,7 @@ fn facet_cache_for(
 fn register_with_memory(
     memory_ready: bool,
     workspace_dir: &Path,
+    memory: &MemorySubsystemConfig,
 ) -> (Option<SubscriptionHandle>, Option<SubscriptionHandle>) {
     if !memory_ready {
         tracing::warn!(
@@ -175,10 +203,8 @@ fn register_with_memory(
         use crate::agent::learning::scheduler::register_event_trigger;
         use crate::agent::learning::StabilityDetector;
         use std::sync::Arc;
-        let Some(cache) = facet_cache_for(workspace_dir) else {
-            return (None, None);
-        };
-        let detector = Arc::new(StabilityDetector::new(cache));
+        let cache = facet_cache_for(workspace_dir, memory);
+        let detector = Arc::new(StabilityDetector::new(cache).persisted_in(workspace_dir));
         // Also spawn the periodic rebuild loop (30-minute cadence).
         let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
         // Leak the sender so the loop never receives a shutdown signal until the
@@ -206,10 +232,7 @@ fn register_with_memory(
     let profile_md = {
         use crate::agent::learning::ProfileMdRenderer;
         use std::sync::Arc;
-        let Some(cache) = facet_cache_for(workspace_dir) else {
-            return (rebuild_trigger, None);
-        };
-        let cache = Arc::new(cache);
+        let cache = Arc::new(facet_cache_for(workspace_dir, memory));
         let renderer = Arc::new(ProfileMdRenderer::new(cache, workspace_dir.to_path_buf()));
         let handle = ProfileMdRenderer::subscribe(renderer);
         if handle.is_some() {

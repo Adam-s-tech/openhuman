@@ -574,15 +574,18 @@ fn env_overlay_context_tool_result_budget_env_suppresses_legacy_migration() {
 }
 
 #[test]
-fn env_overlay_compaction_default_off_and_switch() {
-    // Default is off (tokenjuice compaction cost more retrieval round trips
-    // than it saved context).
-    assert!(!Config::default().context.compaction_enabled);
+fn env_overlay_compaction_default_on_and_switch() {
+    // Default is on: large results become a stats line, a head and a handle
+    // the REPL tools query.
+    assert!(Config::default().context.compaction_enabled);
+    assert!(Config::default().tokenjuice.router_enabled);
+    assert!(Config::default().tokenjuice.repl_handle_enabled);
 
-    // `OPENHUMAN_COMPACTION=0` keeps it off; `=1` turns it on.
+    // `OPENHUMAN_COMPACTION=0` opts out; `=1` keeps it on.
     let mut cfg = Config::default();
     cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPACTION", "0"));
     assert!(!cfg.context.compaction_enabled);
+    assert!(!crate::inference::tokenjuice::repl_handle_active(&cfg));
     let mut cfg = Config::default();
     cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPACTION", "1"));
     assert!(cfg.context.compaction_enabled);
@@ -682,4 +685,96 @@ fn env_overlay_tool_dispatcher_overrides_the_agent_field_when_non_blank() {
     assert_eq!(cfg.agent.tool_dispatcher, "native");
     cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_TOOL_DISPATCHER", ""));
     assert_eq!(cfg.agent.tool_dispatcher, "native");
+}
+
+#[test]
+fn env_overlay_jev_route_and_base_url_override_tool_search_when_non_blank() {
+    let mut cfg = Config::default();
+    assert_eq!(cfg.agent.tool_search.jev_route, "auto");
+    assert_eq!(cfg.agent.tool_search.jev_base_url, None);
+
+    cfg.apply_env_overlay_with(
+        &HashMapEnv::new()
+            .with("OPENHUMAN_JEV_ROUTE", " OpenRouter ")
+            .with("OPENHUMAN_JEV_BASE_URL", " http://127.0.0.1:18080 "),
+    );
+    assert_eq!(cfg.agent.tool_search.jev_route, "openrouter");
+    assert_eq!(
+        cfg.agent.tool_search.jev_base_url.as_deref(),
+        Some("http://127.0.0.1:18080")
+    );
+
+    // Blank values leave the persisted choice alone.
+    cfg.apply_env_overlay_with(
+        &HashMapEnv::new()
+            .with("OPENHUMAN_JEV_ROUTE", "  ")
+            .with("OPENHUMAN_JEV_BASE_URL", ""),
+    );
+    assert_eq!(cfg.agent.tool_search.jev_route, "openrouter");
+    assert_eq!(
+        cfg.agent.tool_search.jev_base_url.as_deref(),
+        Some("http://127.0.0.1:18080")
+    );
+}
+
+/// Local model tier presets were removed: OpenHuman no longer picks models by
+/// RAM tier. A stale `OPENHUMAN_LOCAL_AI_TIER` in the environment must be
+/// ignored rather than rewriting the user's configured local models.
+#[test]
+fn env_overlay_ignores_removed_local_ai_tier_var() {
+    let env = HashMapEnv::new().with("OPENHUMAN_LOCAL_AI_TIER", "ram_2_4gb");
+    let mut cfg = Config::default();
+    cfg.local_ai.chat_model_id = "llama3.1:8b".to_string();
+    cfg.local_ai.embedding_model_id = "nomic-embed-text:latest".to_string();
+    cfg.apply_env_overlay_with(&env);
+    assert_eq!(cfg.local_ai.chat_model_id, "llama3.1:8b");
+    assert_eq!(cfg.local_ai.embedding_model_id, "nomic-embed-text:latest");
+}
+
+/// A config.toml written while OpenHuman still downloaded local models carries
+/// tier, quantization, preload, binary-path and download-URL keys under
+/// `[local_ai]`. Those keys are no longer read, but such a file must still
+/// load with the user's endpoint and model choices intact.
+#[test]
+fn legacy_local_ai_download_keys_still_load() {
+    let legacy = r#"
+api_url = "http://127.0.0.1:9"
+
+[local_ai]
+runtime_enabled = true
+opt_in_confirmed = true
+provider = "ollama"
+base_url = "http://127.0.0.1:11434"
+chat_model_id = "llama3.1:8b"
+embedding_model_id = "bge-m3"
+selected_tier = "ram_2_4gb"
+quantization = "q4_k_m"
+preload_vision_model = true
+preload_embedding_model = true
+preload_stt_model = false
+preload_tts_voice = false
+ollama_binary_path = "/opt/openhuman/bin/ollama"
+download_url = "https://example.invalid/model.gguf"
+stt_download_url = "https://example.invalid/stt.bin"
+tts_download_url = "https://example.invalid/voice.onnx"
+tts_config_download_url = "https://example.invalid/voice.onnx.json"
+"#;
+    let cfg: Config = toml::from_str(legacy).expect("legacy local_ai keys must still parse");
+    assert!(cfg.local_ai.runtime_enabled);
+    assert!(cfg.local_ai.opt_in_confirmed);
+    assert_eq!(cfg.local_ai.provider, "ollama");
+    assert_eq!(
+        cfg.local_ai.base_url.as_deref(),
+        Some("http://127.0.0.1:11434")
+    );
+    assert_eq!(cfg.local_ai.chat_model_id, "llama3.1:8b");
+    assert_eq!(cfg.local_ai.embedding_model_id, "bge-m3");
+
+    // The runtime projection carries only endpoint and model settings.
+    let runtime = crate::inference::local_runtime_config(&cfg);
+    assert_eq!(runtime.local_ai.chat_model_id, "llama3.1:8b");
+    assert_eq!(
+        runtime.local_ai.base_url.as_deref(),
+        Some("http://127.0.0.1:11434")
+    );
 }

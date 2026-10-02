@@ -5,8 +5,9 @@
 
 use serde_json::json;
 
-use crate::core::socketio::{SubagentProgressDetail, WebChannelEvent};
-use crate::threads::turn_state::{TurnStateMirror, TurnStateStore};
+use crate::threads::turn_state::mirror::ObserveProgress;
+use crate::web_chat::{SubagentProgressDetail, WebChannelEvent};
+use tinyagents_session::turn_state::{TurnStateMirror, TurnStateStore};
 
 use super::event_bus::publish_web_channel_event;
 use super::types::ChatRequestMetadata;
@@ -146,10 +147,10 @@ fn interim_narration_text(buffer: &str) -> Option<String> {
 /// Current wall-clock time as Unix-epoch milliseconds, used to stamp tracing
 /// spans (issue #3886). Saturates to `0` if the clock is before the epoch.
 ///
-/// `pub(crate)` so `web_chat::event_bus` and `core::socketio` can stamp
+/// `pub(crate)` so `web_chat::event_bus` and `openhuman_rpc::server::socketio` can stamp
 /// `WebChannelEvent.ts` with the same clock instead of keeping a second
 /// epoch-ms helper in step by hand.
-pub(crate) fn unix_epoch_ms() -> u64 {
+pub fn unix_epoch_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
@@ -377,13 +378,12 @@ pub(crate) fn spawn_progress_bridge(
         let mut span_collector = if config.observability.share_usage_data
             || config.observability.agent_tracing.enabled
         {
-            use crate::agent::progress_tracing::{
-                trace_session_id, RunType, SpanCollector, TraceContext,
-            };
+            use crate::agent::progress_tracing::SpanCollector;
+            use tinyagents_harness::observability::trace_export as te;
             // One trace per turn: the trace id is unique per request, while the
             // thread id rides along as the Langfuse `sessionId` so a
             // conversation's per-turn traces still group under one session.
-            let base = trace_session_id(metadata.session_id, &thread_id);
+            let base = te::trace_session_id(metadata.session_id, &thread_id);
             let trace_id = format!("{base}:{request_id}");
             // Attribute the trace to the *real* authenticated user (cached
             // stored credential identity: id, else email) — the transport client
@@ -398,7 +398,7 @@ pub(crate) fn spawn_progress_bridge(
             // Run origin for trace metadata: the request's source tag
             // ("ptt"/"dictation"/"type"/"autonomous"/…), else a
             // plain interactive chat turn.
-            let run_type = RunType::from_source(metadata.source.as_deref());
+            let run_type = te::RunType::from_source(metadata.source.as_deref());
             let channel_source = metadata
                 .source
                 .clone()
@@ -419,7 +419,7 @@ pub(crate) fn spawn_progress_bridge(
                 capture_content,
                 request_id,
             );
-            let mut trace_ctx = TraceContext::new(trace_id, user_id)
+            let mut trace_ctx = te::TraceContext::new(trace_id, user_id)
                 .with_session_group(thread_id.clone())
                 .with_client_id(client_id.clone())
                 .with_channel_source(channel_source)
@@ -1181,7 +1181,7 @@ pub(crate) fn spawn_progress_bridge(
                                 thread_id: thread_id.clone(),
                                 request_id: request_id.clone(),
                                 round: Some(iteration),
-                                usage: Some(crate::core::socketio::TurnUsagePayload {
+                                usage: Some(crate::web_chat::TurnUsagePayload {
                                     input_tokens,
                                     output_tokens,
                                     cached_input_tokens,

@@ -4,14 +4,14 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 
 ## Public surface
 
-- `pub struct OpenHumanSessionHost` / `pub struct SessionHostBuilder` / `pub struct TurnOverrides` (`session_host/types.rs`, re-exported from `agent`): top-level conversation runtime, the entry point for any chat turn. Constructors live in `session_host/builder/factory.rs`; `run_single` / `run_interactive` in `session_host/runtime/run_loop.rs`. The `builder/`, `runtime/`, and `turn/` submodules are private.
+- `pub struct OpenHumanSessionHost` / `pub struct SessionHostBuilder` / `pub struct TurnOverrides` (`session_host/types.rs`, re-exported from `agent`): top-level conversation runtime, the entry point for any chat turn. Constructors live in `session_host/builder/factory.rs`; `run_single` in `session_host/runtime/run_loop.rs`. The `builder/`, `runtime/`, and `turn/` submodules are private.
 - `pub fn run_subagent` / `pub struct SubagentRunOptions` / `pub enum SubagentRunError` (`subagent_host/`): OpenHuman policy adapters around the neutral TinyAgents sub-agent lifecycle.
 - `pub struct AgentDefinition` / `pub struct AgentDefinitionRegistry` / `pub enum SandboxMode` / `pub enum ToolScope` (`harness/definition/`: `agent_definition.rs`, `registry.rs`, `source.rs`, `tier.rs`, `execution_spec.rs`, `prompt_source.rs`, `subagents.rs`): sub-agent archetypes loaded from built-ins and workspace TOML.
 - `pub mod harness::fork_context`: task-local parent context for KV-cache reuse.
 - `tinytools_agent::dialect::ToolDialect` / `tinytools_agent::ParsedToolCall` / `tinytools_agent::dialect::ToolOutcome`: canonical tool-call vocabulary; `message_convert.rs` performs only concrete durable/provider conversions.
 - `pub mod triage` (`run_triage`, `apply_decision`, `TriggerEnvelope`, `TriageDecision`, `TriageAction`, in `triage/mod.rs`): classifies external triggers and escalates to sub-agents.
 - `pub mod prompts::SystemPromptBuilder` (`prompts/`): system-prompt section composer.
-- `pub struct ChatMessage` / `pub enum ConversationMessage` / `pub struct ToolResultMessage` (`messages.rs`): transcript wire types; `inference/provider/types.rs::ChatRequest` borrows `&[ChatMessage]` from here.
+- `messages.rs` (`history_wire`): the `{role, content}` serde adapter for host-owned files that embed message rows (durable sub-agent sessions, pause checkpoints). Rows are `tinyagents_session::transcript::TranscriptMessage`; typed tool-call history is `tinytools_agent::dialect::TranscriptEntry`.
 - `pub fn bus::register_agent_handlers` (`bus.rs`): registers the `agent.run_turn` native request handler (`AgentTurnRequest` -> `AgentTurnResponse`) on `BUS.native()`; called from `channels/runtime/startup/start_channels.rs`.
 - Built-in archetypes live in `crates/openhuman-core/src/agent/registry/agents/`; this module stays focused on harness/runtime behavior.
 - RPC `agent.{chat, chat_simple, server_status, list_definitions, get_definition, reload_definitions, triage_evaluate, graph_topologies, registry_snapshot}`: `schemas.rs`.
@@ -26,7 +26,7 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 | `debug/` | Renders the exact system prompt a live session would see for a given agent, via `Agent::from_config_for_agent` |
 | `experience/` | Local procedural operating experience capture for self-learning ([README](experience/README.md)) |
 | `file_state/` | Process-wide read/write stamps so parallel sub-agents and worker threads detect stale file contents before writing |
-| `goals/` | Host adapters around `tinyagents_graph::goals`: workspace-store resolution, domain events, heartbeat dispatch, and the `goal_*` tools ([README](goals/README.md)) |
+| `goals/` | Host adapters around `tinyagents_graph::goals`: workspace-store resolution, domain events, turn accounting, and the `goal_*` tools ([README](goals/README.md)) |
 | `harness/` | Legacy/product prompt and definition helpers used by the session host; generic loop mechanics are imported from TinyAgents ([README](harness/README.md)) |
 | `harness_init/` | One-time first-run provisioning (Python/spaCy/Kompress/Node) before the harness can run ([README](harness_init/README.md)) |
 | `learning/` | Reflection, tool-outcome tracking, user-profile inference from transcripts ([README](learning/README.md)) |
@@ -50,13 +50,13 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `context_breakdo
 
 `agent`, `agent_registry`, `harness_init`, `session_import`, `plan_review`, `run_ledger` (session_db), `agent_experience` (experience), `ai` (artifacts), `learning`, `agent_team`, `agent_work` (orchestration/command_center), `workflow_run`, `worktree`, `subagent` (orchestration/subagent_control): all registered under `DomainGroup::Agent` in `core/all.rs`.
 
-`crate::rpc` is `pub use openhuman_rpc as rpc` in `lib.rs`; shared RPC contracts, response decoding, and the HTTP client live in the separate `crates/openhuman-rpc` crate, not under `agent/`.
+`crate::core::Outcome` is the controller result type; the JSON-RPC protocol, client and server that expose controllers live in the separate `crates/openhuman-rpc` crate, which depends on this one.
 
 ## Calls into
 
 - `crates/openhuman-core/src/inference/provider/`: `factory::{provider_for_role, create_chat_model_with_model_id}` build the crate-native `ChatModel`s that `tinyagents::TurnModelSource` runs each turn against; `ChatResponse` / `ToolCall` / `UsageInfo` DTOs cross this boundary. There is no `Provider` trait; the harness names crate model types only.
 - `crates/openhuman-core/src/tools/`: `Tool` / `ToolSpec` execution surface invoked from the tool loop.
-- `crates/openhuman-core/src/memory/`: episodic indexing + memory-loader context injection (`harness/memory_context.rs`).
+- `crates/openhuman-core/src/memory/`: episodic indexing.
 - `crates/openhuman-core/src/inference/local/`: `agent_chat` / `agent_chat_simple` execution backend.
 - `crates/openhuman-core/src/config/`: runtime config load via `config::rpc::load_config_with_timeout` (`config::rpc` is `pub use ops as rpc`).
 - `crates/openhuman-core/src/core/bus.rs` (`BUS.publish`/`BUS.subscribe`/`BUS.native()`) and `crates/openhuman-core/src/core/events.rs` (`DomainEvent`): emits `AgentTurnStarted` / `AgentTurnCompleted` / `AgentError`, `AgentOrchestration*`, and `TriggerEvaluated`; subscribers live in `orchestration/{background_delivery,run_ledger_finalize}.rs` and `learning/`, not in `agent/bus.rs`.
@@ -77,11 +77,26 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `context_breakdo
 
 ## Tests
 
-- Unit: `agent_tests.rs`, `multimodal_tests.rs`, and direct TinyTools Agent dialect coverage in `pformat_tests.rs`, plus `*_tests.rs` files colocated with `bus.rs`, `cost.rs`, `error.rs`, `hooks.rs`, `host_runtime.rs`, `message_convert.rs`, `platform_shell.rs`, `progress_sink.rs`, `schemas.rs`, `stop_hooks.rs`, `tool_policy.rs`, `turn_origin.rs`, `turn_workspace.rs`, and under `harness/`, `session_host/`, `triage/`.
-- Integration: `tests/agent_builder_public.rs`, `tests/agent_harness_public.rs`, `tests/agent_harness_e2e.rs`, `tests/agent_multimodal_public.rs`, `tests/agent_turn_overrides_e2e.rs`, `tests/agent_approval_memory_coverage_e2e.rs`.
+- Unit: `agent_tests.rs`, `multimodal_tests.rs`, plus `*_tests.rs` files colocated with `bus.rs`, `cost.rs`, `error.rs`, `hooks.rs`, `host_runtime.rs`, `message_convert.rs`, `platform_shell.rs`, `progress_sink.rs`, `schemas.rs`, `stop_hooks.rs`, `tool_policy.rs`, `turn_origin.rs`, `turn_workspace.rs`, and under `harness/`, `session_host/`, `triage/`.
+- Integration: `tests/in_process/agent_builder_public.rs`, `tests/in_process/agent_harness_public.rs`, `tests/agent_harness_e2e.rs`, `tests/in_process/agent_turn_overrides_e2e.rs`, `tests/in_process/agent_approval_memory_coverage_e2e.rs`.
 - Schema regression: `schemas_tests.rs` (`controller_schema_inventory_is_stable`).
 
 ## Related docs
 
 - [gitbooks/developing/architecture/agent-harness.md](../../../../gitbooks/developing/architecture/agent-harness.md)
 - [gitbooks/developing/agent-observability.md](../../../../gitbooks/developing/agent-observability.md)
+
+### Scoped tool-call budgets for embedders
+
+`stop_hooks::with_tool_call_limit(Some(n), turn)` narrows the real TinyAgents
+invocation budget for one awaited turn without changing the agent's persistent
+configuration. Zero permits no tool invocations. The adapter applies the limit
+to both run policy and run configuration, including parallel calls counted by
+TinyAgents.
+
+Nested scopes take the smaller limit; `None` preserves an enclosing limit.
+Exiting or dropping the future restores the caller's scope, and concurrent
+turns do not share limits. This bounds calls within each run, not a shared
+aggregate across child runs. Task-local values do not automatically propagate
+through `tokio::spawn`; callers creating a separate task must scope that turn
+explicitly. Without a limit, existing iteration-derived limits are unchanged.

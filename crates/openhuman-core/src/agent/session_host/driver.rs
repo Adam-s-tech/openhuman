@@ -13,11 +13,11 @@ use async_trait::async_trait;
 use tinyagents_runtime::{
     DriverFailure, DriverOutcome, DriverRequest, RuntimeError, SessionDriver, TranscriptPartial,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyinference_llm::message::Message;
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
-    messages::ChatMessage,
     session_host::turn::graph::{self, ChatTurnGraph},
     tinyagents::{host::OpenHumanHostBase, host::OpenHumanRunContext, TurnModelSource},
 };
@@ -32,7 +32,6 @@ pub struct OpenHumanSessionDriver {
     model_name: String,
     temperature: f64,
     max_iterations: usize,
-    max_history_messages: usize,
     model_vision: bool,
     run_queue:
         Option<Arc<tinyagents_harness::run_queue::RunQueue<crate::agent::queued_turn::QueuedTurn>>>,
@@ -50,7 +49,6 @@ impl OpenHumanSessionDriver {
         model_name: String,
         temperature: f64,
         max_iterations: usize,
-        max_history_messages: usize,
         model_vision: bool,
         run_queue: Option<
             Arc<tinyagents_harness::run_queue::RunQueue<crate::agent::queued_turn::QueuedTurn>>,
@@ -66,7 +64,6 @@ impl OpenHumanSessionDriver {
             model_name,
             temperature,
             max_iterations,
-            max_history_messages,
             model_vision,
             run_queue,
             workspace,
@@ -131,7 +128,7 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             .iter()
             .rev()
             .find(|message| matches!(message, Message::User(_)))
-            .map(Message::text)
+            .map(crate::agent::message_convert::user_text_with_markers)
             .unwrap_or_default();
         let context_window = self
             .turn_model_source
@@ -147,7 +144,7 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             )
             .map_err(driver_error)?;
 
-        let mut messages: Vec<ChatMessage> = request
+        let mut messages: Vec<TranscriptMessage> = request
             .history
             .iter()
             .filter_map(crate::agent::message_convert::message_to_native_chat_message)
@@ -312,13 +309,9 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             .is_some_and(|reason| reason.starts_with("Stopping after "));
         let required_repair = match required_output.as_ref() {
             Some(contract) if classified_halt => {
-                if !crate::agent::harness::required_output::output_satisfies_contract(
-                    &output, contract,
-                ) {
+                if !tinyagents_harness::config::output_satisfies_contract(&output, contract) {
                     output.push_str("\n\n");
-                    output.push_str(&crate::agent::harness::required_output::synthesize_block(
-                        contract,
-                    ));
+                    output.push_str(&tinyagents_harness::config::synthesize_block(contract));
                     if history
                         .last()
                         .is_some_and(|message| matches!(message, Message::Assistant(_)))
@@ -357,7 +350,6 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             }
             history.push(Message::assistant(output.clone()));
         }
-        trim_history(&mut history, self.max_history_messages);
 
         // This is deliberately an out-of-band observation rather than a
         // second history or transcript.  The runtime only reads it from
@@ -421,26 +413,6 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             partial: None,
             interrupted: outcome.early_exit_tool.is_some() || outcome.hit_cap,
         })
-    }
-}
-
-/// Preserve the stable system prefix while bounding durable conversational
-/// history.  The runtime owns history replacement, so this must happen before
-/// its successful `DriverOutcome` is committed.
-///
-/// The cut never splits an assistant tool-call turn from its results (#6721):
-/// a history opening on an orphaned `tool` message is rejected by the provider
-/// on every later turn. `find_safe_cutoff_point` moves the cut back to keep the
-/// owning assistant turn (so the bound may be exceeded by one tool group).
-fn trim_history(history: &mut Vec<Message>, max_history_messages: usize) {
-    let prefix_len = system_prefix_len(history);
-    let retained = history.len().saturating_sub(prefix_len);
-    if retained > max_history_messages {
-        let cut = tinyagents_harness::summarization::find_safe_cutoff_point(
-            &history[prefix_len..],
-            retained - max_history_messages,
-        );
-        history.drain(prefix_len..prefix_len + cut);
     }
 }
 
@@ -545,15 +517,11 @@ fn driver_error_with_snapshot(
                 .unwrap_or(fallback_model);
             crate::agent::cost::estimate_call_cost_usd(
                 pricing_model,
-                &crate::inference::provider::UsageInfo {
-                    input_tokens: guard.input_tokens,
-                    output_tokens: guard.output_tokens,
-                    context_window: 0,
-                    cached_input_tokens: guard.cached_input_tokens,
-                    cache_creation_tokens: 0,
-                    reasoning_tokens: 0,
-                    charged_amount_usd: 0.0,
-                },
+                &crate::inference::provider::BilledUsage::from_counts(
+                    guard.input_tokens,
+                    guard.output_tokens,
+                )
+                .with_cached_input_tokens(guard.cached_input_tokens),
             )
         };
         observed.duration = Some(elapsed);

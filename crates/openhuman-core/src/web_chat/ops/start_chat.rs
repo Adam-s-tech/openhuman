@@ -10,10 +10,10 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::core::events::DomainEvent;
-use crate::core::socketio::WebChannelEvent;
 use crate::security::prompt_injection::{
     enforce_prompt_input, PromptEnforcementAction, PromptEnforcementContext,
 };
+use crate::web_chat::WebChannelEvent;
 
 use super::super::event_bus::publish_web_channel_event;
 use super::super::run_task::run_chat_task;
@@ -41,7 +41,7 @@ pub enum StartChatError {
     Guardrail {
         verdict: String,
         score: f64,
-        reasons: Vec<crate::core::socketio::GuardrailReason>,
+        reasons: Vec<crate::web_chat::GuardrailReason>,
     },
     Other(String),
 }
@@ -104,7 +104,7 @@ impl From<StartChatError> for String {
                 score,
                 reasons,
             } => {
-                let payload = crate::core::socketio::GuardrailPayload {
+                let payload = crate::web_chat::GuardrailPayload {
                     verdict,
                     score,
                     reasons,
@@ -117,12 +117,6 @@ impl From<StartChatError> for String {
             StartChatError::Other(message) => message,
         }
     }
-}
-
-/// Whether `msg` is the [`GUARDRAIL_ERROR_PREFIX`] sentinel — mirrors
-/// [`crate::core::observability::is_backend_unavailable_message`].
-pub fn is_guardrail_error_message(msg: &str) -> bool {
-    msg.starts_with(GUARDRAIL_ERROR_PREFIX)
 }
 
 fn prompt_guard_user_message(action: PromptEnforcementAction) -> &'static str {
@@ -258,7 +252,7 @@ pub async fn start_chat(
             reasons: prompt_decision
                 .reasons
                 .iter()
-                .map(|r| crate::core::socketio::GuardrailReason {
+                .map(|r| crate::web_chat::GuardrailReason {
                     code: r.code.clone(),
                     message: r.message.clone(),
                 })
@@ -312,7 +306,7 @@ pub async fn start_chat(
     // The message here is post-attachment-processing, so a hook sees extracted
     // text and placeholders rather than a multi-megabyte data URI on stdin.
     match crate::hooks::ops::prompt_submitted(
-        crate::hooks::context::TurnIdentity {
+        tinyagents_runtime::command_hooks::context::TurnIdentity {
             conversation_id: Some(thread_id.clone()),
             ..Default::default()
         },
@@ -625,6 +619,8 @@ pub async fn start_chat(
                         error_retry_after_ms: classified.retry_after_ms,
                         error_provider: classified.provider,
                         error_fallback_available: classified.fallback_available,
+                        copy_key: Some(classified.copy_key.to_string()),
+                        copy_params: classified.copy_params,
                         ..Default::default()
                     })
                 }

@@ -16,6 +16,7 @@ impl SessionHostBuilder {
             tools: None,
             synthesized_tools: None,
             visible_tool_names: None,
+            deferred_tools: Vec::new(),
             subagent_tool_ceiling_names: None,
             memory: None,
             auto_recall: None,
@@ -95,6 +96,14 @@ impl SessionHostBuilder {
     /// runner. Pass `None` (default) to make all tools visible.
     pub fn visible_tool_names(mut self, names: std::collections::HashSet<String>) -> Self {
         self.visible_tool_names = Some(names);
+        self
+    }
+
+    /// Tools to take off this agent's wire and serve through `tool_search`
+    /// instead (the definition's `deferred_tools`). Applies only to a belt
+    /// that opted into discovery; see `meta::deferred_set`.
+    pub fn deferred_tools(mut self, names: Vec<String>) -> Self {
+        self.deferred_tools = names;
         self
     }
 
@@ -344,24 +353,6 @@ impl SessionHostBuilder {
     /// (default) for root sessions.
     pub fn session_parent_prefix(mut self, prefix: Option<String>) -> Self {
         self.session_parent_prefix = prefix;
-        self
-    }
-
-    /// Substitute the transcript backing store for this session.
-    ///
-    /// The one injection point for the S4 seam: the locator resolves both
-    /// resume reads (`latest_for_agent` / `root_for_thread`) **and** binds the
-    /// session's write handle (`open_stem`), so a fake supplied here takes the
-    /// whole turn path off the filesystem. Leave unset in production — `None`
-    /// resolves lazily to a
-    /// [`FileTranscriptLocator`][tinyagents_session::transcript::FileTranscriptLocator]
-    /// over the agent's current workspace, which is behaviourally identical to
-    /// the pre-S4 free-function calls.
-    pub(crate) fn with_session_history_locator(
-        mut self,
-        locator: std::sync::Arc<dyn tinyagents_session::transcript::TranscriptLocator>,
-    ) -> Self {
-        self.session_history_locator = Some(locator);
         self
     }
 

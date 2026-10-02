@@ -33,14 +33,6 @@ fn openclaw_schema_describes_optional_source_and_dry_run() {
 }
 
 #[test]
-fn unknown_function_returns_unknown_placeholder() {
-    let s = schemas("bogus");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.namespace, "migrate");
-    assert_eq!(s.outputs[0].name, "error");
-}
-
-#[test]
 fn migrate_openclaw_params_tolerates_empty_object() {
     let params: MigrateOpenClawParams = serde_json::from_value(json!({})).unwrap();
     assert!(params.source_workspace.is_none());
@@ -60,7 +52,7 @@ fn migrate_openclaw_params_parses_both_fields() {
 
 #[test]
 fn to_json_wraps_rpc_outcome_result_envelope() {
-    let v = to_json(RpcOutcome::single_log(json!({"done": true}), "done")).unwrap();
+    let v = to_json(Outcome::single_log(json!({"done": true}), "done")).unwrap();
     assert!(v.get("logs").is_some() || v.get("result").is_some());
 }
 

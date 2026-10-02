@@ -1,10 +1,18 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetMemoryEngineCacheForTests } from '../../components/intelligence/useMemoryEngineCapabilities';
 import { renderWithProviders } from '../../test/test-utils';
 import Brain from '../Brain';
 
 const graphExportMock = vi.hoisted(() => vi.fn());
+// The bound memory engine, as `MemoryFamilyGate` reads it. Rejected by default,
+// so every gate fails open and the tabs render as they always have.
+const engineMock = vi.hoisted(() => ({ list: vi.fn(), get: vi.fn() }));
+vi.mock('../../utils/tauriCommands/memoryEngine', () => ({
+  memoryEnginesList: (...a: unknown[]) => engineMock.list(...a),
+  memoryEngineGet: (...a: unknown[]) => engineMock.get(...a),
+}));
 // Controllable authenticated identity so we can simulate a logout→login cycle
 // (userId null → set) and assert the graph reloads (#4149).
 const coreAuthRef = vi.hoisted(() => ({ current: 'user-A' as string | null }));
@@ -84,6 +92,9 @@ describe('Brain page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     coreAuthRef.current = 'user-A';
+    resetMemoryEngineCacheForTests();
+    engineMock.get.mockRejectedValue(new Error('no engine rpc in this test'));
+    engineMock.list.mockRejectedValue(new Error('no engine rpc in this test'));
   });
 
   afterEach(() => {
@@ -98,6 +109,28 @@ describe('Brain page', () => {
     await waitFor(() => {
       expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:3');
     });
+  });
+
+  it('shows a loading state, not an empty canvas, until the graph arrives', async () => {
+    let resolveGraph!: (graph: ReturnType<typeof makeGraph>) => void;
+    graphExportMock.mockReturnValue(
+      new Promise(resolve => {
+        resolveGraph = resolve;
+      })
+    );
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+    });
+    expect(screen.getByTestId('brain-graph-loading')).toHaveTextContent('workspace.loadingGraph');
+    expect(screen.queryByTestId('memory-graph')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveGraph(makeGraph(2));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:2');
+    });
+    expect(screen.queryByTestId('brain-graph-loading')).not.toBeInTheDocument();
   });
 
   it('renders empty-state graph when there are no nodes', async () => {
@@ -187,5 +220,102 @@ describe('Brain page', () => {
     });
     expect(screen.queryByTestId('brain-sync-activity')).toBeNull();
     expect(screen.queryByTestId('brain-sync-activity-card')).toBeNull();
+  });
+
+  // A remote engine without the Sources family (a direct CortexDB) has no
+  // `memory_sources.*` RPCs at all: the sync panels must say so rather than
+  // render and fail.
+  it('shows the sync panels as unavailable on an engine without sources', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(0));
+    engineMock.get.mockResolvedValue({ driver: 'cortex' });
+    engineMock.list.mockResolvedValue({
+      active: 'cortex',
+      engines: [
+        {
+          id: 'cortex',
+          label: 'CortexDB',
+          capabilities: ['core', 'recall', 'portability', 'answer'],
+        },
+      ],
+    });
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
+    });
+    await waitFor(() => {
+      expect(screen.getAllByTestId('memory-family-unavailable').length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByTestId('brain-sync-activity')).toBeNull();
+    expect(screen.queryByTestId('brain-sync-activity-card')).toBeNull();
+  });
+
+  // Hosted memory serves a tree — the server's understanding — but keeps no
+  // local chunk store: the graph draws, and the ingest pipeline's status panel
+  // says it is not available rather than reading a store that is not there.
+  const hostedWithTree = () => {
+    engineMock.get.mockResolvedValue({ driver: 'tinyhumans' });
+    engineMock.list.mockResolvedValue({
+      active: 'tinyhumans',
+      engines: [
+        {
+          id: 'tinyhumans',
+          label: 'CortexDB (via TinyHumans)',
+          capabilities: ['core', 'recall', 'portability', 'sources', 'retrieval', 'tree'],
+        },
+      ],
+    });
+  };
+
+  it('draws the graph on hosted memory', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(2));
+    hostedWithTree();
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:2');
+    });
+  });
+
+  it('gates the local pipeline status on hosted memory', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(0));
+    hostedWithTree();
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
+    });
+    await waitFor(() => {
+      const gated = screen
+        .getAllByTestId('memory-family-unavailable')
+        .map(node => node.getAttribute('data-family'));
+      expect(gated).toContain('chunks');
+    });
+    expect(screen.queryByTestId('brain-sync')).toBeNull();
+  });
+
+  // Hosted memory accepts synced items but reads no local agent transcripts:
+  // the sources registry renders, the coding-sessions card says it is not
+  // available instead of calling an RPC the engine refuses.
+  it('gates the coding sessions card on its own family', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(0));
+    engineMock.get.mockResolvedValue({ driver: 'tinyhumans' });
+    engineMock.list.mockResolvedValue({
+      active: 'tinyhumans',
+      engines: [
+        {
+          id: 'tinyhumans',
+          label: 'CortexDB (via TinyHumans)',
+          capabilities: ['core', 'recall', 'portability', 'answer', 'sources', 'documents'],
+        },
+      ],
+    });
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sources'] });
+    });
+    await waitFor(() => {
+      const gated = screen
+        .getAllByTestId('memory-family-unavailable')
+        .map(node => node.getAttribute('data-family'));
+      expect(gated).toContain('coding_sessions');
+      expect(gated).not.toContain('sources');
+    });
   });
 });

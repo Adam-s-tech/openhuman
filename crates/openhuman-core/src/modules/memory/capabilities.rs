@@ -10,7 +10,7 @@ use tinymemory_api::capabilities::{Capabilities, Capability};
 /// Checked against the registry pin by `the_capability_list_matches_the_pinned_release`,
 /// so bumping the pin without re-reading the list is a red test rather than a
 /// silent over-claim.
-pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.16.2";
+pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.22.2";
 
 /// The capability families the **pinned artifact** actually serves.
 ///
@@ -35,6 +35,33 @@ pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.16.2";
 /// crates/tinymemory-api/src/capabilities.rs` is empty (the release adds
 /// optional linked-module exports and nested pin bumps), so the advertised
 /// families stay the same.
+/// Re-read at `v1.17.0`: `git diff v1.16.2..v1.17.0 --
+/// crates/tinymemory-api/src/capabilities.rs crates/tinymemory-bus/src/capabilities.rs`
+/// is empty (the release adds the remote-engine factory, the hosted CortexDB
+/// wire and `migrate`, none of which the module serves), so the advertised
+/// families stay the same.
+/// Re-read at `v1.20.0`: `git diff v1.17.0..v1.20.0 --
+/// crates/tinymemory-api/src/capabilities.rs crates/tinymemory-bus/src/capabilities.rs`
+/// is empty. v1.18.0 and v1.19.0 moved host-side memory code into library
+/// crates, and v1.20.0 adds the hosted families on the TinyHumans wire and
+/// the optional `TreeSummary::preview` (contract 4.2); none of that is a family
+/// the module serves, so the advertised families stay the same.
+/// Re-read at `v1.21.0`: the release adds `EpisodicPortability` (contract
+/// 4.3, tinymemory#178), a new family the module serves through the
+/// `ExportEpisodic` and `ImportEpisodic` members (wire slots 144 and 145) and
+/// [`ModuleMemoryProvider`] forwards, so it is advertised below in the same
+/// change, the way `Episodic` arrived with `as_episodic`.
+/// Re-read at `v1.21.1`: `git diff v1.21.0..v1.21.1 --
+/// crates/tinymemory-api/src/capabilities.rs crates/tinymemory-bus/src/capabilities.rs
+/// crates/tinymemory-bus/src/names.rs` is empty. The release fixes the hosted
+/// wire's episodic import (tinymemory#179), which the module does not serve,
+/// so the advertised families stay the same.
+/// Re-read at `v1.22.2`: `git diff v1.21.1..v1.22.2 --
+/// crates/tinymemory-api/src/capabilities.rs crates/tinymemory-bus/src/capabilities.rs
+/// crates/tinymemory-bus/src/names.rs` is empty. v1.22.0 drops the unread
+/// usage plumbing, v1.22.1 fixes the copy's documents step (tinymemory#182),
+/// and v1.22.2 fixes hosted search across synced sources and a hosted copy
+/// run again (tinymemory#183, #184). None adds or removes a family.
 ///
 /// Read at tag `v1.3.0`. Unchanged from v1.2.0 — the release added members
 /// within existing families (`retry_failed`, the diagnostics trio,
@@ -125,6 +152,10 @@ pub(crate) const ARTIFACT_CAPABILITIES: &[Capability] = &[
     Capability::LearningIngest,
     Capability::EventIngest,
     Capability::Answer,
+    // Arrived in v1.21.0 (tinymemory#178): the whole episodic record paged
+    // out and written back in, for an engine switch. Forwarded by
+    // `MemoryEpisodicPortability for ModuleMemoryProvider`.
+    Capability::EpisodicPortability,
 ];
 
 /// Escape hatch for a locally-built module.

@@ -2,7 +2,6 @@
 
 mod agent;
 mod loader;
-pub mod local_ai_presets;
 mod model;
 mod privacy;
 mod sandbox;

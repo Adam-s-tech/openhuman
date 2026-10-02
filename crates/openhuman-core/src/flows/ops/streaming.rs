@@ -74,7 +74,7 @@ pub(super) fn attach_flow_progress_bridge(
         "system".to_string(),
         target.thread_id.clone(),
         target.request_id.clone(),
-        crate::threads::turn_state::TurnStateStore::new(config.workspace_dir.clone()),
+        tinyagents_session::turn_state::TurnStateStore::new(config.workspace_dir.clone()),
         crate::web_chat::ChatRequestMetadata {
             source: Some(source.to_string()),
             ..Default::default()
@@ -122,7 +122,7 @@ pub(super) async fn finalize_flow_stream(
             .await;
         }
         Err(err) => {
-            crate::web_chat::publish_web_channel_event(crate::core::socketio::WebChannelEvent {
+            crate::web_chat::publish_web_channel_event(crate::web_chat::WebChannelEvent {
                 event: "chat_error".to_string(),
                 client_id: "system".to_string(),
                 thread_id: target.thread_id.clone(),
@@ -142,13 +142,13 @@ pub(super) async fn finalize_flow_stream(
     // indicator under a reply that already landed.
     if let Ok(config) = crate::config::rpc::load_config_with_timeout().await {
         let lifecycle = if result.is_ok() {
-            crate::threads::turn_state::TurnLifecycle::Completed
+            tinyagents_session::turn_state::TurnLifecycle::Completed
         } else {
-            crate::threads::turn_state::TurnLifecycle::Interrupted
+            tinyagents_session::turn_state::TurnLifecycle::Interrupted
         };
         let now = chrono::Utc::now().to_rfc3339();
         if let Err(err) =
-            crate::threads::turn_state::TurnStateStore::new(config.workspace_dir.clone())
+            tinyagents_session::turn_state::TurnStateStore::new(config.workspace_dir.clone())
                 .settle_turn(&target.thread_id, &target.request_id, lifecycle, &now)
         {
             tracing::warn!(

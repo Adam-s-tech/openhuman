@@ -160,7 +160,6 @@ describe('rpcMethods catalog', () => {
 
     const schemaSources = [
       readWithParts('../../../../crates/openhuman-core/src/config/schemas/schema_defs.rs'),
-      readWithParts('../../../../crates/openhuman-core/src/inference/provider/schemas.rs'),
       readWithParts('../../../../crates/openhuman-core/src/inference/schemas.rs'),
       readWithParts('../../../../crates/openhuman-core/src/inference/host_runtime/schemas.rs'),
       readWithParts('../../../../crates/openhuman-core/src/inference/embedding_host/schemas.rs'),
@@ -174,6 +173,8 @@ describe('rpcMethods catalog', () => {
       readWithParts('../../../../crates/openhuman-core/src/channels/controllers/schemas.rs'),
       // The credential handoff RPCs (`auth_set_credential` / `auth_clear_credential`).
       readWithParts('../../../../crates/openhuman-core/src/security/credentials/schemas.rs'),
+      // The selectable memory-engine RPCs (`memory_engine_*` / `memory_engines_list`).
+      readWithParts('../../../../crates/openhuman-core/src/memory/schemas/engine.rs'),
       // The channels_* namespace/function literals now live in the vendored
       // tinychannels workspace (`ChannelControllerSchema`), not in the thin
       // `crates/openhuman-core/src/channels/controllers/schemas.rs` adapter above, which
@@ -213,7 +214,9 @@ describe('rpcMethods catalog', () => {
                     ? 'channels'
                     : methodRoot.startsWith('tool_registry_')
                       ? 'tool_registry'
-                      : 'config';
+                      : methodRoot.startsWith('memory_engine')
+                        ? 'memory'
+                        : 'config';
       const fnName = methodRoot.slice(`${namespace}_`.length);
       expect(schemaSources).toContain(`namespace: "${namespace}"`);
       expect(schemaSources).toContain(`function: "${fnName}"`);

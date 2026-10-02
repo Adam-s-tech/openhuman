@@ -20,7 +20,6 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc;
 
-use crate::agent::messages::ChatMessage;
 use crate::agent::progress::AgentProgress;
 use crate::agent::turn_origin::{self, AgentTurnOrigin};
 use crate::config::MultimodalConfig;
@@ -28,11 +27,12 @@ use crate::core::bus::BUS;
 use crate::security::prompt_injection::{
     enforce_prompt_input, PromptEnforcementAction, PromptEnforcementContext,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::Tool;
 
 use super::harness::definition::{AgentDefinitionRegistry, SandboxMode};
 use super::harness::{run_channel_turn_via_graph, with_current_sandbox_mode};
-use crate::agent::file_state::with_file_state_agent_id;
+use tinytools_std::file_state::with_file_state_agent_id;
 
 /// Method name used to dispatch an agentic turn through the native bus.
 pub const AGENT_RUN_TURN_METHOD: &str = "agent.run_turn";
@@ -54,7 +54,7 @@ pub struct AgentTurnRequest {
     /// user message. The handler mutates an internal clone of this during
     /// the tool-call loop; callers should rebuild their per-session cache
     /// from their own records, not from this vector.
-    pub history: Vec<ChatMessage>,
+    pub history: Vec<TranscriptMessage>,
 
     /// Registered tool implementations available to this turn.
     /// These are provided as trait objects to avoid tight coupling with tool implementations.

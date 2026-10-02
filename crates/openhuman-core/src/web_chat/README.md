@@ -10,7 +10,7 @@ runner behind both surfaces.
 
 ## Request lifecycle
 
-1. `core/socketio.rs` receives a `chat:start` socket event and calls
+1. `openhuman-rpc/src/server/socketio.rs` receives a `chat:start` socket event and calls
    [`start_chat`] (`ops/start_chat.rs`) with the raw message, thread/client ids,
    and any model/profile/locale/queue-mode overrides.
 2. `start_chat` preprocesses `[FILE:...]`/`[IMAGE:...]` attachment markers
@@ -52,7 +52,14 @@ runner behind both surfaces.
    `web_errors::classify_inference_error` into the user-facing `chat_error`
    (budget-exhausted, non-retryable rate limit, fallback-chain-exhausted, turn
    timeout, and so on) and decides via `sentry_suppression_reason` whether it
-   pages.
+   pages. The event carries `message` (finished English copy, unchanged for
+   older UIs, the CLI, the TUI and embedders) plus `copy_key`
+   (`chat_error.<class>`, one per row of `inference/failure_copy/table.rs`) and
+   `copy_params` (`retry_after_secs`, `provider`, `detail`); the app renders
+   the key in the user's locale (`app/src/lib/chatErrorCopy.ts`) and falls back
+   to `message` for an unknown or missing key. Loop-guard halt summaries are
+   not `chat_error` events (they become the turn's reply text), so they carry
+   no key.
 
 Host-authored turns, meaning background-delivery notices
 (`agent::orchestration::background_delivery`) and goal continuations
@@ -111,7 +118,7 @@ re-cached its own agent wins.
 | `presentation.rs` | `deliver_response` (one unsegmented `chat_done`, persisted first) and `deliver_response_single_bubble` (core-initiated turns); local-model emoji-reaction decision; legacy segmentation helpers |
 | `reply_persistence.rs` | Durable write of the reply about to be announced, under a deterministic id shared with the client's own append |
 | `event_bus.rs` | The `WebChannelEvent` broadcast channel plus approval/artifact/egress `DomainEvent` surface subscribers |
-| `web_errors.rs` (thin shell over `web_errors/`: `backend_error_code.rs`, `budget.rs`, `classify.rs`, `provider_detail.rs`, `response_predicates.rs`, `retry.rs`, `timeout.rs`) | Classifies raw provider error strings into user-facing copy; budget-exhausted / rate-limit / fallback-exhausted / timeout detection |
+| `web_errors.rs` (thin shell over `web_errors/`: `backend_error_code.rs`, `budget.rs`, `classify.rs`, `provider_detail.rs`, `retry.rs`, `timeout.rs`; the class -> copy table is `inference/failure_copy/`) | Classifies raw provider error strings into user-facing copy; budget-exhausted / rate-limit / fallback-exhausted / timeout detection |
 | `schemas.rs` | `ControllerSchema`/`RegisteredController` definitions for the `channel.web_*` RPC functions |
 | `types.rs` | `SessionEntry`, `SessionCacheFingerprint`, `InFlightEntry`, `ParallelEntry`, `WebChatTaskResult`, `ChatRequestMetadata`, `WebChatParams` |
 
@@ -129,14 +136,14 @@ Namespace `channel`, registered via
 
 ## Events
 
-- Broadcasts `WebChannelEvent` (defined in `core/socketio.rs`) over an
-  in-process `tokio::sync::broadcast` channel. `core/socketio.rs` forwards it
-  to the connected Socket.IO client; `core/jsonrpc.rs` forwards the same
-  stream to the JSON-RPC `/events` SSE endpoint; `channels/bus/subscriber.rs`
+- Broadcasts `WebChannelEvent` (defined in `openhuman-rpc/src/server/socketio.rs`) over an
+  in-process `tokio::sync::broadcast` channel. `openhuman-rpc/src/server/socketio.rs` forwards it
+  to the connected Socket.IO client; `core/jsonrpc/http/events.rs` subscribes to that stream and
+  serves the JSON-RPC `/events` SSE endpoint; `channels/bus/subscriber.rs`
   subscribes to collect the reply for an inbound provider message.
 - Subscribes to `DomainEvent` on `crate::core::bus::BUS` via three
   process-lifetime, `OnceLock`-guarded subscribers registered at startup from
-  `core/jsonrpc.rs` and `channels/runtime/startup/start_channels.rs`:
+  `core/runtime/bootstrap.rs` and `channels/runtime/startup/start_channels.rs`:
   `register_approval_surface_subscriber`
   (maps `ApprovalRequested`/`PlanReviewRequested` to `approval_request` /
   `plan_review_request`), `register_artifact_surface_subscriber`
@@ -165,11 +172,10 @@ Namespace `channel`, registered via
 
 ## Called by
 
-- `core/socketio.rs`: the `chat:start` and `chat:cancel` handlers call
+- `openhuman-rpc/src/server/socketio.rs`: the `chat:start` and `chat:cancel` handlers call
   `start_chat` / `cancel_chat_scoped`, and forward `WebChannelEvent`s to the
   client.
-- `core/jsonrpc.rs`: subscribes the event stream for `/events` SSE and
-  registers the three `DomainEvent` surface subscribers at startup.
+- `core/jsonrpc/http/events.rs`: subscribes to the `/events` SSE stream and forwards web-channel events; `core/runtime/bootstrap.rs` registers the `DomainEvent` surface subscribers.
 - `core/all.rs`: registers `all_web_channel_registered_controllers()` under
   `DomainGroup::Channels`, deliberately not behind the `channels` feature
   (the in-app chat is core product surface, #5002).

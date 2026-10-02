@@ -142,6 +142,7 @@ async fn apply_agent_paths_valid_abs_path_persists_override_and_recomputes() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(new_dir.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -172,6 +173,7 @@ async fn apply_agent_paths_rejects_relative_path() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some("relative/projects".into()),
+            files_dir: None,
         },
     )
     .await
@@ -195,6 +197,7 @@ async fn apply_agent_paths_rejects_action_dir_equal_to_workspace() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(workspace.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -221,6 +224,7 @@ async fn apply_agent_paths_empty_input_clears_override() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some("   ".into()),
+            files_dir: None,
         },
     )
     .await
@@ -250,6 +254,7 @@ async fn apply_agent_paths_auto_creates_missing_directory() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(missing.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -274,6 +279,7 @@ async fn apply_agent_paths_rejects_existing_file() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(file.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await
@@ -303,6 +309,7 @@ async fn apply_agent_paths_env_set_reports_source_env() {
         &mut cfg,
         AgentPathsPatch {
             action_dir: Some(user_dir.to_string_lossy().to_string()),
+            files_dir: None,
         },
     )
     .await

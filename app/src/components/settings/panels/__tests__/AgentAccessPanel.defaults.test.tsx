@@ -92,6 +92,20 @@ vi.mock('../../../../utils/tauriCommands', async () => {
     openhumanUpdateAutonomySettings: vi.fn(),
     openhumanGetAgentSettings: vi.fn(),
     openhumanUpdateAgentSettings: vi.fn(),
+    // The "Files folder" row (#5505) reads the agent paths on mount.
+    openhumanGetAgentPaths: vi.fn(async () => ({
+      result: {
+        action_dir: '/home/u/OpenHuman/projects',
+        workspace_dir: '/home/u/.openhuman/users/u/workspace',
+        projects_dir: '/home/u/OpenHuman/projects',
+        action_dir_source: 'default',
+        files_dir: '/home/u/OpenHuman/projects/Files',
+        default_files_dir: '/home/u/OpenHuman/projects/Files',
+        files_dir_source: 'default',
+      },
+      logs: [],
+    })),
+    openhumanUpdateAgentPaths: vi.fn(),
   };
 });
 

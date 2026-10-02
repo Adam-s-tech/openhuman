@@ -9,7 +9,7 @@ use tinyagents_harness::run_queue::RunQueue;
 
 use crate::agent::progress::AgentProgress;
 use crate::config::rpc as config_rpc;
-use crate::threads::turn_state::TurnStateStore;
+use tinyagents_session::turn_state::TurnStateStore;
 
 use super::ops::BudgetCorrelation;
 use super::progress_bridge::spawn_progress_bridge;
@@ -19,9 +19,9 @@ use super::session::{
 };
 use super::types::{ChatRequestMetadata, WebChatTaskResult};
 use super::web_errors::{
-    inference_budget_exceeded_user_message, is_empty_provider_response_text,
-    is_inference_budget_exceeded_error,
+    inference_budget_exceeded_user_message, is_inference_budget_exceeded_error,
 };
+use tinyinference_llm::failure::is_empty_provider_response_text;
 
 #[cfg(any(test, debug_assertions))]
 use super::ops::TEST_FORCED_RUN_CHAT_TASK_ERROR;
@@ -302,9 +302,9 @@ pub(crate) async fn run_chat_task(
     // `TurnCompleted` overwrites this with `Completed`, terminal either way.
     {
         let lifecycle = if result.is_ok() {
-            crate::threads::turn_state::TurnLifecycle::Completed
+            tinyagents_session::turn_state::TurnLifecycle::Completed
         } else {
-            crate::threads::turn_state::TurnLifecycle::Interrupted
+            tinyagents_session::turn_state::TurnLifecycle::Interrupted
         };
         let now = chrono::Utc::now().to_rfc3339();
         if let Err(err) = TurnStateStore::new(config.workspace_dir.clone())

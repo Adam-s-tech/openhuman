@@ -11,12 +11,13 @@ use tinymemory_api::provider::sync::{
     SyncRunOutcome,
 };
 use tinymemory_api::provider::{
-    ConversationSegment, EpisodicEvent, EpisodicTurn, MemoryCodingSessions, MemoryEpisodic,
+    ConversationSegment, EpisodicEvent, EpisodicExportPage, EpisodicImportOutcome, EpisodicPart,
+    EpisodicRecords, EpisodicTurn, MemoryCodingSessions, MemoryEpisodic, MemoryEpisodicPortability,
     MemorySourceSync,
 };
 use tinymemory_bus::names::methods;
 
-use super::provider::{from_bus, module_call, ModuleMemoryProvider};
+use super::provider::{from_bus, module_call, module_call_slow, ModuleMemoryProvider};
 
 /// Bus deadline for the three calls that run a whole source sync inside the
 /// module: `RunConnectionSync`, `RunSourceSync` and `BootstrapConnection`.
@@ -311,6 +312,39 @@ impl MemoryEpisodic for ModuleMemoryProvider {
             "upsert_segment_embedding",
             methods::UPSERT_SEGMENT_EMBEDDING,
             (segment_id, model_signature, embedding, created_at)
+        )
+    }
+}
+
+/// The episodic record moving between engines (tinymemory#178). An export page
+/// is request-shaped; an import writes a whole page of rows, so it gets the
+/// bulk deadline.
+#[async_trait]
+impl MemoryEpisodicPortability for ModuleMemoryProvider {
+    async fn export_episodic(
+        &self,
+        part: EpisodicPart,
+        cursor: Option<&str>,
+        limit: usize,
+    ) -> Result<EpisodicExportPage, MemoryError> {
+        let limit = u32::try_from(limit).unwrap_or(u32::MAX);
+        module_call!(
+            self,
+            "export_episodic",
+            methods::EXPORT_EPISODIC,
+            (part, cursor.map(str::to_string), limit)
+        )
+    }
+
+    async fn import_episodic(
+        &self,
+        records: EpisodicRecords,
+    ) -> Result<EpisodicImportOutcome, MemoryError> {
+        module_call_slow!(
+            self,
+            "import_episodic",
+            methods::IMPORT_EPISODIC,
+            (records,)
         )
     }
 }

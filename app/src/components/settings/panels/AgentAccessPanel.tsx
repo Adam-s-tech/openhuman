@@ -26,6 +26,7 @@ import {
 import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
 import SettingsPanel from '../layout/SettingsPanel';
 import AutonomyRateLimitSection from './AutonomyPanel';
+import FilesFolderSection from './FilesFolderSection';
 
 // Installs are always *available* but never silent: every `install_tool` call
 // is routed through the approval gate, so the user is asked to Approve/Deny
@@ -45,8 +46,7 @@ const AgentAccessPanel = () => {
   const [workspaceOnly, setWorkspaceOnly] = useState(false);
   // Blanket "auto-approve everything" bypass — off by default. Hard security
   // blocks (credential dirs, workspace-internal paths) and the
-  // subconscious-tainted / unlabelled-origin denials in the approval gate
-  // are unaffected by this setting; see `settings.agentAccess.autoApproveAll.desc`.
+  // unlabelled-origin denial in the approval gate are unaffected by this setting; see `settings.agentAccess.autoApproveAll.desc`.
   const [autoApproveAll, setAutoApproveAll] = useState(false);
   const [trustedRoots, setTrustedRoots] = useState<TrustedRoot[]>([]);
   // "Always allow" allowlist — populated by the in-chat "Always allow" button;
@@ -369,6 +369,8 @@ const AgentAccessPanel = () => {
 
           {/* ── File system: where the agent may read and write ─────────── */}
           <Card title={t('settings.agentAccess.group.fileSystem')}>
+            <FilesFolderSection />
+
             <Field
               htmlFor="switch-workspace-only"
               label={t('settings.agentAccess.confine.label')}

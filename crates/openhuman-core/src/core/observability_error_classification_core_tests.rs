@@ -188,7 +188,7 @@ fn classifies_mcp_connect_401_as_needs_auth() {
 /// turn-killing failure in the same session emitted zero (#5804).
 ///
 /// The bare message was already demoted at the RPC boundary by
-/// `jsonrpc::is_wallet_not_configured_error`, which is exact equality — so
+/// `jsonrpc::classify::is_wallet_not_configured_error`, which is exact equality — so
 /// a single caller adding context defeated it. The observed wrap is
 /// `self_identity key_status: {e}`, but nothing about the fix is specific
 /// to that method: the classifier is substring-based, so it must hold for
@@ -236,6 +236,8 @@ fn wallet_demotion_does_not_swallow_real_wallet_failures() {
         "no wallet account derived for chain 'solana'",
         "wallet is not responding",
         "failed to decrypt wallet mnemonic",
+        "wallet signing failed: invalid nonce",
+        "self_identity key_status: wallet is configured but the key is corrupt",
     ] {
         assert_ne!(
             expected_error_kind(msg),

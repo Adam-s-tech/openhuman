@@ -126,6 +126,33 @@ async fn explicit_release_returns_capacity_before_end_of_scope() {
 }
 
 #[tokio::test]
+async fn recording_usage_does_not_write_a_second_ledger_row() {
+    // The event bridge already records every model call under its real model.
+    // A `host:<agent>` row from this gate doubled tokens and request counts.
+    const MODEL: &str = "budget-gate-probe/no-duplicate-row";
+    let tmp = tempfile::TempDir::new().unwrap();
+    let mut cost_config = crate::config::CostConfig::default();
+    cost_config.enabled = true;
+    crate::platform::cost::rebind_global(cost_config, tmp.path());
+
+    let gate = gate(AgentTokenjuiceCompression::Auto);
+    let _permit = gate
+        .acquire(&CallEstimate::new(MODEL, 1_000, 250))
+        .await
+        .expect("grants");
+    gate.record(&Usage::new(1_000, 250))
+        .await
+        .expect("recording never fails the turn");
+
+    let ledger =
+        std::fs::read_to_string(tmp.path().join("state").join("costs.jsonl")).unwrap_or_default();
+    assert!(
+        !ledger.contains(MODEL) && !ledger.contains("host:"),
+        "the gate must not write to the cost ledger, got: {ledger}"
+    );
+}
+
+#[tokio::test]
 async fn recording_usage_is_a_soft_no_op_without_a_tracker() {
     // `cost::try_global()` is `None` in unit tests. Recording must still
     // succeed — the trait says `record` is called even for failed calls,
@@ -145,19 +172,4 @@ fn this_gate_never_asks_for_compression() {
     // SummarizationPolicy stays the authority.
     let gate = gate(AgentTokenjuiceCompression::Full);
     assert_eq!(gate.compression_hint(&crowded()), CompressionHint::None);
-}
-
-#[tokio::test]
-async fn is_usable_as_a_trait_object() {
-    // Pins object safety: the harness stores this as `Arc<dyn BudgetGate>`.
-    let gate: Arc<dyn BudgetGate> = Arc::new(gate(AgentTokenjuiceCompression::Auto));
-    let permit = gate
-        .acquire(&CallEstimate::new("m", 1, 1).with_agent("lead"))
-        .await
-        .expect("grants");
-    drop(permit);
-    assert_eq!(
-        gate.compression_hint(&ContextState::default()),
-        CompressionHint::None
-    );
 }

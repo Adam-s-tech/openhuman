@@ -9,9 +9,13 @@ cd "$APP_DIR"
 
 RUST_HOST_TRIPLE="${RUST_HOST_TRIPLE:-$(rustc -vV | awk '/^host: / { print $2 }')}"
 E2E_WEB_CORE_TARGET_DIR="${E2E_WEB_CORE_TARGET_DIR:-$REPO_ROOT/target/e2e-web-${RUST_HOST_TRIPLE}}"
-E2E_MOCK_PORT="${E2E_MOCK_PORT:-18473}"
-OPENHUMAN_CORE_PORT="${OPENHUMAN_CORE_PORT:-17788}"
-E2E_WEB_PORT="${E2E_WEB_PORT:-4173}"
+# shellcheck source=./e2e-ports.sh
+source "$SCRIPT_DIR/e2e-ports.sh"
+e2e_resolve_ports
+# The Playwright specs reach the mock's admin API themselves
+# (`MOCK_ADMIN_BASE`), and default to 18473 when this is unset. Without the
+# export a session on a derived block served its specs the wrong mock.
+export E2E_MOCK_PORT
 PW_CORE_RPC_TOKEN="${PW_CORE_RPC_TOKEN:-openhuman-playwright-token}"
 PW_CORE_RPC_URL="http://127.0.0.1:${OPENHUMAN_CORE_PORT}/rpc"
 PW_BASE_URL="http://127.0.0.1:${E2E_WEB_PORT}"
@@ -28,6 +32,8 @@ MOCK_PID=""
 CORE_PID=""
 WEB_PID=""
 CORE_MONITOR_PID=""
+PORT_LOCK_DIR="${TMPDIR:-/tmp}/openhuman-e2e-ports-${E2E_MOCK_PORT}-${OPENHUMAN_CORE_PORT}-${E2E_WEB_PORT}.lock"
+PORT_LOCK_ACQUIRED=""
 
 cleanup() {
   local status=$?
@@ -55,6 +61,9 @@ cleanup() {
   fi
   if [ -n "$CREATED_TEMP_WORKSPACE" ]; then
     rm -rf "$CREATED_TEMP_WORKSPACE"
+  fi
+  if [ -n "$PORT_LOCK_ACQUIRED" ]; then
+    rmdir "$PORT_LOCK_DIR" 2>/dev/null || true
   fi
   return "$status"
 }
@@ -173,6 +182,21 @@ if [ ! -f "$E2E_BUNDLE_MARKER" ]; then
   exit 1
 fi
 
+# Serialize cooperating sessions that selected the same block. Keep the lock
+# until cleanup so no second session can pass preflight while these processes
+# are starting or running.
+if ! mkdir "$PORT_LOCK_DIR" 2>/dev/null; then
+  echo "ERROR: another web E2E session is starting or using ports ${E2E_MOCK_PORT},${OPENHUMAN_CORE_PORT},${E2E_WEB_PORT}." >&2
+  echo "       Lock: $PORT_LOCK_DIR" >&2
+  echo "       Choose a different E2E_PORT_BASE for concurrent sessions." >&2
+  exit 1
+fi
+PORT_LOCK_ACQUIRED=1
+
+# Nothing below tolerates a port that is already taken (#5918): the probes are
+# plain HTTP GETs, so they are answered by whatever is listening.
+e2e_require_free_ports "$E2E_MOCK_PORT" "$OPENHUMAN_CORE_PORT" "$E2E_WEB_PORT"
+
 node "$REPO_ROOT/scripts/mock-api-server.mjs" --port "$E2E_MOCK_PORT" >"$OPENHUMAN_WORKSPACE/mock.log" 2>&1 &
 MOCK_PID=$!
 wait_for_http "http://127.0.0.1:${E2E_MOCK_PORT}/__admin/health" "mock backend"
@@ -193,8 +217,13 @@ if [ ! -f "$BUILD_PORTS_FILE" ]; then
   exit 1
 fi
 BUILT_MOCK_PORT="$(sed -n 's/.*"e2e_mock_port"[[:space:]]*:[[:space:]]*"\([0-9]*\)".*/\1/p' "$BUILD_PORTS_FILE")"
+BUILT_CORE_PORT="$(sed -n 's/.*"openhuman_core_port"[[:space:]]*:[[:space:]]*"\([0-9]*\)".*/\1/p' "$BUILD_PORTS_FILE")"
 if [ -z "$BUILT_MOCK_PORT" ]; then
   echo "ERROR: could not read e2e_mock_port from $BUILD_PORTS_FILE. Rebuild with: pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+if [ -z "$BUILT_CORE_PORT" ]; then
+  echo "ERROR: could not read openhuman_core_port from $BUILD_PORTS_FILE. Rebuild with: pnpm --filter openhuman-app test:e2e:web:build" >&2
   exit 1
 fi
 if [ "$BUILT_MOCK_PORT" != "$E2E_MOCK_PORT" ]; then
@@ -202,6 +231,46 @@ if [ "$BUILT_MOCK_PORT" != "$E2E_MOCK_PORT" ]; then
   echo "       The backend URL is baked into the bundle and cannot be changed at run time," >&2
   echo "       so the app would call a mock that is not listening while the core called the right one." >&2
   echo "       Rebuild with the ports this session uses: E2E_MOCK_PORT=$E2E_MOCK_PORT pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+if [ "$BUILT_CORE_PORT" != "$OPENHUMAN_CORE_PORT" ]; then
+  echo "ERROR: dist-web was built for OPENHUMAN_CORE_PORT=$BUILT_CORE_PORT but this session uses $OPENHUMAN_CORE_PORT." >&2
+  echo "       Rebuild with the ports this session uses: OPENHUMAN_CORE_PORT=$OPENHUMAN_CORE_PORT pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+
+# Refuse a bundle older than the sources it was built from (#5919).
+#
+# The session serves the prebuilt `dist-web`, so editing `app/src` and re-running
+# changes nothing in the browser: the spec runs against the PREVIOUS bundle and
+# passes, which makes a revert-proof or a fault injection prove nothing at all.
+# The marker is written after `build:web` returns, so anything newer than it is a
+# source change this bundle does not contain. `-quit` stops at the first hit, so
+# this is a stat walk rather than a hash of the tree, and directories are scanned
+# too: a file added, removed or renamed after the build shows up as a newer
+# directory even when no surviving file is newer.
+#
+# A missing input is an error rather than a skipped check. `find` on a path that
+# does not exist reports nothing, so a renamed input would silently turn this
+# gate off and leave the stale bundle served again.
+STALE_SOURCE=""
+for bundle_input in src public index.html vite.config.ts; do
+  input_path="$APP_DIR/$bundle_input"
+  if [ ! -e "$input_path" ]; then
+    echo "ERROR: bundle input $input_path does not exist, so staleness cannot be checked." >&2
+    echo "       Update the input list in $(basename "$0") to match the current layout." >&2
+    exit 1
+  fi
+  if [ -z "$STALE_SOURCE" ]; then
+    STALE_SOURCE="$(find "$input_path" -newer "$E2E_BUNDLE_MARKER" -print -quit)"
+  fi
+done
+if [ -n "$STALE_SOURCE" ]; then
+  echo "ERROR: $APP_DIR/dist-web is older than the sources it was built from." >&2
+  echo "       Newer than the bundle: $STALE_SOURCE" >&2
+  echo "       The bundle does not carry that change, so the specs would run against" >&2
+  echo "       the previous one and pass." >&2
+  echo "       Rebuild first: pnpm --filter openhuman-app test:e2e:web:build" >&2
   exit 1
 fi
 
@@ -279,6 +348,26 @@ fi
 if ! wait_for_http "http://127.0.0.1:${OPENHUMAN_CORE_PORT}/health" "standalone core"; then
   echo "Core health check failed. Last 50 lines of core.log:" >&2
   tail -50 "$OPENHUMAN_WORKSPACE/core.log" >&2
+  exit 1
+fi
+
+# The preflight above refuses a port that was already taken, but two sessions
+# starting at once can both pass it. The mock and the web host die on
+# EADDRINUSE; the core does not. It falls back to preferred+1..+10 and keeps
+# running, so `/health` and the RPC probe below would be answered by whoever
+# owns the requested port while this core sits on another one. It reports the
+# address it actually bound, so ask it rather than trusting the probes (#5918).
+CORE_BOUND="$(sed -n 's/.*listening on http:\/\/\([^ ]*\).*/\1/p' \
+  "$OPENHUMAN_WORKSPACE/core.log" | tail -n 1)"
+if [ -z "$CORE_BOUND" ]; then
+  echo "ERROR: could not read the core's bound address from core.log." >&2
+  echo "       Refusing to continue without binding evidence." >&2
+  exit 1
+elif [ "$CORE_BOUND" != "127.0.0.1:${OPENHUMAN_CORE_PORT}" ]; then
+  echo "ERROR: the core bound ${CORE_BOUND}, not 127.0.0.1:${OPENHUMAN_CORE_PORT}." >&2
+  echo "       Something took that port between the preflight check and startup, so the" >&2
+  echo "       core fell back and the health probe was answered by the other listener." >&2
+  echo "       Re-run with a free block: E2E_PORT_BASE=<free base>" >&2
   exit 1
 fi
 
