@@ -489,8 +489,8 @@ jobs:
           # not derive a replacement checksum from a local build.
           memory_version="1.22.4"
           memory_sha256="52b364047b1a7aaf287d5bb17840fcda20547286f3db98211bfe1d9962518ee9"
-          juice_version="0.5.0"
-          juice_sha256="94c8998c830d9454560c00055187198a598eefaf5be51bcecdcd194a66f3b388"
+          juice_version="0.5.2"
+          juice_sha256="1a9bc9479ce51c87d82a6f145408cfcbe7d06de4613b0ca7cec1fd04bbc2b5b5"
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           memory_dir="$module_root/tinymemory"
           juice_dir="$module_root/tinyjuice"
