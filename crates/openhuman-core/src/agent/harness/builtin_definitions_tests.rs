@@ -94,10 +94,24 @@ fn expected_builtin_ids_are_present() {
         "orchestrator",
         "planner",
         "task_manager_agent",
-        "profile_memory_agent",
         "critic",
-        "archivist",
         "summarizer",
+    ] {
+        assert!(ids.contains(&expected.to_string()), "missing {expected}");
+    }
+    for removed in [
+        "archivist",
+        "profile_memory_agent",
+        "flow_memory_agent",
+        "goals_agent",
+        "agent_memory",
+    ] {
+        assert!(
+            !ids.contains(&removed.to_string()),
+            "v1 memory agent {removed} must stay removed"
+        );
+    }
+    for expected in [
         // Gated with `flows` (#4797) — absent from a slim build.
         #[cfg(feature = "flows")]
         "workflow_builder",
