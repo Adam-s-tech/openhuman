@@ -55,7 +55,7 @@ fn received(
         content: "hi".into(),
         thread_ts: thread_ts.map(str::to_string),
         inbound_envelope: None,
-        workspace_dir: ws.clone(),
+        workspace_dir: ws.to_path_buf(),
     }
 }
 
@@ -72,7 +72,7 @@ fn processed(channel: &str, reply_target: &str, ws: &Path) -> DomainEvent {
         model: "test-model".into(),
         elapsed_ms: 10,
         success: true,
-        workspace_dir: ws.clone(),
+        workspace_dir: ws.to_path_buf(),
     }
 }
 
