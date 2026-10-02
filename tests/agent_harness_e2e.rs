@@ -3148,6 +3148,7 @@ async fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline_inner()
 /// what the orchestrator can NOT reach that way (#6302): skill
 /// hand-offs are direct tools, and their pack is closed to it. Ids the call
 /// `call_<tool>` so [`tool_result_text`] finds the result by the inner tool.
+#[cfg(feature = "skills")]
 fn packed_tool_call_completion(pack: &str, tool: &str, args: Value) -> Value {
     json!({ "content": "", "toolCalls": [{
         "id": format!("call_{tool}"),
@@ -3162,6 +3163,7 @@ fn packed_tool_call_completion(pack: &str, tool: &str, args: Value) -> Value {
 /// delegate's summary of the same call can never match. Panics on an
 /// `unknown tool` result: that error echoes the call's arguments, so a canary
 /// passed as an argument would otherwise read as a pass.
+#[cfg(any(feature = "skills", feature = "mcp"))]
 fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
     let call_id = format!("call_{tool_name}");
     let legacy_result = requests
@@ -3418,6 +3420,7 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
 ///
 /// Text-dialect providers receive the catalogue in the system prompt, while
 /// native providers receive an OpenAI `tools` array.
+#[cfg(any(feature = "skills", feature = "mcp"))]
 fn advertised_tool_names(request: &Value) -> Vec<String> {
     let schema_names = request
         .pointer("/body/tools")
