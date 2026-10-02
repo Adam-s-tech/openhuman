@@ -2191,7 +2191,7 @@ mod streaming_support {
     use openhuman_core::config::{AgentConfig, ContextConfig};
     use serde_json::json;
     use std::collections::VecDeque;
-    use std::path::{Path, PathBuf};
+    use std::path::PathBuf;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
     use tempfile::TempDir;
