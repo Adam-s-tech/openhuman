@@ -5,8 +5,8 @@ mod loader;
 mod model;
 mod privacy;
 mod sandbox;
-mod tool_dispatcher;
 mod search;
+mod tool_dispatcher;
 mod ui;
 
 // ── Public re-exports (preserving the flat external API) ─────────────────────

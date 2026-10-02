@@ -247,43 +247,6 @@ pub async fn apply_agent_settings(
         .transpose()?;
 
     if let Some(timeout_secs) = update.agent_timeout_secs {
-        if !(MIN_TIMEOUT_SECS..=MAX_TIMEOUT_SECS).contains(&timeout_secs) {
-            log::warn!(
-                "[config][agent] rejected agent_timeout_secs={timeout_secs} (valid {MIN_TIMEOUT_SECS}..={MAX_TIMEOUT_SECS})"
-            );
-            return Err(format!(
-                "agent_timeout_secs must be between {MIN_TIMEOUT_SECS} and {MAX_TIMEOUT_SECS} seconds (got {timeout_secs})"
-            ));
-        }
-    }
-
-    if let Some(chat_agent_id) = update.chat_agent_id.as_deref() {
-        let trimmed = chat_agent_id.trim();
-        if !trimmed.is_empty()
-            && !crate::agent::OpenHumanSessionHost::is_runnable_agent_id(config, trimmed)
-        {
-            return Err(format!(
-                "chat_agent_id '{trimmed}' is not a runnable agent definition"
-            ));
-        }
-    }
-
-    let tool_dispatcher = match update.tool_dispatcher.as_deref() {
-        Some(raw) => {
-            let normalized = raw.trim().to_ascii_lowercase();
-            if !TOOL_DISPATCHER_CHOICES.contains(&normalized.as_str()) {
-                log::warn!("[config][agent] rejected tool_dispatcher={normalized:?}");
-                return Err(format!(
-                    "invalid tool_dispatcher '{normalized}' (expected {})",
-                    TOOL_DISPATCHER_CHOICES.join(" | ")
-                ));
-            }
-            Some(normalized)
-        }
-        None => None,
-    };
-
-    if let Some(timeout_secs) = update.agent_timeout_secs {
         config.agent.agent_timeout_secs = timeout_secs;
     }
 
