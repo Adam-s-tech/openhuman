@@ -262,7 +262,9 @@ fn inference_engine_compiled_in_when_feature_on() {
 #[cfg(not(feature = "inference"))]
 fn inference_engine_compiled_out_when_feature_off() {
     use tinycomputer_accessibility::{detect_microphone_permission, PermissionState};
-    assert!(!crate::inference::INFERENCE_COMPILED_IN);
+    const {
+        assert!(!crate::inference::INFERENCE_COMPILED_IN);
+    }
     assert_eq!(
         detect_microphone_permission(),
         PermissionState::Unknown,
@@ -1252,7 +1254,9 @@ fn channels_controllers_absent_when_feature_off() {
 #[test]
 #[cfg(feature = "http-server")]
 fn http_server_compiled_in_when_feature_on() {
-    assert!(crate::core::http_server_status::HTTP_SERVER_COMPILED_IN);
+    const {
+        assert!(crate::core::http_server_status::HTTP_SERVER_COMPILED_IN);
+    }
 }
 
 /// With the `http-server` feature off, the transport is compiled out: the
