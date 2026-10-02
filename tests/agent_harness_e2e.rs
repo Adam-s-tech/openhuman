@@ -2189,7 +2189,6 @@ mod streaming_support {
     };
     use openhuman_core::agent::OpenHumanSessionHost;
     use openhuman_core::config::{AgentConfig, ContextConfig};
-    use openhuman_core::memory::Memory;
     use serde_json::json;
     use std::collections::VecDeque;
     use std::path::{Path, PathBuf};
@@ -2317,72 +2316,6 @@ mod streaming_support {
 
     /// A memory that stores nothing, which is what this helper always built.
     ///
-    /// It used to ask the engine's factory for `backend: "none"` — an engine
-    /// call whose whole purpose was to get back something that does not store.
-    /// The agent under test needs *a* memory to be constructed with; it never
-    /// reads one back. So the no-op is not a downgrade from what was here, it
-    /// is the same behaviour without linking 133k lines to obtain it.
-    #[derive(Debug)]
-    struct NoMemory;
-
-    #[async_trait::async_trait]
-    impl Memory for NoMemory {
-        fn name(&self) -> &str {
-            "none"
-        }
-        async fn store(
-            &self,
-            _namespace: &str,
-            _key: &str,
-            _content: &str,
-            _category: openhuman_core::memory::api::types::MemoryCategory,
-            _session_id: Option<&str>,
-        ) -> anyhow::Result<()> {
-            Ok(())
-        }
-        async fn recall(
-            &self,
-            _query: &str,
-            _limit: usize,
-            _opts: openhuman_core::memory::api::recall::RecallOpts<'_>,
-        ) -> anyhow::Result<Vec<openhuman_core::memory::api::types::MemoryEntry>> {
-            Ok(Vec::new())
-        }
-        async fn get(
-            &self,
-            _namespace: &str,
-            _key: &str,
-        ) -> anyhow::Result<Option<openhuman_core::memory::api::types::MemoryEntry>> {
-            Ok(None)
-        }
-        async fn list(
-            &self,
-            _namespace: Option<&str>,
-            _category: Option<&openhuman_core::memory::api::types::MemoryCategory>,
-            _session_id: Option<&str>,
-        ) -> anyhow::Result<Vec<openhuman_core::memory::api::types::MemoryEntry>> {
-            Ok(Vec::new())
-        }
-        async fn forget(&self, _namespace: &str, _key: &str) -> anyhow::Result<bool> {
-            Ok(false)
-        }
-        async fn namespace_summaries(
-            &self,
-        ) -> anyhow::Result<Vec<openhuman_core::memory::api::types::NamespaceSummary>> {
-            Ok(Vec::new())
-        }
-        async fn count(&self) -> anyhow::Result<usize> {
-            Ok(0)
-        }
-        async fn health_check(&self) -> bool {
-            true
-        }
-    }
-
-    fn memory_for_workspace_s(_path: &Path) -> Arc<dyn Memory> {
-        Arc::new(NoMemory)
-    }
-
     /// The session's own hosted root authority. Every session turn resolves its
     /// agent id against the host catalogue; `agent_definition_name` only stamps
     /// an id, so a fixture-only name needs a definition behind it (#6377/#6375).
@@ -2407,7 +2340,6 @@ mod streaming_support {
         OpenHumanSessionHost::builder()
             .chat_model(provider)
             .tools(tools)
-            .memory(memory_for_workspace_s(&workspace_path))
             .tool_dispatcher(Box::new(NativeDialect))
             .workspace_dir(workspace_path)
             .event_context("stream-accum-session", "stream-accum-channel")
@@ -4185,12 +4117,8 @@ async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
 mod tool_policy_boundary_placement {
     use anyhow::Result;
     use async_trait::async_trait;
-    use openhuman_core::agent::prompts::LearnedContextData;
     use openhuman_core::agent::OpenHumanSessionHost;
     use openhuman_core::config::AgentConfig;
-    use openhuman_core::memory::{
-        Memory, MemoryCategory, MemoryEntry, NamespaceSummary as MemoryNamespaceSummary, RecallOpts,
-    };
     use tinytools::{PermissionLevel, Tool, ToolResult};
     use tinytools_agent::dialect::NativeDialect;
 
@@ -4199,56 +4127,6 @@ mod tool_policy_boundary_placement {
 
     use super::streaming_support::ScriptedProvider;
     use tinyinference_llm::model::{ChatModel, ModelProfile};
-
-    struct StubMemory;
-
-    #[async_trait]
-    impl Memory for StubMemory {
-        async fn store(
-            &self,
-            _namespace: &str,
-            _key: &str,
-            _content: &str,
-            _category: MemoryCategory,
-            _session_id: Option<&str>,
-        ) -> Result<()> {
-            Ok(())
-        }
-        async fn recall(
-            &self,
-            _query: &str,
-            _limit: usize,
-            _opts: RecallOpts<'_>,
-        ) -> Result<Vec<MemoryEntry>> {
-            Ok(Vec::new())
-        }
-        async fn get(&self, _namespace: &str, _key: &str) -> Result<Option<MemoryEntry>> {
-            Ok(None)
-        }
-        async fn list(
-            &self,
-            _namespace: Option<&str>,
-            _category: Option<&MemoryCategory>,
-            _session_id: Option<&str>,
-        ) -> Result<Vec<MemoryEntry>> {
-            Ok(Vec::new())
-        }
-        async fn forget(&self, _namespace: &str, _key: &str) -> Result<bool> {
-            Ok(false)
-        }
-        async fn namespace_summaries(&self) -> Result<Vec<MemoryNamespaceSummary>> {
-            Ok(Vec::new())
-        }
-        async fn count(&self) -> Result<usize> {
-            Ok(0)
-        }
-        async fn health_check(&self) -> bool {
-            true
-        }
-        fn name(&self) -> &str {
-            "boundary-placement-memory"
-        }
-    }
 
     /// Two tools at different permission levels. A `read_only` channel
     /// permission blocks the write one, and that restriction is what makes the
@@ -4302,7 +4180,6 @@ mod tool_policy_boundary_placement {
                     level: PermissionLevel::Write,
                 }),
             ])
-            .memory(Arc::new(StubMemory))
             .tool_dispatcher(Box::new(NativeDialect))
             .workspace_dir(workspace.path().to_path_buf())
             .event_context("boundary-session", "boundary-channel")
@@ -4311,7 +4188,7 @@ mod tool_policy_boundary_placement {
             .expect("complete builder should succeed");
 
         agent
-            .build_system_prompt(LearnedContextData::default())
+            .build_system_prompt()
             .expect("system prompt builds")
     }
 
