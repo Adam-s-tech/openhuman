@@ -354,28 +354,14 @@ pub fn client_config(config: &Config) -> McpClientConfig {
 
     client.registry_auth = config.mcp_client.registry_auth.clone();
 
-    // The documentation server is seeded here rather than by the module: it is
-    // this application's own, and `tinymcp` has no business knowing about it.
-    if config.gitbooks.enabled
-        && !client
-            .servers
-            .iter()
-            .any(|server| server.name == GITBOOKS_SERVER_NAME)
-    {
-        client.servers.push(McpServerConfig {
-            name: GITBOOKS_SERVER_NAME.to_string(),
-            endpoint: config.gitbooks.endpoint.clone(),
-            description: Some("OpenHuman GitBook documentation MCP server.".to_string()),
-            timeout_secs: config.gitbooks.timeout_secs,
-            ..McpServerConfig::default()
-        });
-    }
+    // The documentation server is deliberately not seeded as an MCP server:
+    // `gitbooks_search` / `gitbooks_get_page` are hard-coded deferred tools
+    // (`tools::implementations::network::gitbooks`). Seeding it here made every
+    // first turn dial the endpoint for `tools/list` and register the generic
+    // MCP bridge tools for nothing.
 
     client
 }
-
-/// The name the documentation server is registered under.
-pub const GITBOOKS_SERVER_NAME: &str = "gitbooks";
 
 /// Whether a declared server's transport may be dialed with its configured
 /// credentials attached.
