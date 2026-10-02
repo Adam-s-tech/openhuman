@@ -671,21 +671,19 @@ pub fn expected_error_kind(message: &str) -> Option<ExpectedErrorKind> {
 /// A fifth shape comes from SQLite itself. When the engine detects the
 /// disk-full condition during its own page bookkeeping (journal/WAL extension)
 /// before the next syscall surfaces an errno, rusqlite renders the `SQLITE_FULL`
-/// result code as `"database or disk is full"` (Sentry TAURI-RUST-B6N, hit at
-/// `memory_store::namespace_store::documents::tx.commit()` during
-/// `openhuman.memory_doc_ingest`). `SQLITE_FULL` has only two causes:
+/// result code as `"database or disk is full"` (Sentry TAURI-RUST-B6N, hit
+/// while committing a local SQLite transaction). `SQLITE_FULL` has only two causes:
 /// genuine ENOSPC/ERROR_DISK_FULL (always the case in practice — the same
 /// burst always produces an os-error-28/112 sibling event) or a
 /// `max_page_count` PRAGMA cap (we set none).
 ///
 /// rusqlite renders `SQLITE_FULL` in one of two shapes. The **bare** shape is
-/// the five words `"database or disk is full"` — Our local memory-store write
-/// call-sites wrap it with `format!("<verb>: {e}")` (e.g. `"commit tx: ..."` /
-/// `"clear_namespace commit tx: ..."` in `memory_store::namespace_store::documents`),
+/// the five words `"database or disk is full"` — Our local SQLite write
+/// call-sites wrap it with `format!("<verb>: {e}")` (e.g. `"commit tx: ..."`),
 /// so the phrase lands as the **suffix** of the local emit. The **extended**
 /// shape carries the full error-code envelope, `"database or disk is full:
 /// Error code 13: Insertion failed because database is full"` (Sentry
-/// TAURI-RUST-4R8, `memory_queue::store::claim_next` on `mem_tree_jobs`); here
+/// TAURI-RUST-4R8, a local job-queue claim); here
 /// the canonical phrase sits mid-string, so the suffix anchor can't catch it.
 /// We detect this shape by requiring **both** local fragments together — the
 /// `"database or disk is full"` phrase AND the libsqlite3-sys `code_to_str`
