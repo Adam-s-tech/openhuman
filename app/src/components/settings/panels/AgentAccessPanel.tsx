@@ -8,8 +8,8 @@ import {
   openhumanGetAutonomySettings,
   openhumanUpdateAgentSettings,
   openhumanUpdateAutonomySettings,
-  type TrustedAccess,
   type ToolDispatcher,
+  type TrustedAccess,
   type TrustedRoot,
 } from '../../../utils/tauriCommands';
 import { Alert, AlertDescription, Button, Card, Field } from '../../ui';
@@ -193,7 +193,9 @@ const AgentAccessPanel = () => {
     } catch (e) {
       if (toolDispatcherSeqRef.current === seq) {
         setToolDispatcher(prev);
-        setToolDispatcherError(e instanceof Error ? e.message : t('settings.agentAccess.saveError'));
+        setToolDispatcherError(
+          e instanceof Error ? e.message : t('settings.agentAccess.saveError')
+        );
       }
     }
   };

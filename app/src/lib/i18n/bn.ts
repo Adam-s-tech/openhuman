@@ -7187,22 +7187,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'বিবিধ বৈশিষ্ট্য',
   'settings.agentAccess.group.fileSystem': 'ফাইল-সিস্টেম',
   'settings.agentAccess.group.limits': 'সীমা',
-  'settings.agentAccess.toolFormat.label':
-    'টুল কলের ফরম্যাট',
+  'settings.agentAccess.toolFormat.label': 'টুল কলের ফরম্যাট',
   'settings.agentAccess.toolFormat.desc':
     'এজেন্ট মডেলকে কীভাবে টুল কল লেখে। JSON সব মডেলে সবচেয়ে নির্ভরযোগ্য; কোড-স্টাইলের ফরম্যাট পরীক্ষামূলক এবং কিছু মডেল ভুল পড়তে পারে। নতুন কথোপকথনে প্রযোজ্য।',
-  'settings.agentAccess.toolFormat.option.auto':
-    'JSON (প্রস্তাবিত)',
-  'settings.agentAccess.toolFormat.option.native':
-    'নেটিভ JSON (প্রদানকারীর কাঠামোবদ্ধ কল)',
-  'settings.agentAccess.toolFormat.option.xml':
-    'ট্যাগের ভেতরে JSON',
-  'settings.agentAccess.toolFormat.option.pformat':
-    'P-Format (পরীক্ষামূলক)',
-  'settings.agentAccess.toolFormat.option.python':
-    'Python (পরীক্ষামূলক)',
-  'settings.agentAccess.toolFormat.option.typescript':
-    'TypeScript (পরীক্ষামূলক)',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (প্রস্তাবিত)',
+  'settings.agentAccess.toolFormat.option.native': 'নেটিভ JSON (প্রদানকারীর কাঠামোবদ্ধ কল)',
+  'settings.agentAccess.toolFormat.option.xml': 'ট্যাগের ভেতরে JSON',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (পরীক্ষামূলক)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (পরীক্ষামূলক)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (পরীক্ষামূলক)',
   'settings.agentAccess.toolFormat.envOverride':
     'OPENHUMAN_TOOL_DISPATCHER এনভায়রনমেন্ট ভেরিয়েবল এই সেটিংকে ওভাররাইড করছে, তাই এটি সেট থাকা পর্যন্ত এখানকার পরিবর্তন কার্যকর হবে না।',
   'settings.sandbox.backendName.docker': 'Docker',

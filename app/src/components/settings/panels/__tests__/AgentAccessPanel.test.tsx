@@ -233,7 +233,9 @@ describe('AgentAccessPanel (advanced)', () => {
     renderWithProviders(<AgentAccessPanel />);
     const select = await screen.findByLabelText('Tool call format');
     fireEvent.change(select, { target: { value: 'python' } });
-    await waitFor(() => expect(mockUpdateAgent).toHaveBeenCalledWith({ tool_dispatcher: 'python' }));
+    await waitFor(() =>
+      expect(mockUpdateAgent).toHaveBeenCalledWith({ tool_dispatcher: 'python' })
+    );
   });
 
   it('reverts the tool call format when saving fails', async () => {

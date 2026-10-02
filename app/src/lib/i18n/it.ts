@@ -7317,24 +7317,18 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'Approvazioni',
   'settings.agentAccess.group.fileSystem': 'Sistema file',
   'settings.agentAccess.group.limits': 'Limiti',
-  'settings.agentAccess.toolFormat.label':
-    'Formato delle chiamate agli strumenti',
+  'settings.agentAccess.toolFormat.label': 'Formato delle chiamate agli strumenti',
   'settings.agentAccess.toolFormat.desc':
-    'Come l\'agente scrive le chiamate agli strumenti al modello. JSON è il più affidabile tra i modelli; i formati in stile codice sono sperimentali e alcuni modelli possono interpretarli male. Si applica alle nuove conversazioni.',
-  'settings.agentAccess.toolFormat.option.auto':
-    'JSON (consigliato)',
+    "Come l'agente scrive le chiamate agli strumenti al modello. JSON è il più affidabile tra i modelli; i formati in stile codice sono sperimentali e alcuni modelli possono interpretarli male. Si applica alle nuove conversazioni.",
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (consigliato)',
   'settings.agentAccess.toolFormat.option.native':
     'JSON nativo (chiamate strutturate del provider)',
-  'settings.agentAccess.toolFormat.option.xml':
-    'JSON nei tag',
-  'settings.agentAccess.toolFormat.option.pformat':
-    'P-Format (sperimentale)',
-  'settings.agentAccess.toolFormat.option.python':
-    'Python (sperimentale)',
-  'settings.agentAccess.toolFormat.option.typescript':
-    'TypeScript (sperimentale)',
+  'settings.agentAccess.toolFormat.option.xml': 'JSON nei tag',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (sperimentale)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (sperimentale)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (sperimentale)',
   'settings.agentAccess.toolFormat.envOverride':
-    'La variabile d\'ambiente OPENHUMAN_TOOL_DISPATCHER sta sostituendo questa impostazione, quindi le modifiche qui non hanno effetto finché è impostata.',
+    "La variabile d'ambiente OPENHUMAN_TOOL_DISPATCHER sta sostituendo questa impostazione, quindi le modifiche qui non hanno effetto finché è impostata.",
   'settings.sandbox.backendName.docker': 'Docker',
   'settings.sandbox.backendName.landlock': 'Landlock',
   'settings.sandbox.backendName.firejail': 'Firejail',

@@ -480,7 +480,10 @@ async fn apply_agent_settings_sets_and_normalizes_tool_dispatcher() {
     let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let tmp = tempdir().unwrap();
     let mut cfg = tmp_config(&tmp);
-    assert_eq!(cfg.agent.tool_dispatcher, "auto", "JSON/native is the default");
+    assert_eq!(
+        cfg.agent.tool_dispatcher, "auto",
+        "JSON/native is the default"
+    );
 
     apply_agent_settings(
         &mut cfg,

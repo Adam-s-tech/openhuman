@@ -7190,22 +7190,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.group.approvals': 'स्वीकृति',
   'settings.agentAccess.group.fileSystem': 'फ़ाइल प्रणाली',
   'settings.agentAccess.group.limits': 'सीमा',
-  'settings.agentAccess.toolFormat.label':
-    'टूल कॉल का फ़ॉर्मेट',
+  'settings.agentAccess.toolFormat.label': 'टूल कॉल का फ़ॉर्मेट',
   'settings.agentAccess.toolFormat.desc':
     'एजेंट मॉडल को टूल कॉल कैसे लिखता है। JSON सभी मॉडलों में सबसे भरोसेमंद है; कोड-शैली के फ़ॉर्मेट प्रयोगात्मक हैं और कुछ मॉडल उन्हें गलत पढ़ सकते हैं। यह नई बातचीत पर लागू होता है।',
-  'settings.agentAccess.toolFormat.option.auto':
-    'JSON (अनुशंसित)',
-  'settings.agentAccess.toolFormat.option.native':
-    'नेटिव JSON (प्रदाता की संरचित कॉल)',
-  'settings.agentAccess.toolFormat.option.xml':
-    'टैग में JSON',
-  'settings.agentAccess.toolFormat.option.pformat':
-    'P-Format (प्रयोगात्मक)',
-  'settings.agentAccess.toolFormat.option.python':
-    'Python (प्रयोगात्मक)',
-  'settings.agentAccess.toolFormat.option.typescript':
-    'TypeScript (प्रयोगात्मक)',
+  'settings.agentAccess.toolFormat.option.auto': 'JSON (अनुशंसित)',
+  'settings.agentAccess.toolFormat.option.native': 'नेटिव JSON (प्रदाता की संरचित कॉल)',
+  'settings.agentAccess.toolFormat.option.xml': 'टैग में JSON',
+  'settings.agentAccess.toolFormat.option.pformat': 'P-Format (प्रयोगात्मक)',
+  'settings.agentAccess.toolFormat.option.python': 'Python (प्रयोगात्मक)',
+  'settings.agentAccess.toolFormat.option.typescript': 'TypeScript (प्रयोगात्मक)',
   'settings.agentAccess.toolFormat.envOverride':
     'एनवायरनमेंट वेरिएबल OPENHUMAN_TOOL_DISPATCHER इस सेटिंग को ओवरराइड कर रहा है, इसलिए जब तक वह सेट है यहाँ किए गए बदलाव प्रभावी नहीं होंगे।',
   'settings.sandbox.backendName.docker': 'Docker',
