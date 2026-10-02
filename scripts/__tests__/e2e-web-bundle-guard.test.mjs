@@ -221,6 +221,7 @@ test("CI Full refreshes the E2E marker after restoring its content-keyed artifac
   assert.match(cacheStep, /scripts\/ci\/product-features\.\*/);
   assert.match(cacheStep, /app\/tsconfig\*\.json/);
   assert.match(cacheStep, /packages\/\*\*/);
+  assert.match(cacheStep, /app\/scripts\/e2e-ports\.sh/);
 });
 
 test("e2e-web-build.sh marks the bundle it builds, recording the E2E settings", () => {
