@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashSet;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use std::path::{Path, PathBuf};
 use tinymemory::{ItemKind, MetaFilter};
