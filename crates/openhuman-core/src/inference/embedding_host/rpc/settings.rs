@@ -157,9 +157,8 @@ pub async fn get_settings(config: &Config) -> Result<Outcome<serde_json::Value>,
 
     // The embedder ingestion will *actually* use. `provider` above is the
     // per-section setting the picker writes; it is NOT authoritative for how
-    // embeddings are funded, because the Local AI "Memory embeddings" toggle and
-    // the `memory_tree.embedding_endpoint` override both route to local Ollama
-    // without rewriting it. Additive field — callers that only need the picker
+    // embeddings are funded, because the Local AI "Memory embeddings" toggle
+    // routes to local Ollama without rewriting it. Additive field — callers that only need the picker
     // value are unaffected; callers asking "does this bill the managed budget?"
     // must read this one (#5402).
     let effective_provider = effective_embedder_slug_from_config(config);
