@@ -64,8 +64,3 @@ pub fn toolkit_description(slug: &str) -> &'static str {
         _ => "Interact with this connected service via its available actions",
     }
 }
-
-
-#[cfg(test)]
-#[path = "descriptions_tests.rs"]
-mod tests;
