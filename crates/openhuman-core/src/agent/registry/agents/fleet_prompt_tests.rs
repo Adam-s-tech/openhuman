@@ -7,7 +7,7 @@
 
 use super::load_builtins;
 use crate::agent::harness::definition::{AgentDefinition, PromptSource, SubagentEntry, ToolScope};
-use crate::agent::prompts::{LearnedContextData, PromptContext, ToolCallFormat};
+use crate::agent::prompts::{PromptContext, ToolCallFormat};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::Arc;
 
