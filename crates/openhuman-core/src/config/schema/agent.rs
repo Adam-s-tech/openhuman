@@ -426,9 +426,10 @@ pub struct ToolSearchConfig {
     ///
     /// - `"jev"` (default): the installed decision-model ranker (Jev, via
     ///   `openhuman-tinyhumans`), falling back to BM25 only when it fails or
-    ///   the process has no TinyHumans credential.
+    ///   the process has no credential for the configured Jev route
+    ///   ([`ToolSearchConfig::jev_route`]).
     /// - `"auto"`: the installed ranker when the process has one and a
-    ///   TinyHumans credential; BM25 otherwise.
+    ///   credential for the Jev route; BM25 otherwise.
     /// - `"bm25"`: the built-in lexical ranker alone, no network.
     /// - `"compare"`: serve the installed ranker and record the BM25 ranking
     ///   alongside it in the `tool.searched` telemetry, so the two can be
