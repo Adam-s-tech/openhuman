@@ -7,12 +7,12 @@ fn recovery_tool_aliases_remain_stable() {
     assert!(!is_recovery_tool("shell"));
 }
 
-/// The whole summary path over the real bus: `CompactWith` into the module,
-/// `MlHost.Generate` back out to a registered call, the summary back in.
-/// Runs where CI builds the module (`TINYJUICE_TEST_MODULE`); skipped
-/// otherwise, since the pinned release may predate `CompactWith`.
+/// Exercise the configured on-demand mode through the real module bus. Even
+/// with a registered model callback and a result above the summary threshold,
+/// ingest must return a recovery handle without calling the model.
+/// Runs where CI builds the module (`TINYJUICE_TEST_MODULE`).
 #[tokio::test]
-async fn the_module_calls_back_for_a_summary_written_for_the_focus() {
+async fn the_module_defers_a_summary_until_requested() {
     if std::env::var_os("TINYJUICE_TEST_MODULE").is_none() {
         eprintln!(
             "SKIPPED (not run, not asserted): TINYJUICE_TEST_MODULE is not set. Build \
@@ -43,22 +43,14 @@ async fn the_module_calls_back_for_a_summary_written_for_the_focus() {
     })
     .await;
 
-    assert_eq!(output.summarized_from_bytes, Some(content.len()));
-    assert!(output
-        .text
-        .starts_with("the rate limit is 60 requests a minute"));
+    assert_eq!(output.summarized_from_bytes, None);
+    assert!(!output.text.contains("the rate limit is 60 requests a minute"));
     assert!(
         output.text.contains(RETRIEVE_TOOL_NAME),
         "the original stays retrievable: {}",
         output.text
     );
-    let request = seen
-        .lock()
-        .unwrap()
-        .clone()
-        .expect("the module called back");
-    assert!(request.prompt.contains("Caller focus: the rate limits"));
-    assert!(request.system.contains("caller focus"));
+    assert!(seen.lock().unwrap().is_none(), "ingest called the summary model");
 }
 
 /// A result that was registered for a summary and never reached the module
