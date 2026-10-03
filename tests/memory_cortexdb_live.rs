@@ -13,6 +13,7 @@
 //! - **documents**: a folder source synced, its files listed and fetched;
 //! - **conversations**: a web-chat turn, ingested after the turn commits;
 //! - **recall** over all three;
+//! - **explorer**: a source drilled down to its files and read whole by id;
 //! - **context.md**: compiled from the engine, written to disk, and injected
 //!   into the first message of the next new thread.
 
@@ -436,6 +437,43 @@ async fn run(cortex_url: String, cortex_key: String) {
             .as_array()
             .is_some_and(|hits| hits.iter().any(|h| text_of(h).contains("Project Aurora"))),
         "fetch finds the synced document: {fetched}"
+    );
+
+    // ---- explorer: the synced source drills down to its files ----------------
+    let path = json!([
+        { "facet": "kind", "value": "document" },
+        { "facet": "source_id", "value": source_id },
+    ]);
+    let files = stack
+        .ok(
+            "openhuman.memory_explore",
+            json!({ "facet": "file_path", "path": path }),
+        )
+        .await;
+    let buckets = files["buckets"].as_array().cloned().unwrap_or_default();
+    assert_eq!(buckets.len(), 2, "one bucket per synced file: {files}");
+    assert!(buckets.iter().all(|b| b["count"] == json!(1)), "{files}");
+    let languages = stack
+        .ok(
+            "openhuman.memory_explore",
+            json!({ "facet": "language", "path": path }),
+        )
+        .await;
+    assert!(
+        languages["buckets"]
+            .as_array()
+            .is_some_and(|b| b.iter().any(|b| b["value"] == json!("rust"))),
+        "{languages}"
+    );
+    let plan_id = plan["id"].as_str().expect("plan id").to_string();
+    let read = stack
+        .ok("openhuman.memory_items_get", json!({ "ids": [plan_id] }))
+        .await;
+    assert!(
+        read["items"][0]["text"]
+            .as_str()
+            .is_some_and(|t| t.contains("Project Aurora launches on Thursday")),
+        "items_get reads the document whole: {read}"
     );
 
     // ---- conversations: a committed web-chat turn is ingested -----------------
