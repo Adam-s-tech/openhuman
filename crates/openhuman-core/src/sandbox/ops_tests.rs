@@ -373,7 +373,10 @@ async fn local_jail_writes_no_capture_files_into_the_workspace_root() {
     assert!(during.success(), "stderr: {}", during.stderr);
     assert_eq!(during.stdout, "", "root was not empty while running");
     assert_eq!(during.stderr, "to-stderr\n");
-    assert!(entries(action.path()).is_empty(), "root was not empty after");
+    assert!(
+        entries(action.path()).is_empty(),
+        "root was not empty after"
+    );
 }
 
 #[cfg(unix)]
@@ -388,8 +391,14 @@ async fn concurrent_local_jail_runs_keep_their_outputs_separate() {
         run_local(&policy, "echo b1; echo b-err >&2; sleep 0.4; echo b2"),
     );
 
-    assert_eq!((a.stdout.as_str(), a.stderr.as_str()), ("a1\na2\n", "a-err\n"));
-    assert_eq!((b.stdout.as_str(), b.stderr.as_str()), ("b1\nb2\n", "b-err\n"));
+    assert_eq!(
+        (a.stdout.as_str(), a.stderr.as_str()),
+        ("a1\na2\n", "a-err\n")
+    );
+    assert_eq!(
+        (b.stdout.as_str(), b.stderr.as_str()),
+        ("b1\nb2\n", "b-err\n")
+    );
 }
 
 #[cfg(unix)]
@@ -405,11 +414,7 @@ async fn local_jail_captures_under_the_state_dir_and_removes_the_call_dir() {
     );
 
     // While running, exactly one per-call dir holding both streams exists.
-    let during = run_local(
-        &policy,
-        &format!("ls '{}'/*", capture_root.display()),
-    )
-    .await;
+    let during = run_local(&policy, &format!("ls '{}'/*", capture_root.display())).await;
     assert!(during.success(), "stderr: {}", during.stderr);
     assert_eq!(during.stdout, "stderr\nstdout\n");
 
@@ -438,6 +443,9 @@ async fn local_jail_removes_the_call_dir_when_the_spawn_fails() {
     .await
     .unwrap_err();
 
-    assert!(err.to_string().contains("Failed to spawn jailed process"), "{err}");
+    assert!(
+        err.to_string().contains("Failed to spawn jailed process"),
+        "{err}"
+    );
     assert!(entries(&sandbox_capture_root(state.path())).is_empty());
 }

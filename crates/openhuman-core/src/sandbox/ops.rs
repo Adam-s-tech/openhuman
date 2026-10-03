@@ -275,7 +275,9 @@ impl CaptureDir {
 impl Drop for CaptureDir {
     fn drop(&mut self) {
         match std::fs::remove_dir_all(&self.0) {
-            Ok(()) => tracing::debug!(dir = %self.0.display(), "[sandbox:local] removed capture dir"),
+            Ok(()) => {
+                tracing::debug!(dir = %self.0.display(), "[sandbox:local] removed capture dir")
+            }
             Err(e) => tracing::warn!(
                 dir = %self.0.display(),
                 error = %e,
