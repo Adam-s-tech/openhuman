@@ -297,9 +297,9 @@ fn one_runtime_hosts_independently_configured_agents() {
                 vec![
                     "alpha".to_string(),
                     "beta".to_string(),
+                    "budget".to_string(),
                     "gamma".to_string(),
-                    "withholding".to_string(),
-                    "budget".to_string()
+                    "withholding".to_string()
                 ]
             );
 
