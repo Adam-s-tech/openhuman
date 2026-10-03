@@ -23,7 +23,7 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     let raw = format!(
         "{} {}",
         "x".repeat(4096),
-        "credential-marker-redact-me-123456"
+        "Bearer credential-marker-redact-me-123456"
     );
 
     let (out, outcome) = apply_per_result_persistence(
@@ -45,7 +45,7 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     );
     assert!(out.contains("original_bytes:"));
     assert!(out.contains("[preview]"));
-    assert!(!out.contains("credential-marker-redact-me-123456"));
+    assert!(!out.contains("Bearer credential-marker-redact-me-123456"));
     assert!(expected.is_file());
     assert_eq!(
         std::fs::read_dir(&project).unwrap().count(),
@@ -63,7 +63,7 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     let read = reader.execute(json!({"path": pointer})).await.unwrap();
     assert!(!read.is_error, "{}", read.output());
     assert!(read.output().contains("xxxx"));
-    assert!(!read.output().contains("credential-marker-redact-me-123456"));
+    assert!(!read.output().contains("Bearer credential-marker-redact-me-123456"));
 }
 
 /// The legacy store still reads the layout older builds wrote, so its sweep
