@@ -122,6 +122,21 @@ pub(super) fn register_turn_tools_and_agents(
         .flat_map(|set| set.iter())
         .map(|tool| tool.name())
         .filter(|&name| seen_candidates.insert(name.to_string()))
+        // The per-thread goal tools resolve their target from the run's thread
+        // and refuse every call without one ("thread goal tools require an
+        // active chat thread"), so a thread-less turn is not offered them
+        // (issue #6956). Dropped as candidates, not just at registration, so
+        // the shadow exposure layer's reference matches what registers.
+        .filter(|&name| {
+            let keep = has_thread || !is_thread_goal_tool(name);
+            if !keep {
+                tracing::debug!(
+                    tool = name,
+                    "[goals] not registering thread goal tool on a turn without a chat thread"
+                );
+            }
+            keep
+        })
         .map(|name| name.to_string())
         .collect();
     let mut registered: HashSet<String> = HashSet::new();
@@ -144,18 +159,7 @@ pub(super) fn register_turn_tools_and_agents(
                 "[subagent] refusing to register spawn/delegate tool on sub-agent run"
             );
         }
-        // The per-thread goal tools resolve their target from the run's thread
-        // and refuse every call without one ("thread goal tools require an
-        // active chat thread"), so a thread-less turn is not offered them
-        // (issue #6956).
-        let goal_stripped = !has_thread && is_thread_goal_tool(name);
-        if goal_stripped && admitted {
-            tracing::debug!(
-                tool = name,
-                "[goals] not registering thread goal tool on a turn without a chat thread"
-            );
-        }
-        if !registered.contains(name) && admitted && !spawn_stripped && !goal_stripped {
+        if !registered.contains(name) && admitted && !spawn_stripped {
             if let Some(mut adapter) =
                 CanonicalSharedToolAdapter::for_name(tool_sets.to_vec(), name)
             {
