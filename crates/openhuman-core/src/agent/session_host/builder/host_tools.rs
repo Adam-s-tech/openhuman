@@ -48,6 +48,13 @@ pub struct HostTurnTools {
     pub tools: Vec<Box<dyn Tool>>,
     /// Names to add to the provider-visible allow-list.
     pub visible: HashSet<String>,
+    /// Names to remove from the provider-visible allow-list for this turn.
+    ///
+    /// This is applied after the config-derived scope and `visible` names are
+    /// combined, so a host can hide a tool that the agent normally receives
+    /// without changing the agent's scope for other turns. Withheld tools
+    /// remain registered and their execution policy is unchanged.
+    pub withheld: HashSet<String>,
     /// The session's admission gate, if the host sets one.
     pub policy: Option<Arc<dyn ToolPolicy>>,
 }
@@ -103,6 +110,7 @@ impl HostTurnTools {
         );
         tools.splice(0..0, self.tools);
         visible.extend(self.visible);
+        visible.retain(|name| !self.withheld.contains(name));
         self.policy
     }
 
@@ -129,7 +137,10 @@ impl HostTurnTools {
     /// Whether this contributes nothing, so a caller can skip the union.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.tools.is_empty() && self.visible.is_empty() && self.policy.is_none()
+        self.tools.is_empty()
+            && self.visible.is_empty()
+            && self.withheld.is_empty()
+            && self.policy.is_none()
     }
 }
 
@@ -145,6 +156,7 @@ impl std::fmt::Debug for HostTurnTools {
                     .collect::<Vec<_>>(),
             )
             .field("visible", &self.visible)
+            .field("withheld", &self.withheld)
             .field("policy", &self.policy.is_some())
             .finish()
     }

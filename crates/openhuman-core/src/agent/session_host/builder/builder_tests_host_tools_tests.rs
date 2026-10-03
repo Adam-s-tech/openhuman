@@ -64,6 +64,44 @@ fn a_host_tool_is_on_the_belt_and_advertised() {
     );
 }
 
+/// A host can hide a config-derived tool for one turn without changing the
+/// agent's static scope or the tool belt used on its other turns.
+#[test]
+fn a_host_can_withhold_a_config_tool_for_one_turn() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    let normally_visible =
+        crate::agent::OpenHumanSessionHost::from_config_with_definition(&config, &definition())
+            .expect("build a session without a host belt")
+            .visible_tool_specs_arc()
+            .first()
+            .map(|spec| spec.name.clone())
+            .expect("the config-derived belt advertises at least one tool");
+
+    let host: crate::agent::HostTools = {
+        let normally_visible = normally_visible.clone();
+        Arc::new(move |_| crate::agent::HostTurnTools {
+            withheld: std::collections::HashSet::from([normally_visible.clone()]),
+            ..Default::default()
+        })
+    };
+    let agent = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
+        &config,
+        &definition(),
+        &host,
+        None,
+    )
+    .expect("build a session with a per-turn withheld name");
+
+    assert!(
+        !agent
+            .visible_tool_specs_arc()
+            .iter()
+            .any(|spec| spec.name == normally_visible),
+        "a per-turn host withholding must remove a config-derived tool from the provider view"
+    );
+}
+
 /// Without this the seam would be a belt, not a factory, and a host whose
 /// tools belong to something shorter-lived than the agent -- one episode, one
 /// room -- would have to register a second agent to express that. It is also
