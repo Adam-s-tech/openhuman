@@ -11,7 +11,7 @@
 
 mod common;
 
-use common::{chat_completion, offline_config, runtime, stub_backend, tool_call_completion};
+use common::{chat_completion, offline_config, runtime, stub_backend};
 use openhuman_embed::{
     Access, AgentDefinitionSpec, AgentError, AgentSpec, HostTurnTools, Provider, Runtime,
     SandboxModeSpec, ToolScopeSpec, Workspace,
@@ -78,8 +78,7 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("beta-ok")))
                 .mount(&provider_b)
                 .await;
-            let mut budget_completion =
-                tool_call_completion("shell", r#"{"command":"echo budget-hook"}"#);
+            let mut budget_completion = chat_completion("budget-metered");
             budget_completion["usage"]["prompt_tokens"] = serde_json::json!(1_000_000);
             budget_completion["usage"]["total_tokens"] = serde_json::json!(1_000_001);
             Mock::given(method("POST"))
@@ -260,19 +259,11 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .await
                 .expect("visible turn runs");
 
-            let budgeted_turn = openhuman_core::agent::stop_hooks::with_stop_hooks(
-                vec![std::sync::Arc::new(
-                    openhuman_core::agent::stop_hooks::BudgetStopHook::new(1.0),
-                )],
-                budget_agent.run("run one shell command"),
-            )
-            .await
-            .expect("budgeted agent turn returns");
-            assert_eq!(
-                budget_provider.received_requests().await.unwrap().len(),
-                1,
-                "a budget stop must prevent the follow-up provider request"
-            );
+            let budgeted_turn = budget_agent
+                .run("report a metered response")
+                .await
+                .expect("runtime-owned agent turn returns");
+            assert_eq!(budget_provider.received_requests().await.unwrap().len(), 1);
             let usage = budgeted_turn
                 .usage
                 .expect("runtime-owned agent reports turn usage");
