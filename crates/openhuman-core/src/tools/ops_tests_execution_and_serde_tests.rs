@@ -283,9 +283,7 @@ fn all_tools_registers_brave_engine_and_lsp_when_enabled() {
     );
     cfg.search.brave.api_key = Some("test-brave-key".into());
 
-    let _env_guard = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let _env_guard = crate::config::TEST_ENV_LOCK.blocking_lock();
     unsafe {
         std::env::set_var(crate::tools::implementations::LSP_ENABLED_ENV, "1");
     }

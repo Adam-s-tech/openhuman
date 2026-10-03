@@ -77,7 +77,7 @@ pub use schemas::{
 /// `schema::load::tests`, etc. — can grab the same lock and avoid
 /// interleaved mutations.
 #[cfg(test)]
-pub(crate) static TEST_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+pub(crate) static TEST_ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[cfg(test)]
 pub(crate) mod test_env;

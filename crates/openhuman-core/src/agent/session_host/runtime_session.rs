@@ -1027,6 +1027,7 @@ impl OpenHumanSessionHost {
             )
         };
         let artifact_store = super::artifact_wiring::build_artifact_store(
+            &self.workspace_dir,
             self.workspace_descriptor.as_ref(),
             &self.action_dir,
             &self.event_session_id,
@@ -1035,8 +1036,7 @@ impl OpenHumanSessionHost {
         let context_mw = TurnContextMiddleware {
             tool_result_budget_bytes,
             payload_summarizer: self.payload_summarizer.clone(),
-            // Was `None` in both production constructors; `artifact_wiring`
-            // documents why its root is the correctness question (#6408, #6483).
+            // Rooted outside the project; see `artifact_wiring` (#6408, #6483).
             artifact_store: Some(artifact_store),
             tokenjuice_compaction_enabled,
             tokenjuice_compression: self.tokenjuice_compression,

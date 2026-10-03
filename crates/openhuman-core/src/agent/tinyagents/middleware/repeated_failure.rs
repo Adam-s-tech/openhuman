@@ -250,6 +250,18 @@ pub(super) fn recovery_policy(
     Some((class, budget))
 }
 
+/// Prefix of `tinytools::render_command_failure`, the one renderer every
+/// shell-family tool uses for a command that ran and did not exit 0: an
+/// exit-code (or signal) line, then the program's own stdout and stderr.
+const COMMAND_EXIT_REPORT_PREFIX: &str = "Command failed (";
+
+/// Whether `error` is a finished command's exit report rather than a failure
+/// of the tool itself (a timeout, a policy refusal, a runtime that could not
+/// be resolved), which the tools word differently.
+fn is_command_exit_report(error: &str) -> bool {
+    error.trim_start().starts_with(COMMAND_EXIT_REPORT_PREFIX)
+}
+
 /// Tools whose first argument is a filesystem path the model typed.
 fn is_path_tool(tool: &str) -> bool {
     matches!(
@@ -274,6 +286,25 @@ fn classified_recovery_policy(
     // class, and halted the run on its first wrong guess.
     if error.trim_start().starts_with("unknown tool `") {
         return Some(("validation", 1));
+    }
+    // A command that ran and exited non-zero is reported as an exit-code line
+    // followed by the program's own stdout and stderr. That output is data,
+    // not a tool-layer verdict: keyword sniffing read `Update objects.md
+    // (#401)` in a `git log | head` (exit 141, a harmless SIGPIPE) as a
+    // credential failure, a zero-retry class, and ended the whole run on the
+    // first call. The exit-code hint already steers the model, and the
+    // generic no-progress ladder still bounds a command repeated unchanged.
+    if is_command_exit_report(error) {
+        return None;
+    }
+    // A module the host could not load stays unloaded until the app restarts,
+    // so retrying the same tool cannot help. Steer the model off it once
+    // rather than halting the run on the first call or spending a transient
+    // budget on it (`restart the app to try again` read as recoverable).
+    if error.contains(crate::tools::status::MODULE_FAULT_MARKER)
+        && error.contains("restart the app to try again")
+    {
+        return Some(("unavailable", 1));
     }
     // A tool-owned JSON error contract is less ambiguous than rendered prose.
     // Read only explicit status/code fields; arbitrary response data is not a
@@ -451,6 +482,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 "transient",
                 "uncertain_side_effect",
                 "validation",
+                "unavailable",
             ] {
                 self.classified
                     .clear(&ClassifiedFailure::new(class, tool_name, &scope));
@@ -479,12 +511,17 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 }
                 if matches!(
                     class,
-                    "missing_window" | "missing_app" | "validation" | "uncertain_side_effect"
+                    "missing_window"
+                        | "missing_app"
+                        | "validation"
+                        | "uncertain_side_effect"
+                        | "unavailable"
                 ) {
                     let instruction = match class {
-                        "validation" => "The last call failed validation. Correct its schema or arguments once before trying again.",
-                        "uncertain_side_effect" => "The last command timed out and was killed; it may have partly run. Check its effect before repeating anything, then retry at most once as a smaller, bounded step (fewer items per call, a per-item timeout such as `timeout 5`, or background it and poll).",
-                        _ => "The desktop target was not found. Rediscover the current app and window once before trying again.",
+                        "validation" => "The last call failed validation. Correct its schema or arguments once before trying again.".to_owned(),
+                        "uncertain_side_effect" => "The last command timed out and was killed; it may have partly run. Check its effect before repeating anything, then retry at most once as a smaller, bounded step (fewer items per call, a per-item timeout such as `timeout 5`, or background it and poll).".to_owned(),
+                        "unavailable" => format!("The `{tool_name}` tool is unavailable for the rest of this run: a module it needs failed to load and will not recover until the app restarts. Do not call `{tool_name}` again; continue with your other tools."),
+                        _ => "The desktop target was not found. Rediscover the current app and window once before trying again.".to_owned(),
                     };
                     tracing::debug!(
                         tool = tool_name,
@@ -508,7 +545,10 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         // *before* the count-based thresholds, because the orchestrator otherwise
         // re-emits the doomed step under varied delegation-tool names so the
         // identical-retry threshold never trips in time.
-        if result.is_error {
+        // A command's exit report carries the program's output, which can quote
+        // a provider error (a script calling an API) without the agent's own
+        // inference having failed.
+        if result.is_error && !is_command_exit_report(&failure_text) {
             if let Some(kind) = terminal_inference_failure_kind(&failure_text) {
                 tracing::warn!(
                     tool = tool_name,
@@ -547,8 +587,14 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         // the legacy extended headroom instead of the crate's deterministic 3/6.
         // Route them to the recoverable ladder; a success or a non-recoverable
         // failure resets that streak and feeds the crate tracker as before.
+        // A finished command's exit report is the program's output, so a test
+        // run that prints `timed out` or `connection refused` is not a
+        // transient tool failure. Its identical-repeat count would otherwise
+        // persist across the turn and halt an edit-and-rerun loop on the same
+        // test command; the crate tracker below resets on any success instead.
         let recoverable = result.is_error
             && !hard_reject
+            && !is_command_exit_report(&failure_text)
             && (is_recoverable_tool_failure(&failure_text)
                 || matches!(
                     crate::tools::status::classify(&failure_text, false).class,
@@ -627,7 +673,10 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 // #4092: if the blocker is user-actionable (a missing connection),
                 // escalate with a concrete ask instead of the crate's generic
                 // "unreachable environment, report back" summary.
-                let escalation = user_actionable_escalation(tool_name, &content);
+                // A command printing `not connected` is not a missing integration.
+                let escalation = (!is_command_exit_report(&content))
+                    .then(|| user_actionable_escalation(tool_name, &content))
+                    .flatten();
                 let user_actionable = escalation.is_some();
                 let summary = escalation.unwrap_or(summary);
                 tracing::warn!(

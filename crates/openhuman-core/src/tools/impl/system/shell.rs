@@ -399,18 +399,9 @@ impl ShellTool {
             );
         }
 
-        match self.runtime_path_for_command(command).await {
-            Ok(Some(path)) => {
-                tracing::debug!(path = %path, "[shell] applying managed runtime PATH");
-                cmd.env("PATH", path);
-            }
-            Ok(None) => {}
-            Err(error) => {
-                return (
-                    true,
-                    ToolResult::error(format!("Failed to resolve command runtime: {error}")),
-                );
-            }
+        if let Some(path) = self.runtime_path_for_command(command).await {
+            tracing::debug!(path = %path, "[shell] applying managed runtime PATH");
+            cmd.env("PATH", path);
         }
 
         // No default deadline — only a caller-supplied `timeout_secs` bounds the
@@ -490,17 +481,8 @@ impl ShellTool {
         );
 
         let mut extra_env = std::collections::HashMap::new();
-        match self.runtime_path_for_command(command).await {
-            Ok(Some(path)) => {
-                extra_env.insert("PATH".into(), path.into());
-            }
-            Ok(None) => {}
-            Err(error) => {
-                return (
-                    true,
-                    ToolResult::error(format!("Failed to resolve command runtime: {error}")),
-                );
-            }
+        if let Some(path) = self.runtime_path_for_command(command).await {
+            extra_env.insert("PATH".into(), path.into());
         }
 
         // Apply the same Git config hardening to local and sandboxed shells.
@@ -555,7 +537,19 @@ impl ShellTool {
         }
     }
 
-    async fn runtime_path_for_command(&self, command: &str) -> anyhow::Result<Option<String>> {
+    /// The `PATH` to run `command` under when it needs a managed runtime, or
+    /// `None` to keep the inherited one.
+    ///
+    /// A runtime that cannot be resolved (its module refused or faulted, the
+    /// download failed) leaves the inherited `PATH` in place rather than
+    /// failing the command: the host's own interpreter may well run it, and if
+    /// none exists the command fails with its own `command not found`. Failing
+    /// here instead blocked every `python …` command for the rest of the run
+    /// once the runtime module had faulted, even with a working `python3` on
+    /// the host. This fallback is safe because commands still pass through
+    /// `check_gated_command` and sandbox policy, and the child already inherits
+    /// `PATH` through `SAFE_ENV_VARS`.
+    async fn runtime_path_for_command(&self, command: &str) -> Option<String> {
         let mut prepend_dirs = Vec::new();
 
         // Node injection preserves the existing contract: shell only sees the
@@ -573,26 +567,49 @@ impl ShellTool {
 
         if shell_command_needs_python_runtime(command) {
             if let Some(bootstrap) = self.python_bootstrap.as_ref() {
-                let resolved = bootstrap.resolve().await?;
-                tracing::debug!(
-                    bin_dir = %resolved.bin_dir.display(),
-                    python_bin = %resolved.python_bin.display(),
-                    version = %resolved.version,
-                    source = ?resolved.source,
-                    "[shell] prepending python runtime bin to PATH"
-                );
-                prepend_dirs.push(resolved.bin_dir);
+                match bootstrap.resolve().await {
+                    Ok(resolved) => {
+                        tracing::debug!(
+                            bin_dir = %resolved.bin_dir.display(),
+                            python_bin = %resolved.python_bin.display(),
+                            version = %resolved.version,
+                            source = ?resolved.source,
+                            "[shell] prepending python runtime bin to PATH"
+                        );
+                        prepend_dirs.push(resolved.bin_dir);
+                    }
+                    Err(error) => {
+                        log_python_runtime_unavailable(
+                            bootstrap.config().runtime_python.enabled,
+                            &error,
+                        );
+                    }
+                }
             }
         }
 
         if prepend_dirs.is_empty() {
-            Ok(None)
+            None
         } else {
-            Ok(Some(prepend_path_dirs(
+            Some(prepend_path_dirs(
                 prepend_dirs.iter().map(|p| p.as_path()),
                 &std::env::var("PATH").unwrap_or_default(),
-            )))
+            ))
         }
+    }
+}
+
+fn log_python_runtime_unavailable(enabled: bool, error: &anyhow::Error) {
+    if enabled {
+        tracing::warn!(
+            error = %error,
+            "[shell] python runtime unavailable — running on the inherited PATH"
+        );
+    } else {
+        tracing::debug!(
+            error = %error,
+            "[shell] python runtime disabled — running on the inherited PATH"
+        );
     }
 }
 

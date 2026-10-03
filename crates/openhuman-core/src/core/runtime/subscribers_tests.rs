@@ -181,7 +181,7 @@ async fn tool_timeout_seeds_on_channelless_core_boot() {
     // Clear the operator override behind a panic-safe RAII guard: if any assertion
     // below panics, `Drop` still restores the previous value, so sibling tests that
     // share `TEST_ENV_LOCK` never inherit the cleared var.
-    let _env = EnvVarGuard::locked_unset_many(&["OPENHUMAN_TOOL_TIMEOUT_SECS"]);
+    let _env = EnvVarGuard::locked_unset_many_async(&["OPENHUMAN_TOOL_TIMEOUT_SECS"]).await;
 
     // Distinctive, in-range (1..=3600) value so the assertion can only pass on a
     // real seed, never on the default. Channel-less: `channels_config` stays empty,

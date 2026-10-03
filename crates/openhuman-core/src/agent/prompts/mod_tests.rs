@@ -165,7 +165,8 @@ fn swapping_deferred_entries_leaves_the_bridge_in_their_place() {
         visible.contains("tool_search") && !visible.contains("tool_call"),
         "`tool_search` replaces them; there is no `tool_call` wrapper: {visible:?}"
     );
-    for name in ["tool_search"] {
+    {
+        let name = "tool_search";
         assert!(
             tools.iter().any(|tool| tool.name == name
                 && tool

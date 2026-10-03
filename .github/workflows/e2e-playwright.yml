@@ -75,7 +75,7 @@ jobs:
           rm -rf "$juice_dir" "$connectors_dir"
           mkdir -p "$juice_dir" "$connectors_dir"
           curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
-            "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.5.0/$(basename "$juice_archive")" \
+            "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.5.1/$(basename "$juice_archive")" \
             --output "$juice_archive"
           echo "94c8998c830d9454560c00055187198a598eefaf5be51bcecdcd194a66f3b388  $juice_archive" \
             | sha256sum --check

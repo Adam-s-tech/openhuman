@@ -5,7 +5,6 @@ use super::trigger_subscriber::{triage_disabled, TRIAGE_DISABLED_ENV};
 use super::*;
 use crate::core::events::DomainEvent;
 use serde_json::json;
-use std::sync::Mutex;
 use tinybus::EventHandler;
 
 static TRIAGE_ENV_GUARD: Mutex<()> = Mutex::new(());
@@ -35,8 +34,8 @@ async fn handles_trigger_event_without_panic() {
     // (acquired before `TRIAGE_ENV_GUARD` for a stable lock order) and
     // point `OPENHUMAN_WORKSPACE` at an isolated, persisted config.
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_lock = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let _guard = TRIAGE_ENV_GUARD.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_lock = TEST_ENV_LOCK.lock().await;
+    let _guard = TRIAGE_ENV_GUARD.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
@@ -68,7 +67,7 @@ async fn handles_trigger_event_without_panic() {
 
 #[test]
 fn triage_disabled_flag_parser() {
-    let _guard = TRIAGE_ENV_GUARD.lock().unwrap_or_else(|e| e.into_inner());
+    let _guard = TRIAGE_ENV_GUARD.blocking_lock();
     // Truthy values disable triage.
     for val in ["1", "true", "TRUE", "yes", "YES"] {
         std::env::set_var(TRIAGE_DISABLED_ENV, val);
@@ -132,7 +131,7 @@ fn composio_config_triage_disabled_toolkit_match() {
     assert!(
         !cfg.triage_disabled_toolkits
             .iter()
-            .any(|t| t.to_ascii_lowercase() == "github"),
+            .any(|t| t.eq_ignore_ascii_case("github")),
         "github should not match"
     );
 }
@@ -145,8 +144,8 @@ async fn trigger_subscriber_skips_triage_when_env_disabled() {
     // this test must isolate `OPENHUMAN_WORKSPACE` under `TEST_ENV_LOCK`
     // (acquired before `TRIAGE_ENV_GUARD`).
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_lock = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let _guard = TRIAGE_ENV_GUARD.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_lock = TEST_ENV_LOCK.lock().await;
+    let _guard = TRIAGE_ENV_GUARD.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
@@ -191,7 +190,7 @@ async fn handles_connection_created_event_without_panic() {
     // var is deliberately left set to the isolated dir — the next
     // `TEST_ENV_LOCK` holder re-points it to its own workspace.
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_guard = TEST_ENV_LOCK.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
@@ -240,8 +239,8 @@ fn subscriber_default_impls_equal_new() {
     // Call Default just to cover the impl block. Since both are
     // unit structs, equality is implicit — we just exercise the
     // constructor to bump coverage on the Default line.
-    let _ = ComposioTriggerSubscriber::default();
-    let _ = ComposioConnectionCreatedSubscriber::default();
+    let _ = ComposioTriggerSubscriber;
+    let _ = ComposioConnectionCreatedSubscriber;
 }
 
 #[tokio::test]
@@ -282,7 +281,7 @@ async fn connection_subscriber_skips_when_not_signed_in() {
     // hold `TEST_ENV_LOCK`, point `OPENHUMAN_WORKSPACE` at a leaked
     // persisted tempdir, and drain the spawn before releasing the lock.
     use crate::config::{Config, TEST_ENV_LOCK};
-    let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _env_guard = TEST_ENV_LOCK.lock().await;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     unsafe {
@@ -345,7 +344,7 @@ fn config_changed_subscriber_has_stable_name_and_domain() {
     let s = ComposioConfigChangedSubscriber::new();
     assert_eq!(s.name(), "composio::config_changed");
     assert_eq!(s.domains(), Some(["composio"].as_ref()));
-    let _ = ComposioConfigChangedSubscriber::default();
+    let _ = ComposioConfigChangedSubscriber;
 }
 
 #[test]

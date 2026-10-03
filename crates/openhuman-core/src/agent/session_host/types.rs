@@ -501,6 +501,9 @@ pub struct SessionHostBuilder {
     pub(super) synthesized_tools: Option<Vec<Box<dyn Tool>>>,
     /// When set, restricts which tools the main agent sees/calls.
     pub(super) visible_tool_names: Option<std::collections::HashSet<String>>,
+    /// Names removed from the final provider-visible set after wildcard
+    /// expansion and tool synthesis.
+    pub(super) withheld_tool_names: std::collections::HashSet<String>,
     /// See [`SessionHostBuilder::deferred_tools`].
     pub(super) deferred_tools: Vec<String>,
     /// Optional explicit profile ceiling for tools delegated agents may inherit.
