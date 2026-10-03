@@ -288,7 +288,7 @@ async fn run_turn_via_tinyagents_inner(
             &run_context,
             hosted_root.as_ref().map(|(base, _)| base.config.as_ref()),
         ),
-        run_context.thread_id.is_some(),
+        has_thread,
     );
 
     // Fail-closed registry validation gate (issue #4249, Workstream 10 — registry).

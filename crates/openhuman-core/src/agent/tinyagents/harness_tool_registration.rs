@@ -6,6 +6,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use tinyagents_graph::goals::GoalToolKind;
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::tool::ToolDispatch;
 use tinyagents_registry::{
@@ -66,6 +67,14 @@ pub(crate) fn typed_dispatch_for(
     Some(dispatch)
 }
 
+/// Whether `name` is one of the model-facing per-thread goal tools
+/// (`goal_get` / `goal_set` / `goal_complete`), named by their owner.
+fn is_thread_goal_tool(name: &str) -> bool {
+    GoalToolKind::MODEL_FACING
+        .iter()
+        .any(|kind| kind.name() == name)
+}
+
 /// Register every admitted tool from `tool_sets` onto `harness` (and its
 /// `capability_registry` projection), project the visible agent set as
 /// name-only descriptors, and return `(tool_count, registry_diagnostics,
@@ -79,6 +88,9 @@ pub(crate) fn typed_dispatch_for(
 /// inheriting the parent's full tool surface (shell/file-write/spawn) — the
 /// old `allowed.is_empty() || allowed.contains(name)` predicate was
 /// fail-open.
+///
+/// `has_thread == false` drops the per-thread goal tools, which cannot run
+/// without a chat thread (issue #6956).
 #[allow(clippy::too_many_arguments)]
 pub(super) fn register_turn_tools_and_agents(
     harness: &mut AgentHarness<(), OpenHumanRunContext>,
@@ -132,7 +144,18 @@ pub(super) fn register_turn_tools_and_agents(
                 "[subagent] refusing to register spawn/delegate tool on sub-agent run"
             );
         }
-        if !registered.contains(name) && admitted && !spawn_stripped {
+        // The per-thread goal tools resolve their target from the run's thread
+        // and refuse every call without one ("thread goal tools require an
+        // active chat thread"), so a thread-less turn is not offered them
+        // (issue #6956).
+        let goal_stripped = !has_thread && is_thread_goal_tool(name);
+        if goal_stripped && admitted {
+            tracing::debug!(
+                tool = name,
+                "[goals] not registering thread goal tool on a turn without a chat thread"
+            );
+        }
+        if !registered.contains(name) && admitted && !spawn_stripped && !goal_stripped {
             if let Some(mut adapter) =
                 CanonicalSharedToolAdapter::for_name(tool_sets.to_vec(), name)
             {
