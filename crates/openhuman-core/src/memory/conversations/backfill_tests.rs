@@ -96,7 +96,14 @@ fn batches_cut_the_range_by_batch_turns() {
     let turns = turns_of(
         "t",
         &(0..5)
-            .map(|i| message(&i.to_string(), "user", &format!("q{i}"), "2026-09-01T10:00:00Z"))
+            .map(|i| {
+                message(
+                    &i.to_string(),
+                    "user",
+                    &format!("q{i}"),
+                    "2026-09-01T10:00:00Z",
+                )
+            })
             .collect::<Vec<_>>(),
     );
     let cut = batches("t", &turns, 1..5, 3);
@@ -104,7 +111,11 @@ fn batches_cut_the_range_by_batch_turns() {
     assert_eq!((cut[0].first, cut[0].last()), (1, 3));
     assert_eq!((cut[1].first, cut[1].last()), (4, 4));
     assert!(batches("t", &turns, 2..2, 3).is_empty());
-    assert_eq!(batches("t", &turns, 0..5, 0).len(), 5, "zero means one per item");
+    assert_eq!(
+        batches("t", &turns, 0..5, 0).len(),
+        5,
+        "zero means one per item"
+    );
 }
 
 #[tokio::test]
@@ -180,7 +191,10 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
     let done = wait_done(&config).await;
     assert_eq!(done.state.phase, ImportPhase::Done, "{:?}", done.state);
     assert_eq!(done.state.turns_stored, 4);
-    assert_eq!(done.state.items_stored, 3, "old-thread in two batches, live-thread in one");
+    assert_eq!(
+        done.state.items_stored, 3,
+        "old-thread in two batches, live-thread in one"
+    );
     assert!(done.state.finished_at.is_some());
     assert_eq!((done.pending_threads, done.pending_turns), (0, 0));
 
@@ -197,7 +211,10 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
         .collect();
     assert_eq!(live.len(), 1);
     assert!(live[0].text.contains("Before ingestion"));
-    assert!(!live[0].text.contains("After ingestion"), "live's turn is not re-stored");
+    assert!(
+        !live[0].text.contains("After ingestion"),
+        "live's turn is not re-stored"
+    );
 
     // A second run has nothing to send.
     start(&config, BackfillStartParams { consent: true })

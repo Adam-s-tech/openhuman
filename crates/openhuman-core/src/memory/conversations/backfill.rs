@@ -214,13 +214,17 @@ struct ThreadPlan {
     range: std::ops::Range<usize>,
 }
 
-async fn plan(workspace_dir: &Path, stored: &BTreeMap<String, u32>) -> MemoryResult<Vec<ThreadPlan>> {
+async fn plan(
+    workspace_dir: &Path,
+    stored: &BTreeMap<String, u32>,
+) -> MemoryResult<Vec<ThreadPlan>> {
     let listed = threads::list_threads(workspace_dir.to_path_buf())
         .await
         .map_err(|error| MemoryError::Engine(format!("reading chat threads failed: {error}")))?;
     let mut plans = Vec::new();
     for thread in listed {
-        let messages = match threads::get_messages(workspace_dir.to_path_buf(), thread.id.clone()).await
+        let messages = match threads::get_messages(workspace_dir.to_path_buf(), thread.id.clone())
+            .await
         {
             Ok(messages) => messages,
             Err(error) => {
@@ -333,7 +337,12 @@ async fn run(
     batch_turns: u32,
 ) {
     for plan in plans {
-        for batch in batches(&plan.thread_id, &plan.turns, plan.range.clone(), batch_turns) {
+        for batch in batches(
+            &plan.thread_id,
+            &plan.turns,
+            plan.range.clone(),
+            batch_turns,
+        ) {
             let turns = batch.turns.len() as u64;
             let end = batch.last() + 1;
             let mut item = batch.into_item();
