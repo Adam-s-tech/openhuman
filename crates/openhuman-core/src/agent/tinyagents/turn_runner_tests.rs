@@ -1,4 +1,5 @@
 use super::*;
+use crate::agent::stop_hooks::{BudgetStopHook, StopDecision, StopHook, TurnState};
 use crate::agent::tinyagents::TurnModelSource;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -65,6 +66,26 @@ impl ChatModel<()> for RequestLimitedToolModel {
 }
 
 struct BudgetedToolModel(Arc<std::sync::atomic::AtomicUsize>);
+
+struct RecordingBudgetStopHook {
+    inner: BudgetStopHook,
+    reason: Arc<std::sync::Mutex<Option<String>>>,
+}
+
+#[async_trait]
+impl StopHook for RecordingBudgetStopHook {
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    async fn check(&self, state: &TurnState<'_>) -> StopDecision {
+        let decision = self.inner.check(state).await;
+        if let StopDecision::Stop { reason } = &decision {
+            *self.reason.lock().expect("stop reason lock") = Some(reason.clone());
+        }
+        decision
+    }
+}
 
 #[async_trait]
 impl ChatModel<()> for BudgetedToolModel {
@@ -276,9 +297,11 @@ async fn budget_stop_hook_pauses_the_hosted_turn_inner() {
         .expect("scripted turn models build");
     let (tx, _rx) = tokio::sync::mpsc::channel(8);
     let mut context = root_context("budget-stop", "/tmp/budget-stop", tx);
-    context
-        .stop_hooks
-        .push(Arc::new(crate::agent::stop_hooks::BudgetStopHook::new(1.0)));
+    let stop_reason = Arc::new(std::sync::Mutex::new(None));
+    context.stop_hooks.push(Arc::new(RecordingBudgetStopHook {
+        inner: BudgetStopHook::new(1.0),
+        reason: Arc::clone(&stop_reason),
+    }));
 
     let outcome = run_root_turn_via_hosted_agent(
         context,
@@ -306,8 +329,12 @@ async fn budget_stop_hook_pauses_the_hosted_turn_inner() {
     .expect("budget pause returns the partial turn");
 
     assert_eq!(model_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
-    assert_eq!(tool_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
-    assert_eq!(outcome.tool_calls, 0);
+    assert_eq!(tool_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert_eq!(outcome.tool_calls, 1);
+    assert_eq!(
+        stop_reason.lock().expect("stop reason lock").as_deref(),
+        Some("turn cost $3.0000 reached cap $1.0000")
+    );
 }
 
 fn root_context(
