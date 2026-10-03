@@ -142,3 +142,17 @@ fn compaction_strategy_reads_from_toml() {
     let cfg: crate::config::ContextConfig = toml::from_str("").unwrap();
     assert_eq!(cfg.compaction_strategy, CompactionStrategy::TaskState);
 }
+
+#[test]
+fn compaction_settings_bundle_the_trigger_and_strategy() {
+    use crate::config::{CompactionSettings, CompactionStrategy, ContextConfig};
+    let mut cfg = ContextConfig::default();
+    assert_eq!(cfg.compaction_settings(), CompactionSettings::default());
+    cfg.compaction_trigger_tokens = Some(0);
+    cfg.compaction_strategy = CompactionStrategy::Summary;
+    let settings = cfg.compaction_settings();
+    assert_eq!(settings.trigger_tokens, None, "a 0 trigger is no override");
+    assert_eq!(settings.strategy, CompactionStrategy::Summary);
+    cfg.compaction_trigger_tokens = Some(64_000);
+    assert_eq!(cfg.compaction_settings().trigger_tokens, Some(64_000));
+}

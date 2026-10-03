@@ -86,13 +86,9 @@ pub struct ContextManager {
     /// `[context].autocompact_enabled` so a diagnostic/test opt-out doesn't spend
     /// summarizer tokens or rewrite history. See [`ContextConfig::autocompact_enabled`].
     autocompact_enabled: bool,
-    /// `[context].compaction_trigger_tokens`: absolute compaction trigger
-    /// overriding the window fraction. See
-    /// [`ContextConfig::compaction_trigger_tokens`].
-    compaction_trigger_tokens: Option<u64>,
-    /// `[context].compaction_strategy`. See
-    /// [`ContextConfig::compaction_strategy`].
-    compaction_strategy: crate::config::CompactionStrategy,
+    /// `[context].compaction_trigger_tokens` and `compaction_strategy`. See
+    /// [`ContextConfig::compaction_settings`].
+    compaction: crate::config::CompactionSettings,
 }
 
 impl ContextManager {
@@ -126,8 +122,7 @@ impl ContextManager {
             // Summarization is off when the whole context system is disabled OR
             // autocompaction specifically is turned off.
             autocompact_enabled: config.enabled && config.autocompact_enabled,
-            compaction_trigger_tokens: config.compaction_trigger_tokens.filter(|t| *t > 0),
-            compaction_strategy: config.compaction_strategy,
+            compaction: config.compaction_settings(),
         }
     }
 
@@ -166,15 +161,10 @@ impl ContextManager {
         self.autocompact_enabled
     }
 
-    /// Absolute compaction trigger overriding the window fraction, when
-    /// configured (benchmarks / debugging).
-    pub fn compaction_trigger_tokens(&self) -> Option<u64> {
-        self.compaction_trigger_tokens
-    }
-
-    /// How compaction writes its checkpoint.
-    pub fn compaction_strategy(&self) -> crate::config::CompactionStrategy {
-        self.compaction_strategy
+    /// The compaction trigger override (benchmarks / debugging) and the
+    /// checkpoint strategy.
+    pub fn compaction(&self) -> crate::config::CompactionSettings {
+        self.compaction
     }
 
     // ─── Budget tracking ──────────────────────────────────────────
