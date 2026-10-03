@@ -78,7 +78,7 @@ pub(crate) fn model_limits_request(
             AuthStyle::None | AuthStyle::OpenhumanJwt => request,
         };
     }
-    if let Some(options) = openrouter_default_provider_options(&endpoint) {
+    if let Some(options) = super::cloud_slug::openrouter_default_provider_options(&endpoint) {
         request = request.with_pinned_providers(pinned_openrouter_providers(&options));
     }
     Some(request)
