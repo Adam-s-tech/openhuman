@@ -4173,6 +4173,7 @@ name = "openhuman-embed"
 version = "0.64.10"
 dependencies = [
  "anyhow",
+ "async-trait",
  "dirs 6.0.0",
  "env_logger",
  "log",

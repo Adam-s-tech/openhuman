@@ -537,6 +537,8 @@ impl ShellTool {
         }
     }
 
+    /// The `PATH` to run `command` under when it needs a managed runtime, or
+    /// `None` to keep the inherited one.
     ///
     /// A runtime that cannot be resolved (its module refused or faulted, the
     /// download failed) leaves the inherited `PATH` in place rather than
