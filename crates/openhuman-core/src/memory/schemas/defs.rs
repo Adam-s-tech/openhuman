@@ -13,6 +13,8 @@ pub const FUNCTIONS: [&str; 20] = [
     "learn",
     "forget",
     "items_list",
+    "explore",
+    "items_get",
     "conversations_get",
     "conversations_set",
     "sources_list",
@@ -65,6 +67,14 @@ fn filter() -> FieldSchema {
         "filter",
         TypeSchema::Json,
         "MetaFilter: metadata fields, kinds, sources, tags_any, observed_after/before.",
+    )
+}
+
+fn path() -> FieldSchema {
+    opt(
+        "path",
+        TypeSchema::Json,
+        "Explorer path: [{facet, value}], each step narrowing the items (see memory_explore).",
     )
 }
 
@@ -148,8 +158,28 @@ pub fn schema(function: &str) -> ControllerSchema {
             namespace: "memory",
             function: "items_list",
             description: "Page through stored items, newest first.",
-            inputs: vec![filter(), limit(), cursor()],
+            inputs: vec![filter(), limit(), cursor(), path()],
             outputs: out("{items: Hit[], next_cursor?}"),
+        },
+        "explore" => ControllerSchema {
+            namespace: "memory",
+            function: "explore",
+            description: "Count stored items per value of one facet (kind, source, source_id, workspace, folder, file_path, language, repo, url, thread, agent, tool_call, tag), under an explorer path.",
+            inputs: vec![
+                req("facet", TypeSchema::String, "The facet to group by."),
+                path(),
+                filter(),
+                opt("limit", TypeSchema::BoundedU64 { min: 1, max: 500 }, "Most buckets, largest first (default 50)."),
+                opt("scan_limit", TypeSchema::BoundedU64 { min: 1, max: 50_000 }, "Most items a listing-based engine reads (default 5000)."),
+            ],
+            outputs: out("{facet, buckets: {value, count}[], total, missing, more_buckets, truncated}"),
+        },
+        "items_get" => ControllerSchema {
+            namespace: "memory",
+            function: "items_get",
+            description: "Read stored items whole by id, in the order asked; unknown ids are left out.",
+            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids (1 to 200).")],
+            outputs: out("{items: Hit[]}"),
         },
         "conversations_get" => ControllerSchema {
             namespace: "memory",

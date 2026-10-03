@@ -15,6 +15,7 @@ use crate::memory::types::{
     SourceAddedView, SourceRemovedView, SourcesAddParams, SourcesListView, SourcesRemoveParams,
     SourcesSyncParams, SourcesSyncView,
 };
+use crate::memory::explore::{self, ExploreParams, ItemsGetParams};
 use crate::memory::{context, conversations, engine, import, ops, sources};
 
 fn parse<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T, String> {
@@ -102,6 +103,20 @@ pub(super) fn items_list(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let params = parse::<ItemsListParams>(params)?;
         finish(ops::items_list(&load().await?, params).await)
+    })
+}
+
+pub(super) fn explore(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let params = parse::<ExploreParams>(params)?;
+        finish(explore::explore(&load().await?, params).await)
+    })
+}
+
+pub(super) fn items_get(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let params = parse::<ItemsGetParams>(params)?;
+        finish(explore::items_get(&load().await?, params).await)
     })
 }
 

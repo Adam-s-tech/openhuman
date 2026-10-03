@@ -21,6 +21,7 @@ pub mod conversations;
 pub mod engine;
 pub mod error;
 pub mod exit;
+pub mod explore;
 pub mod import;
 pub mod ops;
 pub mod schemas;

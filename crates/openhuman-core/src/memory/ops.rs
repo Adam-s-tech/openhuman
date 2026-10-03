@@ -317,7 +317,7 @@ pub async fn forget(config: &Config, params: ForgetParams) -> MemoryResult<Forge
 pub async fn items_list(config: &Config, params: ItemsListParams) -> MemoryResult<ItemsListView> {
     let bound = bound(config)?;
     let request = ListRequest {
-        filter: params.filter.unwrap_or_default(),
+        filter: super::explore::narrowed(params.filter, &params.path)?,
         limit: clamp_limit(params.limit),
         cursor: params.cursor,
     };

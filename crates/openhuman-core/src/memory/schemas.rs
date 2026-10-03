@@ -36,6 +36,8 @@ fn handler_for(function: &str) -> crate::core::all::ControllerHandler {
         "learn" => handlers::learn,
         "forget" => handlers::forget,
         "items_list" => handlers::items_list,
+        "explore" => handlers::explore,
+        "items_get" => handlers::items_get,
         "conversations_get" => handlers::conversations_get,
         "conversations_set" => handlers::conversations_set,
         "sources_list" => handlers::sources_list,

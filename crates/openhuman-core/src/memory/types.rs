@@ -188,6 +188,9 @@ pub struct ItemsListParams {
     /// Engine cursor.
     #[serde(default)]
     pub cursor: Option<String>,
+    /// Explorer path, applied on top of `filter` (see [`super::explore`]).
+    #[serde(default)]
+    pub path: Vec<super::explore::PathStep>,
 }
 
 /// `memory_items_list` result.
