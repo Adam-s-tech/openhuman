@@ -592,10 +592,10 @@ pub(super) fn assemble_turn_harness(
         &tool_outcome_sink,
     );
 
-    // Direct web lookup is for a bounded answer. Once enough search/fetch
-    // results have returned, spend the next model call on synthesis rather
-    // than another variation of the same query. Sub-agent runs keep their own
-    // budgets and are not narrowed here.
+    // Direct web lookup is bounded. Once enough search/fetch results have
+    // returned, the web tools leave the request so the run works with what it
+    // has; a run with nothing but web tools answers instead. Sub-agent runs
+    // keep their own budgets and are not narrowed here.
     if subagent_scope.is_none() {
         harness.push_middleware(Arc::new(middleware::ResearchBudgetMiddleware::new()));
     }
