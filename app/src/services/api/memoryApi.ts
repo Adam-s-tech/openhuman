@@ -354,6 +354,25 @@ export interface ImportState {
   error?: string | null;
 }
 
+/** Progress of storing past chats (`memory_conversations_backfill_*`). */
+export interface BackfillState {
+  phase: ImportPhase;
+  threads_total: number;
+  threads_done: number;
+  turns_stored: number;
+  items_stored: number;
+  error?: string | null;
+  finished_at?: string | null;
+}
+
+export interface BackfillView {
+  state: BackfillState;
+  /** Threads that still have turns from before automatic saving. */
+  pending_threads: number;
+  /** Turns still to store across them. */
+  pending_turns: number;
+}
+
 /** The structured error codes a memory RPC can fail with. */
 export type MemoryErrorCode =
   | 'MEMORY_OFF'
@@ -550,6 +569,15 @@ export function memoryImportScan(): Promise<ImportScan> {
 /** Start the upload of local v1 data to the selected engine. Requires explicit consent. */
 export function memoryImportStart(): Promise<{ state: ImportState }> {
   return call<{ state: ImportState }>(CORE_RPC_METHODS.memoryImportStart, { consent: true });
+}
+
+export function memoryConversationsBackfillStatus(): Promise<BackfillView> {
+  return call<BackfillView>(CORE_RPC_METHODS.memoryConversationsBackfillStatus);
+}
+
+/** Starts storing past chats. Only the consent dialog calls this. */
+export function memoryConversationsBackfillStart(): Promise<BackfillView> {
+  return call<BackfillView>(CORE_RPC_METHODS.memoryConversationsBackfillStart, { consent: true });
 }
 
 export function memoryImportStatus(): Promise<{ state: ImportState }> {

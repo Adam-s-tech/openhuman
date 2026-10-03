@@ -18,6 +18,7 @@ import {
 } from '../../services/api/memoryApi';
 import { Alert, AlertDescription, Card, NumberField, Switch } from '../ui';
 import { CenteredLoadingState } from '../ui/LoadingState';
+import MemoryConversationsBackfill from './MemoryConversationsBackfill';
 import { fill, formatTimestamp, parsePositiveInt } from './memoryFormat';
 
 const log = debug('openhuman:memory:conversations');
@@ -151,6 +152,8 @@ export default function MemoryConversationsTab() {
           />
         </div>
       </Card>
+
+      <MemoryConversationsBackfill />
 
       <Card
         title={t('memoryPage.conversations.recentTitle')}
