@@ -21,9 +21,23 @@ const TIER_FLASH_CONTEXT: u64 = 1_000_000;
 
 /// Resolve the context window (in tokens) for a model id or OpenHuman tier alias.
 ///
+/// Prefers the window a turn last resolved for this model from the provider
+/// (or a config override) — see [`crate::inference::context_window`] — and
+/// otherwise falls back to [`static_context_window_for_model`]. Turns resolve
+/// through the async provider path; this synchronous form serves usage meters
+/// and the context breakdown.
+///
 /// Returns `None` when the model is unknown — callers should skip pre-dispatch
 /// trimming rather than guess.
 pub fn context_window_for_model(model: &str) -> Option<u64> {
+    crate::inference::context_window::remembered_window(model)
+        .or_else(|| static_context_window_for_model(model))
+}
+
+/// The static guess for a model's window: tier aliases, then the cost catalog,
+/// then the generic id-pattern hints. These never override a provider-reported
+/// window; [`crate::inference::context_window`] consults them last.
+pub(crate) fn static_context_window_for_model(model: &str) -> Option<u64> {
     let normalized = model.trim();
     if normalized.is_empty() {
         return None;
