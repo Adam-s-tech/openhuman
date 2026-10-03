@@ -53,7 +53,11 @@ const ARTIFACT_RETENTION: std::time::Duration = std::time::Duration::from_secs(2
 /// trusted root, and `is_workspace_internal_path` already exempts it from the
 /// internal-state boundary.
 fn artifact_root(workspace_dir: &Path) -> PathBuf {
-    tool_result_artifacts_dir(workspace_dir)
+    // `ToolResultArtifactStore::detached` adds its own `tool-results` child
+    // namespace so pruning stays within the store-owned directory. Pass the
+    // workspace's `artifacts` directory here; the resulting store root is the
+    // policy-granted `<workspace>/artifacts/tool-results` directory.
+    workspace_dir.join("artifacts")
 }
 
 /// Build the store the turn path hands to `TurnContextMiddleware`, sweeping
