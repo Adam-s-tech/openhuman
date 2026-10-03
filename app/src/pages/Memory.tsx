@@ -5,7 +5,7 @@
  * it has no route of its own. Connections owns `?tab=` and the sidebar; this
  * page keeps its chip in `?brain=`:
  *
- *   engine · ask · learnings · conversations · documents · context
+ *   engine · ask · explorer · learnings · conversations · documents · context
  *
  * With no `?brain=` the page opens on Ask when an engine is active and on
  * Engine otherwise. Old v1 values (`graph`, `goals`, `sources`, `sync`,
@@ -24,6 +24,7 @@ import MemoryContextTab from '../components/memory/MemoryContextTab';
 import MemoryConversationsTab from '../components/memory/MemoryConversationsTab';
 import MemoryDocumentsTab from '../components/memory/MemoryDocumentsTab';
 import MemoryEngineTab from '../components/memory/MemoryEngineTab';
+import MemoryExplorerTab from '../components/memory/MemoryExplorerTab';
 import MemoryImportBanner from '../components/memory/MemoryImportBanner';
 import MemoryLearningsTab from '../components/memory/MemoryLearningsTab';
 import MemoryOffState from '../components/memory/MemoryOffState';
@@ -105,6 +106,10 @@ export default function Memory() {
   const headers: Record<MemoryChip, { title: string; description: string }> = {
     engine: { title: t('memoryPage.tabs.engine'), description: t('memoryPage.header.engine') },
     ask: { title: t('memoryPage.tabs.ask'), description: t('memoryPage.header.ask') },
+    explorer: {
+      title: t('memoryPage.tabs.explorer'),
+      description: t('memoryPage.header.explorer'),
+    },
     learnings: {
       title: t('memoryPage.tabs.learnings'),
       description: t('memoryPage.header.learnings'),
@@ -136,6 +141,8 @@ export default function Memory() {
     switch (chip) {
       case 'ask':
         return <MemoryAskTab fetchModes={engine.fetch_modes ?? []} />;
+      case 'explorer':
+        return <MemoryExplorerTab />;
       case 'learnings':
         return <MemoryLearningsTab />;
       case 'conversations':
@@ -157,6 +164,7 @@ export default function Memory() {
         tabs={[
           { id: 'engine', label: t('memoryPage.tabs.engine') },
           { id: 'ask', label: t('memoryPage.tabs.ask') },
+          { id: 'explorer', label: t('memoryPage.tabs.explorer') },
           { id: 'learnings', label: t('memoryPage.tabs.learnings') },
           { id: 'conversations', label: t('memoryPage.tabs.conversations') },
           { id: 'documents', label: t('memoryPage.tabs.documents') },

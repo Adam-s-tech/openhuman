@@ -3,11 +3,19 @@
  * v1 deep links working. Shared by the page and the `/brain` redirect.
  */
 
-export type MemoryChip = 'engine' | 'ask' | 'learnings' | 'conversations' | 'documents' | 'context';
+export type MemoryChip =
+  | 'engine'
+  | 'ask'
+  | 'explorer'
+  | 'learnings'
+  | 'conversations'
+  | 'documents'
+  | 'context';
 
 export const MEMORY_CHIPS: readonly MemoryChip[] = [
   'engine',
   'ask',
+  'explorer',
   'learnings',
   'conversations',
   'documents',
