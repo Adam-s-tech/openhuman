@@ -92,7 +92,7 @@ pub struct ContextManager {
     compaction_trigger_tokens: Option<u64>,
     /// `[context].compaction_strategy`. See
     /// [`ContextConfig::compaction_strategy`].
-    compaction_strategy: crate::openhuman::config::schema::CompactionStrategy,
+    compaction_strategy: crate::config::CompactionStrategy,
 }
 
 impl ContextManager {
@@ -173,7 +173,7 @@ impl ContextManager {
     }
 
     /// How compaction writes its checkpoint.
-    pub fn compaction_strategy(&self) -> crate::openhuman::config::schema::CompactionStrategy {
+    pub fn compaction_strategy(&self) -> crate::config::CompactionStrategy {
         self.compaction_strategy
     }
 

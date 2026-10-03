@@ -85,7 +85,7 @@ impl Config {
             }
         }
         if let Some(val) = env.get("OPENHUMAN_COMPACTION_STRATEGY") {
-            match crate::openhuman::config::schema::CompactionStrategy::parse(&val) {
+            match crate::config::CompactionStrategy::parse(&val) {
                 Some(strategy) => self.context.compaction_strategy = strategy,
                 None if val.trim().is_empty() => {}
                 None => tracing::warn!(

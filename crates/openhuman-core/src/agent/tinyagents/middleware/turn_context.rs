@@ -60,7 +60,7 @@ pub(crate) struct TurnContextMiddleware {
     /// window is unknown. `None` (the default) keeps 90% of the window.
     pub(crate) compaction_trigger_tokens: Option<u64>,
     /// `[context].compaction_strategy`: how compaction writes its checkpoint.
-    pub(crate) compaction_strategy: crate::openhuman::config::schema::CompactionStrategy,
+    pub(crate) compaction_strategy: crate::config::CompactionStrategy,
     /// Live transcript snapshot sink (#4466). When set, a
     /// [`TranscriptSnapshotMiddleware`] mirrors the running conversation into
     /// this shared buffer before every model call, so an erroring run can still

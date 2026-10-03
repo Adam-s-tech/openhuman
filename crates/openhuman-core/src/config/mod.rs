@@ -43,7 +43,7 @@ pub use schema::{
     set_runtime_proxy_config, AgentConfig, AuditConfig, AutonomyConfig, BrowserComputerUseConfig,
     BrowserConfig, CapabilityProviderConfig, CapabilityProviderTrustState, ChannelsConfig,
     ComposioConfig, ComposioDirectBaseUrls, ComposioHostCredential, ComputerConfig, Config,
-    ContextConfig, CostConfig, CronConfig, CurlConfig, DashboardConfig, DecisionModel,
+    CompactionStrategy, ContextConfig, CostConfig, CronConfig, CurlConfig, DashboardConfig, DecisionModel,
     DelegateAgentConfig, DiagramViewerConfig, DictationActivationMode, DictationConfig,
     DiscordConfig, DockerRuntimeConfig, EmailConfig, EmbeddingRouteConfig, GitbooksConfig,
     HttpHeader, HttpRequestConfig, IMessageConfig, IntegrationToggle, IntegrationsConfig,
