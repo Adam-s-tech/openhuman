@@ -443,8 +443,8 @@ jobs:
           # fixture outside the checkout owned by the host runner.
           # Version and digest are the ubuntu-22.04-x86_64 registry pin; do
           # not derive a replacement checksum from a local build.
-          juice_version="0.5.0"
-          juice_sha256="94c8998c830d9454560c00055187198a598eefaf5be51bcecdcd194a66f3b388"
+          juice_version="0.5.2"
+          juice_sha256="1a9bc9479ce51c87d82a6f145408cfcbe7d06de4613b0ca7cec1fd04bbc2b5b5"
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           juice_dir="$module_root/tinyjuice"
           connectors_dir="$module_root/tinyconnectors"

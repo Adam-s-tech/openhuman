@@ -71,13 +71,13 @@ jobs:
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           juice_dir="$module_root/tinyjuice"
           connectors_dir="$module_root/tinyconnectors"
-          juice_archive="$juice_dir/tinyjuice-module-0.5.0-ubuntu-22.04-x86_64.tar.gz"
+          juice_archive="$juice_dir/tinyjuice-module-0.5.2-ubuntu-22.04-x86_64.tar.gz"
           rm -rf "$juice_dir" "$connectors_dir"
           mkdir -p "$juice_dir" "$connectors_dir"
           curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
-            "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.5.1/$(basename "$juice_archive")" \
+            "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.5.2/$(basename "$juice_archive")" \
             --output "$juice_archive"
-          echo "94c8998c830d9454560c00055187198a598eefaf5be51bcecdcd194a66f3b388  $juice_archive" \
+          echo "1a9bc9479ce51c87d82a6f145408cfcbe7d06de4613b0ca7cec1fd04bbc2b5b5  $juice_archive" \
             | sha256sum --check
           tar --no-same-owner -xzf "$juice_archive" -C "$juice_dir"
           bash scripts/ci-cancel-aware.sh cargo build --release \
