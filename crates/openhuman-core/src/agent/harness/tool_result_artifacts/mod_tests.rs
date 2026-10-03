@@ -18,7 +18,7 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     std::fs::create_dir_all(&workspace).unwrap();
     std::fs::create_dir_all(&project).unwrap();
     let store = new_tool_result_store(
-        crate::security::policy::tool_result_artifacts_dir(&workspace),
+        workspace.join("artifacts"),
         "session/one",
     );
     let raw = format!(

@@ -69,7 +69,7 @@ async fn a_wrapped_read_of_a_persisted_artifact_is_paged_not_resummarized_or_rep
         &rendered[page_end..]
     );
     assert!(
-        !tmp.path().join("session").exists(),
+        !tmp.path().join("tool-results/session").exists(),
         "reading an artifact must not persist it again as a new artifact"
     );
 }
@@ -82,7 +82,7 @@ async fn a_read_of_an_absolute_artifact_pointer_is_paged_not_repersisted() {
     let storage = tmp.path().join("tool-results");
     let mw = artifact_mw(Some(summarized("SUMMARY")), &storage);
     let pointer = storage
-        .join("session/shell/earlier.txt")
+        .join("tool-results/session/shell/earlier.txt")
         .to_string_lossy()
         .into_owned();
     let mut call = TaToolCall::new("c1", "file_read", json!({"path": pointer}));
@@ -107,7 +107,7 @@ async fn a_read_of_an_absolute_artifact_pointer_is_paged_not_repersisted() {
         "the continuation must name the same absolute pointer: {rendered}"
     );
     assert!(
-        !storage.join("session/file_read").exists(),
+        !storage.join("tool-results/session/file_read").exists(),
         "reading an artifact must not persist it again as a new artifact"
     );
 }
@@ -132,7 +132,8 @@ async fn an_oversized_result_is_stored_as_the_tool_returned_it_not_as_rewritten(
         result_text(&result)
     );
     let stored =
-        std::fs::read_to_string(tmp.path().join("session/echo/c1.txt")).expect("artifact written");
+        std::fs::read_to_string(tmp.path().join("tool-results/session/echo/c1.txt"))
+            .expect("artifact written");
     assert_eq!(
         stored, raw,
         "the artifact must hold the tool's own output, not the rewritten copy"
@@ -158,7 +159,8 @@ async fn a_raw_result_file_read_cannot_open_is_stored_as_the_processed_copy() {
         .unwrap();
 
     let stored =
-        std::fs::read_to_string(tmp.path().join("session/echo/c1.txt")).expect("artifact written");
+        std::fs::read_to_string(tmp.path().join("tool-results/session/echo/c1.txt"))
+            .expect("artifact written");
     assert_eq!(
         stored, summary,
         "a raw body over file_read's limit would be unreadable, so the processed copy is stored"
