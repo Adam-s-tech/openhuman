@@ -72,7 +72,8 @@ pub(super) fn install<C: Send + Sync + 'static>(
         );
         return;
     }
-    let mut middleware = VerifyBeforeFinishMiddleware::new(check_message()).with_trigger(should_check);
+    let mut middleware =
+        VerifyBeforeFinishMiddleware::new(check_message()).with_trigger(should_check);
     if let Some(ms) = super::agent_turn_wall_clock_ms() {
         middleware = middleware.with_wall_clock_limit(Duration::from_millis(ms));
     }

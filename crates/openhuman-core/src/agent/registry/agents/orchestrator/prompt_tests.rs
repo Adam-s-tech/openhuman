@@ -617,7 +617,8 @@ fn build_carries_the_spec_check_grounding_rules() {
     assert!(body.contains("Checks must mirror how the task is specified or graded"));
     assert!(body.contains("Never delete state, data or services the solution needs at runtime"));
     assert!(body.contains("Verify the final state as a fresh consumer would see it."));
-    assert!(body.contains("List the request's stated constraints, filters and thresholds as `todo` items"));
+    assert!(body
+        .contains("List the request's stated constraints, filters and thresholds as `todo` items"));
 }
 
 #[test]

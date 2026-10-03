@@ -59,7 +59,10 @@ fn applies_to_root_orchestrator_turns_only() {
     assert!(applies(false, Some("orchestrator")));
     assert!(!applies(true, Some("orchestrator")), "sub-agents never");
     assert!(!applies(false, Some("welcome")), "other root agents never");
-    assert!(!applies(false, None), "a turn without an agent identity never");
+    assert!(
+        !applies(false, None),
+        "a turn without an agent identity never"
+    );
 }
 
 #[test]

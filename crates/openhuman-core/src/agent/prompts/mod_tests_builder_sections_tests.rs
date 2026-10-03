@@ -132,7 +132,10 @@ fn grounding_contract_carries_the_spec_check_rules() {
         "verify the final state the way a fresh consumer would see it",
         "stated constraints, filters and thresholds as items",
     ] {
-        assert!(rendered.contains(clause), "grounding clause missing: {clause}");
+        assert!(
+            rendered.contains(clause),
+            "grounding clause missing: {clause}"
+        );
     }
 }
 
