@@ -543,7 +543,10 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         // *before* the count-based thresholds, because the orchestrator otherwise
         // re-emits the doomed step under varied delegation-tool names so the
         // identical-retry threshold never trips in time.
-        if result.is_error {
+        // A command's exit report carries the program's output, which can quote
+        // a provider error (a script calling an API) without the agent's own
+        // inference having failed.
+        if result.is_error && !is_command_exit_report(&failure_text) {
             if let Some(kind) = terminal_inference_failure_kind(&failure_text) {
                 tracing::warn!(
                     tool = tool_name,
