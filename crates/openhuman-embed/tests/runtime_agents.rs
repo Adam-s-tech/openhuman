@@ -11,7 +11,7 @@
 
 mod common;
 
-use common::{chat_completion, offline_config, runtime, stub_backend};
+use common::{chat_completion, offline_config, runtime, stub_backend, tool_call_completion};
 use openhuman_embed::{
     Access, AgentDefinitionSpec, AgentError, AgentSpec, HostTurnTools, Provider, Runtime,
     SandboxModeSpec, ToolScopeSpec, Workspace,
@@ -67,6 +67,7 @@ fn one_runtime_hosts_independently_configured_agents() {
 
             let provider_a = wiremock::MockServer::start().await;
             let provider_b = wiremock::MockServer::start().await;
+            let budget_provider = wiremock::MockServer::start().await;
             Mock::given(method("POST"))
                 .and(path("/v1/chat/completions"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("alpha-ok")))
@@ -76,6 +77,15 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .and(path("/v1/chat/completions"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("beta-ok")))
                 .mount(&provider_b)
+                .await;
+            let mut budget_completion =
+                tool_call_completion("shell", r#"{"command":"echo budget-hook"}"#);
+            budget_completion["usage"]["prompt_tokens"] = serde_json::json!(1_000_000);
+            budget_completion["usage"]["total_tokens"] = serde_json::json!(1_000_001);
+            Mock::given(method("POST"))
+                .and(path("/v1/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(budget_completion))
+                .mount(&budget_provider)
                 .await;
             #[allow(unused_variables)]
             let skills = skills_fixture();
@@ -219,6 +229,24 @@ fn one_runtime_hosts_independently_configured_agents() {
                 )
                 .expect("withholding agent instantiates");
 
+            let budget_agent = runtime
+                .agent(
+                    AgentSpec::new("budget")
+                        .provider(
+                            Provider::openai_compatible(
+                                format!("{}/v1", budget_provider.uri()),
+                                "sk-budget",
+                            )
+                            .model("budget-model"),
+                        )
+                        .access(Access::full())
+                        .definition(
+                            AgentDefinitionSpec::new()
+                                .tools(ToolScopeSpec::Named(vec!["shell".to_string()])),
+                        ),
+                )
+                .expect("budget agent instantiates");
+
             withholding_agent
                 .turn("hide the configured tool")
                 .session("hidden-turn")
@@ -231,6 +259,25 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .send()
                 .await
                 .expect("visible turn runs");
+
+            let budgeted_turn = openhuman_core::agent::stop_hooks::with_stop_hooks(
+                vec![std::sync::Arc::new(
+                    openhuman_core::agent::stop_hooks::BudgetStopHook::new(1.0),
+                )],
+                budget_agent.run("run one shell command"),
+            )
+            .await
+            .expect("budgeted agent turn returns");
+            assert_eq!(
+                budget_provider.received_requests().await.unwrap().len(),
+                1,
+                "a budget stop must prevent the follow-up provider request"
+            );
+            let usage = budgeted_turn
+                .usage
+                .expect("runtime-owned agent reports turn usage");
+            assert_eq!(usage.input_tokens, 1_000_000);
+            assert!(usage.cost_usd >= 1.0, "budgeted usage: {usage:?}");
             let withholding_requests = withholding_provider
                 .received_requests()
                 .await
@@ -260,7 +307,8 @@ fn one_runtime_hosts_independently_configured_agents() {
                     "alpha".to_string(),
                     "beta".to_string(),
                     "gamma".to_string(),
-                    "withholding".to_string()
+                    "withholding".to_string(),
+                    "budget".to_string()
                 ]
             );
 
