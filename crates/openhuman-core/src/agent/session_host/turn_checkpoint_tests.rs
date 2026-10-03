@@ -423,7 +423,8 @@ fn the_close_verification_prompt_rejects_deliberation_and_recited_toolsets() {
 /// carries the original instruction so the retry still has the records.
 #[test]
 fn the_repair_re_ask_names_the_violation_and_repeats_the_instruction() {
-    let instruction = final_answer_instruction(None, false, "\n- `read_file` — ok\n  > config found\n");
+    let instruction =
+        final_answer_instruction(None, false, "\n- `read_file` — ok\n  > config found\n");
 
     let quoted = close_repair_instruction(&instruction, CloseViolation::QuotedHarnessText);
     assert!(quoted.contains("repeated these directions"), "{quoted}");

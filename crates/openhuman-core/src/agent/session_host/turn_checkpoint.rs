@@ -321,7 +321,6 @@ pub(crate) const TRUNCATED_ANSWER_INSTRUCTION: &str = concat!(
     final_answer_body!()
 );
 
-
 /// The lead-in that hands the breaker's stop note to the closing call.
 ///
 /// Named rather than inline so the closing-reply guard derives its spans from
