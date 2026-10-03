@@ -102,6 +102,7 @@ fn summarizer_mw(ps: Arc<dyn PayloadSummarizer>) -> ToolOutputMiddleware {
         // `web_fetch` declares `summary_focus` in production.
         summary_focus_tools: ["web_fetch".to_string()].into(),
         raw_fetches: Default::default(),
+        file_reads: Default::default(),
     }
 }
 
@@ -216,6 +217,7 @@ fn compaction_enabled_mw() -> ToolOutputMiddleware {
         focus_by_call: Default::default(),
         summary_focus_tools: Default::default(),
         raw_fetches: Default::default(),
+        file_reads: Default::default(),
     }
 }
 
@@ -267,6 +269,7 @@ fn truncation_probe_mw() -> ToolOutputMiddleware {
         focus_by_call: Default::default(),
         summary_focus_tools: Default::default(),
         raw_fetches: Default::default(),
+        file_reads: Default::default(),
     }
 }
 

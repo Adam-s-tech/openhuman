@@ -25,6 +25,7 @@ fn artifact_mw(
         focus_by_call: Default::default(),
         summary_focus_tools: Default::default(),
         raw_fetches: Default::default(),
+        file_reads: Default::default(),
     }
 }
 
