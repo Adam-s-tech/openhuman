@@ -184,32 +184,32 @@ test("events/:id returns one event and 404s an unknown id", async () => {
 });
 
 test("recall ranks by query words, honours labels, budgets and descend", async () => {
-  await writeLabelled("tm:memory/tm:learnings", "k1", "Alice prefers dark roast coffee", ["l:1"], "user");
-  await writeLabelled("tm:memory/tm:learnings", "k2", "Bob likes green tea", ["l:2"], "assistant");
-  await writeLabelled("tm:memory/tm:documents", "k3", "coffee machine manual", ["d:1"]);
+  await writeLabelled("app:tinymemory/app:learnings", "k1", "Alice prefers dark roast coffee", ["l:1"], "user");
+  await writeLabelled("app:tinymemory/app:learnings", "k2", "Bob likes green tea", ["l:2"], "assistant");
+  await writeLabelled("app:tinymemory/app:documents", "k3", "coffee machine manual", ["d:1"]);
   const exact = await call("POST", "/memory/recall", {
-    scope: "tm:memory/tm:learnings",
+    scope: "app:tinymemory/app:learnings",
     query: "what coffee does Alice prefer?",
   });
   assert.equal(exact.json.data.layers.events.length, 1);
   assert.equal(exact.json.data.layers.events[0].content.text, "[user] Alice prefers dark roast coffee");
   const descend = await call("POST", "/memory/recall", {
-    scope: "tm:memory",
+    scope: "app:tinymemory",
     view: "descend",
     query: "coffee",
   });
   assert.equal(descend.json.data.layers.events.length, 2);
-  const flat = await call("POST", "/memory/recall", { scope: "tm:memory", query: "coffee" });
+  const flat = await call("POST", "/memory/recall", { scope: "app:tinymemory", query: "coffee" });
   assert.equal(flat.json.data.layers.events.length, 0);
   const filtered = await call("POST", "/memory/recall", {
-    scope: "tm:memory",
+    scope: "app:tinymemory",
     view: "descend",
     query: "",
     filters: { metadata: { labels: ["l:2"] } },
   });
   assert.equal(filtered.json.data.layers.events[0].content.text, "[assistant] Bob likes green tea");
   const budget = await call("POST", "/memory/recall", {
-    scope: "tm:memory",
+    scope: "app:tinymemory",
     view: "descend",
     query: "",
     budgets: { per_layer_limits: { events: 1 } },
@@ -235,8 +235,8 @@ test("answer is grounded in the pack it is given and refuses an unknown pack", a
 });
 
 test("scopes honours the prefix filter", async () => {
-  await write("tm:memory/tm:learnings", "k1", "x");
+  await write("app:tinymemory/app:learnings", "k1", "x");
   await write("other:scope", "k2", "y");
   const r = await call("GET", "/memory/scopes?prefix=tm%3Amemory");
-  assert.deepEqual(r.json.data.items.map((i) => i.path), ["tm:memory/tm:learnings"]);
+  assert.deepEqual(r.json.data.items.map((i) => i.path), ["app:tinymemory/app:learnings"]);
 });
