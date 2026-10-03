@@ -38,6 +38,12 @@ impl CapturedOutcomes for OutcomeSinkSource {
     }
 }
 
+/// The compression policy for a model with a `window`-token context: the
+/// default threshold, for now unchanged.
+pub(super) fn compression_policy(window: u64) -> tinyagents_harness::summarization::SummarizationPolicy {
+    tinyagents_harness::summarization::summarization_policy(window)
+}
+
 /// Push the context ladder onto `harness` and return the two handles the run
 /// loop reads after the drive future returns: the installed compression
 /// middleware (to drain its provenance records), and the wrap-up middleware's
@@ -88,7 +94,7 @@ pub(super) fn install_context_ladder(
     let mut compression_mw: Option<Arc<ContextCompressionMiddleware>> = None;
     if let Some(window) = context_window.filter(|w| *w > 0) {
         if autocompact_enabled {
-            let policy = tinyagents_harness::summarization::summarization_policy(window);
+            let policy = compression_policy(window);
             // Wrap the LLM-backed summarizer in a fault-tolerant, per-turn-caching
             // adapter (issue #4461): a summarizer failure must no longer abort the
             // turn (warn + circuit-breaker + deterministic trim instead), and an
@@ -227,3 +233,7 @@ pub(super) fn install_context_ladder(
 
     (compression_mw, wrap_up_fired)
 }
+
+#[cfg(test)]
+#[path = "harness_context_ladder_tests.rs"]
+mod tests;
