@@ -12,20 +12,17 @@ fn sigpipe_git_log_report() -> String {
     )
 }
 
-fn run_shell(
+async fn run_shell(
     mw: &RepeatedToolFailureMiddleware,
     id: &str,
     command: &str,
     mut result: TaToolResult,
-) -> impl std::future::Future<Output = ()> + '_ {
+) {
     let mut call = TaToolCall::new(id, "shell", json!({ "command": command }));
-    let id = id.to_owned();
-    async move {
-        mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
-        mw.after_tool(&mut ctx(), &(), &invocation(&id, "shell"), &mut result)
-            .await
-            .unwrap();
-    }
+    mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
+    mw.after_tool(&mut ctx(), &(), &invocation(id, "shell"), &mut result)
+        .await
+        .unwrap();
 }
 
 #[test]
