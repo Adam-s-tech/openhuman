@@ -32,7 +32,8 @@ use crate::memory::engine::{self, BoundEngine};
 use crate::memory::error::{MemoryError, MemoryResult};
 use crate::memory::ops::store_on;
 use crate::memory::types::ImportPhase;
-use crate::threads::store::{self as threads, ConversationMessage};
+use crate::threads::store::blocking as threads;
+use crate::threads::store::ConversationMessage;
 
 use super::buffer::{Batch, CommittedTurn};
 
