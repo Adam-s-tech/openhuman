@@ -489,6 +489,7 @@ fn one_runtime_hosts_independently_configured_agents() {
             assert!(matches!(err, AgentError::WidensRuntime(_)), "{err:?}");
 
             // Dropping every handle releases the id.
+            drop(withholding_agent);
             drop(gamma);
             assert_eq!(
                 runtime.agent_ids(),
