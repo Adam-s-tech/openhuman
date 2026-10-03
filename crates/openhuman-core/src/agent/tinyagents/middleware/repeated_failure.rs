@@ -289,7 +289,7 @@ fn classified_recovery_policy(
     // so retrying the same tool cannot help. Steer the model off it once
     // rather than halting the run on the first call or spending a transient
     // budget on it (`restart the app to try again` read as recoverable).
-    if error.contains(crate::modules::MODULE_FAULT_IS_TERMINAL) {
+    if error.contains(crate::tools::status::MODULE_FAULT_MARKER) {
         return Some(("unavailable", 1));
     }
     // A tool-owned JSON error contract is less ambiguous than rendered prose.
