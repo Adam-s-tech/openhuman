@@ -10,6 +10,7 @@
 //! - conversations settings;
 //! - sources: add a folder, sync it, read its items back, remove it;
 //! - context.md: refresh / get / set;
+//! - the explorer: explore by facet under a path, list by path, get by id;
 //! - the v1 import gate (scan finds nothing, start needs consent);
 //! - the retired v1 methods no longer dispatch.
 //!
@@ -1187,6 +1188,120 @@ async fn context_get_set_and_refresh() {
     assert_eq!(read_back["markdown"], refreshed["markdown"]);
     assert_eq!(read_back["generated_at"], refreshed["generated_at"]);
     assert_eq!(read_back["budget_tokens"], json!(500));
+}
+
+// ---------------------------------------------------------------------------
+// Explorer
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn explore_drills_down_and_items_get_reads_whole() {
+    let f = Fixture::new(true).await;
+    let folder = write_folder(f.home.path());
+    let target = folder.to_string_lossy().to_string();
+    let first = f.learn("The standup moved to ten").await;
+    let second = f.learn("Invoices go out on the first").await;
+    let added = f
+        .ok(
+            "openhuman.memory_sources_add",
+            json!({ "kind": "folder", "target": target }),
+        )
+        .await;
+    let source_id = added["source"]["id"].as_str().unwrap().to_string();
+    f.ok("openhuman.memory_sources_sync", json!({ "id": source_id }))
+        .await;
+    wait_for_source(&f, &source_id, 2).await;
+
+    // Root: by kind.
+    let kinds = f
+        .ok("openhuman.memory_explore", json!({ "facet": "kind" }))
+        .await;
+    assert_eq!(kinds["facet"], json!("kind"));
+    let count = |page: &Value, value: &str| {
+        page["buckets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|b| b["value"] == json!(value))
+            .and_then(|b| b["count"].as_u64())
+    };
+    assert_eq!(count(&kinds, "learning"), Some(2), "{kinds}");
+    assert_eq!(count(&kinds, "document"), Some(2), "{kinds}");
+    assert_eq!(kinds["total"], json!(4));
+    assert_eq!(kinds["truncated"], json!(false));
+
+    // Drill: documents by source id, then by file.
+    let path = json!([{ "facet": "kind", "value": "document" }]);
+    let sources = f
+        .ok(
+            "openhuman.memory_explore",
+            json!({ "facet": "source_id", "path": path }),
+        )
+        .await;
+    assert_eq!(count(&sources, &source_id), Some(2), "{sources}");
+    let files = f
+        .ok(
+            "openhuman.memory_explore",
+            json!({
+                "facet": "file_path",
+                "path": [
+                    { "facet": "kind", "value": "document" },
+                    { "facet": "source_id", "value": source_id },
+                ],
+            }),
+        )
+        .await;
+    assert_eq!(files["buckets"].as_array().unwrap().len(), 2, "{files}");
+
+    // The same path lists the items there.
+    let listed = f
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "path": [{ "facet": "kind", "value": "learning" }] }),
+        )
+        .await;
+    let mut listed_ids = ids_of(&listed, "items");
+    listed_ids.sort();
+    let mut learned = vec![first.clone(), second.clone()];
+    learned.sort();
+    assert_eq!(listed_ids, learned);
+
+    // Read whole, in the order asked, unknown ids left out.
+    let got = f
+        .ok(
+            "openhuman.memory_items_get",
+            json!({ "ids": [second, "no-such-item", first] }),
+        )
+        .await;
+    assert_eq!(ids_of(&got, "items"), vec![second.clone(), first.clone()]);
+    assert!(got["items"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("Invoices go out on the first"));
+
+    // Bad facets and paths are invalid requests.
+    for (method, params) in [
+        ("openhuman.memory_explore", json!({ "facet": "colour" })),
+        (
+            "openhuman.memory_explore",
+            json!({ "facet": "kind", "path": [{ "facet": "kind", "value": "memo" }] }),
+        ),
+        (
+            "openhuman.memory_explore",
+            json!({ "facet": "kind", "limit": 0 }),
+        ),
+        ("openhuman.memory_items_get", json!({ "ids": [] })),
+        (
+            "openhuman.memory_items_list",
+            json!({ "path": [{ "facet": "workspace", "value": " " }] }),
+        ),
+    ] {
+        assert_eq!(
+            f.code(method, params.clone()).await,
+            "INVALID_REQUEST",
+            "{params}"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
