@@ -6,6 +6,7 @@ fn resolve_sandbox_policy_none_mode() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -17,6 +18,7 @@ fn resolve_sandbox_policy_read_only_mode() {
     let policy = resolve_sandbox_policy(
         SandboxMode::ReadOnly,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -28,6 +30,7 @@ fn resolve_sandbox_policy_sandboxed_local() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -40,6 +43,7 @@ fn resolve_sandbox_policy_sandboxed_remote_uses_docker() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         true,
     );
@@ -57,6 +61,7 @@ fn resolve_sandbox_policy_docker_runtime_forces_docker() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &config,
         false,
     );
@@ -85,6 +90,7 @@ async fn create_sandbox_backend_none() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         Path::new("/tmp"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -98,6 +104,7 @@ async fn create_sandbox_backend_local() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -201,6 +208,7 @@ async fn execute_in_sandbox_none_backend() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         Path::new("/tmp"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -226,6 +234,7 @@ async fn execute_in_sandbox_preserves_non_utf8_environment_bytes() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         tempdir.path(),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -256,6 +265,7 @@ async fn execute_in_sandbox_none_backend_runs_on_every_os() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         tempdir.path(),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -312,10 +322,11 @@ fn local_status_is_ready_for_a_real_jail() {
 // ── #6961: local-jail output capture stays out of the user's project ─────────
 
 #[cfg(unix)]
-fn local_policy(action_dir: &Path) -> SandboxPolicy {
+fn local_policy(action_dir: &Path, state_dir: &Path) -> SandboxPolicy {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         action_dir,
+        state_dir,
         &RuntimeConfig::default(),
         false,
     );
@@ -352,7 +363,8 @@ fn entries(dir: &Path) -> Vec<String> {
 #[tokio::test]
 async fn local_jail_writes_no_capture_files_into_the_workspace_root() {
     let action = tempfile::tempdir().unwrap();
-    let policy = local_policy(action.path());
+    let state = tempfile::tempdir().unwrap();
+    let policy = local_policy(action.path(), state.path());
 
     // `ls -A` runs inside the root while the capture is live, so it sees
     // anything the capture put there (this is what `git status` saw).
@@ -368,7 +380,8 @@ async fn local_jail_writes_no_capture_files_into_the_workspace_root() {
 #[tokio::test]
 async fn concurrent_local_jail_runs_keep_their_outputs_separate() {
     let action = tempfile::tempdir().unwrap();
-    let policy = local_policy(action.path());
+    let state = tempfile::tempdir().unwrap();
+    let policy = local_policy(action.path(), state.path());
 
     let (a, b) = tokio::join!(
         run_local(&policy, "echo a1; echo a-err >&2; sleep 0.4; echo a2"),
