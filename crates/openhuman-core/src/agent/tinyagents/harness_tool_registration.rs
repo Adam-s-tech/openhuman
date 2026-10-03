@@ -69,7 +69,7 @@ pub(crate) fn typed_dispatch_for(
 
 /// Whether `name` is one of the model-facing per-thread goal tools
 /// (`goal_get` / `goal_set` / `goal_complete`), named by their owner.
-fn is_thread_goal_tool(name: &str) -> bool {
+pub(crate) fn is_thread_goal_tool(name: &str) -> bool {
     GoalToolKind::MODEL_FACING
         .iter()
         .any(|kind| kind.name() == name)
