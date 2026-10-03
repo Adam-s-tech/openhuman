@@ -138,9 +138,7 @@ async fn a_call_reaches_the_server_and_its_output_is_scrubbed() {
         .iter()
         .find(|tool| tool.name() == name("readGoals"))
         .unwrap();
-    let result = read.execute(json!({ "list": "work" })).await;
-    if result.is_err() { eprintln!("DBGPROXY {:?} env={:?}", crate::config::runtime_proxy_config(), std::env::vars().filter(|(k,_)| k.to_lowercase().contains("proxy")).collect::<Vec<_>>()); }
-    let result = result.unwrap();
+    let result = read.execute(json!({ "list": "work" })).await.unwrap();
     assert!(!result.is_error, "{}", result.text());
     assert_eq!(result.text(), "goals for [redacted]");
 }
@@ -157,9 +155,7 @@ async fn a_remote_call_error_is_scrubbed() {
         .find(|tool| tool.name() == name("readGoals"))
         .unwrap();
 
-    let result = read.execute(json!({ "name": "fail" })).await;
-    if result.is_err() { eprintln!("DBGPROXY {:?} env={:?}", crate::config::runtime_proxy_config(), std::env::vars().filter(|(k,_)| k.to_lowercase().contains("proxy")).collect::<Vec<_>>()); }
-    let result = result.unwrap();
+    let result = read.execute(json!({ "name": "fail" })).await.unwrap();
     assert!(result.is_error);
     let text = result.text();
     assert!(text.contains("[redacted]"), "{text}");
