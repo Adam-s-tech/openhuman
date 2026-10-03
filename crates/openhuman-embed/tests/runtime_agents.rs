@@ -237,7 +237,7 @@ fn one_runtime_hosts_independently_configured_agents() {
                                 format!("{}/v1", budget_provider.uri()),
                                 "sk-budget",
                             )
-                            .model("budget-model"),
+                            .model("gpt-5.5"),
                         )
                         .access(Access::full())
                         .definition(
