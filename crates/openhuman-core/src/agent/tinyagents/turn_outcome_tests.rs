@@ -9,7 +9,7 @@ fn response(finish_reason: &str, text: &str) -> ModelResponse {
             signature: None,
         }]
     } else {
-        vec![ContentBlock::text(text)]
+        vec![ContentBlock::Text(text.to_string())]
     };
     ModelResponse {
         message: AssistantMessage {
