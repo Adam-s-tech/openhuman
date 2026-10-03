@@ -29,6 +29,13 @@
   },
   {
     "rule": "openhuman-runtime-bridge",
+    "path": "crates/openhuman-core/src/agent/tinyagents/harness_assembly_tests.rs",
+    "line": 66,
+    "text": "let assembled = assemble_turn_harness(",
+    "occurrence": 1
+  },
+  {
+    "rule": "openhuman-runtime-bridge",
     "path": "crates/openhuman-core/src/agent/tinyagents/harness_assembly.rs",
     "line": 114,
     "text": "pub(super) fn assemble_turn_harness(",
@@ -51,14 +58,14 @@
   {
     "rule": "openhuman-runtime-bridge",
     "path": "crates/openhuman-core/src/agent/tinyagents/turn_runner.rs",
-    "line": 84,
+    "line": 88,
     "text": "pub(crate) async fn run_turn_via_tinyagents_shared(",
     "occurrence": 1
   },
   {
     "rule": "openhuman-runtime-bridge",
     "path": "crates/openhuman-core/src/agent/tinyagents/turn_runner.rs",
-    "line": 260,
+    "line": 268,
     "text": "} = assemble_turn_harness(",
     "occurrence": 1
   },
@@ -422,21 +429,21 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 256,
+    "line": 264,
     "text": "if self.auto_save && crate::agent::turn_origin::current_is_user_authored() {",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 859,
+    "line": 802,
     "text": "workspace_descriptor: crate::agent::harness::current_parent()",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 1329,
+    "line": 1272,
     "text": "request_id: crate::agent::turn_origin::current_request_id(),",
     "occurrence": 1
   },
@@ -723,7 +730,7 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/inference/host_runtime/ops/agent_chat.rs",
-    "line": 298,
+    "line": 310,
     "text": "let run = crate::agent::turn_origin::with_origin(",
     "occurrence": 1
   },
@@ -1339,21 +1346,21 @@
   {
     "rule": "tinyagents-tool-calling-facade",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect.rs",
-    "line": 21,
+    "line": 22,
     "text": "use tinytools_agent::dialect::{CodeDialect, CodeStyle, PFormatDialect};",
     "occurrence": 1
   },
   {
     "rule": "tinyagents-tool-calling-facade",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect.rs",
-    "line": 22,
+    "line": 23,
     "text": "use tinytools_agent::types::{ParseDiagnostic, ParseOptions, ParsedToolCall};",
     "occurrence": 1
   },
   {
     "rule": "tinyagents-tool-calling-facade",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect.rs",
-    "line": 23,
+    "line": 24,
     "text": "use tinytools_agent::{PFormatRegistry, StreamScrubber};",
     "occurrence": 1
   },
@@ -1367,7 +1374,7 @@
   {
     "rule": "tinyagents-tool-calling-facade",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/tools.rs",
-    "line": 2247,
+    "line": 2222,
     "text": "use tinytools_agent::repair::args;",
     "occurrence": 1
   },
@@ -1409,7 +1416,7 @@
   {
     "rule": "tinyagents-upstream-reexport",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/tool/discover/mod.rs",
-    "line": 33,
+    "line": 30,
     "text": "pub use tinytools::rank::{Bm25Index, tokenize};",
     "occurrence": 1
   },
