@@ -57,7 +57,7 @@ async fn web_research_concludes_after_eight_reads() {
 async fn the_concluding_instruction_says_tools_are_gone() {
     let mw = ResearchBudgetMiddleware::new();
     let mut run = ctx();
-    for i in 0..DIRECT_WEB_READ_LIMIT {
+    for i in 0..research_budget::DIRECT_WEB_READ_LIMIT {
         mw.after_tool(
             &mut run,
             &(),
