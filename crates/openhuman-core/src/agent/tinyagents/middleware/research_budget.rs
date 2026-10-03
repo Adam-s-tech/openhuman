@@ -28,6 +28,13 @@ pub(super) const DIRECT_WEB_READ_LIMIT: usize = 8;
 /// any call that still arrives (tinyagents `TextRecovery::withholding`).
 pub(crate) const RESEARCH_CLOSE_INSTRUCTION: &str = "The direct web research budget for this turn is exhausted, and tools are no longer available for this reply: any tool call you write now will not run. Answer the user's latest request now in plain text, using only the results already available. State any remaining uncertainty. Do not search again, repeat a page fetch, or merely describe what you plan to read.";
 
+/// The instruction appended when the budget is spent but the run still has
+/// non-web tools: only web access is exhausted, not the task (#6959).
+pub(crate) const WEB_BUDGET_EXHAUSTED_INSTRUCTION: &str = "The direct web research budget for this turn is exhausted, so the web tools have been removed. Continue the task with your remaining tools, using the web results already available. Do not try to search or fetch pages again.";
+
+/// The one-time note sent after consecutive failed web calls.
+pub(crate) const WEB_BLOCKED_NOTE: &str = "Web access looks blocked: the last web calls failed. Do not keep retrying web tools; continue the task with your other tools and the information already available.";
+
 #[derive(Default)]
 pub(crate) struct ResearchBudgetMiddleware {
     completed_reads: AtomicUsize,
