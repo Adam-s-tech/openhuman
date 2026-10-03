@@ -11,8 +11,8 @@ mod types;
 pub use enforcement::validate_path_within_root;
 pub use enforcement::{ensure_openhuman_scratch_dir, openhuman_scratch_dir};
 pub use types::{
-    ActionTracker, AutonomyLevel, CommandClass, CommandRiskLevel, GateDecision, SecurityPolicy,
-    tool_result_artifacts_dir, ToolOperation, TrustedAccess, TrustedRoot, POLICY_BLOCKED_MARKER,
+    tool_result_artifacts_dir, ActionTracker, AutonomyLevel, CommandClass, CommandRiskLevel,
+    GateDecision, SecurityPolicy, ToolOperation, TrustedAccess, TrustedRoot, POLICY_BLOCKED_MARKER,
     POLICY_DENIED_MARKER,
 };
 

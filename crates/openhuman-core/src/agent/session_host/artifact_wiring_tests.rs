@@ -17,7 +17,9 @@ fn stale_session(root: &Path, session: &str) -> PathBuf {
     // A directory's own mtime counts toward freshness too.
     for d in [dir.as_path(), dir.parent().unwrap()] {
         let handle = std::fs::File::open(d).unwrap();
-        handle.set_modified(std::time::SystemTime::now() - 2 * DAY).unwrap();
+        handle
+            .set_modified(std::time::SystemTime::now() - 2 * DAY)
+            .unwrap();
     }
     root.join(session)
 }

@@ -40,7 +40,10 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     let expected = workspace.join("artifacts/tool-results/session_one/shell/call-1.txt");
     let pointer = expected.to_string_lossy().into_owned();
     assert!(outcome.persisted);
-    assert!(out.contains(&format!("artifact_path: {pointer}\n")), "{out}");
+    assert!(
+        out.contains(&format!("artifact_path: {pointer}\n")),
+        "{out}"
+    );
     assert!(out.contains("original_bytes:"));
     assert!(out.contains("[preview]"));
     assert!(!out.contains("ghp_abcdefghijklmnopqrstuvwxyz123456"));
