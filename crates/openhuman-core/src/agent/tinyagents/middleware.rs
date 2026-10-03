@@ -37,6 +37,7 @@ mod research_budget;
 mod tool_exposure;
 mod tool_outcome_capture;
 mod tool_output;
+mod tool_output_file_read;
 mod tool_policy;
 mod turn_context;
 

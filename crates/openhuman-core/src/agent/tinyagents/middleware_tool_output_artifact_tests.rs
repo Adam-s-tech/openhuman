@@ -25,6 +25,7 @@ fn artifact_mw(
         focus_by_call: Default::default(),
         summary_focus_tools: Default::default(),
         raw_fetches: Default::default(),
+        file_reads: Default::default(),
     }
 }
 
@@ -79,8 +80,8 @@ async fn a_wrapped_read_of_a_persisted_artifact_is_paged_not_resummarized_or_rep
 #[tokio::test]
 async fn a_read_of_an_absolute_artifact_pointer_is_paged_not_repersisted() {
     let tmp = tempfile::tempdir().unwrap();
-    let storage = tmp.path().join("tool-results");
-    let mw = artifact_mw(Some(summarized("SUMMARY")), &storage);
+    let storage = tmp.path();
+    let mw = artifact_mw(Some(summarized("SUMMARY")), storage);
     let pointer = storage
         .join("tool-results/session/shell/earlier.txt")
         .to_string_lossy()
