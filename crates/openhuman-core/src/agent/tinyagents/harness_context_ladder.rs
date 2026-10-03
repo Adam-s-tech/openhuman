@@ -67,7 +67,7 @@ pub(super) fn install_context_ladder(
     //
     // 1. `ContextCompressionMiddleware` — the **summarization** step. Once the
     //    running token estimate crosses `window * SUMMARIZE_THRESHOLD_FRACTION`
-    //    (90% of *this model's* context window, or the absolute
+    //    (min(80% of *this model's* context window, 350k tokens), or the absolute
     //    `compaction_trigger_tokens` override), it folds the older slice of the
     //    transcript into a single LLM-generated, user-role checkpoint (keeping
     //    system messages + the recent window verbatim). This is keyed to whatever model
@@ -298,7 +298,8 @@ pub(super) fn compression_middleware(
 /// The summarization policy for this turn, or `None` when compaction has
 /// nothing to size against.
 ///
-/// Normally 90% of the model's context window. `trigger_override` (the
+/// Normally `min(80% of the model's context window, 350k tokens)` (TinyAgents
+/// `summarization_policy`). `trigger_override` (the
 /// `[context].compaction_trigger_tokens` / `OPENHUMAN_COMPACTION_TRIGGER_TOKENS`
 /// bench knob) pins the trigger to that absolute token count instead, and
 /// enables compaction even when the window is unknown.

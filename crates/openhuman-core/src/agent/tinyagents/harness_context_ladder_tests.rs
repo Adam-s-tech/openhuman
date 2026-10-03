@@ -9,10 +9,13 @@ fn no_window_and_no_override_installs_no_compression() {
 }
 
 #[test]
-fn a_known_window_triggers_at_ninety_percent() {
+fn a_known_window_triggers_at_eighty_percent_capped_at_350k() {
     let policy = compression_policy(Some(200_000), None).expect("policy");
-    assert_eq!(policy.trigger_budget(), 180_000);
+    assert_eq!(policy.trigger_budget(), 160_000);
     assert_eq!(policy.keep_last, DEFAULT_SUMMARIZE_KEEP_LAST);
+    // DeepSeek V4 Flash's discovered 1M window compacts at 350k, not ~840k.
+    let policy = compression_policy(Some(1_048_576), None).expect("policy");
+    assert!(policy.trigger_budget().abs_diff(350_000) <= 1);
 }
 
 #[test]
