@@ -38,10 +38,26 @@ impl CapturedOutcomes for OutcomeSinkSource {
     }
 }
 
-/// The compression policy for a model with a `window`-token context: the
-/// default threshold, for now unchanged.
-pub(super) fn compression_policy(window: u64) -> tinyagents_harness::summarization::SummarizationPolicy {
-    tinyagents_harness::summarization::summarization_policy(window)
+/// Share of the context window a compaction keeps verbatim as its recent tail.
+const COMPACTION_TAIL_FRACTION: f64 = 0.30;
+
+/// The compression policy for a model with a `window`-token context (#6960).
+///
+/// The crate default keeps the last eight messages and summarizes the rest. A
+/// long tool-driven turn crosses the threshold mid-turn, so its only user
+/// message — the assignment — was folded into the summary, and the agent lost
+/// the task. This keeps ~30% of the window verbatim instead (a token tail, not
+/// a count) and pins the turn's user message to the front of that tail.
+pub(super) fn compression_policy(
+    window: u64,
+) -> tinyagents_harness::summarization::SummarizationPolicy {
+    let keep_tokens = (window as f64 * COMPACTION_TAIL_FRACTION) as u64;
+    tracing::debug!(
+        window,
+        keep_tokens,
+        "[context_ladder] compression policy: token tail with the turn's user message pinned"
+    );
+    tinyagents_harness::summarization::summarization_policy_with_tail(window, keep_tokens)
 }
 
 /// Push the context ladder onto `harness` and return the two handles the run
