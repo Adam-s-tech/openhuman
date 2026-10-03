@@ -84,9 +84,13 @@ pub(crate) struct TinyagentsTurnOutcome {
 /// before producing anything: `finish_reason = length`, no visible text and no
 /// tool call. See [`TinyagentsTurnOutcome::truncated`].
 pub(crate) fn ended_out_of_output_budget(
-    _final_response: Option<&tinyinference_llm::model::ModelResponse>,
+    final_response: Option<&tinyinference_llm::model::ModelResponse>,
 ) -> bool {
-    false
+    final_response.is_some_and(|response| {
+        response.finish_reason.as_deref() == Some("length")
+            && response.message.tool_calls.is_empty()
+            && response.text().trim().is_empty()
+    })
 }
 
 /// One tool call's execution outcome, captured at the tool boundary before the

@@ -232,6 +232,18 @@ pub(super) async fn finalize_turn_outcome(
         text = summary.clone();
     }
 
+    // #6951: the run finished on a reply that spent the whole output budget
+    // reasoning. The closing call names that cause instead of "finished".
+    let truncated = super::turn_outcome::ended_out_of_output_budget(run.final_response.as_ref());
+    if truncated {
+        tracing::warn!(
+            model,
+            model_calls = run.model_calls,
+            tool_calls = run.tool_calls,
+            "[tinyagents] turn ended on a reply that ran out of output tokens while reasoning"
+        );
+    }
+
     let tool_outcomes = tool_outcome_sink
         .lock()
         .map(|guard| guard.clone())
@@ -286,7 +298,7 @@ pub(super) async fn finalize_turn_outcome(
         hit_cap,
         wrap_up_injected,
         breaker_halt,
-        truncated: false,
+        truncated,
         tool_outcomes,
     }
 }
