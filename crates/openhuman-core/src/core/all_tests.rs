@@ -200,7 +200,7 @@ fn all_controller_schemas_matches_registered_count() {
     let visible: Vec<_> = view.iter().filter(|g| group_allowed(g.group)).collect();
     let schemas = visible.iter().map(|g| &g.controller.schema).count();
     let controllers = visible.len();
-    assert_eq!(schemas.len(), controllers);
+    assert_eq!(schemas, controllers);
 }
 
 /// With the `voice` feature on (the default), the voice + audio_toolkit

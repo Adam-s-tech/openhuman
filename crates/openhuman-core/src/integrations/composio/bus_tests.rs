@@ -6,6 +6,7 @@ use super::*;
 use crate::core::events::DomainEvent;
 use serde_json::json;
 use tinybus::EventHandler;
+use tokio::sync::Mutex;
 
 static TRIAGE_ENV_GUARD: Mutex<()> = Mutex::new(());
 
