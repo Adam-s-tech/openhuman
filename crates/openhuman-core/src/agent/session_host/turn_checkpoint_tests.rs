@@ -234,12 +234,12 @@ fn the_final_answer_instruction_carries_the_records_and_the_stop_note() {
         1_000,
     );
 
-    let plain = final_answer_instruction(None, &records);
+    let plain = final_answer_instruction(None, false, &records);
     assert!(plain.contains("<tool_records>") && plain.contains("  > no direct download"));
     assert!(!plain.contains("<stop_note>"));
     assert!(plain.contains("do not describe steps you are about to take"));
 
-    let halted = final_answer_instruction(Some(STOP_NOTE), &records);
+    let halted = final_answer_instruction(Some(STOP_NOTE), false, &records);
     assert!(halted.contains(&format!("<stop_note>\n{STOP_NOTE}\n</stop_note>")));
     assert!(halted.contains("  > no direct download"));
 }
@@ -277,7 +277,7 @@ fn the_close_verification_prompt_holds_request_records_and_reply() {
 /// is grounded in, and names the three shapes that reached a user's screen.
 #[test]
 fn the_final_answer_instruction_is_framed_and_forbids_quoting_tools_and_deliberation() {
-    let out = final_answer_instruction(None, "\n- `read_file` — ok\n  > config found\n");
+    let out = final_answer_instruction(None, false, "\n- `read_file` — ok\n  > config found\n");
 
     let frame_end = out
         .find("</harness_instruction>")
@@ -423,7 +423,7 @@ fn the_close_verification_prompt_rejects_deliberation_and_recited_toolsets() {
 /// carries the original instruction so the retry still has the records.
 #[test]
 fn the_repair_re_ask_names_the_violation_and_repeats_the_instruction() {
-    let instruction = final_answer_instruction(None, "\n- `read_file` — ok\n  > config found\n");
+    let instruction = final_answer_instruction(None, false, "\n- `read_file` — ok\n  > config found\n");
 
     let quoted = close_repair_instruction(&instruction, CloseViolation::QuotedHarnessText);
     assert!(quoted.contains("repeated these directions"), "{quoted}");

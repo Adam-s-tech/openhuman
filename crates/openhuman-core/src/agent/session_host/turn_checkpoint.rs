@@ -419,7 +419,11 @@ pub(crate) fn close_repair_instruction(instruction: &str, violation: CloseViolat
 /// The stop note is passed as input, not as text to repeat. The breaker words it
 /// for a model ("Report this back instead of retrying"), which is right for a
 /// sub-agent's parent and wrong on a user's screen.
-pub(crate) fn final_answer_instruction(stop_reason: Option<&str>, records: &str) -> String {
+pub(crate) fn final_answer_instruction(
+    stop_reason: Option<&str>,
+    _truncated: bool,
+    records: &str,
+) -> String {
     let mut directive = String::new();
     if let Some(reason) = stop_reason {
         directive.push_str(STOP_NOTE_PREAMBLE);

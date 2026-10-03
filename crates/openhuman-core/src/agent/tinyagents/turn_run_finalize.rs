@@ -286,6 +286,7 @@ pub(super) async fn finalize_turn_outcome(
         hit_cap,
         wrap_up_injected,
         breaker_halt,
+        truncated: false,
         tool_outcomes,
     }
 }

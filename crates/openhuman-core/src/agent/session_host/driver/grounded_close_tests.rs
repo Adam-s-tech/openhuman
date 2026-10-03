@@ -24,6 +24,7 @@ fn classified_halt_returns_partial_work_without_provider_usage() {
         early_exit_tool: None,
         hit_cap: false,
         wrap_up_injected: false,
+        truncated: false,
         breaker_halt: Some("Stopping after 1 attempt(s): failure class `permission` still blocks operation `search` on `catalog`. Resolve this blocker before retrying.".into()),
         tool_outcomes: vec![
             ToolCallOutcome { call_id: "a".into(), name: "list".into(), arguments: serde_json::json!({}), success: true, content: "three items".into(), duration_ms: 1 },
@@ -53,7 +54,7 @@ fn leaking_reply() -> String {
 /// returning the shipped message, the prompts each attempt was given, the
 /// candidates that reached the verifier, and the usage recorded.
 async fn run(candidates: Vec<String>, verdicts: Vec<Option<CloseViolation>>) -> Shipped {
-    let instruction = final_answer_instruction(None, RECORDS);
+    let instruction = final_answer_instruction(None, false, RECORDS);
     let prompts = RefCell::new(Vec::<String>::new());
     let verified = RefCell::new(Vec::<String>::new());
     let remaining = RefCell::new(candidates);

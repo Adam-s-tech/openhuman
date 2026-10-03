@@ -65,6 +65,13 @@ pub(crate) struct TinyagentsTurnOutcome {
     /// `text` already carries this same summary; the flag lets the status mapper
     /// distinguish a breaker halt from a genuine final answer.
     pub breaker_halt: Option<String>,
+    /// `true` when the run ended on a reply that ran out of output tokens
+    /// (`finish_reason = length`) with no visible text and no tool call — the
+    /// model spent its whole output budget reasoning, even after the harness's
+    /// truncated-empty retries and nudge (#6951). `text` is then blank, and
+    /// the closing call must say the budget ran out rather than claim the
+    /// model finished using tools.
+    pub truncated: bool,
     /// Per-tool-call execution outcomes (success + raw result content), keyed by
     /// provider call id, captured at the tool boundary. The harness folds a tool
     /// result into a `Message::tool` that drops its `error` flag, so this is the
