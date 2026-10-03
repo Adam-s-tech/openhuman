@@ -576,7 +576,10 @@ async fn landlock_jail_cannot_read_the_users_ssh_directory() {
     if !landlock_in_force() {
         return;
     }
-    let Some(ssh) = dirs::home_dir().map(|h| h.join(".ssh")).filter(|p| p.is_dir()) else {
+    let Some(ssh) = dirs::home_dir()
+        .map(|h| h.join(".ssh"))
+        .filter(|p| p.is_dir())
+    else {
         eprintln!("SKIP: no ~/.ssh on this host");
         return;
     };
@@ -587,14 +590,15 @@ async fn landlock_jail_cannot_read_the_users_ssh_directory() {
     assert!(!r.success(), "~/.ssh must stay unreachable from the jail");
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn local_handle_status_matches_the_backend_actually_in_force() {
     let action = tempfile::tempdir().unwrap();
     let state = tempfile::tempdir().unwrap();
     let handle = create_sandbox_backend(&local_policy(action.path(), state.path())).await;
     let name = handle.backend_id.clone().unwrap();
-    let unconfined = name == cwd_jail::NOOP_BACKEND_NAME
-        || name == cwd_jail::detect::UNSUPPORTED_BACKEND_NAME;
+    let unconfined =
+        name == cwd_jail::NOOP_BACKEND_NAME || name == cwd_jail::detect::UNSUPPORTED_BACKEND_NAME;
     assert_eq!(
         handle.status,
         if unconfined {
