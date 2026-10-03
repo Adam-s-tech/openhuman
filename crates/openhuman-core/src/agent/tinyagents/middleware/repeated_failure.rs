@@ -250,6 +250,18 @@ pub(super) fn recovery_policy(
     Some((class, budget))
 }
 
+/// Prefix of `tinytools::render_command_failure`, the one renderer every
+/// shell-family tool uses for a command that ran and did not exit 0: an
+/// exit-code (or signal) line, then the program's own stdout and stderr.
+const COMMAND_EXIT_REPORT_PREFIX: &str = "Command failed (";
+
+/// Whether `error` is a finished command's exit report rather than a failure
+/// of the tool itself (a timeout, a policy refusal, a runtime that could not
+/// be resolved), which the tools word differently.
+fn is_command_exit_report(error: &str) -> bool {
+    error.trim_start().starts_with(COMMAND_EXIT_REPORT_PREFIX)
+}
+
 /// Tools whose first argument is a filesystem path the model typed.
 fn is_path_tool(tool: &str) -> bool {
     matches!(
@@ -468,6 +480,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 "transient",
                 "uncertain_side_effect",
                 "validation",
+                "unavailable",
             ] {
                 self.classified
                     .clear(&ClassifiedFailure::new(class, tool_name, &scope));
@@ -496,12 +509,17 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 }
                 if matches!(
                     class,
-                    "missing_window" | "missing_app" | "validation" | "uncertain_side_effect"
+                    "missing_window"
+                        | "missing_app"
+                        | "validation"
+                        | "uncertain_side_effect"
+                        | "unavailable"
                 ) {
                     let instruction = match class {
-                        "validation" => "The last call failed validation. Correct its schema or arguments once before trying again.",
-                        "uncertain_side_effect" => "The last command timed out and was killed; it may have partly run. Check its effect before repeating anything, then retry at most once as a smaller, bounded step (fewer items per call, a per-item timeout such as `timeout 5`, or background it and poll).",
-                        _ => "The desktop target was not found. Rediscover the current app and window once before trying again.",
+                        "validation" => "The last call failed validation. Correct its schema or arguments once before trying again.".to_owned(),
+                        "uncertain_side_effect" => "The last command timed out and was killed; it may have partly run. Check its effect before repeating anything, then retry at most once as a smaller, bounded step (fewer items per call, a per-item timeout such as `timeout 5`, or background it and poll).".to_owned(),
+                        "unavailable" => format!("The `{tool_name}` tool is unavailable for the rest of this run: a module it needs failed to load and will not recover until the app restarts. Do not call `{tool_name}` again; continue with your other tools."),
+                        _ => "The desktop target was not found. Rediscover the current app and window once before trying again.".to_owned(),
                     };
                     tracing::debug!(
                         tool = tool_name,
