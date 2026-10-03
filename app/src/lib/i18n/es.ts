@@ -4945,6 +4945,22 @@ const messages: TranslationMap = {
     'El resumen con el que empieza cada chat nuevo, compilado a partir de tu memoria.',
   'memoryPage.loading': 'Cargando memoria…',
   'memoryPage.loadMore': 'Cargar más',
+  'memoryPage.backfill.title': 'Conversaciones anteriores',
+  'memoryPage.backfill.description':
+    'Los chats de antes de activar el guardado automático no están en la memoria hasta que los sincronices.',
+  'memoryPage.backfill.pending': '{threads} chats ({turns} turnos) aún no están en la memoria.',
+  'memoryPage.backfill.upToDate': 'Todas las conversaciones anteriores están en la memoria.',
+  'memoryPage.backfill.action': 'Sincronizar conversaciones anteriores',
+  'memoryPage.backfill.resume': 'Reanudar sincronización',
+  'memoryPage.backfill.running': 'Sincronizando conversaciones anteriores',
+  'memoryPage.backfill.progress':
+    '{done} de {total} chats sincronizados · {turns} turnos guardados',
+  'memoryPage.backfill.done': 'Se guardaron {turns} turnos de {threads} chats.',
+  'memoryPage.backfill.failed': 'La sincronización se detuvo antes de terminar.',
+  'memoryPage.backfill.consentTitle': '¿Sincronizar conversaciones anteriores?',
+  'memoryPage.backfill.consentBody':
+    'Tus chats anteriores se subirán a tu motor de memoria y se guardarán como cualquier otra conversación. Nunca se incluyen los argumentos de herramientas. Sincronizar más tarde solo envía lo nuevo.',
+  'memoryPage.backfill.consentConfirm': 'Sincronizar ahora',
   'memoryPage.tabs.explorer': 'Explorador',
   'memoryPage.header.explorer':
     'Explora todo lo que guarda tu memoria, por origen, carpeta, conversación o etiqueta.',

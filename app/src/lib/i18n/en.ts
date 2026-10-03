@@ -5130,6 +5130,21 @@ const en: TranslationMap = {
   'memoryPage.header.context': 'The brief every new chat starts with, compiled from your memory.',
   'memoryPage.loading': 'Loading memory…',
   'memoryPage.loadMore': 'Load more',
+  'memoryPage.backfill.title': 'Past conversations',
+  'memoryPage.backfill.description':
+    'Chats from before automatic saving was turned on are not in memory until you sync them.',
+  'memoryPage.backfill.pending': '{threads} chats ({turns} turns) are not in memory yet.',
+  'memoryPage.backfill.upToDate': 'All past conversations are in memory.',
+  'memoryPage.backfill.action': 'Sync past conversations',
+  'memoryPage.backfill.resume': 'Resume sync',
+  'memoryPage.backfill.running': 'Syncing past conversations',
+  'memoryPage.backfill.progress': '{done} of {total} chats synced · {turns} turns stored',
+  'memoryPage.backfill.done': 'Stored {turns} turns from {threads} chats.',
+  'memoryPage.backfill.failed': 'The sync stopped before it finished.',
+  'memoryPage.backfill.consentTitle': 'Sync past conversations?',
+  'memoryPage.backfill.consentBody':
+    'Your past chats will be uploaded to your memory engine and kept like any other conversation. Tool arguments are never included. Syncing again later only sends what is new.',
+  'memoryPage.backfill.consentConfirm': 'Sync now',
   'memoryPage.tabs.explorer': 'Explorer',
   'memoryPage.header.explorer':
     'Browse everything your memory holds, by source, folder, thread or tag.',

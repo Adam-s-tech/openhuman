@@ -4987,6 +4987,23 @@ const messages: TranslationMap = {
     'Die Kurzfassung, mit der jeder neue Chat beginnt, erstellt aus deinem Gedächtnis.',
   'memoryPage.loading': 'Gedächtnis wird geladen…',
   'memoryPage.loadMore': 'Mehr laden',
+  'memoryPage.backfill.title': 'Frühere Unterhaltungen',
+  'memoryPage.backfill.description':
+    'Chats von vor dem Einschalten der automatischen Speicherung sind erst im Gedächtnis, wenn Sie sie synchronisieren.',
+  'memoryPage.backfill.pending':
+    '{threads} Chats ({turns} Gesprächsrunden) sind noch nicht im Gedächtnis.',
+  'memoryPage.backfill.upToDate': 'Alle früheren Unterhaltungen sind im Gedächtnis.',
+  'memoryPage.backfill.action': 'Frühere Unterhaltungen synchronisieren',
+  'memoryPage.backfill.resume': 'Synchronisierung fortsetzen',
+  'memoryPage.backfill.running': 'Frühere Unterhaltungen werden synchronisiert',
+  'memoryPage.backfill.progress':
+    '{done} von {total} Chats synchronisiert · {turns} Gesprächsrunden gespeichert',
+  'memoryPage.backfill.done': '{turns} Gesprächsrunden aus {threads} Chats gespeichert.',
+  'memoryPage.backfill.failed': 'Die Synchronisierung wurde vor dem Ende angehalten.',
+  'memoryPage.backfill.consentTitle': 'Frühere Unterhaltungen synchronisieren?',
+  'memoryPage.backfill.consentBody':
+    'Ihre früheren Chats werden in Ihre Gedächtnis-Engine hochgeladen und wie jede andere Unterhaltung aufbewahrt. Werkzeugargumente werden nie übernommen. Eine spätere Synchronisierung sendet nur Neues.',
+  'memoryPage.backfill.consentConfirm': 'Jetzt synchronisieren',
   'memoryPage.tabs.explorer': 'Explorer',
   'memoryPage.header.explorer':
     'Durchsuchen Sie alles, was Ihr Gedächtnis enthält, nach Quelle, Ordner, Unterhaltung oder Schlagwort.',

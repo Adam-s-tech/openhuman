@@ -4919,6 +4919,22 @@ const messages: TranslationMap = {
     'Podsumowanie, od którego zaczyna się każdy nowy czat, zebrane z Twojej pamięci.',
   'memoryPage.loading': 'Wczytywanie pamięci…',
   'memoryPage.loadMore': 'Wczytaj więcej',
+  'memoryPage.backfill.title': 'Wcześniejsze rozmowy',
+  'memoryPage.backfill.description':
+    'Czaty sprzed włączenia automatycznego zapisu trafią do pamięci dopiero po synchronizacji.',
+  'memoryPage.backfill.pending': 'Czaty jeszcze poza pamięcią: {threads} (tury: {turns}).',
+  'memoryPage.backfill.upToDate': 'Wszystkie wcześniejsze rozmowy są w pamięci.',
+  'memoryPage.backfill.action': 'Synchronizuj wcześniejsze rozmowy',
+  'memoryPage.backfill.resume': 'Wznów synchronizację',
+  'memoryPage.backfill.running': 'Synchronizowanie wcześniejszych rozmów',
+  'memoryPage.backfill.progress':
+    'Zsynchronizowano {done} z {total} czatów · zapisane tury: {turns}',
+  'memoryPage.backfill.done': 'Zapisano tury: {turns} z czatów: {threads}.',
+  'memoryPage.backfill.failed': 'Synchronizacja zatrzymała się przed końcem.',
+  'memoryPage.backfill.consentTitle': 'Zsynchronizować wcześniejsze rozmowy?',
+  'memoryPage.backfill.consentBody':
+    'Twoje wcześniejsze czaty zostaną przesłane do silnika pamięci i zachowane jak każda inna rozmowa. Argumenty narzędzi nigdy nie są dołączane. Kolejna synchronizacja wysyła tylko nowe treści.',
+  'memoryPage.backfill.consentConfirm': 'Synchronizuj teraz',
   'memoryPage.tabs.explorer': 'Eksplorator',
   'memoryPage.header.explorer':
     'Przeglądaj wszystko, co zawiera Twoja pamięć, według źródła, folderu, rozmowy lub tagu.',

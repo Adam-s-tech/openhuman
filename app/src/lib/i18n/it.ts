@@ -4931,6 +4931,21 @@ const messages: TranslationMap = {
     'Il riepilogo con cui inizia ogni nuova chat, compilato dalla tua memoria.',
   'memoryPage.loading': 'Caricamento della memoria…',
   'memoryPage.loadMore': 'Carica altro',
+  'memoryPage.backfill.title': 'Conversazioni passate',
+  'memoryPage.backfill.description':
+    'Le chat precedenti all’attivazione del salvataggio automatico non sono in memoria finché non le sincronizzi.',
+  'memoryPage.backfill.pending': '{threads} chat ({turns} turni) non sono ancora in memoria.',
+  'memoryPage.backfill.upToDate': 'Tutte le conversazioni passate sono in memoria.',
+  'memoryPage.backfill.action': 'Sincronizza conversazioni passate',
+  'memoryPage.backfill.resume': 'Riprendi sincronizzazione',
+  'memoryPage.backfill.running': 'Sincronizzazione delle conversazioni passate',
+  'memoryPage.backfill.progress': '{done} di {total} chat sincronizzate · {turns} turni salvati',
+  'memoryPage.backfill.done': 'Salvati {turns} turni da {threads} chat.',
+  'memoryPage.backfill.failed': 'La sincronizzazione si è interrotta prima di finire.',
+  'memoryPage.backfill.consentTitle': 'Sincronizzare le conversazioni passate?',
+  'memoryPage.backfill.consentBody':
+    'Le tue chat passate verranno caricate nel motore di memoria e conservate come qualsiasi altra conversazione. Gli argomenti degli strumenti non vengono mai inclusi. Le sincronizzazioni successive inviano solo le novità.',
+  'memoryPage.backfill.consentConfirm': 'Sincronizza ora',
   'memoryPage.tabs.explorer': 'Esplora',
   'memoryPage.header.explorer':
     'Sfoglia tutto ciò che la tua memoria contiene, per fonte, cartella, conversazione o etichetta.',

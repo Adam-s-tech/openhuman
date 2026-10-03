@@ -4851,6 +4851,22 @@ const messages: TranslationMap = {
   'memoryPage.header.context': 'প্রতিটি নতুন চ্যাটের শুরুর সারসংক্ষেপ, যা আপনার মেমোরি থেকে তৈরি।',
   'memoryPage.loading': 'মেমোরি লোড হচ্ছে…',
   'memoryPage.loadMore': 'আরও লোড করুন',
+  'memoryPage.backfill.title': 'আগের কথোপকথন',
+  'memoryPage.backfill.description':
+    'স্বয়ংক্রিয় সংরক্ষণ চালুর আগের চ্যাটগুলো সিঙ্ক না করা পর্যন্ত মেমোরিতে থাকে না।',
+  'memoryPage.backfill.pending': '{threads}টি চ্যাট ({turns}টি পালা) এখনও মেমোরিতে নেই।',
+  'memoryPage.backfill.upToDate': 'আগের সব কথোপকথন মেমোরিতে আছে।',
+  'memoryPage.backfill.action': 'আগের কথোপকথন সিঙ্ক করুন',
+  'memoryPage.backfill.resume': 'সিঙ্ক আবার শুরু করুন',
+  'memoryPage.backfill.running': 'আগের কথোপকথন সিঙ্ক হচ্ছে',
+  'memoryPage.backfill.progress':
+    '{total}টির মধ্যে {done}টি চ্যাট সিঙ্ক হয়েছে · {turns}টি পালা সংরক্ষিত',
+  'memoryPage.backfill.done': '{threads}টি চ্যাট থেকে {turns}টি পালা সংরক্ষণ করা হয়েছে।',
+  'memoryPage.backfill.failed': 'সিঙ্ক শেষ হওয়ার আগেই থেমে গেছে।',
+  'memoryPage.backfill.consentTitle': 'আগের কথোপকথন সিঙ্ক করবেন?',
+  'memoryPage.backfill.consentBody':
+    'আপনার আগের চ্যাটগুলো মেমোরি ইঞ্জিনে আপলোড হবে এবং অন্য যেকোনো কথোপকথনের মতো রাখা হবে। টুলের আর্গুমেন্ট কখনও যোগ হয় না। পরে আবার সিঙ্ক করলে শুধু নতুনগুলো পাঠানো হবে।',
+  'memoryPage.backfill.consentConfirm': 'এখনই সিঙ্ক করুন',
   'memoryPage.tabs.explorer': 'এক্সপ্লোরার',
   'memoryPage.header.explorer':
     'উৎস, ফোল্ডার, কথোপকথন বা ট্যাগ অনুযায়ী আপনার মেমোরিতে যা আছে সব দেখুন।',

@@ -4758,6 +4758,21 @@ const messages: TranslationMap = {
   'memoryPage.header.context': 'الموجز الذي تبدأ به كل محادثة جديدة، مُعدّ من ذاكرتك.',
   'memoryPage.loading': 'جارٍ تحميل الذاكرة…',
   'memoryPage.loadMore': 'تحميل المزيد',
+  'memoryPage.backfill.title': 'المحادثات السابقة',
+  'memoryPage.backfill.description':
+    'لا تُحفظ المحادثات السابقة لتفعيل الحفظ التلقائي في الذاكرة حتى تزامنها.',
+  'memoryPage.backfill.pending': '{threads} محادثة ({turns} دورًا) ليست في الذاكرة بعد.',
+  'memoryPage.backfill.upToDate': 'كل المحادثات السابقة موجودة في الذاكرة.',
+  'memoryPage.backfill.action': 'مزامنة المحادثات السابقة',
+  'memoryPage.backfill.resume': 'استئناف المزامنة',
+  'memoryPage.backfill.running': 'جارٍ مزامنة المحادثات السابقة',
+  'memoryPage.backfill.progress': 'تمت مزامنة {done} من {total} محادثة · حُفظ {turns} دورًا',
+  'memoryPage.backfill.done': 'حُفظ {turns} دورًا من {threads} محادثة.',
+  'memoryPage.backfill.failed': 'توقفت المزامنة قبل اكتمالها.',
+  'memoryPage.backfill.consentTitle': 'مزامنة المحادثات السابقة؟',
+  'memoryPage.backfill.consentBody':
+    'سيتم رفع محادثاتك السابقة إلى محرك الذاكرة وحفظها مثل أي محادثة أخرى. لا تُضمَّن وسائط الأدوات أبدًا. المزامنة لاحقًا ترسل الجديد فقط.',
+  'memoryPage.backfill.consentConfirm': 'مزامنة الآن',
   'memoryPage.tabs.explorer': 'المستكشف',
   'memoryPage.header.explorer':
     'تصفّح كل ما تحتفظ به ذاكرتك حسب المصدر أو المجلد أو المحادثة أو الوسم.',

@@ -4806,6 +4806,22 @@ const messages: TranslationMap = {
     '메모리를 바탕으로 만들어져 모든 새 채팅의 시작에 쓰이는 요약입니다.',
   'memoryPage.loading': '메모리 불러오는 중…',
   'memoryPage.loadMore': '더 보기',
+  'memoryPage.backfill.title': '이전 대화',
+  'memoryPage.backfill.description':
+    '자동 저장을 켜기 전의 채팅은 동기화하기 전까지 메모리에 없습니다.',
+  'memoryPage.backfill.pending': '채팅 {threads}개(대화 차례 {turns}개)가 아직 메모리에 없습니다.',
+  'memoryPage.backfill.upToDate': '이전 대화가 모두 메모리에 있습니다.',
+  'memoryPage.backfill.action': '이전 대화 동기화',
+  'memoryPage.backfill.resume': '동기화 이어서 하기',
+  'memoryPage.backfill.running': '이전 대화를 동기화하는 중',
+  'memoryPage.backfill.progress':
+    '채팅 {total}개 중 {done}개 동기화됨 · 대화 차례 {turns}개 저장됨',
+  'memoryPage.backfill.done': '채팅 {threads}개에서 대화 차례 {turns}개를 저장했습니다.',
+  'memoryPage.backfill.failed': '동기화가 끝나기 전에 멈췄습니다.',
+  'memoryPage.backfill.consentTitle': '이전 대화를 동기화할까요?',
+  'memoryPage.backfill.consentBody':
+    '이전 채팅이 메모리 엔진에 업로드되어 다른 대화처럼 보관됩니다. 도구 인수는 절대 포함되지 않습니다. 나중에 다시 동기화하면 새로운 내용만 보냅니다.',
+  'memoryPage.backfill.consentConfirm': '지금 동기화',
   'memoryPage.tabs.explorer': '탐색기',
   'memoryPage.header.explorer':
     '출처, 폴더, 대화 또는 태그별로 메모리에 저장된 모든 것을 둘러보세요.',

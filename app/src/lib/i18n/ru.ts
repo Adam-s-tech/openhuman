@@ -4902,6 +4902,22 @@ const messages: TranslationMap = {
     'Сводка, с которой начинается каждый новый чат, собранная из вашей памяти.',
   'memoryPage.loading': 'Загрузка памяти…',
   'memoryPage.loadMore': 'Загрузить ещё',
+  'memoryPage.backfill.title': 'Прошлые разговоры',
+  'memoryPage.backfill.description':
+    'Чаты, созданные до включения автосохранения, попадут в память только после синхронизации.',
+  'memoryPage.backfill.pending': 'Ещё не в памяти: чатов — {threads}, реплик — {turns}.',
+  'memoryPage.backfill.upToDate': 'Все прошлые разговоры уже в памяти.',
+  'memoryPage.backfill.action': 'Синхронизировать прошлые разговоры',
+  'memoryPage.backfill.resume': 'Продолжить синхронизацию',
+  'memoryPage.backfill.running': 'Синхронизация прошлых разговоров',
+  'memoryPage.backfill.progress':
+    'Синхронизировано чатов: {done} из {total} · сохранено реплик: {turns}',
+  'memoryPage.backfill.done': 'Сохранено реплик: {turns} из чатов: {threads}.',
+  'memoryPage.backfill.failed': 'Синхронизация остановилась, не завершившись.',
+  'memoryPage.backfill.consentTitle': 'Синхронизировать прошлые разговоры?',
+  'memoryPage.backfill.consentBody':
+    'Ваши прошлые чаты будут загружены в движок памяти и сохранены как любой другой разговор. Аргументы инструментов никогда не передаются. Повторная синхронизация отправит только новое.',
+  'memoryPage.backfill.consentConfirm': 'Синхронизировать',
   'memoryPage.tabs.explorer': 'Обозреватель',
   'memoryPage.header.explorer':
     'Просматривайте всё, что хранит ваша память, по источнику, папке, разговору или тегу.',

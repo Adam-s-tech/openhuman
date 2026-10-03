@@ -4852,6 +4852,21 @@ const messages: TranslationMap = {
   'memoryPage.header.context': 'हर नई चैट की शुरुआत का सार, जो आपकी मेमोरी से तैयार किया जाता है।',
   'memoryPage.loading': 'मेमोरी लोड हो रही है…',
   'memoryPage.loadMore': 'और लोड करें',
+  'memoryPage.backfill.title': 'पिछली बातचीत',
+  'memoryPage.backfill.description':
+    'स्वचालित सहेजना चालू होने से पहले की चैट तब तक मेमोरी में नहीं होतीं जब तक आप उन्हें सिंक न करें।',
+  'memoryPage.backfill.pending': '{threads} चैट ({turns} बारी) अभी मेमोरी में नहीं हैं।',
+  'memoryPage.backfill.upToDate': 'सभी पिछली बातचीत मेमोरी में हैं।',
+  'memoryPage.backfill.action': 'पिछली बातचीत सिंक करें',
+  'memoryPage.backfill.resume': 'सिंक फिर शुरू करें',
+  'memoryPage.backfill.running': 'पिछली बातचीत सिंक हो रही है',
+  'memoryPage.backfill.progress': '{total} में से {done} चैट सिंक हुईं · {turns} बारी सहेजी गईं',
+  'memoryPage.backfill.done': '{threads} चैट से {turns} बारी सहेजी गईं।',
+  'memoryPage.backfill.failed': 'सिंक पूरा होने से पहले रुक गया।',
+  'memoryPage.backfill.consentTitle': 'पिछली बातचीत सिंक करें?',
+  'memoryPage.backfill.consentBody':
+    'आपकी पिछली चैट आपके मेमोरी इंजन पर अपलोड होंगी और किसी भी अन्य बातचीत की तरह रखी जाएंगी। टूल के तर्क कभी शामिल नहीं होते। बाद में फिर सिंक करने पर केवल नया भेजा जाएगा।',
+  'memoryPage.backfill.consentConfirm': 'अभी सिंक करें',
   'memoryPage.tabs.explorer': 'एक्सप्लोरर',
   'memoryPage.header.explorer':
     'स्रोत, फ़ोल्डर, बातचीत या टैग के अनुसार अपनी मेमोरी में मौजूद सब कुछ देखें।',

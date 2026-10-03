@@ -4892,6 +4892,22 @@ const messages: TranslationMap = {
     'Ringkasan yang mengawali setiap obrolan baru, disusun dari memori Anda.',
   'memoryPage.loading': 'Memuat memori…',
   'memoryPage.loadMore': 'Muat lebih banyak',
+  'memoryPage.backfill.title': 'Percakapan sebelumnya',
+  'memoryPage.backfill.description':
+    'Obrolan dari sebelum penyimpanan otomatis aktif belum ada di memori sampai Anda menyinkronkannya.',
+  'memoryPage.backfill.pending': '{threads} obrolan ({turns} giliran) belum ada di memori.',
+  'memoryPage.backfill.upToDate': 'Semua percakapan sebelumnya sudah ada di memori.',
+  'memoryPage.backfill.action': 'Sinkronkan percakapan sebelumnya',
+  'memoryPage.backfill.resume': 'Lanjutkan sinkronisasi',
+  'memoryPage.backfill.running': 'Menyinkronkan percakapan sebelumnya',
+  'memoryPage.backfill.progress':
+    '{done} dari {total} obrolan disinkronkan · {turns} giliran disimpan',
+  'memoryPage.backfill.done': '{turns} giliran dari {threads} obrolan disimpan.',
+  'memoryPage.backfill.failed': 'Sinkronisasi berhenti sebelum selesai.',
+  'memoryPage.backfill.consentTitle': 'Sinkronkan percakapan sebelumnya?',
+  'memoryPage.backfill.consentBody':
+    'Obrolan Anda sebelumnya akan diunggah ke mesin memori dan disimpan seperti percakapan lainnya. Argumen alat tidak pernah disertakan. Sinkronisasi berikutnya hanya mengirim yang baru.',
+  'memoryPage.backfill.consentConfirm': 'Sinkronkan sekarang',
   'memoryPage.tabs.explorer': 'Penjelajah',
   'memoryPage.header.explorer':
     'Jelajahi semua yang disimpan memori Anda, menurut sumber, folder, percakapan, atau tag.',

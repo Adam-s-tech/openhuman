@@ -4967,6 +4967,23 @@ const messages: TranslationMap = {
     'Le résumé qui ouvre chaque nouvelle discussion, compilé à partir de votre mémoire.',
   'memoryPage.loading': 'Chargement de la mémoire…',
   'memoryPage.loadMore': 'Charger plus',
+  'memoryPage.backfill.title': 'Conversations passées',
+  'memoryPage.backfill.description':
+    'Les discussions antérieures à l’activation de l’enregistrement automatique ne sont en mémoire qu’une fois synchronisées.',
+  'memoryPage.backfill.pending':
+    '{threads} discussions ({turns} tours de parole) ne sont pas encore en mémoire.',
+  'memoryPage.backfill.upToDate': 'Toutes les conversations passées sont en mémoire.',
+  'memoryPage.backfill.action': 'Synchroniser les conversations passées',
+  'memoryPage.backfill.resume': 'Reprendre la synchronisation',
+  'memoryPage.backfill.running': 'Synchronisation des conversations passées',
+  'memoryPage.backfill.progress':
+    '{done} discussions sur {total} synchronisées · {turns} tours de parole enregistrés',
+  'memoryPage.backfill.done': '{turns} tours de parole enregistrés depuis {threads} discussions.',
+  'memoryPage.backfill.failed': 'La synchronisation s’est arrêtée avant la fin.',
+  'memoryPage.backfill.consentTitle': 'Synchroniser les conversations passées ?',
+  'memoryPage.backfill.consentBody':
+    'Vos discussions passées seront envoyées à votre moteur de mémoire et conservées comme toute autre conversation. Les arguments des outils ne sont jamais inclus. Une synchronisation ultérieure n’envoie que les nouveautés.',
+  'memoryPage.backfill.consentConfirm': 'Synchroniser maintenant',
   'memoryPage.tabs.explorer': 'Explorateur',
   'memoryPage.header.explorer':
     'Parcourez tout ce que contient votre mémoire, par source, dossier, conversation ou étiquette.',

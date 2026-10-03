@@ -4920,6 +4920,22 @@ const messages: TranslationMap = {
     'O resumo com que cada novo chat começa, compilado a partir da sua memória.',
   'memoryPage.loading': 'Carregando memória…',
   'memoryPage.loadMore': 'Carregar mais',
+  'memoryPage.backfill.title': 'Conversas anteriores',
+  'memoryPage.backfill.description':
+    'Conversas de antes de ativar o salvamento automático não estão na memória até você sincronizá-las.',
+  'memoryPage.backfill.pending': '{threads} conversas ({turns} turnos) ainda não estão na memória.',
+  'memoryPage.backfill.upToDate': 'Todas as conversas anteriores estão na memória.',
+  'memoryPage.backfill.action': 'Sincronizar conversas anteriores',
+  'memoryPage.backfill.resume': 'Retomar sincronização',
+  'memoryPage.backfill.running': 'Sincronizando conversas anteriores',
+  'memoryPage.backfill.progress':
+    '{done} de {total} conversas sincronizadas · {turns} turnos salvos',
+  'memoryPage.backfill.done': '{turns} turnos salvos de {threads} conversas.',
+  'memoryPage.backfill.failed': 'A sincronização parou antes de terminar.',
+  'memoryPage.backfill.consentTitle': 'Sincronizar conversas anteriores?',
+  'memoryPage.backfill.consentBody':
+    'Suas conversas anteriores serão enviadas ao seu mecanismo de memória e guardadas como qualquer outra conversa. Argumentos de ferramentas nunca são incluídos. Sincronizar de novo depois envia só o que for novo.',
+  'memoryPage.backfill.consentConfirm': 'Sincronizar agora',
   'memoryPage.tabs.explorer': 'Explorador',
   'memoryPage.header.explorer':
     'Navegue por tudo o que sua memória guarda, por origem, pasta, conversa ou etiqueta.',
