@@ -13,13 +13,36 @@ mod common;
 
 use common::{chat_completion, offline_config, runtime, stub_backend};
 use openhuman_embed::{
-    Access, AgentDefinitionSpec, AgentError, AgentSpec, Provider, Runtime, SandboxModeSpec,
-    Workspace,
+    Access, AgentDefinitionSpec, AgentError, AgentSpec, HostTurnTools, Provider, Runtime,
+    SandboxModeSpec, ToolScopeSpec, Workspace,
 };
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, ResponseTemplate};
 
 const API_KEY: &str = "th_test_key";
+
+struct RecordingBudgetStopHook {
+    inner: openhuman_core::agent::stop_hooks::BudgetStopHook,
+    reason: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+}
+
+#[async_trait::async_trait]
+impl openhuman_core::agent::stop_hooks::StopHook for RecordingBudgetStopHook {
+    fn name(&self) -> &str {
+        "budget"
+    }
+
+    async fn check(
+        &self,
+        state: &openhuman_core::agent::stop_hooks::TurnState<'_>,
+    ) -> openhuman_core::agent::stop_hooks::StopDecision {
+        let decision = openhuman_core::agent::stop_hooks::StopHook::check(&self.inner, state).await;
+        if let openhuman_core::agent::stop_hooks::StopDecision::Stop { reason } = &decision {
+            *self.reason.lock().expect("stop reason lock") = Some(reason.clone());
+        }
+        decision
+    }
+}
 
 /// A skills fixture with one bundle.
 fn skills_fixture() -> tempfile::TempDir {
@@ -67,6 +90,7 @@ fn one_runtime_hosts_independently_configured_agents() {
 
             let provider_a = wiremock::MockServer::start().await;
             let provider_b = wiremock::MockServer::start().await;
+            let budget_provider = wiremock::MockServer::start().await;
             Mock::given(method("POST"))
                 .and(path("/v1/chat/completions"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("alpha-ok")))
@@ -76,6 +100,14 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .and(path("/v1/chat/completions"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("beta-ok")))
                 .mount(&provider_b)
+                .await;
+            let mut budget_completion = chat_completion("budget-metered");
+            budget_completion["usage"]["prompt_tokens"] = serde_json::json!(1_000_000);
+            budget_completion["usage"]["total_tokens"] = serde_json::json!(1_000_001);
+            Mock::given(method("POST"))
+                .and(path("/v1/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(budget_completion))
+                .mount(&budget_provider)
                 .await;
             #[allow(unused_variables)]
             let skills = skills_fixture();
@@ -183,9 +215,125 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .agent(AgentSpec::new("gamma").access(Access::readonly()))
                 .expect("gamma instantiates");
 
+            // Per-turn withholding must survive the full embed path through
+            // Agent::turn, session construction, and provider request
+            // serialization. The same configured tool disappears for one
+            // named session and is advertised again for the next.
+            let withholding_provider = wiremock::MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/v1/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("turn-ok")))
+                .mount(&withholding_provider)
+                .await;
+            let withholding_agent = runtime
+                .agent(
+                    AgentSpec::new("withholding")
+                        .provider(
+                            Provider::openai_compatible(
+                                format!("{}/v1", withholding_provider.uri()),
+                                "sk-withholding",
+                            )
+                            .model("withholding-model"),
+                        )
+                        .access(Access::readonly())
+                        .definition(
+                            AgentDefinitionSpec::new()
+                                .tools(ToolScopeSpec::Named(vec!["shell".to_string()])),
+                        )
+                        .tools(|turn| HostTurnTools {
+                            withheld: if turn.session_id() == Some("hidden-turn") {
+                                std::collections::HashSet::from(["shell".to_string()])
+                            } else {
+                                std::collections::HashSet::new()
+                            },
+                            ..Default::default()
+                        }),
+                )
+                .expect("withholding agent instantiates");
+
+            let budget_agent = runtime
+                .agent(
+                    AgentSpec::new("budget")
+                        .provider(
+                            Provider::openai_compatible(
+                                format!("{}/v1", budget_provider.uri()),
+                                "sk-budget",
+                            )
+                            .model("gpt-5.5"),
+                        )
+                        .access(Access::full())
+                        .definition(
+                            AgentDefinitionSpec::new()
+                                .tools(ToolScopeSpec::Named(vec!["shell".to_string()])),
+                        ),
+                )
+                .expect("budget agent instantiates");
+
+            withholding_agent
+                .turn("hide the configured tool")
+                .session("hidden-turn")
+                .send()
+                .await
+                .expect("hidden turn runs");
+            withholding_agent
+                .turn("restore the configured tool")
+                .session("visible-turn")
+                .send()
+                .await
+                .expect("visible turn runs");
+
+            let stop_reason = std::sync::Arc::new(std::sync::Mutex::new(None));
+            let budgeted_turn = openhuman_core::agent::stop_hooks::with_stop_hooks(
+                vec![std::sync::Arc::new(RecordingBudgetStopHook {
+                    inner: openhuman_core::agent::stop_hooks::BudgetStopHook::new(1.0),
+                    reason: std::sync::Arc::clone(&stop_reason),
+                })],
+                budget_agent.run("report a metered response"),
+            )
+            .await
+            .expect("budgeted runtime-owned agent turn returns");
+            assert_eq!(budget_provider.received_requests().await.unwrap().len(), 1);
+            assert_eq!(
+                stop_reason.lock().expect("stop reason lock").as_deref(),
+                Some("turn cost $5.0000 reached cap $1.0000")
+            );
+            let usage = budgeted_turn
+                .usage
+                .expect("runtime-owned agent reports turn usage");
+            assert_eq!(usage.input_tokens, 1_000_000);
+            assert!(usage.cost_usd >= 1.0, "budgeted usage: {usage:?}");
+            let withholding_requests = withholding_provider
+                .received_requests()
+                .await
+                .expect("provider recorded both withholding turns");
+            assert_eq!(withholding_requests.len(), 2);
+            let hidden_request: serde_json::Value =
+                serde_json::from_slice(&withholding_requests[0].body).unwrap();
+            let visible_request: serde_json::Value =
+                serde_json::from_slice(&withholding_requests[1].body).unwrap();
+            let has_shell = |request: &serde_json::Value| {
+                request["tools"].as_array().is_some_and(|tools| {
+                    tools.iter().any(|tool| tool["function"]["name"] == "shell")
+                })
+            };
+            assert!(
+                !has_shell(&hidden_request),
+                "the hidden turn's provider request must omit shell"
+            );
+            assert!(
+                has_shell(&visible_request),
+                "the next turn's provider request must advertise shell again"
+            );
+
             assert_eq!(
                 runtime.agent_ids(),
-                vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()]
+                vec![
+                    "alpha".to_string(),
+                    "beta".to_string(),
+                    "budget".to_string(),
+                    "gamma".to_string(),
+                    "withholding".to_string()
+                ]
             );
 
             // Layout: every agent has its own home, transcripts and action dir.
@@ -376,7 +524,9 @@ fn one_runtime_hosts_independently_configured_agents() {
             assert!(matches!(err, AgentError::WidensRuntime(_)), "{err:?}");
 
             // Dropping every handle releases the id.
+            drop(withholding_agent);
             drop(gamma);
+            drop(budget_agent);
             assert_eq!(
                 runtime.agent_ids(),
                 vec!["alpha".to_string(), "beta".to_string()]
