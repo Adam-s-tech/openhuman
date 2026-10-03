@@ -4,7 +4,7 @@
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 /// Every function of the namespace, in spec order.
-pub const FUNCTIONS: [&str; 20] = [
+pub const FUNCTIONS: [&str; 22] = [
     "engines_list",
     "engine_get",
     "engine_set",
