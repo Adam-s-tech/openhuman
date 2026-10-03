@@ -159,10 +159,15 @@ async fn bad_requests_are_invalid_and_memory_off_is_reported() {
         MEMORY_OFF
     );
     assert_eq!(
-        items_get(&config, ItemsGetParams { ids: vec!["x".into()] })
-            .await
-            .unwrap_err()
-            .code(),
+        items_get(
+            &config,
+            ItemsGetParams {
+                ids: vec!["x".into()]
+            }
+        )
+        .await
+        .unwrap_err()
+        .code(),
         MEMORY_OFF
     );
 

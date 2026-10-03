@@ -9,13 +9,13 @@ use crate::config::Config;
 use crate::core::all::ControllerFuture;
 use crate::core::Outcome;
 use crate::memory::error::{MemoryError, MemoryResult};
+use crate::memory::explore::{self, ExploreParams, ItemsGetParams};
 use crate::memory::types::{
     ContextSetParams, ConversationsSetParams, EmptyParams, EngineSetParams, FetchParams,
     ForgetParams, ImportStartParams, ImportStateView, ItemsListParams, LearnParams, RecallParams,
     SourceAddedView, SourceRemovedView, SourcesAddParams, SourcesListView, SourcesRemoveParams,
     SourcesSyncParams, SourcesSyncView,
 };
-use crate::memory::explore::{self, ExploreParams, ItemsGetParams};
 use crate::memory::{context, conversations, engine, import, ops, sources};
 
 fn parse<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T, String> {
