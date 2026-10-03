@@ -184,3 +184,55 @@ async fn an_empty_candidate_is_re_asked_before_the_fallback() {
         "an empty candidate is not sent to the checker"
     );
 }
+
+fn blank_outcome(truncated: bool) -> TinyagentsTurnOutcome {
+    TinyagentsTurnOutcome {
+        text: String::new(),
+        resolved_route: None,
+        history: Vec::new(),
+        conversation: Vec::new(),
+        model_calls: 3,
+        tool_calls: 1,
+        input_tokens: 0,
+        output_tokens: 0,
+        cached_input_tokens: 0,
+        charged_amount_usd: 0.0,
+        early_exit_tool: None,
+        hit_cap: false,
+        wrap_up_injected: false,
+        breaker_halt: None,
+        truncated,
+        tool_outcomes: Vec::new(),
+    }
+}
+
+/// #6951: a turn that ended because the model ran out of output tokens while
+/// reasoning is closed with that cause named, not with "you have finished
+/// using tools" — which told the model its unfinished work was done.
+#[test]
+fn a_truncated_turn_is_closed_with_the_output_budget_named() {
+    let truncated = close_instruction(&blank_outcome(true), false, RECORDS);
+    assert!(
+        truncated.contains("ran out of output tokens"),
+        "{truncated}"
+    );
+    assert!(
+        !truncated.contains("You have finished using tools"),
+        "{truncated}"
+    );
+    assert!(truncated.contains("<tool_records>"), "{truncated}");
+
+    let finished = close_instruction(&blank_outcome(false), false, RECORDS);
+    assert!(
+        finished.contains("You have finished using tools"),
+        "{finished}"
+    );
+}
+
+/// The cap checkpoint still wins when the run also hit its call cap.
+#[test]
+fn a_capped_truncated_turn_gets_the_cap_checkpoint() {
+    let out = close_instruction(&blank_outcome(true), true, RECORDS);
+    assert!(!out.contains("ran out of output tokens"), "{out}");
+    assert!(out.contains("<tool_records>"), "{out}");
+}
