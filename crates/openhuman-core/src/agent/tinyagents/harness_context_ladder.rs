@@ -21,11 +21,11 @@ use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::tinyagents::model::TurnChatModel;
 use crate::agent::tinyagents::turn_outcome::ToolOutcomeSink;
 
-/// Store `ToolResultArtifactIndexStore` is registered under on the run context.
 /// Fractions of a capped turn's model-call budget at which the model is told
 /// how many calls are left (#6958; `FinalCallWrapUpMiddleware::with_budget_notice`).
 const BUDGET_NOTICE_THRESHOLDS: [f64; 2] = [0.5, 0.8];
 
+/// Store `ToolResultArtifactIndexStore` is registered under on the run context.
 const ARTIFACT_INDEX_STORE: &str =
     crate::agent::harness::tool_result_artifacts::TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE;
 
