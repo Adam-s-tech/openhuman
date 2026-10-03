@@ -37,7 +37,7 @@ mod tests;
 mod records_computer;
 mod records_docs_wallet;
 mod records_extra;
-mod records_juice;
+mod records_memory_juice;
 mod records_mcp_connectors;
 mod records_runtime;
 mod records_search;
@@ -47,7 +47,7 @@ use crate::modules::types::ModuleRecord;
 use records_computer::TINYCOMPUTER;
 use records_docs_wallet::{TINYDOCS, TINYWALLET};
 use records_extra::{TINYBOX, TINYCHANNELS, TINYHOSTS};
-use records_juice::TINYJUICE;
+use records_memory_juice::{TINYMEMORY, TINYJUICE};
 use records_mcp_connectors::{TINYCONNECTORS, TINYMCP};
 use records_runtime::{TINYRUNTIME, TINYRUNTIME_NODEJS, TINYRUNTIME_PYTHON};
 use records_search::TINYSEARCH;
@@ -60,6 +60,7 @@ pub const ALL: &[ModuleRecord] = &[
     TINYDOCS,
     TINYWALLET,
     TINYJUICE,
+    TINYMEMORY,
     TINYVOICE,
     TINYRUNTIME,
     TINYRUNTIME_NODEJS,
