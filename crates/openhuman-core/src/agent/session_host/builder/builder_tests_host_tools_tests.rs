@@ -120,6 +120,31 @@ fn a_host_can_withhold_a_config_tool_for_one_turn() {
     );
 }
 
+#[test]
+fn withholding_tool_search_disables_wildcard_discovery() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    let host: crate::agent::HostTools = Arc::new(|_| crate::agent::HostTurnTools {
+        withheld: std::collections::HashSet::from([
+            crate::tools::implementations::meta::TOOL_SEARCH_NAME.to_string(),
+        ]),
+        ..Default::default()
+    });
+
+    let agent = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
+        &config,
+        &definition(),
+        &host,
+        None,
+    )
+    .expect("build a wildcard session with discovery withheld");
+
+    assert!(
+        agent.deferred_tool_names_for_test().is_empty(),
+        "withholding tool_search must also make deferred tools unreachable"
+    );
+}
+
 /// Without this the seam would be a belt, not a factory, and a host whose
 /// tools belong to something shorter-lived than the agent -- one episode, one
 /// room -- would have to register a second agent to express that. It is also

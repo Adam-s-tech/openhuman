@@ -142,7 +142,10 @@ impl SessionHostBuilder {
         // that is still empty — see the matching strip there.
         let discovery_opted_in =
             visible_names.remove(crate::tools::implementations::meta::TOOL_SEARCH_NAME);
-        let discovery_enabled = belt_is_wildcard || discovery_opted_in;
+        let discovery_enabled = (belt_is_wildcard || discovery_opted_in)
+            && !self
+                .withheld_tool_names
+                .contains(crate::tools::implementations::meta::TOOL_SEARCH_NAME);
         // A wildcard belt was seeded from the whole registry, so its durable
         // `Hidden` members (collapsed `memory_*` / `todo_*`) leave here too.
         // A named belt never listed them.
