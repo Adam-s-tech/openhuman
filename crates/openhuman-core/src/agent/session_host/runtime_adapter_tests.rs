@@ -535,8 +535,8 @@ async fn cold_resumed_thread_can_send_again() {
     assert_eq!(host.turn("second message").await.unwrap(), "second reply");
 }
 
-/// The PRODUCTION turn path must wire an artifact store, rooted where the READ
-/// path will look for it (#6408).
+/// The PRODUCTION turn path must wire an artifact store, rooted outside the
+/// project the agent works in (#6408).
 ///
 /// Two assertions, and both were dead code before this PR. The existing artifact
 /// tests construct `TurnContextMiddleware` with `artifact_store: Some(..)`
