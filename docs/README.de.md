@@ -63,7 +63,7 @@ OpenHuman ist drei Dinge, die die meisten Assistenten nicht sind: **ein Gehirn**
 
 ### 🧠 Das Gehirn
 
-- **[Memory](https://tinyhumans.gitbook.io/openhuman/features/memory)**: Recall, Fetch und Store über eine austauschbare Engine (gehostetes TinyHumans oder dein eigenes CortexDB). Dokumente, Konversationen und Learnings werden gespeichert, Antworten kommen mit Quellenangaben, und ein `context.md`-Briefing eröffnet jeden neuen Chat. Keine Vektor-Suppen-Blackbox.
+- **[Memory](../gitbooks/features/memory.md)**: Recall, Fetch und Store über eine austauschbare Engine (gehostetes TinyHumans oder dein eigenes CortexDB). Dokumente, Konversationen und Learnings werden gespeichert, Antworten kommen mit Quellenangaben, und ein `context.md`-Briefing eröffnet jeden neuen Chat. Keine Vektor-Suppen-Blackbox.
 - **[100+ OAuth-Integrationen, 5.000+ MCP-Server, 90.000+ Skills](https://tinyhumans.gitbook.io/openhuman/features/integrations)**: mit einem Klick in Gmail, Notion, GitHub, Slack und den Rest deines Stacks. [Auto-Fetch](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki/auto-fetch) füttert das Gehirn alle 20 Minuten. So hat es den Kontext von morgen schon heute Früh.
 - **[Goals & Todos](https://tinyhumans.gitbook.io/openhuman/features/goals-and-todos)**: dauerhafte Ziele pro Thread und die im Chat sichtbare Todo-Liste des Agenten.
 - **[TokenJuice](https://tinyhumans.gitbook.io/openhuman/features/token-compression)**: Tool-Ausgaben werden komprimiert, bevor sie das Modell erreichen: dieselbe Information, bis zu 80% weniger Tokens. Ein so großes Gehirn wäre ohne es unbezahlbar.
@@ -92,7 +92,7 @@ OpenHuman ist das erste Agent-Harness, das dich in Minuten kennenlernt. Inspirie
 
 > OpenHuman speichert Dokumente, Konversationen und Learnings in einer Memory-Engine und beantwortet Fragen dazu mit Quellenangaben.
 
-OpenHuman überspringt die Wartezeit. Füge Quellen hinzu (Ordner, Dateien, Links, GitHub, RSS, verbundene Apps), lass sie nach Zeitplan synchronisieren, und der Agent kann sofort mit [Memory](https://tinyhumans.gitbook.io/openhuman/features/memory) darauf antworten.
+OpenHuman überspringt die Wartezeit. Füge Quellen hinzu (Ordner, Dateien, Links, GitHub, RSS, verbundene Apps), lass sie nach Zeitplan synchronisieren, und der Agent kann sofort mit [Memory](../gitbooks/features/memory.md) darauf antworten.
 
 Nach nur einem Sync-Durchlauf hat der Agent den vollständigen (komprimierten) Kontext deines Postfachs, deines Kalenders, deiner Repos, deiner Dokumente und deiner Nachrichten. Keine Trainingsphase. Kein „gib ihm ein paar Wochen". Er wird zu dir, gesteuert von dir.
 

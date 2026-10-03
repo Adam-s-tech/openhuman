@@ -63,7 +63,7 @@ OpenHuman은 대부분의 어시스턴트가 갖지 못한 세 가지입니다: 
 
 ### 🧠 두뇌
 
-- **[Memory](https://tinyhumans.gitbook.io/openhuman/features/memory)**: 교체 가능한 엔진(TinyHumans 호스팅 또는 직접 운영하는 CortexDB) 위의 Recall, Fetch, Store. 문서, 대화, 학습 내용을 저장하고 출처와 함께 답하며, 새 채팅마다 `context.md` 요약을 제공합니다.
+- **[Memory](../gitbooks/features/memory.md)**: 교체 가능한 엔진(TinyHumans 호스팅 또는 직접 운영하는 CortexDB) 위의 Recall, Fetch, Store. 문서, 대화, 학습 내용을 저장하고 출처와 함께 답하며, 새 채팅마다 `context.md` 요약을 제공합니다.
 - **[100개 이상의 OAuth 통합, 5,000개 이상의 MCP 서버, 90,000개 이상의 Skills](https://tinyhumans.gitbook.io/openhuman/features/integrations)**: Gmail, Notion, GitHub, Slack 등 당신의 스택을 원클릭으로 연결하세요. [자동 가져오기(auto-fetch)](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki/auto-fetch)가 20분마다 두뇌에 데이터를 공급합니다. 덕분에 오늘 아침에 이미 내일의 컨텍스트를 가지고 있습니다.
 - **[목표 및 할 일(Goals & Todos)](https://tinyhumans.gitbook.io/openhuman/features/goals-and-todos)**: 스레드별 지속 목표와 채팅에 표시되는 에이전트의 할 일 목록을 제공합니다.
 - **[TokenJuice](https://tinyhumans.gitbook.io/openhuman/features/token-compression)**: 도구 출력은 모델에 닿기 전에 압축되어, 동일한 정보가 최대 80% 적은 토큰으로 전달됩니다. 이것 없이는 이만큼 큰 두뇌를 감당할 수 없을 것입니다.
@@ -92,7 +92,7 @@ OpenHuman은 몇 분 만에 당신을 알게 되는 최초의 에이전트 하�
 
 > OpenHuman은 문서, 대화, 학습 내용을 메모리 엔진에 저장하고 출처와 함께 질문에 답합니다.
 
-OpenHuman은 기다림을 생략합니다. 소스(폴더, 파일, 링크, GitHub, RSS, 연결된 앱)를 추가하면 일정에 따라 동기화되고, 에이전트는 [Memory](https://tinyhumans.gitbook.io/openhuman/features/memory)에서 바로 답할 수 있습니다.
+OpenHuman은 기다림을 생략합니다. 소스(폴더, 파일, 링크, GitHub, RSS, 연결된 앱)를 추가하면 일정에 따라 동기화되고, 에이전트는 [Memory](../gitbooks/features/memory.md)에서 바로 답할 수 있습니다.
 
 단 한 번의 동기화 패스만으로 에이전트는 당신의 받은 편지함, 캘린더, 저장소, 문서, 메시지의 전체(압축된) 컨텍스트를 갖게 됩니다. 훈련 기간도, "몇 주를 기다려야 하는" 번거로움도 없습니다. 에이전트는 당신이 되고, 당신에 의해 제어됩니다.
 
