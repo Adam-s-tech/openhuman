@@ -22,11 +22,73 @@ use crate::config::Config;
 
 use super::engine::{self, BoundEngine};
 use super::error::{MemoryError, MemoryResult};
-use super::ops::store_on;
+use super::ops::{store_many_on, store_on};
 use super::types::{ImportCounts, ImportPhase, ImportScanView, ImportState};
 
 /// Items stored between two checkpoint writes.
 const CHECKPOINT_EVERY: u64 = 25;
+
+/// Items per bulk store (`MemoryEngine::store_many`).
+const STORE_BATCH: usize = 25;
+
+/// What storing one batch of legacy items did.
+#[derive(Debug, Default)]
+struct BatchOutcome {
+    /// Items stored (or replayed).
+    stored: u64,
+    /// The checkpoint after the last item handled, stored or skipped.
+    checkpoint: Option<Checkpoint>,
+    /// Why the import must stop (memory off, credential rejected).
+    fatal: Option<String>,
+}
+
+fn is_fatal(error: &MemoryError) -> bool {
+    matches!(error, MemoryError::Unauthorized(_) | MemoryError::Off(_))
+}
+
+/// Stores `batch` in one bulk call. If the engine refuses the batch for a
+/// reason that is not fatal (one unstorable item), the items are stored one
+/// at a time instead so only the bad ones are skipped.
+async fn store_batch(bound: &BoundEngine, batch: Vec<ImportedItem>) -> BatchOutcome {
+    let Some(last) = batch.last() else {
+        return BatchOutcome::default();
+    };
+    let last_checkpoint = last.checkpoint.clone();
+    let items: Vec<_> = batch.iter().map(|imported| imported.item.clone()).collect();
+    match store_many_on(bound, items).await {
+        Ok(receipts) => {
+            return BatchOutcome {
+                stored: receipts.len() as u64,
+                checkpoint: Some(last_checkpoint),
+                fatal: None,
+            };
+        }
+        Err(error) if is_fatal(&error) => {
+            return BatchOutcome {
+                fatal: Some(error.to_string()),
+                ..BatchOutcome::default()
+            };
+        }
+        Err(error) => {
+            tracing::debug!(code = error.code(), "[memory:import] batch refused; storing one by one");
+        }
+    }
+    let mut outcome = BatchOutcome::default();
+    for imported in batch {
+        match store_on(bound, imported.item).await {
+            Ok(_) => outcome.stored += 1,
+            Err(error) if is_fatal(&error) => {
+                outcome.fatal = Some(error.to_string());
+                return outcome;
+            }
+            Err(error) => {
+                tracing::debug!(code = error.code(), "[memory:import] item skipped");
+            }
+        }
+        outcome.checkpoint = Some(imported.checkpoint);
+    }
+    outcome
+}
 
 /// Imports running now, per workspace.
 static RUNNING: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
@@ -188,32 +250,37 @@ async fn run(workspace_dir: &Path, bound: &BoundEngine, mut file: ImportFile) {
     });
     let mut since_checkpoint = 0u64;
     let mut failure = None;
-    while let Some(next) = rx.recv().await {
-        let imported = match next {
-            Ok(imported) => imported,
-            Err(error) => {
-                failure = Some(format!("reading the legacy store failed: {error}"));
-                break;
-            }
-        };
-        match store_on(bound, imported.item).await {
-            Ok(_) => {
-                file.state.imported += 1;
-                file.checkpoint = imported.checkpoint;
-                since_checkpoint += 1;
-                if since_checkpoint >= CHECKPOINT_EVERY {
-                    write_file(workspace_dir, &file);
-                    since_checkpoint = 0;
+    let mut batch: Vec<ImportedItem> = Vec::with_capacity(STORE_BATCH);
+    let mut reading = true;
+    while reading || !batch.is_empty() {
+        if reading && batch.len() < STORE_BATCH {
+            match rx.recv().await {
+                Some(Ok(imported)) => {
+                    batch.push(imported);
+                    continue;
                 }
+                Some(Err(error)) => {
+                    failure = Some(format!("reading the legacy store failed: {error}"));
+                    reading = false;
+                    batch.clear();
+                    continue;
+                }
+                None => reading = false,
             }
-            Err(error @ (MemoryError::Unauthorized(_) | MemoryError::Off(_))) => {
-                failure = Some(error.to_string());
-                break;
-            }
-            Err(error) => {
-                tracing::debug!(code = error.code(), "[memory:import] item skipped");
-                file.checkpoint = imported.checkpoint;
-            }
+        }
+        let outcome = store_batch(bound, std::mem::take(&mut batch)).await;
+        file.state.imported += outcome.stored;
+        if let Some(checkpoint) = outcome.checkpoint {
+            file.checkpoint = checkpoint;
+        }
+        since_checkpoint += outcome.stored;
+        if since_checkpoint >= CHECKPOINT_EVERY {
+            write_file(workspace_dir, &file);
+            since_checkpoint = 0;
+        }
+        if let Some(error) = outcome.fatal {
+            failure = Some(error);
+            break;
         }
     }
     drop(rx);
