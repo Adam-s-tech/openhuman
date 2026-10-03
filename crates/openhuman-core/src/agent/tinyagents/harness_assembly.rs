@@ -151,6 +151,11 @@ pub(super) fn assemble_turn_harness(
     // The turn's reasoning choice (`reasoning::turn_reasoning_for`), attached
     // to every model request this harness builds.
     reasoning: Option<tinyinference_llm::model::ReasoningConfig>,
+    // Whether this turn runs on a chat thread (`OpenHumanRunContext::thread_id`
+    // is `Some`). The per-thread `goal_*` tools resolve their target from the
+    // run's thread, so a thread-less turn (a headless `inference_agent_chat`
+    // without a `thread_id`) is not offered them at all (issue #6956).
+    has_thread: bool,
 ) -> AssembledTurnHarness {
     let mut harness: AgentHarness<(), OpenHumanRunContext> = AgentHarness::new();
     // Cross-route fallback ownership (issue #4249, Workstream 02.2): populate the
@@ -416,6 +421,7 @@ pub(super) fn assemble_turn_harness(
             &early_exit_set,
             early_exit_hook.as_ref(),
             is_subagent_run,
+            has_thread,
             &session_deferred,
         );
 
@@ -731,3 +737,7 @@ pub(super) fn assemble_turn_harness(
         prompt_cache_guard,
     }
 }
+
+#[cfg(test)]
+#[path = "harness_assembly_tests.rs"]
+mod tests;
