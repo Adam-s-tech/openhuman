@@ -64,6 +64,87 @@ fn a_host_tool_is_on_the_belt_and_advertised() {
     );
 }
 
+/// A host can hide a config-derived tool for one turn without changing the
+/// agent's static scope or the tool belt used on its other turns.
+#[test]
+fn a_host_can_withhold_a_config_tool_for_one_turn() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    let normally_visible =
+        crate::agent::OpenHumanSessionHost::from_config_with_definition(&config, &definition())
+            .expect("build a session without a host belt")
+            .visible_tool_specs_arc()
+            .first()
+            .map(|spec| spec.name.clone())
+            .expect("the config-derived belt advertises at least one tool");
+
+    let host: crate::agent::HostTools = {
+        let normally_visible = normally_visible.clone();
+        Arc::new(move |turn| crate::agent::HostTurnTools {
+            withheld: match turn.session_id() {
+                Some("hidden-turn") => std::collections::HashSet::from([normally_visible.clone()]),
+                _ => std::collections::HashSet::new(),
+            },
+            ..Default::default()
+        })
+    };
+    let hidden_turn = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
+        &config,
+        &definition(),
+        &host,
+        Some("hidden-turn"),
+    )
+    .expect("build a session with a per-turn withheld name");
+
+    assert!(
+        !hidden_turn
+            .visible_tool_specs_arc()
+            .iter()
+            .any(|spec| spec.name == normally_visible),
+        "a per-turn host withholding must remove a config-derived tool from the provider view"
+    );
+
+    let visible_turn = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
+        &config,
+        &definition(),
+        &host,
+        Some("visible-turn"),
+    )
+    .expect("build the next session without the temporary withholding");
+    assert!(
+        visible_turn
+            .visible_tool_specs_arc()
+            .iter()
+            .any(|spec| spec.name == normally_visible),
+        "a withholding for one turn must not alter the agent's next provider view"
+    );
+}
+
+#[test]
+fn withholding_tool_search_disables_wildcard_discovery() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    let host: crate::agent::HostTools = Arc::new(|_| crate::agent::HostTurnTools {
+        withheld: std::collections::HashSet::from([
+            crate::tools::implementations::meta::TOOL_SEARCH_NAME.to_string(),
+        ]),
+        ..Default::default()
+    });
+
+    let agent = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
+        &config,
+        &definition(),
+        &host,
+        None,
+    )
+    .expect("build a wildcard session with discovery withheld");
+
+    assert!(
+        agent.deferred_tool_names_for_test().is_empty(),
+        "withholding tool_search must also make deferred tools unreachable"
+    );
+}
+
 /// Without this the seam would be a belt, not a factory, and a host whose
 /// tools belong to something shorter-lived than the agent -- one episode, one
 /// room -- would have to register a second agent to express that. It is also
