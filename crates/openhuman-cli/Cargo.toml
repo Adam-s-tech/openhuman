@@ -145,6 +145,13 @@ path = "../../tests/memory_v2_e2e.rs"
 # (`scripts/mock-api-server.mjs`, which needs `node` on PATH).
 
 [[test]]
+name = "memory_cortexdb_live"
+path = "../../tests/memory_cortexdb_live.rs"
+# Memory v2 through the real `openhuman-core` binary against a live CortexDB.
+# Skips unless OPENHUMAN_LIVE_CORTEXDB_URL is set; run it with
+# scripts/test-memory-cortexdb-live.sh, which boots the server in Docker.
+
+[[test]]
 name = "json_rpc_e2e"
 path = "../../tests/json_rpc_e2e.rs"
 # `voice::reply_speech::{test_seam, TEST_SEAM_ENV}` — the reply-speech seam

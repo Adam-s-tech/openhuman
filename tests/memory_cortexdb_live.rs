@@ -16,9 +16,6 @@
 //! - **context.md**: compiled from the engine, written to disk, and injected
 //!   into the first message of the next new thread.
 
-#[path = "support/env_guard.rs"]
-mod env_guard;
-
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -308,7 +305,6 @@ fn memory_v2_runs_end_to_end_on_a_live_cortexdb() {
 }
 
 async fn run(cortex_url: String, cortex_key: String) {
-    let _lock = env_guard::env_lock_with_file_keyring();
     let stack = Stack::boot(&cortex_url).await;
 
     // Sign in (the agent's inference goes through the mock backend).
