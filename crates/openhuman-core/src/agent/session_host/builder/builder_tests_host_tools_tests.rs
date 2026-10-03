@@ -80,25 +80,43 @@ fn a_host_can_withhold_a_config_tool_for_one_turn() {
 
     let host: crate::agent::HostTools = {
         let normally_visible = normally_visible.clone();
-        Arc::new(move |_| crate::agent::HostTurnTools {
-            withheld: std::collections::HashSet::from([normally_visible.clone()]),
+        Arc::new(move |turn| crate::agent::HostTurnTools {
+            withheld: match turn.session_id() {
+                Some("hidden-turn") => std::collections::HashSet::from([normally_visible.clone()]),
+                _ => std::collections::HashSet::new(),
+            },
             ..Default::default()
         })
     };
-    let agent = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
+    let hidden_turn = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
         &config,
         &definition(),
         &host,
-        None,
+        Some("hidden-turn"),
     )
     .expect("build a session with a per-turn withheld name");
 
     assert!(
-        !agent
+        !hidden_turn
             .visible_tool_specs_arc()
             .iter()
             .any(|spec| spec.name == normally_visible),
         "a per-turn host withholding must remove a config-derived tool from the provider view"
+    );
+
+    let visible_turn = crate::agent::OpenHumanSessionHost::from_config_with_host_tools(
+        &config,
+        &definition(),
+        &host,
+        Some("visible-turn"),
+    )
+    .expect("build the next session without the temporary withholding");
+    assert!(
+        visible_turn
+            .visible_tool_specs_arc()
+            .iter()
+            .any(|spec| spec.name == normally_visible),
+        "a withholding for one turn must not alter the agent's next provider view"
     );
 }
 
