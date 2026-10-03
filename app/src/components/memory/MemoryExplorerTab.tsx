@@ -56,7 +56,6 @@ export default function MemoryExplorerTab() {
 
   useEffect(() => {
     let cancelled = false;
-    setPage(null);
     memoryExplore({ facet, path, limit: BUCKET_LIMIT })
       .then(next => {
         if (cancelled) return;
@@ -82,7 +81,6 @@ export default function MemoryExplorerTab() {
 
   useEffect(() => {
     let cancelled = false;
-    setItems(null);
     memoryItemsList({ path, limit: PAGE_SIZE })
       .then(next => {
         if (cancelled) return;
