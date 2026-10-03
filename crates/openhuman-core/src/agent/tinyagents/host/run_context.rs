@@ -23,7 +23,7 @@ use crate::agent::stop_hooks::StopHook;
 use crate::agent::subagent_host::SubagentUsage;
 use crate::agent::tinyagents::turn_outcome::ToolOutcomeSink;
 use crate::agent::tinyagents::{
-    turn_outcome::ToolCallOutcome, turn_policy::ToolPolicyEnforcement, TurnContextMiddleware,
+    TurnContextMiddleware, turn_outcome::ToolCallOutcome, turn_policy::ToolPolicyEnforcement,
 };
 use crate::agent::turn_origin::AgentTurnOrigin;
 use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
@@ -322,7 +322,7 @@ impl OpenHumanRunContext {
         Self {
             origin: None,
             progress: None,
-            stop_hooks: Vec::new(),
+            stop_hooks: crate::agent::stop_hooks::current_stop_hooks(),
             parent: None,
             prepared_context_sources: Arc::new(Vec::new()),
             file_state_agent_id: None,

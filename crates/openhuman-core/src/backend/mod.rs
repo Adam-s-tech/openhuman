@@ -21,14 +21,15 @@
 //! [`BackendApiError::BackendUnavailable`] / `BACKEND_UNAVAILABLE:`, and the
 //! URL helpers here return [`BackendTransportError::Unavailable`].
 
+pub mod classify;
 pub mod client;
 pub mod transport;
 
-pub use client::{flatten_authed_error, BackendApiError, BackendClient};
+pub use client::{BackendApiError, BackendClient, flatten_authed_error};
 pub use transport::{
+    BackendRequest, BackendTransport, BackendTransportError, BaseUrlPurpose, TransportProfile,
     install_backend_transport, installed_backend_transport, is_installed,
-    resolve_backend_transport, BackendRequest, BackendTransport, BackendTransportError,
-    BaseUrlPurpose, TransportProfile,
+    resolve_backend_transport,
 };
 
 /// The operator's override, trimmed; `None` when unset or blank.
