@@ -375,6 +375,9 @@ async fn session_locator_is_memoized_across_calls() {
 }
 
 const THREAD_GOAL_TOOLS: [&str; 3] = ["goal_get", "goal_set", "goal_complete"];
+/// The goal tool this fixture's default (non-orchestrator) session surfaces on a
+/// thread; the others are admitted only for agents that list them.
+const SURFACED_GOAL_TOOL: &str = "goal_complete";
 
 /// Build a text-dialect (XML) session over the real per-thread goal tools,
 /// optionally bound to a chat thread, and render its first-turn system prompt.
@@ -427,12 +430,15 @@ fn text_dialect_prompt_omits_thread_goal_tools_without_a_thread() {
 #[test]
 fn text_dialect_prompt_lists_thread_goal_tools_on_a_thread() {
     let (prompt, snapshot) = text_dialect_prompt_and_snapshot(Some("thread-goals"));
-    eprintln!("DBG specs={:?}\nPROMPT={prompt}", snapshot.specs().iter().map(|s| s.name.clone()).collect::<Vec<_>>());
-    for name in THREAD_GOAL_TOOLS {
-        assert!(prompt.contains(name), "{name} missing from the prompt");
-        assert!(
-            snapshot.specs().iter().any(|spec| spec.name == name),
-            "{name} missing from the declared tools"
-        );
-    }
+    assert!(
+        prompt.contains(SURFACED_GOAL_TOOL),
+        "{SURFACED_GOAL_TOOL} missing from the prompt"
+    );
+    assert!(
+        snapshot
+            .specs()
+            .iter()
+            .any(|spec| spec.name == SURFACED_GOAL_TOOL),
+        "{SURFACED_GOAL_TOOL} missing from the declared tools"
+    );
 }
