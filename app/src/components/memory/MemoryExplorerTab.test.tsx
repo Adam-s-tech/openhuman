@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ExplorePage, Hit } from '../../services/api/memoryApi';
 import { renderWithProviders } from '../../test/test-utils';
-import { metaRows } from './MemoryItemDialog';
 import MemoryExplorerTab from './MemoryExplorerTab';
 import { facetValueLabel, nextFacet } from './memoryFacetLabels';
+import { metaRows } from './MemoryItemDialog';
 
 const hoisted = vi.hoisted(() => ({
   explore: vi.fn(),
@@ -167,9 +167,7 @@ describe('MemoryExplorerTab', () => {
     const callsBefore = hoisted.explore.mock.calls.length;
     fireEvent.click(within(dialog).getByTestId('memory-item-forget'));
     await waitFor(() => expect(hoisted.forget).toHaveBeenCalledWith(['d1']));
-    await waitFor(() =>
-      expect(screen.queryByTestId('memory-item-dialog')).not.toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.queryByTestId('memory-item-dialog')).not.toBeInTheDocument());
     await waitFor(() => expect(hoisted.explore.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 
@@ -179,7 +177,7 @@ describe('MemoryExplorerTab', () => {
     fireEvent.click(await screen.findByTestId('memory-explorer-open-d1'));
     expect(await screen.findByTestId('memory-item-missing')).toBeInTheDocument();
     expect(screen.getByTestId('memory-item-forget')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByTestId('memory-item-close'));
 
     hoisted.get.mockResolvedValueOnce({ items: [doc('d1', 'x')] });
     hoisted.forget.mockRejectedValueOnce(new Error('refused'));

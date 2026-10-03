@@ -10,10 +10,10 @@ import { useEffect, useId, useState } from 'react';
 import { useT } from '../../lib/i18n/I18nContext';
 import {
   type Hit,
-  type MemoryMeta,
   memoryErrorMessage,
   memoryForget,
   memoryItemsGet,
+  type MemoryMeta,
 } from '../../services/api/memoryApi';
 import { Alert, AlertDescription, Badge, Button, ModalShell } from '../ui';
 import { CenteredLoadingState } from '../ui/LoadingState';
@@ -116,7 +116,12 @@ export default function MemoryItemDialog({ id, onClose, onForgotten }: MemoryIte
       testId="memory-item-dialog"
       footer={
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            data-testid="memory-item-close"
+            onClick={onClose}>
             {t('common.close')}
           </Button>
           <Button
@@ -146,7 +151,9 @@ export default function MemoryItemDialog({ id, onClose, onForgotten }: MemoryIte
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={KIND_VARIANT[item.kind] ?? 'neutral'}>{kindLabel(item.kind, t)}</Badge>
+              <Badge variant={KIND_VARIANT[item.kind] ?? 'neutral'}>
+                {kindLabel(item.kind, t)}
+              </Badge>
               <span className="truncate font-mono text-[11px] text-content-muted" title={item.id}>
                 {item.id}
               </span>

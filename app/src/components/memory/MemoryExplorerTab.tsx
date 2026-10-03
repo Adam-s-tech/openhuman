@@ -203,7 +203,9 @@ export default function MemoryExplorerTab() {
         {page === null ? (
           error === null && <CenteredLoadingState label={t('memoryPage.loading')} />
         ) : page.buckets.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-content-muted" data-testid="memory-explorer-no-values">
+          <p
+            className="px-4 py-3 text-sm text-content-muted"
+            data-testid="memory-explorer-no-values">
             {fill(t('memoryPage.explorer.noValues'), { facet: facetLabel(facet, t) })}
           </p>
         ) : (
