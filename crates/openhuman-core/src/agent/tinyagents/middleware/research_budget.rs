@@ -26,7 +26,7 @@ pub(super) const DIRECT_WEB_READ_LIMIT: usize = 8;
 /// bench request that hit this budget, the old wording leaked a call 6 times in
 /// 8 and this wording 0 times in 8. The harness also withholds and re-prompts
 /// any call that still arrives (tinyagents `TextRecovery::withholding`).
-pub(super) const RESEARCH_CLOSE_INSTRUCTION: &str = "The direct web research budget for this turn is exhausted, and tools are no longer available for this reply: any tool call you write now will not run. Answer the user's latest request now in plain text, using only the results already available. State any remaining uncertainty. Do not search again, repeat a page fetch, or merely describe what you plan to read.";
+pub(crate) const RESEARCH_CLOSE_INSTRUCTION: &str = "The direct web research budget for this turn is exhausted, and tools are no longer available for this reply: any tool call you write now will not run. Answer the user's latest request now in plain text, using only the results already available. State any remaining uncertainty. Do not search again, repeat a page fetch, or merely describe what you plan to read.";
 
 #[derive(Default)]
 pub(crate) struct ResearchBudgetMiddleware {
