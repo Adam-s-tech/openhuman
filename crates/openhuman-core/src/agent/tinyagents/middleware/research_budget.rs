@@ -18,7 +18,15 @@ use crate::agent::tinyagents::host::OpenHumanRunContext;
 /// a batched `web_contents_tool` read, each of which counts once.
 pub(super) const DIRECT_WEB_READ_LIMIT: usize = 8;
 
-const RESEARCH_CLOSE_INSTRUCTION: &str = "The direct web research budget for this turn is exhausted. Answer the user's latest request now using the results already available. State any remaining uncertainty. Do not search again, repeat a page fetch, or merely describe what you plan to read.";
+/// The instruction appended when the budget is spent and the tools are
+/// withdrawn. It says outright that tools are gone and a call will not run:
+/// told only to "answer", a native model with a transcript full of tool calls
+/// and no tool channel writes its next call as plain-text markup (DeepSeek V4's
+/// `<｜DSML｜invoke …>`), which then stood as the turn's answer. Replaying a
+/// bench request that hit this budget, the old wording leaked a call 6 times in
+/// 8 and this wording 0 times in 8. The harness also withholds and re-prompts
+/// any call that still arrives (tinyagents `TextRecovery::withholding`).
+pub(crate) const RESEARCH_CLOSE_INSTRUCTION: &str = "The direct web research budget for this turn is exhausted, and tools are no longer available for this reply: any tool call you write now will not run. Answer the user's latest request now in plain text, using only the results already available. State any remaining uncertainty. Do not search again, repeat a page fetch, or merely describe what you plan to read.";
 
 #[derive(Default)]
 pub(crate) struct ResearchBudgetMiddleware {
