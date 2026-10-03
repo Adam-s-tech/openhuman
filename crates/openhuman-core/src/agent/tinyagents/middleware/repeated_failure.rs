@@ -706,11 +706,9 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
 /// Appends queued [`RepeatedToolFailureMiddleware`] nudges to the next model
 /// request, then forgets them. The request is built from a copy of the working
 /// transcript, so nothing it adds is ever committed.
-///
-/// Placement goes through [`push_ephemeral_instruction`]: a tail system message
-/// by default, but never a new system message for a model that hoists them to
-/// the prompt head (DeepSeek), where it would reset the prompt cache to the
-/// static prefix (#6962). There the nudge rides the tail tool result.
+/// [`push_ephemeral_instruction`] places them: a tail system message, except on
+/// a model that hoists system turns (DeepSeek), where one resets the prompt
+/// cache (#6962), so the nudge rides the tail tool result.
 pub(crate) struct PendingNudgeInjector {
     pending: Arc<Mutex<Vec<String>>>,
 }
