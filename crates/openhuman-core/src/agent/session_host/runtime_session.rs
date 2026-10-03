@@ -1723,8 +1723,7 @@ impl OpenHumanSessionHost {
                             .count()
                             .max(1) as u32;
                         let output = receipt.outcome.output.clone().unwrap_or_default();
-                        // Skips compaction checkpoints: user-role, not the
-                        // user's words.
+                        // Skips compaction checkpoints (user-role, not the user's words).
                         let input =
                             crate::agent::tinyagents::last_user_message(&receipt.outcome.history)
                                 .map(user_text_with_markers)
