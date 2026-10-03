@@ -209,7 +209,12 @@ impl Stack {
     }
 
     /// Lists items matching `filter` until `pred` holds or [`PATIENCE`] runs out.
-    async fn items_until(&self, filter: Value, what: &str, pred: impl Fn(&[Value]) -> bool) -> Vec<Value> {
+    async fn items_until(
+        &self,
+        filter: Value,
+        what: &str,
+        pred: impl Fn(&[Value]) -> bool,
+    ) -> Vec<Value> {
         let deadline = Instant::now() + PATIENCE;
         loop {
             let listed = self
@@ -265,7 +270,11 @@ impl Stack {
                 }),
             )
             .await;
-        assert_eq!(accepted["accepted"], json!(true), "chat accepted: {accepted}");
+        assert_eq!(
+            accepted["accepted"],
+            json!(true),
+            "chat accepted: {accepted}"
+        );
     }
 }
 
@@ -325,7 +334,11 @@ async fn run(cortex_url: String, cortex_key: String) {
     assert_eq!(engine["engine"], json!("cortexdb"), "{engine}");
     assert!(engine["has_key"].as_bool().unwrap_or(false), "{engine}");
     let engine = stack.ok("openhuman.memory_engine_get", json!({})).await;
-    assert_eq!(engine["status"], json!("ok"), "the live engine is healthy: {engine}");
+    assert_eq!(
+        engine["status"],
+        json!("ok"),
+        "the live engine is healthy: {engine}"
+    );
 
     // ---- learnings ------------------------------------------------------------
     let learned = stack
@@ -338,18 +351,27 @@ async fn run(cortex_url: String, cortex_key: String) {
             }),
         )
         .await;
-    let learning_id = learned["id"].as_str().expect("learn returns an id").to_string();
+    let learning_id = learned["id"]
+        .as_str()
+        .expect("learn returns an id")
+        .to_string();
     let learnings = stack
-        .items_until(json!({ "kinds": ["learning"] }), "learning stored", |items| {
-            items.iter().any(|i| i["id"] == json!(learning_id))
-        })
+        .items_until(
+            json!({ "kinds": ["learning"] }),
+            "learning stored",
+            |items| items.iter().any(|i| i["id"] == json!(learning_id)),
+        )
         .await;
     let learning = learnings
         .iter()
         .find(|i| i["id"] == json!(learning_id))
         .expect("the learning lists back");
     assert!(text_of(learning).contains("launch events in Lisbon"));
-    assert_eq!(learning["meta"]["source"]["kind"], json!("agent"), "{learning}");
+    assert_eq!(
+        learning["meta"]["source"]["kind"],
+        json!("agent"),
+        "{learning}"
+    );
 
     // ---- documents: a folder source -------------------------------------------
     let folder = write_folder(stack.home.path());
@@ -360,7 +382,10 @@ async fn run(cortex_url: String, cortex_key: String) {
             json!({ "kind": "folder", "target": folder_str, "label": "Aurora" }),
         )
         .await;
-    let source_id = added["source"]["id"].as_str().expect("source id").to_string();
+    let source_id = added["source"]["id"]
+        .as_str()
+        .expect("source id")
+        .to_string();
     let synced = stack
         .ok("openhuman.memory_sources_sync", json!({ "id": source_id }))
         .await;
@@ -374,13 +399,21 @@ async fn run(cortex_url: String, cortex_key: String) {
         .await;
     let plan = documents
         .iter()
-        .find(|d| d["meta"]["file_path"].as_str().is_some_and(|p| p.ends_with("plan.md")))
+        .find(|d| {
+            d["meta"]["file_path"]
+                .as_str()
+                .is_some_and(|p| p.ends_with("plan.md"))
+        })
         .unwrap_or_else(|| panic!("plan.md stored: {documents:?}"));
     assert!(text_of(plan).contains("Project Aurora launches on Thursday"));
     assert_eq!(plan["meta"]["source"]["kind"], json!("folder"), "{plan}");
     let code = documents
         .iter()
-        .find(|d| d["meta"]["file_path"].as_str().is_some_and(|p| p.ends_with("launch.rs")))
+        .find(|d| {
+            d["meta"]["file_path"]
+                .as_str()
+                .is_some_and(|p| p.ends_with("launch.rs"))
+        })
         .unwrap_or_else(|| panic!("launch.rs stored: {documents:?}"));
     assert_eq!(code["meta"]["language"], json!("rust"), "{code}");
 
@@ -398,7 +431,12 @@ async fn run(cortex_url: String, cortex_key: String) {
     );
 
     // ---- conversations: a committed web-chat turn is ingested -----------------
-    stack.chat("live-thread-a", "Please remember that the Aurora venue is booked.").await;
+    stack
+        .chat(
+            "live-thread-a",
+            "Please remember that the Aurora venue is booked.",
+        )
+        .await;
     let conversations = stack
         .items_until(
             json!({ "kinds": ["conversation"], "thread_id": "live-thread-a" }),
@@ -411,9 +449,17 @@ async fn run(cortex_url: String, cortex_key: String) {
         text_of(conversation).contains("Aurora venue is booked"),
         "the user's turn is stored: {conversation}"
     );
-    assert_eq!(conversation["meta"]["source"]["kind"], json!("conversation"));
-    assert!(conversation["meta"]["agent_id"].is_string(), "{conversation}");
-    let recent = stack.ok("openhuman.memory_conversations_get", json!({})).await;
+    assert_eq!(
+        conversation["meta"]["source"]["kind"],
+        json!("conversation")
+    );
+    assert!(
+        conversation["meta"]["agent_id"].is_string(),
+        "{conversation}"
+    );
+    let recent = stack
+        .ok("openhuman.memory_conversations_get", json!({}))
+        .await;
     assert!(
         recent["recent"]
             .as_array()
@@ -429,16 +475,24 @@ async fn run(cortex_url: String, cortex_key: String) {
         )
         .await;
     assert!(
-        !recalled["answer"].as_str().unwrap_or_default().trim().is_empty(),
+        !recalled["answer"]
+            .as_str()
+            .unwrap_or_default()
+            .trim()
+            .is_empty(),
         "recall answers: {recalled}"
     );
     assert!(
-        recalled["citations"].as_array().is_some_and(|c| !c.is_empty()),
+        recalled["citations"]
+            .as_array()
+            .is_some_and(|c| !c.is_empty()),
         "recall cites what it used: {recalled}"
     );
 
     // ---- context.md: compiled, persisted, injected into a new thread ----------
-    let context = stack.ok("openhuman.memory_context_refresh", json!({})).await;
+    let context = stack
+        .ok("openhuman.memory_context_refresh", json!({}))
+        .await;
     let markdown = context["markdown"].as_str().unwrap_or_default().to_string();
     assert!(
         markdown.contains("The user prefers launch events in Lisbon."),
@@ -452,7 +506,9 @@ async fn run(cortex_url: String, cortex_key: String) {
         "the file on disk is what context_get serves"
     );
 
-    stack.chat("live-thread-b", "What should I plan next?").await;
+    stack
+        .chat("live-thread-b", "What should I plan next?")
+        .await;
     let deadline = Instant::now() + PATIENCE;
     loop {
         let injected = stack.mock_bodies().await.into_iter().any(|(url, body)| {
@@ -477,9 +533,11 @@ async fn run(cortex_url: String, cortex_key: String) {
         .await;
     assert_eq!(forgotten["forgotten"], json!(1), "{forgotten}");
     stack
-        .items_until(json!({ "kinds": ["learning"] }), "learning forgotten", |items| {
-            !items.iter().any(|i| i["id"] == json!(learning_id))
-        })
+        .items_until(
+            json!({ "kinds": ["learning"] }),
+            "learning forgotten",
+            |items| !items.iter().any(|i| i["id"] == json!(learning_id)),
+        )
         .await;
 }
 
