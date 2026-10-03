@@ -86,7 +86,7 @@ pub use channels::{
     StreamMode, TelegramConfig, WebhookConfig, WhatsAppConfig, YuanbaoConfig,
 };
 pub(crate) use cli_overrides::set_cli_inference_overrides;
-pub use context::{CompactionStrategy, ContextConfig};
+pub use context::{CompactionSettings, CompactionStrategy, ContextConfig};
 pub use cron::CronConfig;
 pub use dashboard::{DashboardConfig, DiagramViewerConfig, EventStreamConfig, ModelHealthConfig};
 pub use dictation::{DictationActivationMode, DictationConfig};

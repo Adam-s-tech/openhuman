@@ -146,6 +146,27 @@ pub struct ContextConfig {
     pub compaction_strategy: CompactionStrategy,
 }
 
+/// The compaction knobs a turn carries: the trigger override and the
+/// checkpoint strategy. See [`ContextConfig::compaction_settings`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CompactionSettings {
+    /// Absolute trigger override (`None`: the window-relative default).
+    pub trigger_tokens: Option<u64>,
+    /// How a compaction writes its checkpoint.
+    pub strategy: CompactionStrategy,
+}
+
+impl ContextConfig {
+    /// The compaction knobs for a turn; a `0` trigger reads as no override.
+    #[must_use]
+    pub fn compaction_settings(&self) -> CompactionSettings {
+        CompactionSettings {
+            trigger_tokens: self.compaction_trigger_tokens.filter(|t| *t > 0),
+            strategy: self.compaction_strategy,
+        }
+    }
+}
+
 /// How a context compaction writes its checkpoint. See
 /// [`ContextConfig::compaction_strategy`].
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
