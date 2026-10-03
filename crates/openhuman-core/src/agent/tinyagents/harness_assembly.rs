@@ -9,6 +9,7 @@ use tinyagents_harness::middleware::{
     plan_mode_middleware, ApprovalGateMiddleware, ArgRecoveryMiddleware, BudgetLimits,
     BudgetMiddleware, ContextCompressionMiddleware, PromptCacheGuardMiddleware,
     RepeatProgressMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
+    TurnClockMiddleware,
 };
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::steering::SteeringHandle;
