@@ -48,7 +48,7 @@ pub use schema::{
     DictationActivationMode, DictationConfig, DiscordConfig, DockerRuntimeConfig, EmailConfig,
     EmbeddingRouteConfig, GitbooksConfig, HttpHeader, HttpRequestConfig, IMessageConfig,
     IntegrationToggle, IntegrationsConfig, LarkConfig, LearningConfig, LegacySearchInputs,
-    LinqConfig, LlmBackend, LocalAiConfig, MatrixConfig, McpAuthConfig, McpClientConfig,
+    LinqConfig, LlmBackend, LocalAiConfig, LocalJailConfig, MatrixConfig, McpAuthConfig, McpClientConfig,
     McpClientIdentityConfig, McpServerConfig, McpToolExposure, MemoryConfig, MemoryTreeConfig,
     ModelRouteConfig, MultimodalConfig, MultimodalFileConfig, ObservabilityConfig,
     OrchestratorModelConfig, PrivacyConfig, PrivacyMode, ProxyConfig, ProxyScope, ReflectionSource,
