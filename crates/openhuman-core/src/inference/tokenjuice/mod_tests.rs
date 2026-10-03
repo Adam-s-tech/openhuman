@@ -320,3 +320,16 @@ fn install_request_saves_a_copy_under_the_workspace_when_asked() {
         Some(std::path::PathBuf::from("/ws/.tokenjuice/repl"))
     );
 }
+
+#[test]
+fn install_request_summarizes_only_on_request_under_a_64k_cap() {
+    let config = crate::config::Config::default();
+    let request = install_request(&config);
+    assert!(request.options.llm_summary_enabled);
+    assert_eq!(
+        request.options.llm_summary_mode,
+        tinyjuice_bus::types::LlmSummaryMode::OnDemand,
+        "ingest must never call the summary model on its own"
+    );
+    assert_eq!(request.options.llm_summary_max_input_tokens, 64_000);
+}
