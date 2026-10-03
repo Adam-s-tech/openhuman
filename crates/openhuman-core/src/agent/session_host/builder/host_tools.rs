@@ -67,6 +67,7 @@ impl HostTurnTools {
         Self {
             tools,
             visible,
+            withheld: HashSet::new(),
             policy: None,
         }
     }
