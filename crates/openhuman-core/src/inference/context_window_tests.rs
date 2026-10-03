@@ -129,6 +129,7 @@ async fn deepseek_v41_flash_uses_provider_window_not_static_128k() {
         crate::inference::model_context::context_window_for_route(
             &format!("openrouter:{V41_FLASH}"),
             V41_FLASH,
+            &config,
         ),
         Some(1_048_576)
     );

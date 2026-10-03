@@ -33,8 +33,13 @@ pub fn context_window_for_model(model: &str) -> Option<u64> {
 }
 
 /// Resolve the synchronous window for a model on a specific provider route.
-pub(crate) fn context_window_for_route(provider: &str, model: &str) -> Option<u64> {
-    crate::inference::context_window::remembered_window(provider, model)
+pub(crate) fn context_window_for_route(
+    provider: &str,
+    model: &str,
+    config: &crate::config::Config,
+) -> Option<u64> {
+    crate::inference::context_window::config_override(model, config)
+        .or_else(|| crate::inference::context_window::remembered_window(provider, model))
         .or_else(|| static_context_window_for_model(model))
 }
 

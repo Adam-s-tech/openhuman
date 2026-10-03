@@ -203,9 +203,7 @@ pub(crate) async fn resolve_context_window_with(
     if let Some(window) = resolved.window {
         if matches!(
             resolved.source,
-            WindowSource::ConfigOverride
-                | WindowSource::ProviderReported
-                | WindowSource::LearnedFromOverflow
+            WindowSource::ProviderReported | WindowSource::LearnedFromOverflow
         ) {
             remember_window(provider, model, window);
         }
