@@ -81,3 +81,26 @@ fn env_overlay_context_tool_result_budget_env_wins_over_legacy_migration() {
         "env value wins; legacy migration suppressed"
     );
 }
+
+#[test]
+fn env_overlay_compaction_trigger_tokens_sets_and_clears_the_override() {
+    assert_eq!(Config::default().context.compaction_trigger_tokens, None);
+
+    let mut cfg = Config::default();
+    cfg.apply_env_overlay_with(
+        &HashMapEnv::new().with("OPENHUMAN_COMPACTION_TRIGGER_TOKENS", " 64000 "),
+    );
+    assert_eq!(cfg.context.compaction_trigger_tokens, Some(64_000));
+
+    // `0` clears an override set in config.toml.
+    cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPACTION_TRIGGER_TOKENS", "0"));
+    assert_eq!(cfg.context.compaction_trigger_tokens, None);
+
+    // Garbage is ignored (leaves the prior value untouched).
+    let mut cfg = Config::default();
+    cfg.context.compaction_trigger_tokens = Some(10);
+    cfg.apply_env_overlay_with(
+        &HashMapEnv::new().with("OPENHUMAN_COMPACTION_TRIGGER_TOKENS", "lots"),
+    );
+    assert_eq!(cfg.context.compaction_trigger_tokens, Some(10));
+}

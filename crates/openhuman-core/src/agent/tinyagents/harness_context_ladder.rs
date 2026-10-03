@@ -261,10 +261,12 @@ pub(super) fn compression_policy(
                 context_window = ?window,
                 "[context_compression] compaction trigger override active"
             );
-            let base = window.map(summarization_policy).unwrap_or(SummarizationPolicy {
-                keep_last: DEFAULT_SUMMARIZE_KEEP_LAST,
-                ..SummarizationPolicy::default()
-            });
+            let base = window
+                .map(summarization_policy)
+                .unwrap_or(SummarizationPolicy {
+                    keep_last: DEFAULT_SUMMARIZE_KEEP_LAST,
+                    ..SummarizationPolicy::default()
+                });
             Some(base.with_trigger_override(tokens))
         }
         None => window.map(summarization_policy),

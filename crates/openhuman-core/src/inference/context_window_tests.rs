@@ -78,7 +78,12 @@ fn openrouter_config(tmp: &TempDir) -> Config {
     config
 }
 
-async fn resolve(fetcher: &FakeFetcher, cache: &ModelLimitsCache, config: &Config, model: &str) -> ResolvedWindow {
+async fn resolve(
+    fetcher: &FakeFetcher,
+    cache: &ModelLimitsCache,
+    config: &Config,
+    model: &str,
+) -> ResolvedWindow {
     resolve_context_window_with(
         fetcher,
         cache,
@@ -94,7 +99,8 @@ async fn resolve(fetcher: &FakeFetcher, cache: &ModelLimitsCache, config: &Confi
 async fn deepseek_v41_flash_uses_provider_window_not_static_128k() {
     let tmp = TempDir::new().unwrap();
     let config = openrouter_config(&tmp);
-    let fetcher = FakeFetcher::default().with(&format!("{OPENROUTER}/models"), openrouter_listing());
+    let fetcher =
+        FakeFetcher::default().with(&format!("{OPENROUTER}/models"), openrouter_listing());
     let cache = ModelLimitsCache::default();
 
     // The static tables guess 128k for any `deepseek` id ...
@@ -118,7 +124,8 @@ async fn deepseek_v41_flash_uses_provider_window_not_static_128k() {
 async fn second_resolution_is_served_from_cache() {
     let tmp = TempDir::new().unwrap();
     let config = openrouter_config(&tmp);
-    let fetcher = FakeFetcher::default().with(&format!("{OPENROUTER}/models"), openrouter_listing());
+    let fetcher =
+        FakeFetcher::default().with(&format!("{OPENROUTER}/models"), openrouter_listing());
     let cache = ModelLimitsCache::default();
     resolve(&fetcher, &cache, &config, V41_FLASH).await;
     resolve(&fetcher, &cache, &config, V41_FLASH).await;
@@ -189,7 +196,13 @@ async fn unknown_model_without_provider_data_is_unknown() {
         "vendor/totally-unknown-xyz",
     )
     .await;
-    assert_eq!(resolved, ResolvedWindow { window: None, source: WindowSource::Unknown });
+    assert_eq!(
+        resolved,
+        ResolvedWindow {
+            window: None,
+            source: WindowSource::Unknown
+        }
+    );
 }
 
 #[tokio::test]

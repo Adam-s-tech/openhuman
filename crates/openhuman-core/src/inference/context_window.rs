@@ -131,9 +131,15 @@ fn default_fetcher() -> Box<dyn ModelListingFetcher> {
     }
     #[cfg(not(test))]
     {
-        Box::new(tinyinference_llm::model::discover::ReqwestListingFetcher::new(
-            crate::config::build_runtime_proxy_client_with_timeouts("inference.model_limits", 5, 3),
-        ))
+        Box::new(
+            tinyinference_llm::model::discover::ReqwestListingFetcher::new(
+                crate::config::build_runtime_proxy_client_with_timeouts(
+                    "inference.model_limits",
+                    5,
+                    3,
+                ),
+            ),
+        )
     }
 }
 

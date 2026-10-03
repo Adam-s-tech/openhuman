@@ -19,9 +19,9 @@
 //! `ask_user_clarification` early-exit pause are all re-wired onto the
 //! tinyagents harness.
 
+mod compaction_carry;
 pub mod config;
 pub mod discovery;
-mod compaction_carry;
 mod embeddings;
 mod harness_assembly;
 mod harness_context_ladder;
@@ -68,6 +68,7 @@ pub(crate) use crate::agent::message_convert::chat_message_to_message;
 #[cfg(feature = "flows")]
 pub(crate) use crate::agent::message_convert::{reasoning_from_content, ta_call_to_oh_call};
 
+pub(crate) use compaction_carry::{last_user_message, CompactionCarry};
 #[allow(unused_imports)] // Wired into the recall/retrieval facade in workstream 09.2.
 pub(crate) use embeddings::ProviderEmbeddingModel;
 pub(crate) use middleware::{
@@ -78,7 +79,6 @@ pub(crate) use reasoning::{apply_requested_effort, parse_reasoning_effort};
 pub(crate) use topology::all_graph_topologies;
 pub use turn_models::TurnModelSource;
 pub(crate) use turn_models::TurnModels;
-pub(crate) use compaction_carry::{last_user_message, CompactionCarry};
 pub(crate) use turn_outcome::{
     HaltSummarySlot, TinyagentsTurnOutcome, ToolCallOutcome, ToolOutcomeSink,
 };
