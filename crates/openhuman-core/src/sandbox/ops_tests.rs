@@ -449,3 +449,15 @@ async fn local_jail_removes_the_call_dir_when_the_spawn_fails() {
     );
     assert!(entries(&sandbox_capture_root(state.path())).is_empty());
 }
+
+// ── tinybox `unsupported` backend is not a jail ──────────────────────────────
+
+#[test]
+fn local_status_is_inactive_for_the_unsupported_backend() {
+    assert_eq!(
+        local_status_for_backend(cwd_jail::detect::UNSUPPORTED_BACKEND_NAME),
+        SandboxStatus::Inactive,
+        "`pick_backend` answers `unsupported` when no OS jail exists and the host then runs \
+         commands through the no-op fallback; `Ready` would claim confinement that is absent"
+    );
+}
