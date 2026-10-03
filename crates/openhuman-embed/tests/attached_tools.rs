@@ -7,6 +7,10 @@ use openhuman_embed::{
 use std::sync::Arc;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
+// Runtime is process-wide. Keep the guard on the synchronous test caller;
+// it outlives block_on and the scoped Runtime/Agent teardown inside its future.
+static RUNTIME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 struct Marker(&'static str);
 #[async_trait::async_trait]
 impl Tool for Marker {
@@ -31,6 +35,9 @@ impl Tool for Marker {
 }
 #[test]
 fn attached_tools_survive_clones_and_session_resume() {
+    let _runtime = RUNTIME_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let collision = openhuman_core::agent::OpenHumanSessionHost::builder()
         .tools(vec![Box::new(Marker("mcp_fixture_send"))])
         .synthesized_tools(vec![Box::new(Marker("mcp_fixture_send"))])
@@ -207,4 +214,73 @@ fn attached_tools_survive_clones_and_session_resume() {
         .await
         .unwrap();
     });
+}
+
+#[test]
+fn attaching_before_first_turn_preserves_and_executes_native_tools() {
+    let _runtime = RUNTIME_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    runtime().block_on(async {
+        tokio::spawn(async {
+            struct NativeCall(std::sync::atomic::AtomicUsize);
+            impl wiremock::Respond for NativeCall {
+                fn respond(&self, _: &wiremock::Request) -> ResponseTemplate {
+                    let body = if self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
+                        serde_json::json!({
+                            "id":"fresh-wildcard", "object":"chat.completion", "model":"fixture",
+                            "choices":[{"index":0,"finish_reason":"tool_calls","message":{
+                                "role":"assistant","content":null,"tool_calls":[{
+                                    "id":"native-shell","type":"function","function":{
+                                        "name":"shell","arguments":"{\"command\":\"printf native-wildcard-survived\"}"
+                                    }
+                                }]
+                            }}]
+                        })
+                    } else {
+                        chat_completion("native tool completed")
+                    };
+                    ResponseTemplate::new(200).set_body_json(body)
+                }
+            }
+            let backend = stub_backend().await;
+            let provider = wiremock::MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/v1/chat/completions"))
+                .respond_with(NativeCall(std::sync::atomic::AtomicUsize::new(0)))
+                .mount(&provider).await;
+            let runtime = Runtime::builder()
+                .config(offline_config()).workspace(Workspace::Ephemeral)
+                .backend_url(backend.uri()).build().await.unwrap();
+            let agent = runtime.agent(AgentSpec::new("fresh-attached")
+                .provider(Provider::openai_compatible(format!("{}/v1",provider.uri()),"fixture").model("fixture"))
+                .definition(AgentDefinitionSpec::new().system_prompt("ORIGINAL_FRESH_HOST_PROMPT")
+                    .tools(ToolScopeSpec::Wildcard))).unwrap();
+            let attachment: HostTools = Arc::new(|_| HostTurnTools::advertised(vec![Box::new(Marker("hivemind_message"))]));
+            agent.attach_tools("hivemind", attachment).unwrap();
+            agent.run("Run the native tool").await.unwrap();
+            let requests = chat_requests(&provider).await;
+            assert_eq!(requests.len(), 2);
+            let first: serde_json::Value = serde_json::from_slice(&requests[0].body).unwrap();
+            let names: Vec<_> = first["tools"].as_array().unwrap().iter()
+                .filter_map(|tool| tool["function"]["name"].as_str()).collect();
+            assert!(names.contains(&"shell"), "native wildcard tool missing: {names:?}");
+            assert!(names.contains(&"hivemind_message"));
+            let second: serde_json::Value = serde_json::from_slice(&requests[1].body).unwrap();
+            assert!(second["messages"].as_array().unwrap().iter().any(|message|
+                message["role"] == "tool" && message["content"].as_str().is_some_and(|text|
+                    text.contains("native-wildcard-survived") && !text.contains("unknown tool"))),
+                "the native executor must actually run: {second}");
+            assert!(first["messages"].to_string().contains("ORIGINAL_FRESH_HOST_PROMPT"));
+        }).await.unwrap();
+    });
+}
+
+#[test]
+fn permanent_metadata_requires_a_real_source() {
+    let factory = HostTurnTools {
+        permanent: std::collections::HashSet::from(["missing_source".into()]),
+        ..Default::default()
+    };
+    assert!(!factory.is_empty(), "metadata must reach source validation");
 }

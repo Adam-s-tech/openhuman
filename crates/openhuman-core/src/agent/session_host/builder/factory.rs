@@ -156,7 +156,7 @@ impl OpenHumanSessionHost {
         host: Option<&super::HostTools>,
         session_id: Option<&str>,
     ) -> Result<Self> {
-        let workspace_descriptor = derive_turn_workspace_descriptor();
+        let workspace_descriptor = super::helpers::derive_turn_workspace_descriptor();
 
         let runtime: Arc<dyn host_runtime::RuntimeAdapter> = Arc::from(
             host_runtime::create_runtime(&config.runtime, config.shell.hide_window)?,
@@ -978,59 +978,41 @@ impl OpenHumanSessionHost {
             );
             effective_agent_config.max_tool_iterations = def_cap;
         }
-        // Host-first, so a host tool wins a name collision -- see
-        // `HostTurnTools::merge_into`, which owns that rule and why.
-        let (host_policy, withheld_tool_names, permanent_tool_names) =
-            super::host_tools::merge_for_turn(
-                host,
-                agent_id,
-                session_id,
-                &mut tools,
-                &mut visible,
-            )?;
-        let mut builder = OpenHumanSessionHost::builder()
-            .crate_native_provider(provider_role, Arc::clone(&base_config))
-            .tools(tools)
-            .synthesized_tools(delegation_tools)
-            .visible_tool_names(visible)
-            .withheld_tool_names(withheld_tool_names)
-            .permanent_tool_names(permanent_tool_names)
-            .deferred_tools(target_def.map_or_else(Vec::new, |d| d.deferred_tools.clone()))
-            .memory(memory)
-            .auto_recall(Some(auto_recall))
-            .tool_dispatcher(tool_dispatcher)
-            .prompt_builder(prompt_builder)
-            .config(effective_agent_config)
-            .context_config(config.context.clone())
-            .model_name(model_name)
-            .model_vision(model_vision)
-            .temperature(effective_temperature)
-            .workspace_dir(config.workspace_dir.clone())
-            .action_dir(config.action_dir.clone())
-            .workspace_descriptor(workspace_descriptor)
-            .workflows({
-                let mut catalogue = crate::skills::load_workflow_metadata(&config.workspace_dir);
-                #[cfg(feature = "flows")]
-                catalogue.extend(crate::flows::catalogue::flow_entries(config));
-                catalogue
-            })
-            .auto_save(config.memory.auto_save)
-            .post_turn_hooks(post_turn_hooks)
-            .learning_enabled(config.learning.enabled)
-            .explicit_preferences_enabled(config.learning.explicit_preferences_enabled)
-            .agent_definition_name(agent_id.to_string())
-            .omit_profile(effective_omit_profile)
-            .omit_memory_md(effective_omit_memory_md)
-            .trigger_memory_agent(effective_trigger_memory_agent)
-            .tokenjuice_compression(effective_tokenjuice_compression);
+        let mut builder =
+            super::host_tools::tool_builder(host, agent_id, session_id, tools, visible)?
+                .crate_native_provider(provider_role, Arc::clone(&base_config))
+                .synthesized_tools(delegation_tools)
+                .deferred_tools(target_def.map_or_else(Vec::new, |d| d.deferred_tools.clone()))
+                .memory(memory)
+                .auto_recall(Some(auto_recall))
+                .tool_dispatcher(tool_dispatcher)
+                .prompt_builder(prompt_builder)
+                .config(effective_agent_config)
+                .context_config(config.context.clone())
+                .model_name(model_name)
+                .model_vision(model_vision)
+                .temperature(effective_temperature)
+                .workspace_dir(config.workspace_dir.clone())
+                .action_dir(config.action_dir.clone())
+                .workspace_descriptor(workspace_descriptor)
+                .workflows({
+                    let mut catalogue =
+                        crate::skills::load_workflow_metadata(&config.workspace_dir);
+                    #[cfg(feature = "flows")]
+                    catalogue.extend(crate::flows::catalogue::flow_entries(config));
+                    catalogue
+                })
+                .auto_save(config.memory.auto_save)
+                .post_turn_hooks(post_turn_hooks)
+                .learning_enabled(config.learning.enabled)
+                .explicit_preferences_enabled(config.learning.explicit_preferences_enabled)
+                .agent_definition_name(agent_id.to_string())
+                .omit_profile(effective_omit_profile)
+                .omit_memory_md(effective_omit_memory_md)
+                .trigger_memory_agent(effective_trigger_memory_agent)
+                .tokenjuice_compression(effective_tokenjuice_compression);
         if let Some(ps) = payload_summarizer {
             builder = builder.payload_summarizer(ps);
-        }
-        // A host gate REPLACES the session's rather than fronting it --
-        // `tool_policy` assigns. `HostTurnTools::with_policy` says why, and
-        // what it costs a host that gates only its own names.
-        if let Some(policy) = host_policy {
-            builder = builder.tool_policy(policy);
         }
         builder = builder.archivist_hook(archivist_hook_arc);
         let mut agent = builder.build()?;
@@ -1213,21 +1195,4 @@ pub(crate) fn provider_role_for_definition(
         })
         .flatten();
     provider_role_for(master_hint.as_deref().or(default_model))
-}
-
-fn derive_turn_workspace_descriptor() -> Option<tinytools::WorkspaceDescriptor> {
-    let root = crate::agent::turn_workspace::current()?;
-    if !root.is_dir() {
-        tracing::warn!(
-            root = %root.display(),
-            "[turn_workspace] scoped root is not an existing directory — \
-             falling back to the shared action_dir cwd for this turn"
-        );
-        return None;
-    }
-    tracing::debug!(
-        root = %root.display(),
-        "[turn_workspace] turn bound to the embedder's per-turn root as default cwd"
-    );
-    Some(tinytools::WorkspaceDescriptor::new(root).with_policy_id("turn-workspace"))
 }
