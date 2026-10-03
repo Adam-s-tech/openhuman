@@ -28,28 +28,42 @@ pub(super) fn fetched_site_status(text: &str) -> Option<u16> {
     (!host.is_empty() && !host.contains(char::is_whitespace)).then_some(status)
 }
 
-/// Recovery class and retry budget for a fetched site's `status`.
+/// Recovery policy for a `web_fetch` error carrying a fetched site's status:
+/// `None` when `tool`/`error` are not that shape (the caller classifies as
+/// usual), otherwise the policy to return, itself `None` for an ordinary
+/// failure.
 ///
 /// - 401/403: the site refused us. Another page or source may still work, so
 ///   the run continues, but the same host refusing repeatedly stops it.
 /// - 429 and 5xx: transient, with the usual retry headroom.
 /// - anything else (404, 410, 400, ...): an ordinary tool failure with no
 ///   classified budget; the exact-repeat guard bounds it.
-pub(super) fn site_status_policy(status: u16) -> Option<(&'static str, usize)> {
+pub(super) fn fetched_site_policy(
+    tool: &str,
+    error: &str,
+) -> Option<Option<(&'static str, usize)>> {
+    if tool != WEB_FETCH_TOOL {
+        return None;
+    }
+    let status = fetched_site_status(error)?;
     tracing::debug!(
         status,
         "[tinyagents::mw] web_fetch site status — not a credential failure"
     );
-    match status {
+    Some(match status {
         401 | 403 => Some(("site_refused", 2)),
         429 | 500..=599 => Some(("transient", 2)),
         _ => None,
-    }
+    })
 }
 
-/// The host of `url`, if it parses.
-pub(super) fn url_host(url: &str) -> Option<String> {
-    url::Url::parse(url)
-        .ok()
-        .and_then(|u| u.host_str().map(str::to_owned))
+/// The failure-scope part for a `web_fetch` `url` argument: its host. A site
+/// decides whether to serve us per host, not per page, so a model walking a
+/// blocked site's pages shares one budget instead of a fresh one per URL.
+pub(super) fn fetch_host_scope(tool: &str, field: &str, value: &str) -> Option<String> {
+    if tool != WEB_FETCH_TOOL || field != "url" {
+        return None;
+    }
+    let url = url::Url::parse(value).ok()?;
+    Some(format!(":host={}", url.host_str()?))
 }

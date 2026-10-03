@@ -19,7 +19,7 @@ use tinyinference_llm::model::ModelRequest;
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;
 
-use super::fetched_site::{fetched_site_status, site_status_policy, url_host, WEB_FETCH_TOOL};
+use super::fetched_site::{fetch_host_scope, fetched_site_policy};
 use super::loop_guards::{
     is_repeat_call_exempt, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
     RECOVERABLE_REPEAT_FAILURE_THRESHOLD,
@@ -217,15 +217,9 @@ pub(super) fn failure_scope(tool: &str, arguments: &serde_json::Value) -> String
             Some(serde_json::Value::Number(value)) => value.to_string(),
             _ => continue,
         };
-        // A site decides whether to serve us per host, not per page: scope a
-        // fetch by host so a model walking a blocked site's pages shares one
-        // budget instead of getting a fresh one for every URL.
-        if tool == WEB_FETCH_TOOL && field == "url" {
-            if let Some(host) = url_host(&value) {
-                scope.push_str(":host=");
-                scope.push_str(&host);
-                continue;
-            }
+        if let Some(host_scope) = fetch_host_scope(tool, field, &value) {
+            scope.push_str(&host_scope);
+            continue;
         }
         scope.push(':');
         scope.push_str(field);
@@ -317,12 +311,9 @@ fn classified_recovery_policy(
     {
         return Some(("unavailable", 1));
     }
-    // A public website refusing or failing a fetch says nothing about
-    // OpenHuman's credentials; only `web_fetch` is exempt (see `fetched_site`).
-    if tool == WEB_FETCH_TOOL {
-        if let Some(status) = fetched_site_status(error) {
-            return site_status_policy(status);
-        }
+    // A site's refusal is not our credential failure (see `fetched_site`).
+    if let Some(policy) = fetched_site_policy(tool, error) {
+        return policy;
     }
     // A tool-owned JSON error contract is less ambiguous than rendered prose.
     // Read only explicit status/code fields; arbitrary response data is not a
