@@ -66,7 +66,9 @@ pub(crate) fn is_file_read_command(command: &str) -> bool {
         .filter(|s| !s.is_empty())
     {
         let mut words = segment.split_whitespace();
-        let Some(program) = words.next() else { continue };
+        let Some(program) = words.next() else {
+            continue;
+        };
         let program = program.rsplit('/').next().unwrap_or(program);
         if program == "sed"
             && segment

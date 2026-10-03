@@ -40,8 +40,14 @@ fn anything_that_runs_writes_or_searches_is_not() {
 fn file_read_tools_and_wrapped_calls_are_recognised() {
     assert!(is_file_read_call("file_read", &json!({"path": "a.rs"})));
     assert!(is_file_read_call("shell", &json!({"command": "cat a.rs"})));
-    assert!(!is_file_read_call("shell", &json!({"command": "cargo test"})));
-    assert!(!is_file_read_call("web_fetch", &json!({"url": "https://example.com"})));
+    assert!(!is_file_read_call(
+        "shell",
+        &json!({"command": "cargo test"})
+    ));
+    assert!(!is_file_read_call(
+        "web_fetch",
+        &json!({"url": "https://example.com"})
+    ));
     assert!(is_file_read_call(
         "use_skill",
         &json!({"tool": "shell", "args": {"command": "cat a.rs"}})
