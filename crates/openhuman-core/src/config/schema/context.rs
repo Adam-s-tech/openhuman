@@ -124,6 +124,16 @@ pub struct ContextConfig {
     /// `compaction_enabled = false` or `OPENHUMAN_COMPACTION=0`.
     #[serde(default = "default_true")]
     pub compaction_enabled: bool,
+
+    /// Absolute token count at which context compaction (the summarization
+    /// step) fires, overriding the default of 90% of the model's context
+    /// window. Also enables compaction for a model whose window is unknown.
+    ///
+    /// For benchmarks and debugging that need compaction to happen early;
+    /// leave unset in normal use. `None` or `0` means no override. Env:
+    /// `OPENHUMAN_COMPACTION_TRIGGER_TOKENS`.
+    #[serde(default)]
+    pub compaction_trigger_tokens: Option<u64>,
 }
 
 fn default_enabled() -> bool {
@@ -168,6 +178,7 @@ impl Default for ContextConfig {
             summarizer_model: None,
             prefer_markdown_tool_output: default_true(),
             compaction_enabled: default_true(),
+            compaction_trigger_tokens: None,
         }
     }
 }

@@ -86,6 +86,10 @@ pub struct ContextManager {
     /// `[context].autocompact_enabled` so a diagnostic/test opt-out doesn't spend
     /// summarizer tokens or rewrite history. See [`ContextConfig::autocompact_enabled`].
     autocompact_enabled: bool,
+    /// `[context].compaction_trigger_tokens`: absolute compaction trigger
+    /// overriding the window fraction. See
+    /// [`ContextConfig::compaction_trigger_tokens`].
+    compaction_trigger_tokens: Option<u64>,
 }
 
 impl ContextManager {
@@ -119,6 +123,7 @@ impl ContextManager {
             // Summarization is off when the whole context system is disabled OR
             // autocompaction specifically is turned off.
             autocompact_enabled: config.enabled && config.autocompact_enabled,
+            compaction_trigger_tokens: config.compaction_trigger_tokens.filter(|t| *t > 0),
         }
     }
 
@@ -155,6 +160,12 @@ impl ContextManager {
     /// `TurnContextMiddleware`.
     pub fn autocompact_enabled(&self) -> bool {
         self.autocompact_enabled
+    }
+
+    /// Absolute compaction trigger overriding the window fraction, when
+    /// configured (benchmarks / debugging).
+    pub fn compaction_trigger_tokens(&self) -> Option<u64> {
+        self.compaction_trigger_tokens
     }
 
     // ─── Budget tracking ──────────────────────────────────────────

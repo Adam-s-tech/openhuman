@@ -84,6 +84,20 @@ impl Config {
                 _ => {}
             }
         }
+        // Absolute compaction trigger (benchmarks / debugging). `0` or an
+        // empty value clears an override set in `config.toml`.
+        if let Some(val) = env.get("OPENHUMAN_COMPACTION_TRIGGER_TOKENS") {
+            match val.trim() {
+                "" | "0" => self.context.compaction_trigger_tokens = None,
+                raw => match raw.parse::<u64>() {
+                    Ok(tokens) => self.context.compaction_trigger_tokens = Some(tokens),
+                    Err(_) => tracing::warn!(
+                        value = raw,
+                        "[config] ignoring unparseable OPENHUMAN_COMPACTION_TRIGGER_TOKENS"
+                    ),
+                },
+            }
+        }
         if let Some(val) = env.get("OPENHUMAN_CONTEXT_TOOL_RESULT_BUDGET_BYTES") {
             if let Ok(n) = val.trim().parse::<usize>() {
                 self.context.tool_result_budget_bytes = n;

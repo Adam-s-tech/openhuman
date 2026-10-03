@@ -1387,6 +1387,7 @@ impl OpenHumanSessionHost {
             tokenjuice_compaction_enabled,
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction_trigger_tokens,
         ) = {
             let context = self
                 .context
@@ -1397,6 +1398,7 @@ impl OpenHumanSessionHost {
                 context.compaction_enabled(),
                 context.microcompact_keep_recent(),
                 context.autocompact_enabled(),
+                context.compaction_trigger_tokens(),
             )
         };
         let artifact_store = super::artifact_wiring::build_artifact_store(
@@ -1416,6 +1418,7 @@ impl OpenHumanSessionHost {
             runtime_config: self.runtime_config.clone(),
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction_trigger_tokens,
             transcript_snapshot: None,
         };
         let driver = Arc::new(OpenHumanSessionDriver::new(
