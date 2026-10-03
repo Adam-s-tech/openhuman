@@ -405,6 +405,7 @@ impl TurnContextMiddleware {
                 focus_by_call: Default::default(),
                 summary_focus_tools,
                 raw_fetches: Default::default(),
+        file_reads: Default::default(),
             }));
         }
     }
