@@ -671,7 +671,10 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 // #4092: if the blocker is user-actionable (a missing connection),
                 // escalate with a concrete ask instead of the crate's generic
                 // "unreachable environment, report back" summary.
-                let escalation = user_actionable_escalation(tool_name, &content);
+                // A command printing `not connected` is not a missing integration.
+                let escalation = (!is_command_exit_report(&content))
+                    .then(|| user_actionable_escalation(tool_name, &content))
+                    .flatten();
                 let user_actionable = escalation.is_some();
                 let summary = escalation.unwrap_or(summary);
                 tracing::warn!(
