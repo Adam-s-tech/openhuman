@@ -546,7 +546,9 @@ impl ShellTool {
     /// none exists the command fails with its own `command not found`. Failing
     /// here instead blocked every `python …` command for the rest of the run
     /// once the runtime module had faulted, even with a working `python3` on
-    /// the host.
+    /// the host. This fallback is safe because commands still pass through
+    /// `check_gated_command` and sandbox policy, and the child already inherits
+    /// `PATH` through `SAFE_ENV_VARS`.
     async fn runtime_path_for_command(&self, command: &str) -> Option<String> {
         let mut prepend_dirs = Vec::new();
 
@@ -577,10 +579,17 @@ impl ShellTool {
                         prepend_dirs.push(resolved.bin_dir);
                     }
                     Err(error) => {
-                        tracing::warn!(
-                            error = %error,
-                            "[shell] python runtime unavailable — running on the inherited PATH"
-                        );
+                        if !self.python_bootstrap.as_ref().is_some_and(|bootstrap| bootstrap.is_enabled()) {
+                            tracing::debug!(
+                                error = %error,
+                                "[shell] python runtime disabled — running on the inherited PATH"
+                            );
+                        } else {
+                            tracing::warn!(
+                                error = %error,
+                                "[shell] python runtime unavailable — running on the inherited PATH"
+                            );
+                        }
                     }
                 }
             }
