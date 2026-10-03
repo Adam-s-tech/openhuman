@@ -85,7 +85,9 @@ All methods take and return JSON objects. Errors use the standard structured err
 | `memory_fetch` | `{query, mode?, filter?, limit?, cursor?}` | `{hits: Hit[], next_cursor?}` |
 | `memory_learn` | `{text, kind?, confidence?, meta?}` | `{id}` |
 | `memory_forget` | `{ids}` | `{forgotten: number}` |
-| `memory_items_list` | `{filter?, limit?, cursor?}` | `{items: Hit[], next_cursor?}` |
+| `memory_items_list` | `{filter?, limit?, cursor?, path?}` | `{items: Hit[], next_cursor?}` |
+| `memory_explore` | `{facet, path?, filter?, limit? (1–500, default 50), scan_limit?}` | `{facet, buckets: {value, count}[], total, missing, more_buckets, truncated}` |
+| `memory_items_get` | `{ids}` (1–200) | `{items: Hit[]}` in the order asked; unknown ids left out |
 | `memory_conversations_get` | `{}` | `{enabled, batch_turns, idle_secs, recent: {thread_id, turns, stored_at}[]}` |
 | `memory_conversations_set` | `{enabled?, batch_turns?, idle_secs?}` | same as `conversations_get` |
 | `memory_sources_list` | `{}` | `{sources: Source[]}` |
@@ -117,6 +119,8 @@ The types:
 
 ## UI
 
-The Memory page lives under Connections at `/connections?tab=brain&brain=<chip>`. Its chips are `engine`, `ask`, `learnings`, `conversations`, `documents` and `context`. The default chip is `ask` when an engine is active and `engine` otherwise.
+The Memory page lives under Connections at `/connections?tab=brain&brain=<chip>`. Its chips are `engine`, `ask`, `explorer`, `learnings`, `conversations`, `documents` and `context`. The default chip is `ask` when an engine is active and `engine` otherwise.
+
+**Explorer.** `memory_explore` groups stored items by one of TinyMemory's standard facets (`kind`, `source`, `source_id`, `workspace`, `folder`, `file_path`, `language`, `repo`, `url`, `thread`, `agent`, `tool_call`, `tag`) and counts each value. The explorer path is a list of `{facet, value}` steps that the core turns into a filter with `Facet::narrow`, so `memory_explore` and `memory_items_list` take the same `path` and the UI never rebuilds filters itself. Opening an item reads it whole with `memory_items_get`. Facets belong to the TinyMemory contract (`MemoryEngine::explore`/`get`, with listing-based defaults), not to an engine's storage layout.
 
 Legacy `?brain=graph|goals|sync|sources` values map to `ask`, `ask`, `documents` and `documents`. `/settings/memory-engine` redirects to the `engine` chip.

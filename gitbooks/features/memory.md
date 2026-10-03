@@ -9,7 +9,7 @@ icon: brain
 
 OpenHuman's memory lets the agent remember you across chats: what you are working on, what you prefer, what is in your documents. Memory is a feature of the app, not a hidden database. You pick who stores it, see what is stored, and delete anything.
 
-Open it from **Connections → Memory**. It has six tabs (chips): **Engine**, **Ask**, **Learnings**, **Conversations**, **Documents** and **Context**. The old `/brain` and `/settings/memory-engine` addresses redirect there.
+Open it from **Connections → Memory**. It has seven tabs (chips): **Engine**, **Ask**, **Explorer**, **Learnings**, **Conversations**, **Documents** and **Context**. The old `/brain` and `/settings/memory-engine` addresses redirect there.
 
 ## Engines
 
@@ -54,6 +54,12 @@ After a few committed turns in a thread, or once a thread has been idle for a wh
 A learning is one durable statement: a preference, fact, procedure or correction. The agent saves them with its `memory` tool (`learn` action), and you can add or delete them on the **Learnings** tab.
 
 Everything is scrubbed for secrets and personal identifiers before it leaves your machine.
+
+## Exploring what memory holds
+
+The **Explorer** tab shows everything your memory holds, grouped by one property at a time: type, source, workspace, folder, file, language, repository, link, thread, agent, tool or tag. Each value shows how many items carry it. Click one to narrow to those items, then group again by another property; the breadcrumb at the top takes you back up. The items at each step are listed below, and **Open** shows one in full with all its details and a **Forget** button.
+
+On a very large memory the counts may cover only the items scanned so far; the tab says so when that happens.
 
 ## The agent's memory tool
 
