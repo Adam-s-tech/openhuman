@@ -237,6 +237,6 @@ test("answer is grounded in the pack it is given and refuses an unknown pack", a
 test("scopes honours the prefix filter", async () => {
   await write("app:tinymemory/app:learnings", "k1", "x");
   await write("other:scope", "k2", "y");
-  const r = await call("GET", "/memory/scopes?prefix=tm%3Amemory");
+  const r = await call("GET", "/memory/scopes?prefix=app%3Atinymemory");
   assert.deepEqual(r.json.data.items.map((i) => i.path), ["app:tinymemory/app:learnings"]);
 });
