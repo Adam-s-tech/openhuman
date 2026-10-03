@@ -147,6 +147,20 @@ fn cargo_home_with_registry_credentials_is_granted_piecewise() {
 }
 
 #[test]
+fn a_writable_grant_subsumes_the_same_path_read_only() {
+    let home = fake_home();
+    let cfg = LocalJailConfig {
+        extra_read_only: vec!["~/.npm".into()],
+        extra_read_write: vec!["~/.npm".into()],
+        ..LocalJailConfig::default()
+    };
+    let g = resolve_local_jail_grants(Some(home.path()), &cfg);
+    let npm = canon(&home.path().join(".npm"));
+    assert!(has(&g.read_write, &npm));
+    assert!(!has(&g.read_only, &npm));
+}
+
+#[test]
 fn proc_is_off_by_default_and_only_the_toggle_grants_it() {
     let home = fake_home();
     let g = resolve_local_jail_grants(Some(home.path()), &LocalJailConfig::default());
@@ -173,15 +187,15 @@ fn proc_is_off_by_default_and_only_the_toggle_grants_it() {
 fn extras_expand_tilde_and_skip_missing_paths() {
     let home = fake_home();
     fs::create_dir_all(home.path().join("dotfiles")).unwrap();
+    fs::create_dir_all(home.path().join("data")).unwrap();
     let cfg = LocalJailConfig {
         extra_read_only: vec!["~/dotfiles".into(), "~/nope".into()],
-        extra_read_write: vec!["~/dotfiles/../dotfiles".into()],
+        extra_read_write: vec!["~/data/../data".into()],
         ..LocalJailConfig::default()
     };
     let g = resolve_local_jail_grants(Some(home.path()), &cfg);
-    let d = canon(&home.path().join("dotfiles"));
-    assert!(has(&g.read_only, &d));
-    assert!(has(&g.read_write, &d));
+    assert!(has(&g.read_only, &canon(&home.path().join("dotfiles"))));
+    assert!(has(&g.read_write, &canon(&home.path().join("data"))));
     assert!(!all(&g).iter().any(|p| p.ends_with("nope")));
 }
 
@@ -194,7 +208,7 @@ fn gitconfig_symlink_and_include_targets_are_canonicalized() {
     fs::write(dots.join("local.gitconfig"), "").unwrap();
     fs::write(
         dots.join("gitconfig"),
-        "[user]\n name = x\n[include]\n path = work.gitconfig\n\
+        "[user]\n name = x\n[include]\n path = dotfiles/work.gitconfig\n\
          [includeIf \"gitdir:~/w/\"]\n\tpath = ~/dotfiles/local.gitconfig\n\
          [include]\n path = ~/.ssh/leaky\n",
     )

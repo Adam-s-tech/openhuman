@@ -406,12 +406,16 @@ async fn concurrent_local_jail_runs_keep_their_outputs_separate() {
 async fn local_jail_captures_under_the_state_dir_and_removes_the_call_dir() {
     let action = tempfile::tempdir().unwrap();
     let state = tempfile::tempdir().unwrap();
-    let policy = local_policy(action.path(), state.path());
+    let mut policy = local_policy(action.path(), state.path());
     let capture_root = sandbox_capture_root(state.path());
     assert_eq!(
         capture_root,
         state.path().join("artifacts").join("sandbox-capture")
     );
+    // A real jail grants only the per-call dir, so the command cannot list the
+    // capture root on its own; grant it read-only so this test can look.
+    std::fs::create_dir_all(&capture_root).unwrap();
+    policy.read_only_mounts.push(capture_root.clone());
 
     // While running, exactly one per-call dir holding both streams exists.
     let during = run_local(&policy, &format!("ls '{}'/*", capture_root.display())).await;
