@@ -23,6 +23,9 @@ vi.mock('../../components/memory/MemoryAskTab', () => ({
     <div data-testid="stub-ask">{fetchModes.join(',')}</div>
   ),
 }));
+vi.mock('../../components/memory/MemoryExplorerTab', () => ({
+  default: () => <div data-testid="stub-explorer" />,
+}));
 vi.mock('../../components/memory/MemoryLearningsTab', () => ({
   default: () => <div data-testid="stub-learnings" />,
 }));
@@ -81,9 +84,17 @@ beforeEach(() => {
 });
 
 describe('Memory page', () => {
-  it('renders the six chips', async () => {
+  it('renders the seven chips', async () => {
     renderAt('?tab=brain');
-    for (const chip of ['engine', 'ask', 'learnings', 'conversations', 'documents', 'context']) {
+    for (const chip of [
+      'engine',
+      'ask',
+      'explorer',
+      'learnings',
+      'conversations',
+      'documents',
+      'context',
+    ]) {
       expect(await screen.findByTestId(`brain-tab-${chip}`)).toBeInTheDocument();
     }
   });
@@ -102,6 +113,7 @@ describe('Memory page', () => {
   });
 
   it.each([
+    ['explorer', 'stub-explorer'],
     ['learnings', 'stub-learnings'],
     ['conversations', 'stub-conversations'],
     ['documents', 'stub-documents'],
