@@ -65,6 +65,7 @@ fn policy(workspace: &Path) -> SandboxPolicy {
     SandboxPolicy {
         backend: SandboxBackendKind::Docker,
         workspace_root: workspace.to_path_buf(),
+        state_dir: PathBuf::from("/tmp/state"),
         read_only_mounts: vec![],
         allow_network: false,
         env_passthrough: vec![],
