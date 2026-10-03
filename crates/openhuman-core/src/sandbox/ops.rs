@@ -12,7 +12,7 @@ use crate::config::RuntimeConfig;
 use crate::sandbox::cwd_jail::{self, Jail, NoopBackend};
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 /// Safe environment variables forwarded into sandboxed execution.
@@ -26,9 +26,13 @@ pub const SANDBOX_ENV_PASSTHROUGH: &[&str] = &[
 /// Non-main sessions (channel, cron, remote) default to `Docker` when
 /// the mode is `Sandboxed` and Docker is configured. Local interactive
 /// sessions default to `Local` (OS-level jail via `cwd_jail`).
+///
+/// `state_dir` is the core's internal `workspace_dir`; host-side scratch such
+/// as output capture goes there instead of into `action_dir`.
 pub fn resolve_sandbox_policy(
     mode: SandboxMode,
     action_dir: &Path,
+    state_dir: &Path,
     runtime_config: &RuntimeConfig,
     is_remote_session: bool,
 ) -> SandboxPolicy {
@@ -74,6 +78,7 @@ pub fn resolve_sandbox_policy(
     SandboxPolicy {
         backend,
         workspace_root: action_dir.to_path_buf(),
+        state_dir: state_dir.to_path_buf(),
         read_only_mounts: vec![],
         allow_network,
         env_passthrough: SANDBOX_ENV_PASSTHROUGH
@@ -233,12 +238,61 @@ async fn execute_unsandboxed(
     }
 }
 
+/// Where the local jail captures command output:
+/// `<state_dir>/artifacts/sandbox-capture`. One directory per call lives under
+/// it and is removed once the output has been read.
+pub fn sandbox_capture_root(state_dir: &Path) -> PathBuf {
+    state_dir.join("artifacts").join("sandbox-capture")
+}
+
+/// A per-call capture directory, `<capture root>/<uuid>`, removed with its
+/// contents on drop so every exit path (spawn failure, wait error, timeout)
+/// cleans up.
+struct CaptureDir(PathBuf);
+
+impl CaptureDir {
+    fn create(state_dir: &Path) -> anyhow::Result<Self> {
+        let dir = sandbox_capture_root(state_dir).join(uuid::Uuid::new_v4().to_string());
+        std::fs::create_dir_all(&dir).map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to create sandbox capture dir {}: {e}",
+                dir.display()
+            )
+        })?;
+        tracing::debug!(dir = %dir.display(), "[sandbox:local] created capture dir");
+        Ok(Self(dir))
+    }
+
+    fn stdout(&self) -> PathBuf {
+        self.0.join("stdout")
+    }
+
+    fn stderr(&self) -> PathBuf {
+        self.0.join("stderr")
+    }
+}
+
+impl Drop for CaptureDir {
+    fn drop(&mut self) {
+        match std::fs::remove_dir_all(&self.0) {
+            Ok(()) => tracing::debug!(dir = %self.0.display(), "[sandbox:local] removed capture dir"),
+            Err(e) => tracing::warn!(
+                dir = %self.0.display(),
+                error = %e,
+                "[sandbox:local] failed to remove capture dir"
+            ),
+        }
+    }
+}
+
 /// Execute via the OS-level `cwd_jail` backend (Landlock/Seatbelt/AppContainer).
 ///
 /// Output capture: some OS backends (macOS Seatbelt) rebuild the command
 /// internally and don't forward piped stdio settings. We capture output
-/// by wrapping the command to redirect stdout/stderr to temp files inside
-/// the jail root, then reading them back after exit.
+/// by wrapping the command to redirect stdout/stderr into a fresh per-call
+/// directory under the core's state dir (never the user's project, #6961),
+/// grant the jail write access to that directory for this spawn only, and
+/// read the files back after exit.
 async fn execute_local_jail(
     policy: &SandboxPolicy,
     command: &str,
@@ -254,8 +308,10 @@ async fn execute_local_jail(
         jail = jail.add_read_only(ro);
     }
 
-    let stdout_file = policy.workspace_root.join(".sandbox_stdout");
-    let stderr_file = policy.workspace_root.join(".sandbox_stderr");
+    let capture = CaptureDir::create(&policy.state_dir)?;
+    jail = jail.add_read_write(&capture.0);
+    let stdout_file = capture.stdout();
+    let stderr_file = capture.stderr();
     // Platform-aware output-capture wrap: `{ … ; } > … 2> …` on sh/bash,
     // trailing `> … 2> …` on cmd.exe (no brace grouping). Shell binary is
     // picked by `platform_shell` so this path is Windows-safe (#4705).
@@ -280,9 +336,6 @@ async fn execute_local_jail(
         cwd_jail::spawn_with(&NoopBackend, &jail, cmd)
     };
 
-    let stdout_path = stdout_file.clone();
-    let stderr_path = stderr_file.clone();
-
     match spawn_result {
         Ok(child) => {
             let wait_result = tokio::task::spawn_blocking(move || {
@@ -306,10 +359,9 @@ async fn execute_local_jail(
             })
             .await??;
 
-            let stdout = std::fs::read_to_string(&stdout_path).unwrap_or_default();
-            let stderr_content = std::fs::read_to_string(&stderr_path).unwrap_or_default();
-            let _ = std::fs::remove_file(&stdout_path);
-            let _ = std::fs::remove_file(&stderr_path);
+            let stdout = std::fs::read_to_string(&stdout_file).unwrap_or_default();
+            let stderr_content = std::fs::read_to_string(&stderr_file).unwrap_or_default();
+            drop(capture);
 
             Ok(SandboxExecResult {
                 exit_code: wait_result.0,
@@ -322,11 +374,7 @@ async fn execute_local_jail(
                 timed_out: wait_result.1,
             })
         }
-        Err(e) => {
-            let _ = std::fs::remove_file(&stdout_path);
-            let _ = std::fs::remove_file(&stderr_path);
-            anyhow::bail!("Failed to spawn jailed process: {e}")
-        }
+        Err(e) => anyhow::bail!("Failed to spawn jailed process: {e}"),
     }
 }
 
