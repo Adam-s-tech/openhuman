@@ -121,8 +121,10 @@ pub(crate) fn turn_reasoning(
 /// `finish_reason = length` with no tool call (#6951).
 const REASONING_BUDGET_PERCENT: u32 = 55;
 
-/// Smallest thinking budget worth sending. Anthropic rejects
-/// `budget_tokens < 1024`; below it the effort level alone is sent.
+/// Smallest thinking budget worth sending. Anthropic models (reached through
+/// OpenRouter or the managed backend, which pass `reasoning.max_tokens` on as
+/// a thinking budget) reject budgets under 1024; below it the effort level
+/// alone is sent.
 const MIN_REASONING_BUDGET_TOKENS: u32 = 1024;
 
 /// Adds a thinking budget of [`REASONING_BUDGET_PERCENT`] of the turn's output
@@ -131,10 +133,11 @@ const MIN_REASONING_BUDGET_TOKENS: u32 = 1024;
 /// Left unchanged: reasoning switched off (`effort = none`), no effort chosen
 /// (a bare budget would turn reasoning on where the provider default is off),
 /// an uncapped turn, a config that already names a budget, and a cap too small
-/// for [`MIN_REASONING_BUDGET_TOKENS`]. Routes that cannot express a budget
-/// (plain OpenAI-compatible endpoints, the Responses API) drop it on the wire
-/// and keep the effort; OpenRouter and the managed backend send it as
-/// `reasoning.max_tokens`.
+/// for [`MIN_REASONING_BUDGET_TOKENS`]. Only OpenRouter and the managed
+/// backend consume the budget, sending it as `reasoning.max_tokens`. Every
+/// other route sends what it sent before: native Anthropic keeps adaptive
+/// thinking with the effort (the budget applies there only with no effort),
+/// and plain OpenAI-compatible endpoints and the Responses API drop it.
 pub(crate) fn with_output_room(
     mut reasoning: ReasoningConfig,
     max_output_tokens: Option<u32>,

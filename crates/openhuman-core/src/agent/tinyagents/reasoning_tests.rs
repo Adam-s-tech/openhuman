@@ -197,8 +197,8 @@ fn uncapped_turn_keeps_the_effort_only() {
 
 #[test]
 fn a_cap_too_small_for_a_provider_minimum_budget_keeps_the_effort_only() {
-    // Anthropic rejects a thinking budget under 1024 tokens; below that the
-    // effort alone is sent.
+    // Anthropic models behind OpenRouter / the managed backend reject a
+    // thinking budget under 1024 tokens; below that the effort alone is sent.
     let mut config = Config::default();
     config.runtime.reasoning_effort = Some("low".into());
     let ctx = crate::agent::tinyagents::host::OpenHumanRunContext::new();
