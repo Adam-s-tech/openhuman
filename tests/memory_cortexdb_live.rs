@@ -517,14 +517,49 @@ async fn run(cortex_url: String, cortex_key: String) {
         "recall cites what it used: {recalled}"
     );
 
-    // ---- context.md: compiled, persisted, injected into a new thread ----------
-    let context = stack
-        .ok("openhuman.memory_context_refresh", json!({}))
+    // ---- context.md: compiled by its cron job, persisted, injected ------------
+    // The core seeds `memory_context_refresh` as a system cron job at boot;
+    // run it the way the scheduler would and wait for the file it writes.
+    let jobs = stack.ok("openhuman.cron_list", json!({})).await;
+    let jobs = jobs
+        .get("jobs")
+        .and_then(Value::as_array)
+        .or_else(|| jobs.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let job = jobs
+        .iter()
+        .find(|job| job["name"] == json!("memory_context_refresh"))
+        .unwrap_or_else(|| panic!("memory_context_refresh is seeded: {jobs:?}"));
+    assert!(
+        jobs.iter()
+            .any(|job| job["name"] == json!("memory_sources_sync")),
+        "memory_sources_sync is seeded: {jobs:?}"
+    );
+    stack
+        .ok("openhuman.cron_run", json!({ "job_id": job["id"] }))
         .await;
+    let deadline = Instant::now() + PATIENCE;
+    let context = loop {
+        let context = stack.ok("openhuman.memory_context_get", json!({})).await;
+        if context["generated_at"].is_string() {
+            break context;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "the cron job never compiled context.md: {context}\n--- core log tail ---\n{}",
+            stack.log_tail()
+        );
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    };
     let markdown = context["markdown"].as_str().unwrap_or_default().to_string();
     assert!(
         markdown.contains("The user prefers launch events in Lisbon."),
         "context.md lists the learning:\n{markdown}"
+    );
+    assert!(
+        markdown.contains("engine: cortexdb"),
+        "frontmatter names the engine:\n{markdown}"
     );
     assert!(context["tokens"].as_u64().unwrap_or(0) > 0, "{context}");
     let on_disk = find_file(stack.home.path(), "context.md").expect("context.md is written");
@@ -532,6 +567,17 @@ async fn run(cortex_url: String, cortex_key: String) {
         std::fs::read_to_string(&on_disk).expect("read context.md"),
         markdown,
         "the file on disk is what context_get serves"
+    );
+
+    // The on-demand refresh compiles the same brief again.
+    let refreshed = stack
+        .ok("openhuman.memory_context_refresh", json!({}))
+        .await;
+    assert!(
+        refreshed["markdown"]
+            .as_str()
+            .is_some_and(|m| m.contains("The user prefers launch events in Lisbon.")),
+        "{refreshed}"
     );
 
     stack.chat(&thread_b, "What should I plan next?").await;
