@@ -60,3 +60,13 @@ in `config.toml`; the CortexDB key is in the OS keychain.
 
 `tests/memory_v2_e2e.rs` (JSON-RPC against the mock backend),
 `app/test/playwright/specs/memory-v2.spec.ts` (UI), and the sibling `*_tests.rs`.
+
+Against a real CortexDB server, `scripts/test-memory-cortexdb-live.sh` boots the
+pinned harness in Docker (`vendor/tinymemory/integration/cortexdb/`, v0.10.4 by
+default, `CORTEXDB_VERSION=v0.9.9` for the older release) and runs
+`tests/memory_cortexdb_live.rs`. That test spawns the real `openhuman-core`
+binary with the `cortexdb` engine and checks learnings, a synced folder source,
+web-chat conversation ingestion, recall, and `context.md` (compiled by its cron
+job, written to disk, and injected into a new thread's first message). It skips
+unless `OPENHUMAN_LIVE_CORTEXDB_URL` is set, so plain test runs never need
+Docker.
