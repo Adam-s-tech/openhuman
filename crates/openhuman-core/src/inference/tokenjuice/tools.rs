@@ -37,8 +37,8 @@ impl Tool for TokenjuiceRetrieveTool {
     fn description(&self) -> &str {
         "Return the whole original of a compacted or stored tool output, or a `range` \
          of its lines or bytes. Pass the token its footer names (or the hash in a \
-         `⟦tj:…⟧` marker). To read or search only part of it, call juice_find with \
-         the same value as `handle` instead."
+         `⟦tj:…⟧` marker). To read or search only part of it, use juice_find with \
+         the same value as `handle` when that tool is offered."
     }
 
     fn parameters_schema(&self) -> Value {
