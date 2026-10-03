@@ -28,6 +28,7 @@ async fn same_tool_calls_persist_artifacts_under_distinct_call_ids() {
         focus_by_call: Default::default(),
         summary_focus_tools: Default::default(),
         raw_fetches: Default::default(),
+        file_reads: Default::default(),
     };
     let mut ctx = context();
 
