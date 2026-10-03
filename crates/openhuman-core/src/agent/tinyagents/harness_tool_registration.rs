@@ -297,3 +297,7 @@ pub(super) fn register_turn_tools_and_agents(
         registry_snapshot,
     )
 }
+
+#[cfg(test)]
+#[path = "harness_tool_registration_tests.rs"]
+mod tests;
