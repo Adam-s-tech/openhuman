@@ -88,6 +88,7 @@ pub(super) fn register_turn_tools_and_agents(
     early_exit_set: &HashSet<&str>,
     early_exit_hook: Option<&EarlyExitHook>,
     is_subagent_run: bool,
+    has_thread: bool,
     session_deferred: &HashSet<String>,
 ) -> (
     usize,
