@@ -5,8 +5,6 @@
 //! prefix reconciliation, tool snapshots, resume and persistence remain inside
 //! the runtime session.
 
-mod prompt;
-
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -316,82 +314,6 @@ impl OpenHumanTurnPrelude {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .build_system_prompt_tiered(&context)
-    }
-
-    async fn fetch_learned_context(&self) -> crate::agent::prompts::LearnedContextData {
-        if !self.learning_enabled && !self.explicit_preferences_enabled {
-            return Default::default();
-        }
-        if !self.learning_enabled && self.explicit_preferences_enabled {
-            return crate::agent::prompts::LearnedContextData {
-                user_profile: crate::memory::preferences::load_general_preferences_on(
-                    &self.memory,
-                    crate::memory::preferences::STANDING_PREFS_LIMIT,
-                )
-                .await,
-                ..Default::default()
-            };
-        }
-        use crate::memory::MemoryCategory;
-        let observations = self
-            .memory
-            .list(
-                Some("learning_observations"),
-                Some(&MemoryCategory::Custom("learning_observations".into())),
-                None,
-            )
-            .await
-            .unwrap_or_default();
-        let patterns = self
-            .memory
-            .list(
-                Some("learning_patterns"),
-                Some(&MemoryCategory::Custom("learning_patterns".into())),
-                None,
-            )
-            .await
-            .unwrap_or_default();
-        let reflections = self
-            .memory
-            .list(
-                Some(crate::agent::learning::reflection::REFLECTIONS_NAMESPACE),
-                Some(&MemoryCategory::Custom(
-                    crate::agent::learning::reflection::REFLECTIONS_NAMESPACE.into(),
-                )),
-                None,
-            )
-            .await
-            .unwrap_or_default();
-        let limits = self.config.resolved_memory_limits();
-        crate::agent::prompts::LearnedContextData {
-            observations: observations
-                .iter()
-                .rev()
-                .take(5)
-                .map(|entry| sanitize_prelude_entry(&entry.content))
-                .collect(),
-            patterns: patterns
-                .iter()
-                .take(3)
-                .map(|entry| sanitize_prelude_entry(&entry.content))
-                .collect(),
-            user_profile: crate::memory::preferences::load_general_preferences_on(
-                &self.memory,
-                crate::memory::preferences::STANDING_PREFS_LIMIT,
-            )
-            .await,
-            reflections: reflections
-                .iter()
-                .rev()
-                .take(10)
-                .map(|entry| sanitize_prelude_entry(&entry.content))
-                .collect(),
-            tree_root_summaries: collect_prelude_tree_roots(
-                limits.per_namespace_max_chars,
-                limits.total_tree_max_chars,
-            )
-            .await,
-        }
     }
 
     #[cfg(test)]
