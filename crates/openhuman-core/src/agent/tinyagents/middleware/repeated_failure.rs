@@ -16,7 +16,6 @@ use tinyagents_harness::no_progress::{
     ClassifiedFailure, ClassifiedFailureTracker, NoProgress, NoProgressTracker, ToolAttempt,
 };
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
-use tinyinference_llm::message::Message as TaMessage;
 use tinyinference_llm::model::ModelRequest;
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;

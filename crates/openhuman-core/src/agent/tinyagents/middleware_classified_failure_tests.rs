@@ -345,7 +345,11 @@ async fn middleware_with_one_pending_nudge() -> RepeatedToolFailureMiddleware {
     let handle = SteeringHandle::allow_all();
     let slot = std::sync::Arc::new(std::sync::Mutex::new(None));
     let mw = RepeatedToolFailureMiddleware::new(handle, 3, slot);
-    let mut call = TaToolCall::new("sh-1", "shell", serde_json::json!({ "command": "whois a.io" }));
+    let mut call = TaToolCall::new(
+        "sh-1",
+        "shell",
+        serde_json::json!({ "command": "whois a.io" }),
+    );
     mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
     let mut result = failing_result("shell", "Command timed out after 60s and was killed");
     mw.after_tool(&mut ctx(), &(), &invocation("sh-1", "shell"), &mut result)
@@ -395,7 +399,10 @@ async fn nudges_for_a_hoisting_model_add_no_system_message() {
         .unwrap();
 
     assert_eq!(request.messages.len(), 3, "no message added");
-    assert_eq!(request.messages[0], leading, "leading system message untouched");
+    assert_eq!(
+        request.messages[0], leading,
+        "leading system message untouched"
+    );
     assert_eq!(system_messages(&request), 1, "no new system message");
     let tail = request.messages.last().unwrap().text();
     assert!(tail.starts_with("Command timed out"), "{tail}");
@@ -416,7 +423,10 @@ async fn nudges_for_other_models_stay_tail_system_messages() {
 
     assert_eq!(request.messages.len(), 4);
     assert_eq!(request.messages[0], leading);
-    assert!(matches!(request.messages.last(), Some(TaMessage::System(_))));
+    assert!(matches!(
+        request.messages.last(),
+        Some(TaMessage::System(_))
+    ));
     assert!(request
         .messages
         .last()
