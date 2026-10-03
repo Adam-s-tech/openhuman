@@ -293,6 +293,29 @@ pub async fn store_on(bound: &BoundEngine, item: StoreItem) -> MemoryResult<Stor
     Ok(receipt)
 }
 
+/// Scrubs `items` and stores them on `bound` in one bulk call
+/// (`MemoryEngine::store_many`): each is listed on return, ranked recall
+/// may lag behind for all but the last. For imports and backfills.
+pub async fn store_many_on(
+    bound: &BoundEngine,
+    items: Vec<StoreItem>,
+) -> MemoryResult<Vec<StoreReceipt>> {
+    let count = items.len();
+    let policy = crate::security::scrub::host_policy();
+    let scrubbed: Vec<StoreItem> = items
+        .into_iter()
+        .map(|item| tinymemory::safety::scrub_item_with(item, policy.clone()).value)
+        .collect();
+    let receipts = bound.engine.store_many(scrubbed).await?;
+    tracing::debug!(
+        engine = %bound.id,
+        count,
+        replayed = receipts.iter().filter(|r| r.replayed).count(),
+        "[memory:ops] batch stored"
+    );
+    Ok(receipts)
+}
+
 /// `memory_forget`.
 pub async fn forget(config: &Config, params: ForgetParams) -> MemoryResult<ForgetView> {
     let ids: Vec<ItemId> = params
