@@ -286,6 +286,28 @@ impl EventListener for OpenhumanEventBridge {
                     "[tinyagents] context compressed before model call"
                 );
             }
+            AgentEvent::Compacted {
+                reason,
+                tokens_before,
+                tokens_after,
+                usage,
+                latency_ms,
+            } => {
+                // A compaction rewrites what the model sees and spends a
+                // summarizer call outside the turn's own model calls, so it is
+                // logged at info with that call's cost (grep `context compacted`).
+                tracing::info!(
+                    reason = reason.as_str(),
+                    tokens_before,
+                    tokens_after,
+                    saved_tokens = tokens_before.saturating_sub(*tokens_after),
+                    latency_ms = ?latency_ms,
+                    summarizer_input_tokens = ?usage.map(|u| u.input_tokens),
+                    summarizer_output_tokens = ?usage.map(|u| u.output_tokens),
+                    summarizer_cached_tokens = ?usage.map(|u| u.cache_read_tokens),
+                    "[tinyagents] context compacted"
+                );
+            }
             AgentEvent::UnknownToolCall {
                 call_id,
                 requested_name,
