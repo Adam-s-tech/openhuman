@@ -325,7 +325,7 @@ async fn run(cortex_url: String, cortex_key: String) {
     assert_eq!(engine["engine"], json!("cortexdb"), "{engine}");
     assert!(engine["has_key"].as_bool().unwrap_or(false), "{engine}");
     let engine = stack.ok("openhuman.memory_engine_get", json!({})).await;
-    assert_eq!(engine["status"], json!("ready"), "the live engine is healthy: {engine}");
+    assert_eq!(engine["status"], json!("ok"), "the live engine is healthy: {engine}");
 
     // ---- learnings ------------------------------------------------------------
     let learned = stack
