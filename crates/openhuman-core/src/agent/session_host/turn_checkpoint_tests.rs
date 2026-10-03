@@ -440,3 +440,43 @@ fn the_repair_re_ask_names_the_violation_and_repeats_the_instruction() {
     let empty = close_repair_instruction(&instruction, CloseViolation::NoReply);
     assert!(empty.contains("empty or tried to call a tool"), "{empty}");
 }
+
+/// #6951: a turn whose last reply ran out of output tokens while reasoning
+/// did not "finish using tools". The close must say what actually happened so
+/// the model reports unfinished work honestly instead of a tidy summary.
+#[test]
+fn a_truncated_close_names_the_output_budget_instead_of_finished_tools() {
+    let records = "\n- `read_file` — ok\n  > config found\n";
+    let out = final_answer_instruction(None, true, records);
+    assert!(out.contains("ran out of output tokens"), "{out}");
+    assert!(!out.contains("You have finished using tools"), "{out}");
+    assert!(out.contains("do not call any tools"), "{out}");
+    assert!(out.contains("  > config found"), "{out}");
+
+    let plain = final_answer_instruction(None, false, records);
+    assert!(plain.contains("You have finished using tools"), "{plain}");
+    assert!(!plain.contains("ran out of output tokens"), "{plain}");
+}
+
+/// A breaker halt explains the stop more precisely than truncation does, so
+/// its stop note still leads when both apply.
+#[test]
+fn a_breaker_halt_keeps_its_stop_note_on_a_truncated_turn() {
+    let out = final_answer_instruction(Some(STOP_NOTE), true, "");
+    assert!(out.contains("<stop_note>"), "{out}");
+}
+
+/// The truncated wording is harness text too: a reply quoting it is caught.
+#[test]
+fn quoting_the_truncated_close_instruction_is_caught() {
+    let out = final_answer_instruction(None, true, "");
+    let lead = out
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split('.').next())
+        .expect("the directive opens with a sentence");
+    assert!(
+        quotes_harness_instruction(&format!("{lead}. Here is my summary."), None),
+        "lead span should be a needle: {lead}"
+    );
+}

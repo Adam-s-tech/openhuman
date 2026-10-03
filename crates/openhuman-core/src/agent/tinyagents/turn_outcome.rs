@@ -80,6 +80,15 @@ pub(crate) struct TinyagentsTurnOutcome {
     pub tool_outcomes: Vec<ToolCallOutcome>,
 }
 
+/// Whether a run's final response is a reply that ran out of output tokens
+/// before producing anything: `finish_reason = length`, no visible text and no
+/// tool call. See [`TinyagentsTurnOutcome::truncated`].
+pub(crate) fn ended_out_of_output_budget(
+    _final_response: Option<&tinyinference_llm::model::ModelResponse>,
+) -> bool {
+    false
+}
+
 /// One tool call's execution outcome, captured at the tool boundary before the
 /// harness discards the failure flag. `success` mirrors the absence of a
 /// `TaToolResult::error`; `content` is the (possibly summarized/capped) result
@@ -148,3 +157,7 @@ pub(crate) fn record_unobserved_turn_usage(
     );
     true
 }
+
+#[cfg(test)]
+#[path = "turn_outcome_tests.rs"]
+mod tests;
