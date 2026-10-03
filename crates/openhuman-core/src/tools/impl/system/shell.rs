@@ -579,7 +579,7 @@ impl ShellTool {
                         prepend_dirs.push(resolved.bin_dir);
                     }
                     Err(error) => {
-                        if !self.python_bootstrap.as_ref().is_some_and(|bootstrap| bootstrap.is_enabled()) {
+                        if !bootstrap.config().runtime_python.enabled {
                             tracing::debug!(
                                 error = %error,
                                 "[shell] python runtime disabled — running on the inherited PATH"

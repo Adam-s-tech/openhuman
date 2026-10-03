@@ -107,12 +107,11 @@ async fn shell_keeps_inherited_path_when_python_runtime_is_unavailable() {
         .execute(json!({"command": "python3 -c 'print(1)' || echo no-host-python"}))
         .await
         .unwrap();
+    let output = result.output();
     assert!(
-        !result
-            .output()
-            .contains("Failed to resolve command runtime"),
-        "the command must run on the inherited PATH: {}",
-        result.output()
+        !output.contains("Failed to resolve command runtime")
+            && (output.contains('1') || output.contains("no-host-python")),
+        "the command must run on the inherited PATH: {output}"
     );
 }
 
