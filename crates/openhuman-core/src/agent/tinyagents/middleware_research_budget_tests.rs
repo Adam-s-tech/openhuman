@@ -50,6 +50,32 @@ async fn web_research_concludes_after_eight_reads() {
     assert!(request.messages.last().unwrap().text().contains("Answer"));
 }
 
+/// With the tools withdrawn, the instruction must say that a tool call will
+/// not run: without it DeepSeek V4 wrote its next call as plain-text markup
+/// that stood as the answer.
+#[tokio::test]
+async fn the_concluding_instruction_says_tools_are_gone() {
+    let mw = ResearchBudgetMiddleware::new();
+    let mut run = ctx();
+    for i in 0..DIRECT_WEB_READ_LIMIT {
+        mw.after_tool(
+            &mut run,
+            &(),
+            &invocation(format!("web-{i}"), "web_fetch"),
+            &mut tool_result("web_fetch", "page"),
+        )
+        .await
+        .unwrap();
+    }
+    let mut request = research_request();
+    mw.before_model(&mut run, &(), &mut request).await.unwrap();
+    let instruction = request.messages.last().unwrap().text();
+    assert_eq!(instruction, research_budget::RESEARCH_CLOSE_INSTRUCTION);
+    assert!(instruction.contains("tools are no longer available"));
+    assert!(instruction.contains("will not run"));
+    assert!(instruction.contains("plain text"));
+}
+
 #[tokio::test]
 async fn unrelated_tools_do_not_spend_the_web_research_budget() {
     let mw = ResearchBudgetMiddleware::new();
