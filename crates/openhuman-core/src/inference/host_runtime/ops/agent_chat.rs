@@ -71,6 +71,32 @@ pub async fn agent_chat(
     .await
 }
 
+/// The log line every successful agent chat turn carries.
+const AGENT_CHAT_COMPLETED_LOG: &str = "agent chat completed";
+
+/// What one agent chat turn produced: its reply and whether it stopped at the
+/// tool-iteration cap rather than finishing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AgentChatReply {
+    /// The reply text. When `hit_cap` is set this is the turn's checkpoint.
+    pub text: String,
+    /// The turn paused at its iteration cap (see
+    /// [`OpenHumanSessionHost::last_turn_hit_cap`]).
+    pub hit_cap: bool,
+}
+
+impl AgentChatReply {
+    /// The historical `Outcome<String>` shape, for library callers.
+    pub fn into_outcome(self) -> Outcome<String> {
+        Outcome::single_log(self.text, AGENT_CHAT_COMPLETED_LOG)
+    }
+
+    /// stub
+    pub fn into_rpc_json(self) -> Result<serde_json::Value, String> {
+        self.into_outcome().into_cli_compatible_json()
+    }
+}
+
 /// Which session [`agent_chat_for`] builds the turn on.
 #[derive(Clone, Copy)]
 pub enum AgentChatTarget<'a> {
@@ -390,3 +416,7 @@ pub async fn agent_chat_simple(
 
     Ok(Outcome::single_log(response, "agent simple chat completed"))
 }
+
+#[cfg(test)]
+#[path = "agent_chat_tests.rs"]
+mod tests;
