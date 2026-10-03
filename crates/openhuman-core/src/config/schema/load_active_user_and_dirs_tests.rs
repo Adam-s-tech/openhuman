@@ -710,7 +710,7 @@ fn env_overlay_agent_max_tool_iterations_override() {
     assert_eq!(cfg.agent.max_tool_iterations_override, Some(250));
     assert_eq!(
         cfg.agent.max_tool_iterations,
-        AgentConfig::default().max_tool_iterations,
+        Config::default().agent.max_tool_iterations,
         "the override never rewrites the definition-less default"
     );
 
