@@ -31,7 +31,7 @@ Chat thread persistence is not memory: see [`threads/store`](../threads/store/RE
 | `ops.rs` | Select engine, recall, fetch, learn, forget, list. `store_item` scrubs first. |
 | `explore.rs` | The explorer: `memory_explore` by facet under a `{facet, value}` path, `memory_items_get`, and the path → filter narrowing `memory_items_list` shares. |
 | `tools.rs` | The single `memory` agent tool (`recall`, `fetch`, `learn`, `forget`). |
-| `conversations/` | Per-thread turn buffer and idle flusher. Tool calls keep name and id only, never arguments. |
+| `conversations/` | Per-thread turn buffer and idle flusher. Tool calls keep name and id only, never arguments. `backfill.rs` stores past chats from the thread store, resumably, with consent. |
 | `sources/` | Source registry, state and sync (folder, file, link, github, rss, composio). |
 | `context.rs` | Compile `<workspace>/memory/context.md` and build the `<memory-context>` injection for new sessions. |
 | `import.rs` | Consent-gated, resumable v1 import; state in `<workspace>/memory/import_state.json`. |
