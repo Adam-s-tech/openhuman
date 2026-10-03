@@ -582,8 +582,14 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         // the legacy extended headroom instead of the crate's deterministic 3/6.
         // Route them to the recoverable ladder; a success or a non-recoverable
         // failure resets that streak and feeds the crate tracker as before.
+        // A finished command's exit report is the program's output, so a test
+        // run that prints `timed out` or `connection refused` is not a
+        // transient tool failure. Its identical-repeat count would otherwise
+        // persist across the turn and halt an edit-and-rerun loop on the same
+        // test command; the crate tracker below resets on any success instead.
         let recoverable = result.is_error
             && !hard_reject
+            && !is_command_exit_report(&failure_text)
             && (is_recoverable_tool_failure(&failure_text)
                 || matches!(
                     crate::tools::status::classify(&failure_text, false).class,
