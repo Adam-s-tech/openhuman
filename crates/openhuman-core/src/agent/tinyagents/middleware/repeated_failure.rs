@@ -275,6 +275,23 @@ fn classified_recovery_policy(
     if error.trim_start().starts_with("unknown tool `") {
         return Some(("validation", 1));
     }
+    // A command that ran and exited non-zero is reported as an exit-code line
+    // followed by the program's own stdout and stderr. That output is data,
+    // not a tool-layer verdict: keyword sniffing read `Update objects.md
+    // (#401)` in a `git log | head` (exit 141, a harmless SIGPIPE) as a
+    // credential failure, a zero-retry class, and ended the whole run on the
+    // first call. The exit-code hint already steers the model, and the
+    // generic no-progress ladder still bounds a command repeated unchanged.
+    if is_command_exit_report(error) {
+        return None;
+    }
+    // A module the host could not load stays unloaded until the app restarts,
+    // so retrying the same tool cannot help. Steer the model off it once
+    // rather than halting the run on the first call or spending a transient
+    // budget on it (`restart the app to try again` read as recoverable).
+    if error.contains(crate::modules::MODULE_FAULT_IS_TERMINAL) {
+        return Some(("unavailable", 1));
+    }
     // A tool-owned JSON error contract is less ambiguous than rendered prose.
     // Read only explicit status/code fields; arbitrary response data is not a
     // failure signal (this function is called only for `is_error` results).
