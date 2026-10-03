@@ -419,3 +419,25 @@ async fn local_jail_captures_under_the_state_dir_and_removes_the_call_dir() {
         entries(&capture_root)
     );
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn local_jail_removes_the_call_dir_when_the_spawn_fails() {
+    let cwd = tempfile::tempdir().unwrap();
+    let state = tempfile::tempdir().unwrap();
+    // A jail root that does not exist makes the jail refuse to spawn.
+    let policy = local_policy(&cwd.path().join("missing-root"), state.path());
+
+    let err = execute_in_sandbox(
+        &policy,
+        "true",
+        cwd.path(),
+        HashMap::new(),
+        Duration::from_secs(5),
+    )
+    .await
+    .unwrap_err();
+
+    assert!(err.to_string().contains("Failed to spawn jailed process"), "{err}");
+    assert!(entries(&sandbox_capture_root(state.path())).is_empty());
+}
