@@ -197,6 +197,25 @@ fn args_fingerprint(arguments: &serde_json::Value) -> String {
     format!("{:x}", hasher.finish())
 }
 
+/// The agent tool that fetches a public URL (`tinytools` `web_fetch`).
+const WEB_FETCH_TOOL: &str = "web_fetch";
+
+/// The HTTP status of a `web_fetch` error result, read from the
+/// `HTTP <code> <reason> from <host>; <guidance>` line `tinytools` renders for
+/// a 4xx/5xx from the fetched site (tinytools#47). Anchored to the start of the
+/// text, so a status quoted later (a response excerpt, another tool's output)
+/// is not read, and to the whole shape, so a bare `HTTP 403` or `403 Forbidden`
+/// from some other source is not either.
+pub(super) fn fetched_site_status(text: &str) -> Option<u16> {
+    let rest = text.trim_start().strip_prefix("HTTP ")?;
+    let code = rest.get(..3).filter(|c| c.bytes().all(|b| b.is_ascii_digit()))?;
+    let rest = rest[3..].strip_prefix(' ')?;
+    let status: u16 = code.parse().ok().filter(|s| (400..=599).contains(s))?;
+    let (_reason, after_from) = rest.lines().next()?.split_once(" from ")?;
+    let (host, _guidance) = after_from.split_once(';')?;
+    (!host.is_empty() && !host.contains(char::is_whitespace)).then_some(status)
+}
+
 /// Stable resource identity supplied by the call, excluding free-form queries,
 /// prompts, credentials, and URL query parameters. An absent target remains
 /// scoped to the operation, never to the changing argument fingerprint.
@@ -216,6 +235,19 @@ pub(super) fn failure_scope(tool: &str, arguments: &serde_json::Value) -> String
             Some(serde_json::Value::Number(value)) => value.to_string(),
             _ => continue,
         };
+        // A site decides whether to serve us per host, not per page: scope a
+        // fetch by host so a model walking a blocked site's pages shares one
+        // budget instead of getting a fresh one for every URL.
+        if tool == WEB_FETCH_TOOL && field == "url" {
+            if let Some(host) = url::Url::parse(&value)
+                .ok()
+                .and_then(|u| u.host_str().map(str::to_owned))
+            {
+                scope.push_str(":host=");
+                scope.push_str(&host);
+                continue;
+            }
+        }
         scope.push(':');
         scope.push_str(field);
         scope.push('=');
@@ -305,6 +337,29 @@ fn classified_recovery_policy(
         && error.contains("restart the app to try again")
     {
         return Some(("unavailable", 1));
+    }
+    // A public website refusing or failing a fetch says nothing about
+    // OpenHuman's own credentials, whatever status it used, and the excerpt of
+    // its response body that follows must not be sniffed for keywords either.
+    // Only `web_fetch` is exempt: the same words from an account-bound tool
+    // still mean its credentials failed.
+    if tool == WEB_FETCH_TOOL {
+        if let Some(status) = fetched_site_status(error) {
+            tracing::debug!(
+                tool,
+                status,
+                "[tinyagents::mw] web_fetch site status — not a credential failure"
+            );
+            return match status {
+                // Another page or source may still work; the same host
+                // refusing repeatedly is the signal to stop.
+                401 | 403 => Some(("site_refused", 2)),
+                429 | 500..=599 => Some(("transient", 2)),
+                // A missing page or a rejected request is an ordinary tool
+                // failure; the exact-repeat guard bounds it.
+                _ => None,
+            };
+        }
     }
     // A tool-owned JSON error contract is less ambiguous than rendered prose.
     // Read only explicit status/code fields; arbitrary response data is not a
@@ -474,6 +529,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
             for class in [
                 "permission",
                 "authentication",
+                "site_refused",
                 "policy",
                 "unsupported",
                 "missing_window",

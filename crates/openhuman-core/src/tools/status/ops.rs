@@ -25,11 +25,6 @@ pub fn classify(error_text: &str, timed_out: bool) -> ClassifiedFailure {
     describe(class)
 }
 
-/// Stub (RED step).
-pub fn fetched_site_status(_text: &str) -> Option<u16> {
-    None
-}
-
 /// The prefix the agent tool adapter puts on an error a tool returned as `Err`.
 /// [`tool_execution_error`] is its only producer, so the classifier and the
 /// adapter cannot drift apart.
