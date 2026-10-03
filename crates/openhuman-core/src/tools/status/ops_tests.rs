@@ -260,3 +260,69 @@ fn recoverable_flag_matches_category() {
     assert!(!classify("permission denied (os error 13)", false).recoverable);
     assert!(!classify("blocked by policy", false).recoverable);
 }
+
+// ── A public site's HTTP status is not OpenHuman's credential (tinytools#47) ──
+//
+// `web_fetch` reports a 4xx/5xx from the site it fetched as
+// `HTTP <code> <reason> from <host>; <guidance>`. The site refusing a request
+// says nothing about OpenHuman's own sign-in, so the bare-status keyword rules
+// must not claim it.
+
+const FETCH_403: &str =
+    "HTTP 403 Forbidden from example.test; the site refused the request. Try another source.";
+const FETCH_429: &str = "HTTP 429 Too Many Requests from example.test; the site is rate limiting requests. Retry-After: 30. Try another source, or retry later.";
+const FETCH_404: &str = "HTTP 404 Not Found from example.test; the page does not exist at this URL. Check the URL or try another source.";
+const FETCH_503: &str = "HTTP 503 Service Unavailable from example.test; the server failed to handle the request. Retry later or try another source.";
+
+#[test]
+fn fetched_site_status_reads_the_web_fetch_error_shape() {
+    assert_eq!(fetched_site_status(FETCH_403), Some(403));
+    assert_eq!(fetched_site_status(FETCH_429), Some(429));
+    assert_eq!(fetched_site_status(FETCH_404), Some(404));
+    assert_eq!(fetched_site_status(FETCH_503), Some(503));
+    assert_eq!(
+        fetched_site_status("  HTTP 403 Forbidden from 127.0.0.1; the site refused it."),
+        Some(403)
+    );
+}
+
+#[test]
+fn fetched_site_status_ignores_text_that_only_resembles_the_shape() {
+    // Bare statuses, other tools' wording, and the shape buried mid-text.
+    assert_eq!(fetched_site_status("HTTP 403 Forbidden"), None);
+    assert_eq!(fetched_site_status("HTTP 403"), None);
+    assert_eq!(fetched_site_status("403 Forbidden"), None);
+    assert_eq!(
+        fetched_site_status("Gmail API error: 403 insufficient scopes"),
+        None
+    );
+    assert_eq!(
+        fetched_site_status("Command failed (exit 1)\nHTTP 403 Forbidden from example.test; x"),
+        None
+    );
+    assert_eq!(fetched_site_status("HTTP 2000 Weird from example.test; x"), None);
+    assert_eq!(fetched_site_status("HTTP 403 Forbidden from ; x"), None);
+}
+
+#[test]
+fn a_fetched_sites_403_is_not_a_credential_failure() {
+    assert_ne!(class_of(FETCH_403), ToolFailureClass::BadCredentials);
+    assert_ne!(class_of(FETCH_403), ToolFailureClass::BlockedByPolicy);
+    // Body excerpts quoted back by the tool must not steer the class either.
+    let with_excerpt = format!("{FETCH_403}\nResponse excerpt: unauthorized, invalid api key");
+    assert_ne!(class_of(&with_excerpt), ToolFailureClass::BadCredentials);
+}
+
+#[test]
+fn a_fetched_sites_other_statuses_keep_their_ordinary_classes() {
+    assert_eq!(class_of(FETCH_429), ToolFailureClass::ServiceUnavailable);
+    assert_eq!(class_of(FETCH_503), ToolFailureClass::ServiceUnavailable);
+    assert_eq!(class_of(FETCH_404), ToolFailureClass::NotFound);
+}
+
+#[test]
+fn bare_status_text_still_means_credentials() {
+    // The credentialed-API protection: no `from <host>;` shape, no exemption.
+    assert_eq!(class_of("HTTP 403 Forbidden"), ToolFailureClass::BadCredentials);
+    assert_eq!(class_of("403 Forbidden"), ToolFailureClass::BadCredentials);
+}
