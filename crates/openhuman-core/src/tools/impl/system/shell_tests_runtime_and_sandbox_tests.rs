@@ -72,10 +72,7 @@ async fn shell_does_not_resolve_or_install_node_on_its_own() {
 
     // Unprimed (no prior node_exec/npm_exec resolve): shell injects NO
     // managed node bin onto PATH — it does not auto-resolve or install.
-    let injected = tool
-        .runtime_path_for_command("node --version")
-        .await
-        .expect("runtime path resolves");
+    let injected = tool.runtime_path_for_command("node --version").await;
     assert!(
         injected.is_none(),
         "shell injected a managed node bin without any prior node_exec/npm_exec \
