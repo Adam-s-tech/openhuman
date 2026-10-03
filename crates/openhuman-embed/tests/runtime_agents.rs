@@ -13,8 +13,8 @@ mod common;
 
 use common::{chat_completion, offline_config, runtime, stub_backend};
 use openhuman_embed::{
-    Access, AgentDefinitionSpec, AgentError, AgentSpec, Provider, Runtime, SandboxModeSpec,
-    Workspace,
+    Access, AgentDefinitionSpec, AgentError, AgentSpec, HostTurnTools, Provider, Runtime,
+    SandboxModeSpec, ToolScopeSpec, Workspace,
 };
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, ResponseTemplate};
@@ -183,9 +183,85 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .agent(AgentSpec::new("gamma").access(Access::readonly()))
                 .expect("gamma instantiates");
 
+            // Per-turn withholding must survive the full embed path through
+            // Agent::turn, session construction, and provider request
+            // serialization. The same configured tool disappears for one
+            // named session and is advertised again for the next.
+            let withholding_provider = wiremock::MockServer::start().await;
+            Mock::given(method("POST"))
+                .and(path("/v1/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("turn-ok")))
+                .mount(&withholding_provider)
+                .await;
+            let withholding_agent = runtime
+                .agent(
+                    AgentSpec::new("withholding")
+                        .provider(
+                            Provider::openai_compatible(
+                                format!("{}/v1", withholding_provider.uri()),
+                                "sk-withholding",
+                            )
+                            .model("withholding-model"),
+                        )
+                        .access(Access::readonly())
+                        .definition(
+                            AgentDefinitionSpec::new()
+                                .tools(ToolScopeSpec::Named(vec!["shell".to_string()])),
+                        )
+                        .tools(|turn| HostTurnTools {
+                            withheld: if turn.session_id() == Some("hidden-turn") {
+                                std::collections::HashSet::from(["shell".to_string()])
+                            } else {
+                                std::collections::HashSet::new()
+                            },
+                            ..Default::default()
+                        }),
+                )
+                .expect("withholding agent instantiates");
+
+            withholding_agent
+                .turn("hide the configured tool")
+                .session("hidden-turn")
+                .send()
+                .await
+                .expect("hidden turn runs");
+            withholding_agent
+                .turn("restore the configured tool")
+                .session("visible-turn")
+                .send()
+                .await
+                .expect("visible turn runs");
+            let withholding_requests = withholding_provider
+                .received_requests()
+                .await
+                .expect("provider recorded both withholding turns");
+            assert_eq!(withholding_requests.len(), 2);
+            let hidden_request: serde_json::Value =
+                serde_json::from_slice(&withholding_requests[0].body).unwrap();
+            let visible_request: serde_json::Value =
+                serde_json::from_slice(&withholding_requests[1].body).unwrap();
+            let has_shell = |request: &serde_json::Value| {
+                request["tools"].as_array().is_some_and(|tools| {
+                    tools.iter().any(|tool| tool["function"]["name"] == "shell")
+                })
+            };
+            assert!(
+                !has_shell(&hidden_request),
+                "the hidden turn's provider request must omit shell"
+            );
+            assert!(
+                has_shell(&visible_request),
+                "the next turn's provider request must advertise shell again"
+            );
+
             assert_eq!(
                 runtime.agent_ids(),
-                vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()]
+                vec![
+                    "alpha".to_string(),
+                    "beta".to_string(),
+                    "gamma".to_string(),
+                    "withholding".to_string()
+                ]
             );
 
             // Layout: every agent has its own home, transcripts and action dir.
@@ -376,6 +452,7 @@ fn one_runtime_hosts_independently_configured_agents() {
             assert!(matches!(err, AgentError::WidensRuntime(_)), "{err:?}");
 
             // Dropping every handle releases the id.
+            drop(withholding_agent);
             drop(gamma);
             assert_eq!(
                 runtime.agent_ids(),
