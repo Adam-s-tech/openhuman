@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 fn fake_home() -> tempfile::TempDir {
     let home = tempfile::tempdir().unwrap();
-    for d in [".ssh", ".gnupg", ".aws", ".cargo", ".rustup", ".nvm", ".npm"] {
+    for d in [
+        ".ssh", ".gnupg", ".aws", ".cargo", ".rustup", ".nvm", ".npm",
+    ] {
         fs::create_dir_all(home.path().join(d)).unwrap();
     }
     home
@@ -83,7 +85,10 @@ fn toolchain_homes_are_granted_when_they_exist() {
     assert!(has(&g.read_write, &h.join(".cargo")));
     for ro in [".rustup", ".nvm", ".npm"] {
         assert!(has(&g.read_only, &h.join(ro)), "{ro} should be read-only");
-        assert!(!has(&g.read_write, &h.join(ro)), "{ro} must not be writable");
+        assert!(
+            !has(&g.read_write, &h.join(ro)),
+            "{ro} must not be writable"
+        );
     }
     for sys in ["/usr/local", "/opt"] {
         if Path::new(sys).exists() {
@@ -122,11 +127,18 @@ fn cargo_home_with_registry_credentials_is_granted_piecewise() {
     for d in ["bin", "registry", "git"] {
         fs::create_dir_all(cargo.join(d)).unwrap();
     }
-    fs::write(cargo.join("credentials.toml"), "[registry]\ntoken = \"x\"\n").unwrap();
+    fs::write(
+        cargo.join("credentials.toml"),
+        "[registry]\ntoken = \"x\"\n",
+    )
+    .unwrap();
     fs::write(cargo.join("config.toml"), "").unwrap();
     let g = resolve_local_jail_grants(Some(home.path()), &LocalJailConfig::default());
     let c = canon(&cargo);
-    assert!(!has(&g.read_write, &c), "whole ~/.cargo would expose credentials.toml");
+    assert!(
+        !has(&g.read_write, &c),
+        "whole ~/.cargo would expose credentials.toml"
+    );
     assert!(!all(&g).iter().any(|p| p.ends_with("credentials.toml")));
     assert!(has(&g.read_write, &c.join("registry")));
     assert!(has(&g.read_write, &c.join("git")));
@@ -212,5 +224,8 @@ fn gitconfig_include_cycles_terminate() {
 fn no_home_yields_only_system_toolchain_dirs() {
     let g = resolve_local_jail_grants(None, &LocalJailConfig::default());
     assert!(g.read_write.is_empty());
-    assert!(g.read_only.iter().all(|p| p.starts_with("/usr/local") || p.starts_with("/opt")));
+    assert!(g
+        .read_only
+        .iter()
+        .all(|p| p.starts_with("/usr/local") || p.starts_with("/opt")));
 }

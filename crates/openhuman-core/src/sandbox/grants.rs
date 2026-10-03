@@ -212,7 +212,9 @@ impl<'a> Builder<'a> {
         depth: usize,
         visited: &mut HashSet<PathBuf>,
     ) {
-        let Ok(canonical) = file.canonicalize() else { return };
+        let Ok(canonical) = file.canonicalize() else {
+            return;
+        };
         if !canonical.is_file() || !visited.insert(canonical.clone()) {
             return;
         }
@@ -220,7 +222,9 @@ impl<'a> Builder<'a> {
         if depth >= GITCONFIG_MAX_DEPTH {
             return;
         }
-        let Ok(text) = std::fs::read_to_string(&canonical) else { return };
+        let Ok(text) = std::fs::read_to_string(&canonical) else {
+            return;
+        };
         // Relative includes resolve against the directory of the file *as
         // named*, which for a symlinked config is the link's directory.
         let base = file.parent().unwrap_or(home);
@@ -245,7 +249,8 @@ fn include_paths(config: &str) -> Vec<String> {
         let line = line.trim();
         if let Some(section) = line.strip_prefix('[') {
             let name = section.split([']', ' ', '"']).next().unwrap_or("");
-            in_include = name.eq_ignore_ascii_case("include") || name.eq_ignore_ascii_case("includeif");
+            in_include =
+                name.eq_ignore_ascii_case("include") || name.eq_ignore_ascii_case("includeif");
             continue;
         }
         if !in_include {
