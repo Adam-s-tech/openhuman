@@ -1194,6 +1194,31 @@ async fn context_get_set_and_refresh() {
     assert_eq!(read_back["budget_tokens"], json!(500));
 }
 
+#[tokio::test]
+async fn past_conversations_backfill_needs_consent_and_reports_status() {
+    let f = Fixture::new(true).await;
+    let status = f
+        .ok("openhuman.memory_conversations_backfill_status", json!({}))
+        .await;
+    assert_eq!(status["state"]["phase"], json!("idle"), "{status}");
+    assert_eq!(status["pending_threads"], json!(0));
+    assert_eq!(
+        f.code(
+            "openhuman.memory_conversations_backfill_start",
+            json!({ "consent": false })
+        )
+        .await,
+        "INVALID_REQUEST"
+    );
+    let started = f
+        .ok(
+            "openhuman.memory_conversations_backfill_start",
+            json!({ "consent": true }),
+        )
+        .await;
+    assert_eq!(started["pending_turns"], json!(0), "{started}");
+}
+
 // ---------------------------------------------------------------------------
 // Explorer
 // ---------------------------------------------------------------------------
