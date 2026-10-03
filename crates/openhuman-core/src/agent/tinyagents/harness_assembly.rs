@@ -357,6 +357,22 @@ pub(super) fn assemble_turn_harness(
             .with_cleared_placeholder(crate::agent::context::CLEARED_PLACEHOLDER),
         )
     });
+    // Time awareness (#6953). Pushed ahead of the repeat-progress guard, so
+    // these `after_tool` hooks run last: their notes land after every output
+    // cap (they survive truncation), and the guard fingerprints a result
+    // without a note that changes from call to call. `TurnClockMiddleware`
+    // adds `[turn budget: …]` to a result once per tenth of the budget past
+    // half. The shell half reports a clamped `timeout_secs`; its clamp is
+    // pushed after argument recovery below.
+    let turn_wall_clock = harness
+        .policy()
+        .limits
+        .max_wall_clock_ms
+        .map(std::time::Duration::from_millis);
+    harness.push_middleware(Arc::new(TurnClockMiddleware::new(turn_wall_clock)));
+    let shell_turn_budget = middleware::ShellTurnBudget::new(turn_wall_clock);
+    harness.push_middleware(Arc::new(shell_turn_budget.notes()));
+
     if let Some(mw) = &repeat_progress {
         harness.push_middleware(mw.clone());
     }
@@ -674,6 +690,12 @@ pub(super) fn assemble_turn_harness(
     // `InvalidArgsPolicy::ReturnToolError` admission path reports the original
     // validation error. It never reaches approval/policy wrappers or the tool.
     harness.push_middleware(Arc::new(ArgRecoveryMiddleware::new(tool_sets.clone())));
+
+    // Shell deadline clamp (`before_tool`, #6953): keep a shell command's
+    // `timeout_secs` inside the turn's remainder minus a reserve, so the turn
+    // is not killed mid-command. After argument recovery, so it edits the
+    // recovered object arguments.
+    harness.push_middleware(Arc::new(shell_turn_budget.clamp()));
 
     // Bare packed-tool routing (`before_tool`, #6276): a call that names a
     // withheld packed tool directly becomes the `use_skill` call that reaches
