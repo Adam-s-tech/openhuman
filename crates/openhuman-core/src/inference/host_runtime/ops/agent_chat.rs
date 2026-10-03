@@ -91,9 +91,28 @@ impl AgentChatReply {
         Outcome::single_log(self.text, AGENT_CHAT_COMPLETED_LOG)
     }
 
-    /// stub
+    /// The `inference.agent_chat` wire shape: the historical
+    /// `{"result": <text>, "logs": [...]}` envelope plus `hit_cap`, and, when
+    /// the turn was capped, `checkpoint` (the same text, named for what it is).
+    ///
+    /// Additive on purpose: existing clients keep reading the reply from
+    /// `result` (directly or through `unwrap_rpc`), and a headless caller can
+    /// now tell a capped turn from a finished one and continue it (#6958).
     pub fn into_rpc_json(self) -> Result<serde_json::Value, String> {
-        self.into_outcome().into_cli_compatible_json()
+        let hit_cap = self.hit_cap;
+        let checkpoint = hit_cap.then(|| self.text.clone());
+        let mut value = self.into_outcome().into_cli_compatible_json()?;
+        let serde_json::Value::Object(map) = &mut value else {
+            return Err("agent chat envelope is not a JSON object".to_string());
+        };
+        map.insert("hit_cap".to_string(), serde_json::Value::Bool(hit_cap));
+        if let Some(checkpoint) = checkpoint {
+            map.insert(
+                "checkpoint".to_string(),
+                serde_json::Value::String(checkpoint),
+            );
+        }
+        Ok(value)
     }
 }
 
@@ -211,6 +230,33 @@ pub async fn agent_chat_for(
     cwd: Option<String>,
     route: Option<crate::config::schema::EphemeralRoute>,
 ) -> Result<Outcome<String>, String> {
+    agent_chat_reply_for(
+        config,
+        target,
+        message,
+        model_override,
+        temperature,
+        thread_id,
+        cwd,
+        route,
+    )
+    .await
+    .map(AgentChatReply::into_outcome)
+}
+
+/// [`agent_chat_for`], keeping whether the turn stopped at its iteration cap.
+/// The `inference.agent_chat` controller answers from this.
+#[allow(clippy::too_many_arguments)]
+pub async fn agent_chat_reply_for(
+    config: &mut Config,
+    target: AgentChatTarget<'_>,
+    message: &str,
+    model_override: Option<String>,
+    temperature: Option<f64>,
+    thread_id: Option<String>,
+    cwd: Option<String>,
+    route: Option<crate::config::schema::EphemeralRoute>,
+) -> Result<AgentChatReply, String> {
     enforce_user_prompt_or_reject(message, "local_ai.ops.agent_chat")?;
 
     // TAURI-RUST-RS: an upstream caller (frontend, JSON-RPC client) can pass
@@ -348,8 +394,12 @@ pub async fn agent_chat_for(
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = agent.last_turn_usage();
     }
-    let response = outcome.map_err(|e| e.to_string())?;
-    Ok(Outcome::single_log(response, "agent chat completed"))
+    let text = outcome.map_err(|e| e.to_string())?;
+    let hit_cap = agent.last_turn_hit_cap();
+    if hit_cap {
+        log::info!("[inference] agent_chat turn paused at its iteration cap; reporting hit_cap");
+    }
+    Ok(AgentChatReply { text, hit_cap })
 }
 
 /// A simplified chat interface that does not update the base configuration.
