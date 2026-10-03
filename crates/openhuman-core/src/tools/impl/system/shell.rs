@@ -579,17 +579,10 @@ impl ShellTool {
                         prepend_dirs.push(resolved.bin_dir);
                     }
                     Err(error) => {
-                        if !bootstrap.config().runtime_python.enabled {
-                            tracing::debug!(
-                                error = %error,
-                                "[shell] python runtime disabled — running on the inherited PATH"
-                            );
-                        } else {
-                            tracing::warn!(
-                                error = %error,
-                                "[shell] python runtime unavailable — running on the inherited PATH"
-                            );
-                        }
+                        log_python_runtime_unavailable(
+                            bootstrap.config().runtime_python.enabled,
+                            &error,
+                        );
                     }
                 }
             }
@@ -603,6 +596,20 @@ impl ShellTool {
                 &std::env::var("PATH").unwrap_or_default(),
             ))
         }
+    }
+}
+
+fn log_python_runtime_unavailable(enabled: bool, error: &anyhow::Error) {
+    if enabled {
+        tracing::warn!(
+            error = %error,
+            "[shell] python runtime unavailable — running on the inherited PATH"
+        );
+    } else {
+        tracing::debug!(
+            error = %error,
+            "[shell] python runtime disabled — running on the inherited PATH"
+        );
     }
 }
 
