@@ -314,6 +314,14 @@ fn memory_v2_runs_end_to_end_on_a_live_cortexdb() {
 }
 
 async fn run(cortex_url: String, cortex_key: String) {
+    // Unique per run, so a server that kept an earlier run's items cannot
+    // satisfy this run's checks.
+    let run_id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock after the epoch")
+        .as_millis();
+    let thread_a = format!("live-thread-a-{run_id}");
+    let thread_b = format!("live-thread-b-{run_id}");
     let stack = Stack::boot(&cortex_url).await;
 
     // Sign in (the agent's inference goes through the mock backend).
@@ -433,13 +441,13 @@ async fn run(cortex_url: String, cortex_key: String) {
     // ---- conversations: a committed web-chat turn is ingested -----------------
     stack
         .chat(
-            "live-thread-a",
+            &thread_a,
             "Please remember that the Aurora venue is booked.",
         )
         .await;
     let conversations = stack
         .items_until(
-            json!({ "kinds": ["conversation"], "thread_id": "live-thread-a" }),
+            json!({ "kinds": ["conversation"], "thread_id": thread_a }),
             "conversation stored",
             |items| !items.is_empty(),
         )
@@ -466,7 +474,7 @@ async fn run(cortex_url: String, cortex_key: String) {
             .await;
         if recent["recent"]
             .as_array()
-            .is_some_and(|r| r.iter().any(|c| c["thread_id"] == json!("live-thread-a")))
+            .is_some_and(|r| r.iter().any(|c| c["thread_id"] == json!(thread_a)))
         {
             break;
         }
@@ -526,9 +534,7 @@ async fn run(cortex_url: String, cortex_key: String) {
         "the file on disk is what context_get serves"
     );
 
-    stack
-        .chat("live-thread-b", "What should I plan next?")
-        .await;
+    stack.chat(&thread_b, "What should I plan next?").await;
     let deadline = Instant::now() + PATIENCE;
     loop {
         let injected = stack.mock_bodies().await.into_iter().any(|(url, body)| {
