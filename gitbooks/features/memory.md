@@ -55,6 +55,10 @@ A learning is one durable statement: a preference, fact, procedure or correction
 
 Everything is scrubbed for secrets and personal identifiers before it leaves your machine.
 
+### Past conversations
+
+Chats from before automatic saving was turned on are not in memory until you sync them. The **Conversations** tab shows how many chats and turns are still unsynced; **Sync past conversations** uploads them (after you confirm) in the same form as new conversations, without tool arguments. You can close the page while it runs, and syncing again later only sends what is new.
+
 ## Exploring what memory holds
 
 The **Explorer** tab shows everything your memory holds, grouped by one property at a time: type, source, workspace, folder, file, language, repository, link, thread, agent, tool or tag. Each value shows how many items carry it. Click one to narrow to those items, then group again by another property; the breadcrumb at the top takes you back up. The items at each step are listed below, and **Open** shows one in full with all its details and a **Forget** button.

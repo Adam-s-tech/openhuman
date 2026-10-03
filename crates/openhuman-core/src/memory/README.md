@@ -46,7 +46,7 @@ Chat thread persistence is not memory: see [`threads/store`](../threads/store/RE
 
 `openhuman.memory_engines_list`, `_engine_get`, `_engine_set`, `_recall`,
 `_fetch`, `_learn`, `_forget`, `_items_list`, `_explore`, `_items_get`,
-`_conversations_get/set`,
+`_conversations_get/set`, `_conversations_backfill_status/start`,
 `_sources_list/add/remove/sync`, `_context_get/refresh/set`,
 `_import_scan/start/status`. Params and results are in the spec. The MCP server
 exposes `memory.recall`, `memory.fetch`, `memory.list`, `memory.learn` and
