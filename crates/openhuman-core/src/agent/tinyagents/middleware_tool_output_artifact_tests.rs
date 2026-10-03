@@ -133,9 +133,8 @@ async fn an_oversized_result_is_stored_as_the_tool_returned_it_not_as_rewritten(
         "an over-budget result is persisted: {}",
         result_text(&result)
     );
-    let stored =
-        std::fs::read_to_string(tmp.path().join("tool-results/session/echo/c1.txt"))
-            .expect("artifact written");
+    let stored = std::fs::read_to_string(tmp.path().join("tool-results/session/echo/c1.txt"))
+        .expect("artifact written");
     assert_eq!(
         stored, raw,
         "the artifact must hold the tool's own output, not the rewritten copy"
@@ -160,9 +159,8 @@ async fn a_raw_result_file_read_cannot_open_is_stored_as_the_processed_copy() {
         .0
         .unwrap();
 
-    let stored =
-        std::fs::read_to_string(tmp.path().join("tool-results/session/echo/c1.txt"))
-            .expect("artifact written");
+    let stored = std::fs::read_to_string(tmp.path().join("tool-results/session/echo/c1.txt"))
+        .expect("artifact written");
     assert_eq!(
         stored, summary,
         "a raw body over file_read's limit would be unreadable, so the processed copy is stored"
