@@ -256,23 +256,28 @@ fn one_runtime_hosts_independently_configured_agents() {
                 serde_json::from_slice(&withholding_requests[0].body).unwrap();
             let visible_request: serde_json::Value =
                 serde_json::from_slice(&withholding_requests[1].body).unwrap();
-            let has_read_file = |request: &serde_json::Value| {
+            let has_shell = |request: &serde_json::Value| {
                 request["tools"].as_array().is_some_and(|tools| {
                     tools.iter().any(|tool| tool["function"]["name"] == "shell")
                 })
             };
             assert!(
-                !has_read_file(&hidden_request),
+                !has_shell(&hidden_request),
                 "the hidden turn's provider request must omit shell"
             );
             assert!(
-                has_read_file(&visible_request),
+                has_shell(&visible_request),
                 "the next turn's provider request must advertise shell again"
             );
 
             assert_eq!(
                 runtime.agent_ids(),
-                vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()]
+                vec![
+                    "alpha".to_string(),
+                    "beta".to_string(),
+                    "gamma".to_string(),
+                    "withholding".to_string()
+                ]
             );
 
             // Layout: every agent has its own home, transcripts and action dir.
