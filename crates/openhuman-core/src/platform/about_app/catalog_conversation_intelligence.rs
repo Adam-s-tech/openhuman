@@ -268,6 +268,16 @@ Capability {
         privacy: MEMORY_TO_REMOTE_ENGINE,
     },
 Capability {
+        id: "memory.explorer",
+        name: "Memory Explorer",
+        domain: "memory",
+        category: CapabilityCategory::Intelligence,
+        description: "Browse everything memory holds by a standard set of facets (type, source, source id, workspace, folder, file, language, repository, link, thread, agent, tool, tag): see how many items carry each value, drill down step by step, list the items there, and open one to read it whole with all its metadata or forget it. The facets are part of the memory contract, so the explorer works the same on every engine.",
+        how_to: "Connections > Memory > Explorer (/connections?tab=brain&brain=explorer). Programmatic: openhuman.memory_explore, memory_items_list with `path`, memory_items_get (RPC).",
+        status: CapabilityStatus::Beta,
+        privacy: MEMORY_TO_REMOTE_ENGINE,
+    },
+Capability {
         id: "memory.learnings",
         name: "Learnings",
         domain: "memory",
