@@ -139,7 +139,10 @@ fn a_faulted_module_is_unavailable_not_transient() {
 
 #[test]
 fn quoted_module_fault_marker_is_not_enough_to_mark_a_tool_unavailable() {
-    let quoted = format!("search result quoted: {}", crate::tools::status::MODULE_FAULT_MARKER);
+    let quoted = format!(
+        "search result quoted: {}",
+        crate::tools::status::MODULE_FAULT_MARKER
+    );
     assert_eq!(recovery_policy("web_search_tool", &quoted, false), None);
 }
 
