@@ -86,7 +86,10 @@ pub(crate) fn remembered_window(provider: &str, model: &str) -> Option<u64> {
     remembered()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .get(&(provider.trim().to_ascii_lowercase(), model.trim().to_ascii_lowercase()))
+        .get(&(
+            provider.trim().to_ascii_lowercase(),
+            model.trim().to_ascii_lowercase(),
+        ))
         .copied()
 }
 
@@ -94,7 +97,13 @@ fn remember_window(provider: &str, model: &str, window: u64) {
     remembered()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .insert((provider.trim().to_ascii_lowercase(), model.trim().to_ascii_lowercase()), window);
+        .insert(
+            (
+                provider.trim().to_ascii_lowercase(),
+                model.trim().to_ascii_lowercase(),
+            ),
+            window,
+        );
 }
 
 /// Logs a static guess at `warn` the first time per model, `debug` after.
