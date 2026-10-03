@@ -108,7 +108,9 @@ async fn shell_keeps_inherited_path_when_python_runtime_is_unavailable() {
         .await
         .unwrap();
     assert!(
-        !result.output().contains("Failed to resolve command runtime"),
+        !result
+            .output()
+            .contains("Failed to resolve command runtime"),
         "the command must run on the inherited PATH: {}",
         result.output()
     );

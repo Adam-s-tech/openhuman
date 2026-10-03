@@ -27,7 +27,10 @@ async fn run_shell(
 
 #[test]
 fn a_command_exit_report_is_program_output_not_a_failure_class() {
-    assert_eq!(recovery_policy("shell", &sigpipe_git_log_report(), false), None);
+    assert_eq!(
+        recovery_policy("shell", &sigpipe_git_log_report(), false),
+        None
+    );
     for stdout in [
         "HTTP/1.1 403 Forbidden",
         "test_login ... Unauthorized",
@@ -121,7 +124,8 @@ async fn an_identical_failing_command_repeated_unchanged_still_halts() {
     assert_eq!(drain_pause_count(&handle), 1);
 }
 
-const MODULE_FAULT: &str = "Failed to resolve command runtime: module 'tinyruntime' could not be loaded \
+const MODULE_FAULT: &str =
+    "Failed to resolve command runtime: module 'tinyruntime' could not be loaded \
      from the installer bundle: module `ubuntu-22.04-x86_64` refused: module directory is owned by \
      another user. This is terminal for the running process; restart the app to try again";
 
