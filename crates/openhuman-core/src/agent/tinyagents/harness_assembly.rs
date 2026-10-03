@@ -9,7 +9,6 @@ use tinyagents_harness::middleware::{
     plan_mode_middleware, ApprovalGateMiddleware, ArgRecoveryMiddleware, BudgetLimits,
     BudgetMiddleware, ContextCompressionMiddleware, PromptCacheGuardMiddleware,
     RepeatProgressMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
-    TurnClockMiddleware,
 };
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::steering::SteeringHandle;
@@ -358,14 +357,8 @@ pub(super) fn assemble_turn_harness(
             .with_cleared_placeholder(crate::agent::context::CLEARED_PLACEHOLDER),
         )
     });
-    // Time awareness (#6953): turn-budget notes and clamped-shell-timeout notes.
-    // Pushed before the repeat guard so their `after_tool` runs last (notes
-    // survive output caps and stay out of the guard's fingerprint).
-    let wall_clock = harness.policy().limits.max_wall_clock_ms;
-    let wall_clock = wall_clock.map(std::time::Duration::from_millis);
-    harness.push_middleware(Arc::new(TurnClockMiddleware::new(wall_clock)));
-    let shell_turn_budget = middleware::ShellTurnBudget::new(wall_clock);
-    harness.push_middleware(Arc::new(shell_turn_budget.notes()));
+    // Time awareness (#6953); before the repeat guard so its notes land last.
+    let shell_turn_budget = middleware::install_time_notes(&mut harness);
     if let Some(mw) = &repeat_progress {
         harness.push_middleware(mw.clone());
     }

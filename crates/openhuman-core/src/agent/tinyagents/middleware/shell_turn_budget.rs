@@ -29,7 +29,12 @@ use std::time::Duration;
 use async_trait::async_trait;
 use tinyagents_harness::context::RunContext;
 use tinyagents_harness::error::Result as TaResult;
-use tinyagents_harness::middleware::{Middleware, ToolInvocationIdentity, TurnClock};
+use tinyagents_harness::middleware::{
+    Middleware, ToolInvocationIdentity, TurnClock, TurnClockMiddleware,
+};
+use tinyagents_harness::runtime::AgentHarness;
+
+use crate::agent::tinyagents::host::OpenHumanRunContext;
 use tinyinference_llm::tool::ToolCall;
 use tinytools::ToolResult;
 
@@ -204,6 +209,33 @@ impl<C: Send + Sync> Middleware<(), C> for ShellTimeoutNoteMiddleware {
         super::append_tool_result_text(result, format!("\n{}", clamp.note()));
         Ok(())
     }
+}
+
+/// Install the turn's time notes and return the shell budget whose
+/// [`clamp`](ShellTurnBudget::clamp) the caller pushes after argument recovery.
+///
+/// Pushes [`TurnClockMiddleware`] (`[turn budget: …]` once per tenth of the
+/// budget past half) and [`ShellTurnBudget::notes`]. Call it before the
+/// repeat-progress guard: `after_tool` runs in reverse registration order, so
+/// these notes are appended after every output cap (they survive truncation)
+/// and after the guard has fingerprinted the result (a changing note does not
+/// make two identical results look different).
+pub(crate) fn install_time_notes(
+    harness: &mut AgentHarness<(), OpenHumanRunContext>,
+) -> Arc<ShellTurnBudget> {
+    let budget = harness
+        .policy()
+        .limits
+        .max_wall_clock_ms
+        .map(Duration::from_millis);
+    tracing::debug!(
+        budget_ms = ?budget.map(|b| b.as_millis() as u64),
+        "[tinyagents::mw] installing turn clock and shell turn-budget notes"
+    );
+    harness.push_middleware(Arc::new(TurnClockMiddleware::new(budget)));
+    let shell = ShellTurnBudget::new(budget);
+    harness.push_middleware(Arc::new(shell.notes()));
+    shell
 }
 
 #[cfg(test)]
