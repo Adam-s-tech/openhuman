@@ -6,6 +6,7 @@ fn resolve_sandbox_policy_none_mode() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -17,6 +18,7 @@ fn resolve_sandbox_policy_read_only_mode() {
     let policy = resolve_sandbox_policy(
         SandboxMode::ReadOnly,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -28,6 +30,7 @@ fn resolve_sandbox_policy_sandboxed_local() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -40,6 +43,7 @@ fn resolve_sandbox_policy_sandboxed_remote_uses_docker() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         true,
     );
@@ -57,6 +61,7 @@ fn resolve_sandbox_policy_docker_runtime_forces_docker() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp/action"),
+        Path::new("/tmp/state"),
         &config,
         false,
     );
@@ -85,6 +90,7 @@ async fn create_sandbox_backend_none() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         Path::new("/tmp"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -98,6 +104,7 @@ async fn create_sandbox_backend_local() {
     let policy = resolve_sandbox_policy(
         SandboxMode::Sandboxed,
         Path::new("/tmp"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -201,6 +208,7 @@ async fn execute_in_sandbox_none_backend() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         Path::new("/tmp"),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -226,6 +234,7 @@ async fn execute_in_sandbox_preserves_non_utf8_environment_bytes() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         tempdir.path(),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -256,6 +265,7 @@ async fn execute_in_sandbox_none_backend_runs_on_every_os() {
     let policy = resolve_sandbox_policy(
         SandboxMode::None,
         tempdir.path(),
+        Path::new("/tmp/state"),
         &RuntimeConfig::default(),
         false,
     );
@@ -307,4 +317,135 @@ fn local_status_is_ready_for_a_real_jail() {
             "a real OS jail ({backend}) is in force, so `Ready` is honest"
         );
     }
+}
+
+// ── #6961: local-jail output capture stays out of the user's project ─────────
+
+#[cfg(unix)]
+fn local_policy(action_dir: &Path, state_dir: &Path) -> SandboxPolicy {
+    let policy = resolve_sandbox_policy(
+        SandboxMode::Sandboxed,
+        action_dir,
+        state_dir,
+        &RuntimeConfig::default(),
+        false,
+    );
+    assert_eq!(policy.backend, SandboxBackendKind::Local);
+    policy
+}
+
+#[cfg(unix)]
+async fn run_local(policy: &SandboxPolicy, command: &str) -> SandboxExecResult {
+    execute_in_sandbox(
+        policy,
+        command,
+        &policy.workspace_root,
+        HashMap::new(),
+        Duration::from_secs(20),
+    )
+    .await
+    .unwrap()
+}
+
+#[cfg(unix)]
+fn entries(dir: &Path) -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .map(|rd| {
+            rd.map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+                .collect()
+        })
+        .unwrap_or_default();
+    names.sort();
+    names
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn local_jail_writes_no_capture_files_into_the_workspace_root() {
+    let action = tempfile::tempdir().unwrap();
+    let state = tempfile::tempdir().unwrap();
+    let policy = local_policy(action.path(), state.path());
+
+    // `ls -A` runs inside the root while the capture is live, so it sees
+    // anything the capture put there (this is what `git status` saw).
+    let during = run_local(&policy, "ls -A; echo to-stderr >&2").await;
+
+    assert!(during.success(), "stderr: {}", during.stderr);
+    assert_eq!(during.stdout, "", "root was not empty while running");
+    assert_eq!(during.stderr, "to-stderr\n");
+    assert!(
+        entries(action.path()).is_empty(),
+        "root was not empty after"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn concurrent_local_jail_runs_keep_their_outputs_separate() {
+    let action = tempfile::tempdir().unwrap();
+    let state = tempfile::tempdir().unwrap();
+    let policy = local_policy(action.path(), state.path());
+
+    let (a, b) = tokio::join!(
+        run_local(&policy, "echo a1; echo a-err >&2; sleep 0.4; echo a2"),
+        run_local(&policy, "echo b1; echo b-err >&2; sleep 0.4; echo b2"),
+    );
+
+    assert_eq!(
+        (a.stdout.as_str(), a.stderr.as_str()),
+        ("a1\na2\n", "a-err\n")
+    );
+    assert_eq!(
+        (b.stdout.as_str(), b.stderr.as_str()),
+        ("b1\nb2\n", "b-err\n")
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn local_jail_captures_under_the_state_dir_and_removes_the_call_dir() {
+    let action = tempfile::tempdir().unwrap();
+    let state = tempfile::tempdir().unwrap();
+    let policy = local_policy(action.path(), state.path());
+    let capture_root = sandbox_capture_root(state.path());
+    assert_eq!(
+        capture_root,
+        state.path().join("artifacts").join("sandbox-capture")
+    );
+
+    // While running, exactly one per-call dir holding both streams exists.
+    let during = run_local(&policy, &format!("ls '{}'/*", capture_root.display())).await;
+    assert!(during.success(), "stderr: {}", during.stderr);
+    assert_eq!(during.stdout, "stderr\nstdout\n");
+
+    assert!(
+        entries(&capture_root).is_empty(),
+        "per-call capture dir left behind: {:?}",
+        entries(&capture_root)
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn local_jail_removes_the_call_dir_when_the_spawn_fails() {
+    let cwd = tempfile::tempdir().unwrap();
+    let state = tempfile::tempdir().unwrap();
+    // A jail root that does not exist makes the jail refuse to spawn.
+    let policy = local_policy(&cwd.path().join("missing-root"), state.path());
+
+    let err = execute_in_sandbox(
+        &policy,
+        "true",
+        cwd.path(),
+        HashMap::new(),
+        Duration::from_secs(5),
+    )
+    .await
+    .unwrap_err();
+
+    assert!(
+        err.to_string().contains("Failed to spawn jailed process"),
+        "{err}"
+    );
+    assert!(entries(&sandbox_capture_root(state.path())).is_empty());
 }

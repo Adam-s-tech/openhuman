@@ -52,6 +52,8 @@ pub(super) fn install_context_ladder(
     model: &str,
     context_window: Option<u64>,
     autocompact_enabled: bool,
+    compaction_trigger_tokens: Option<u64>,
+    compaction_strategy: crate::config::CompactionStrategy,
     microcompact_keep_recent: usize,
     summarizer_model: TurnChatModel,
     wrap_up_at_cap: bool,
@@ -65,9 +67,10 @@ pub(super) fn install_context_ladder(
     //
     // 1. `ContextCompressionMiddleware` — the **summarization** step. Once the
     //    running token estimate crosses `window * SUMMARIZE_THRESHOLD_FRACTION`
-    //    (90% of *this model's* context window), it folds the older slice of the
-    //    transcript into a single LLM-generated system summary (keeping system
-    //    messages + the recent window verbatim). This is keyed to whatever model
+    //    (min(80% of *this model's* context window, 350k tokens), or the absolute
+    //    `compaction_trigger_tokens` override), it folds the older slice of the
+    //    transcript into a single LLM-generated, user-role checkpoint (keeping
+    //    system messages + the recent window verbatim). This is keyed to whatever model
     //    the turn is running on, preserving the legacy context threshold.
     // 2. `ImageAwareMessageTrimMiddleware` — a deterministic, no-extra-LLM-call
     //    hard cap (issue #4462; replaces the crate `MessageTrimMiddleware`).
@@ -86,39 +89,44 @@ pub(super) fn install_context_ladder(
     // estimates) — the `AgentEvent::Compressed` projection only carries the token
     // deltas, so provenance would otherwise be dropped (issue #4249, 03.1 item 6).
     let mut compression_mw: Option<Arc<ContextCompressionMiddleware>> = None;
-    if let Some(window) = context_window.filter(|w| *w > 0) {
-        if autocompact_enabled {
-            let policy = tinyagents_harness::summarization::summarization_policy(window);
+    let compression_policy = compression_policy(context_window, compaction_trigger_tokens);
+    if autocompact_enabled {
+        if let Some(policy) = compression_policy {
             // Wrap the LLM-backed summarizer in a fault-tolerant, per-turn-caching
             // adapter (issue #4461): a summarizer failure must no longer abort the
             // turn (warn + circuit-breaker + deterministic trim instead), and an
             // identical re-issued input slice must not re-run the summarizer LLM.
-            let summarizer = tinyagents_harness::summarization::FaultTolerantCachingSummarizer::new(
-                Box::new(tinyagents_harness::summarization::ModelSummarizer::new(
-                    summarizer_model,
-                    model,
-                )),
-                &policy,
-            );
-            let mw = Arc::new(ContextCompressionMiddleware::with_summarizer(
+            // The summary is a user-role, reference-only checkpoint
+            // (`SummaryPlacement::User`, the crate default): the system prompt
+            // and tool declarations stay byte-stable across a compaction.
+            let mw = Arc::new(compression_middleware(
                 policy,
-                Box::new(summarizer),
+                compaction_strategy,
+                context_window,
+                summarizer_model,
+                model,
             ));
+            // Lifecycle `before_model` runs the threshold compaction; the
+            // model wrap runs the provider-overflow → compact → retry-once
+            // recovery. One instance in both places shares one per-run fold,
+            // so the overflow path extends the threshold path's compaction
+            // instead of compacting from scratch, and a request the threshold
+            // path already compacted is not compacted again on the way in.
             harness.push_middleware(mw.clone());
+            harness.push_model_middleware(mw.clone());
             compression_mw = Some(mw);
         }
-
-        // Deterministic hard-cap trim (issue #4462). The crate
-        // `MessageTrimMiddleware` regressed three legacy `token_budget.rs`
-        // guards: it priced a base64 image at ~2M tokens (chars/4) and could
-        // evict system messages, it reordered system messages to the front, and
-        // its budget was the fixed `window − AGENT_TURN_MAX_OUTPUT_TOKENS`
-        // (floored 1024) that collapses an 8k local model's input budget from
-        // ~7373 to 1024. Our seam-owned `ImageAwareMessageTrimMiddleware`
-        // restores all three: image markers priced at a flat cost, the
-        // proportional reply reserve, system messages always kept in place, and a
-        // grep-able warn with drop/token counts on any eviction.
     }
+    // Deterministic hard-cap trim (issue #4462). The crate
+    // `MessageTrimMiddleware` regressed three legacy `token_budget.rs`
+    // guards: it priced a base64 image at ~2M tokens (chars/4) and could
+    // evict system messages, it reordered system messages to the front, and
+    // its budget was the fixed `window − AGENT_TURN_MAX_OUTPUT_TOKENS`
+    // (floored 1024) that collapses an 8k local model's input budget from
+    // ~7373 to 1024. Our seam-owned `ImageAwareMessageTrimMiddleware`
+    // restores all three: image markers priced at a flat cost, the
+    // proportional reply reserve, system messages always kept in place, and a
+    // grep-able warn with drop/token counts on any eviction.
 
     // ── The context ladder, cheapest sufficient step first (issue #6014) ──────
     //
@@ -227,3 +235,101 @@ pub(super) fn install_context_ladder(
 
     (compression_mw, wrap_up_fired)
 }
+
+/// Longest verbatim tail kept by a task-state compaction (tokens). Measured
+/// default for large-window coding agents; small windows keep a fifth of
+/// the window instead.
+const TASK_STATE_KEEP_RECENT_TOKENS: u64 = 20_000;
+
+/// The compression middleware for `strategy`.
+///
+/// `TaskState` (the default) writes a typed task-state checkpoint
+/// (`TaskStateSummarizer`) over a token-budgeted tail: `min(20k, window/5)`
+/// recent tokens verbatim, and history folded in chunks of at most 40% of the
+/// window so a small model never sees more than it can read. `Summary` is the
+/// free-form `ModelSummarizer` over the policy's last `keep_last` messages.
+pub(super) fn compression_middleware(
+    policy: tinyagents_harness::summarization::SummarizationPolicy,
+    strategy: crate::config::CompactionStrategy,
+    context_window: Option<u64>,
+    summarizer_model: TurnChatModel,
+    model: &str,
+) -> ContextCompressionMiddleware {
+    use tinyagents_harness::summarization::{
+        FaultTolerantCachingSummarizer, ModelSummarizer, TaskStateSummarizer,
+        DEFAULT_TASK_STATE_CHUNK_TOKENS,
+    };
+    let window = context_window.filter(|w| *w > 0);
+    match strategy {
+        crate::config::CompactionStrategy::TaskState => {
+            let keep_recent = window.map_or(TASK_STATE_KEEP_RECENT_TOKENS, |w| {
+                (w / 5).min(TASK_STATE_KEEP_RECENT_TOKENS)
+            });
+            let chunk = window.map_or(DEFAULT_TASK_STATE_CHUNK_TOKENS, |w| {
+                (w * 2 / 5).clamp(4_000, DEFAULT_TASK_STATE_CHUNK_TOKENS)
+            });
+            tracing::info!(
+                model,
+                keep_recent_tokens = keep_recent,
+                max_chunk_tokens = chunk,
+                context_window = ?window,
+                "[context_compression] strategy=task_state"
+            );
+            let summarizer = FaultTolerantCachingSummarizer::new(
+                Box::new(
+                    TaskStateSummarizer::new(summarizer_model, model).with_max_chunk_tokens(chunk),
+                ),
+                &policy,
+            );
+            ContextCompressionMiddleware::with_summarizer(policy, Box::new(summarizer))
+                .with_keep_recent_tokens(keep_recent)
+        }
+        crate::config::CompactionStrategy::Summary => {
+            tracing::info!(model, "[context_compression] strategy=summary");
+            let summarizer = FaultTolerantCachingSummarizer::new(
+                Box::new(ModelSummarizer::new(summarizer_model, model)),
+                &policy,
+            );
+            ContextCompressionMiddleware::with_summarizer(policy, Box::new(summarizer))
+        }
+    }
+}
+
+/// The summarization policy for this turn, or `None` when compaction has
+/// nothing to size against.
+///
+/// Normally `min(80% of the model's context window, 350k tokens)` (TinyAgents
+/// `summarization_policy`). `trigger_override` (the
+/// `[context].compaction_trigger_tokens` / `OPENHUMAN_COMPACTION_TRIGGER_TOKENS`
+/// bench knob) pins the trigger to that absolute token count instead, and
+/// enables compaction even when the window is unknown.
+pub(super) fn compression_policy(
+    context_window: Option<u64>,
+    trigger_override: Option<u64>,
+) -> Option<tinyagents_harness::summarization::SummarizationPolicy> {
+    use tinyagents_harness::summarization::{
+        summarization_policy, SummarizationPolicy, DEFAULT_SUMMARIZE_KEEP_LAST,
+    };
+    let window = context_window.filter(|w| *w > 0);
+    match trigger_override.filter(|t| *t > 0) {
+        Some(tokens) => {
+            tracing::info!(
+                trigger_tokens = tokens,
+                context_window = ?window,
+                "[context_compression] compaction trigger override active"
+            );
+            let base = window
+                .map(summarization_policy)
+                .unwrap_or(SummarizationPolicy {
+                    keep_last: DEFAULT_SUMMARIZE_KEEP_LAST,
+                    ..SummarizationPolicy::default()
+                });
+            Some(base.with_trigger_override(tokens))
+        }
+        None => window.map(summarization_policy),
+    }
+}
+
+#[cfg(test)]
+#[path = "harness_context_ladder_tests.rs"]
+mod tests;
