@@ -70,7 +70,7 @@ async fn a_wrapped_read_of_a_persisted_artifact_is_paged_not_resummarized_or_rep
         &rendered[page_end..]
     );
     assert!(
-        !tmp.path().join("session").exists(),
+        !tmp.path().join("tool-results/session").exists(),
         "reading an artifact must not persist it again as a new artifact"
     );
 }
@@ -83,8 +83,7 @@ async fn a_read_of_an_absolute_artifact_pointer_is_paged_not_repersisted() {
     let storage = tmp.path();
     let mw = artifact_mw(Some(summarized("SUMMARY")), storage);
     let pointer = storage
-        .join("tool-results")
-        .join("session/shell/earlier.txt")
+        .join("tool-results/session/shell/earlier.txt")
         .to_string_lossy()
         .into_owned();
     let mut call = TaToolCall::new("c1", "file_read", json!({"path": pointer}));
