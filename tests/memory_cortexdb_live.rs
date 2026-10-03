@@ -457,15 +457,35 @@ async fn run(cortex_url: String, cortex_key: String) {
         conversation["meta"]["agent_id"].is_string(),
         "{conversation}"
     );
-    let recent = stack
-        .ok("openhuman.memory_conversations_get", json!({}))
-        .await;
-    assert!(
-        recent["recent"]
+    // The engine write lands before the batch is recorded as stored, so
+    // the listing can briefly lead `recent`.
+    let deadline = Instant::now() + PATIENCE;
+    loop {
+        let recent = stack
+            .ok("openhuman.memory_conversations_get", json!({}))
+            .await;
+        if recent["recent"]
             .as_array()
-            .is_some_and(|r| r.iter().any(|c| c["thread_id"] == json!("live-thread-a"))),
-        "the thread shows as recently stored: {recent}"
-    );
+            .is_some_and(|r| r.iter().any(|c| c["thread_id"] == json!("live-thread-a")))
+        {
+            break;
+        }
+        let states: Vec<String> = find_files(stack.home.path(), "conversations_state.json")
+            .iter()
+            .map(|p| {
+                format!(
+                    "{}: {}",
+                    p.display(),
+                    std::fs::read_to_string(p).unwrap_or_default()
+                )
+            })
+            .collect();
+        assert!(
+            Instant::now() < deadline,
+            "the thread never shows as recently stored: {recent}\nstate files: {states:#?}"
+        );
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
 
     // ---- recall over everything -----------------------------------------------
     let recalled = stack
@@ -542,15 +562,18 @@ async fn run(cortex_url: String, cortex_key: String) {
 }
 
 fn find_file(root: &Path, name: &str) -> Option<PathBuf> {
-    for entry in std::fs::read_dir(root).ok()?.flatten() {
+    find_files(root, name).into_iter().next()
+}
+
+fn find_files(root: &Path, name: &str) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir(root).into_iter().flatten().flatten() {
         let path = entry.path();
         if path.is_dir() {
-            if let Some(found) = find_file(&path, name) {
-                return Some(found);
-            }
+            found.extend(find_files(&path, name));
         } else if path.file_name().is_some_and(|n| n == name) {
-            return Some(path);
+            found.push(path);
         }
     }
-    None
+    found
 }
