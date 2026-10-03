@@ -493,6 +493,7 @@ fn one_runtime_hosts_independently_configured_agents() {
             // Dropping every handle releases the id.
             drop(withholding_agent);
             drop(gamma);
+            drop(budget_agent);
             assert_eq!(
                 runtime.agent_ids(),
                 vec!["alpha".to_string(), "beta".to_string()]
