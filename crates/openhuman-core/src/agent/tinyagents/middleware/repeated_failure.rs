@@ -9,7 +9,9 @@ use async_trait::async_trait;
 
 use tinyagents_harness::context::RunContext;
 use tinyagents_harness::error::Result as TaResult;
-use tinyagents_harness::middleware::{Middleware, ToolInvocationIdentity};
+use tinyagents_harness::middleware::{
+    push_ephemeral_instruction, Middleware, ToolInvocationIdentity,
+};
 use tinyagents_harness::no_progress::{
     ClassifiedFailure, ClassifiedFailureTracker, NoProgress, NoProgressTracker, ToolAttempt,
 };
@@ -703,8 +705,13 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
 }
 
 /// Appends queued [`RepeatedToolFailureMiddleware`] nudges to the next model
-/// request as system messages, then forgets them. The request is built from a
-/// copy of the working transcript, so nothing it adds is ever committed.
+/// request, then forgets them. The request is built from a copy of the working
+/// transcript, so nothing it adds is ever committed.
+///
+/// Placement goes through [`push_ephemeral_instruction`]: a tail system message
+/// by default, but never a new system message for a model that hoists them to
+/// the prompt head (DeepSeek), where it would reset the prompt cache to the
+/// static prefix (#6962). There the nudge rides the tail tool result.
 pub(crate) struct PendingNudgeInjector {
     pending: Arc<Mutex<Vec<String>>>,
 }
@@ -717,7 +724,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Pen
 
     async fn before_model(
         &self,
-        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
+        ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
         _state: &(),
         request: &mut ModelRequest,
     ) -> TaResult<()> {
@@ -727,13 +734,18 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Pen
             .map(|mut pending| std::mem::take(&mut *pending))
             .unwrap_or_default();
         if !nudges.is_empty() {
+            let hoists = ctx
+                .model_profile
+                .as_ref()
+                .is_some_and(|profile| profile.hoists_system_messages);
             tracing::debug!(
                 count = nudges.len(),
+                hoists,
                 "[tinyagents::mw] request-scoped nudge(s) appended to the next model request"
             );
-            request
-                .messages
-                .extend(nudges.into_iter().map(TaMessage::system));
+            for nudge in nudges {
+                push_ephemeral_instruction(request, nudge, ctx.model_profile.as_ref());
+            }
         }
         Ok(())
     }
