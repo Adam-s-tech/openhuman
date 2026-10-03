@@ -222,11 +222,11 @@ fn one_runtime_hosts_independently_configured_agents() {
                         .access(Access::readonly())
                         .definition(
                             AgentDefinitionSpec::new()
-                                .tools(ToolScopeSpec::Named(vec!["read_file".to_string()])),
+                                .tools(ToolScopeSpec::Named(vec!["shell".to_string()])),
                         )
                         .tools(|turn| HostTurnTools {
                             withheld: if turn.session_id() == Some("hidden-turn") {
-                                std::collections::HashSet::from(["read_file".to_string()])
+                                std::collections::HashSet::from(["shell".to_string()])
                             } else {
                                 std::collections::HashSet::new()
                             },
@@ -258,18 +258,16 @@ fn one_runtime_hosts_independently_configured_agents() {
                 serde_json::from_slice(&withholding_requests[1].body).unwrap();
             let has_read_file = |request: &serde_json::Value| {
                 request["tools"].as_array().is_some_and(|tools| {
-                    tools
-                        .iter()
-                        .any(|tool| tool["function"]["name"] == "read_file")
+                    tools.iter().any(|tool| tool["function"]["name"] == "shell")
                 })
             };
             assert!(
                 !has_read_file(&hidden_request),
-                "the hidden turn's provider request must omit read_file"
+                "the hidden turn's provider request must omit shell"
             );
             assert!(
                 has_read_file(&visible_request),
-                "the next turn's provider request must advertise read_file again"
+                "the next turn's provider request must advertise shell again"
             );
 
             assert_eq!(
