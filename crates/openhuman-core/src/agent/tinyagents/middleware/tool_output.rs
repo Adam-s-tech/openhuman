@@ -285,7 +285,9 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Too
                 by_call.insert(call.id.clone(), focus);
             }
         }
-        if let Some(read) = artifact_read_target(&call.name, &call.arguments) {
+        if let Some(read) =
+            artifact_read_target(self.artifact_store.as_ref(), &call.name, &call.arguments)
+        {
             tracing::debug!(
                 tool = %call.name,
                 call_id = %call.id,
