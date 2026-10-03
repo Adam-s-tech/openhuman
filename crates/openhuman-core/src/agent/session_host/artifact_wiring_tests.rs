@@ -8,6 +8,21 @@ fn age(path: &Path, by: std::time::Duration) {
     file.set_modified(old).unwrap();
 }
 
+#[cfg(windows)]
+fn open_directory(path: &Path) -> std::fs::File {
+    use std::os::windows::fs::OpenOptionsExt;
+    std::fs::File::options()
+        .read(true)
+        .custom_flags(windows_sys::Win32::Storage::FileSystem::FILE_FLAG_BACKUP_SEMANTICS)
+        .open(path)
+        .unwrap()
+}
+
+#[cfg(not(windows))]
+fn open_directory(path: &Path) -> std::fs::File {
+    std::fs::File::open(path).unwrap()
+}
+
 fn stale_session(root: &Path, session: &str) -> PathBuf {
     let dir = root.join(session).join("shell");
     std::fs::create_dir_all(&dir).unwrap();
@@ -16,7 +31,7 @@ fn stale_session(root: &Path, session: &str) -> PathBuf {
     age(&file, 2 * DAY);
     // A directory's own mtime counts toward freshness too.
     for d in [dir.as_path(), dir.parent().unwrap()] {
-        let handle = std::fs::File::open(d).unwrap();
+        let handle = open_directory(d);
         handle
             .set_modified(std::time::SystemTime::now() - 2 * DAY)
             .unwrap();
