@@ -66,13 +66,13 @@ fn spent_context() -> RunContext<()> {
     ctx
 }
 
-async fn before(budget: &ShellTurnBudget, ctx: &mut RunContext<()>, call: &mut ToolCall) {
+async fn before(budget: &Arc<ShellTurnBudget>, ctx: &mut RunContext<()>, call: &mut ToolCall) {
     Middleware::<(), ()>::before_tool(&budget.clamp(), ctx, &(), call)
         .await
         .expect("before_tool succeeds");
 }
 
-async fn after(budget: &ShellTurnBudget, ctx: &mut RunContext<()>, result: &mut ToolResult) {
+async fn after(budget: &Arc<ShellTurnBudget>, ctx: &mut RunContext<()>, result: &mut ToolResult) {
     let identity = ToolInvocationIdentity::new("call-1", "shell");
     Middleware::<(), ()>::after_tool(&budget.notes(), ctx, &(), &identity, result)
         .await
