@@ -80,6 +80,40 @@ async fn shell_does_not_resolve_or_install_node_on_its_own() {
     );
 }
 
+/// A Python runtime that cannot be resolved must not fail the command: the
+/// shell keeps the inherited `PATH`, so the host's own `python3` (a task
+/// repo's interpreter with its dependencies) still runs it. It used to answer
+/// every `python …` command with `Failed to resolve command runtime` once the
+/// runtime module had faulted.
+#[tokio::test]
+async fn shell_keeps_inherited_path_when_python_runtime_is_unavailable() {
+    let mut config = crate::config::Config::default();
+    config.runtime_python.enabled = false;
+    let python = Arc::new(PythonBootstrap::new(Arc::new(config)));
+    assert!(
+        python.resolve().await.is_err(),
+        "a disabled python runtime must fail to resolve for this test to mean anything"
+    );
+    let tool = ShellTool::with_language_bootstraps(
+        test_security(AutonomyLevel::Full),
+        test_runtime(),
+        test_audit(),
+        None,
+        Some(python),
+    );
+    assert_eq!(tool.runtime_path_for_command("python3 -V").await, None);
+
+    let result = tool
+        .execute(json!({"command": "python3 -c 'print(1)' || echo no-host-python"}))
+        .await
+        .unwrap();
+    assert!(
+        !result.output().contains("Failed to resolve command runtime"),
+        "the command must run on the inherited PATH: {}",
+        result.output()
+    );
+}
+
 #[tokio::test]
 async fn shell_blocks_rate_limited() {
     let security = Arc::new(SecurityPolicy {
