@@ -50,12 +50,12 @@ pub struct ContextConfig {
     #[serde(default = "default_tool_result_budget_bytes")]
     pub tool_result_budget_bytes: usize,
 
-    /// Tool results larger than this **token** count trigger the
-    /// `summarizer` sub-agent (orchestrator session only). The summarizer
-    /// compresses the payload into a dense note that preserves
-    /// identifiers and key facts, and the compressed summary replaces
-    /// the raw payload before it enters agent history. Default: 4000 tokens.
-    /// Set to 0 to disable.
+    /// Tool results larger than this **token** count are stored behind a
+    /// TinyJuice recovery handle (orchestrator session only), and the
+    /// `summarizer` model is available to them on request: it runs only when
+    /// the agent calls `juice_summarize`, never on its own as the result
+    /// arrives (TinyJuice `LlmSummaryMode::OnDemand`). Default: 4000 tokens.
+    /// Set to 0 to disable the summary model.
     ///
     /// Token count is estimated as `chars / 4` (the same heuristic used
     /// by `tree_summarizer::estimate_tokens`). Pairs with
@@ -69,12 +69,13 @@ pub struct ContextConfig {
     )]
     pub summarizer_payload_threshold_tokens: usize,
 
-    /// Hard cap on payload size (in **tokens**) above which summarization
-    /// is skipped entirely and the existing
-    /// [`Self::tool_result_budget_bytes`] truncation path takes over.
-    /// Default: `2_000_000` tokens (above the context window of every
-    /// model we ship against — a payload this big can't be summarized
-    /// cost-effectively).
+    /// Most input (in **tokens**) one summary call sends to the model.
+    /// TinyJuice lowers it further to what `llm_summary_timeout_ms` can
+    /// prefill, and samples a larger output down to the head, the tail and
+    /// the lines matching the agent's hint rather than sending it whole.
+    /// Default: `64_000` tokens. The old `2_000_000` default let a single
+    /// summary send a 418k-token request that the timeout then cancelled
+    /// after it was billed.
     #[serde(
         default = "default_summarizer_max_payload_tokens",
         alias = "summarizer_max_payload_bytes"
@@ -151,7 +152,7 @@ fn default_summarizer_payload_threshold_tokens() -> usize {
 }
 
 fn default_summarizer_max_payload_tokens() -> usize {
-    2_000_000
+    64_000
 }
 
 impl Default for ContextConfig {
