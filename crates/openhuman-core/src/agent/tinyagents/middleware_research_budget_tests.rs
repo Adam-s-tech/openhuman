@@ -156,8 +156,8 @@ async fn a_spent_web_budget_releases_a_choice_pinned_to_a_web_tool() {
     );
 }
 
-/// #6959: a refused fetch (403, 429, an offline sandbox) read nothing, so it
-/// must not spend the budget.
+/// #6959: a failed web call (a blocked network, an offline sandbox) read
+/// nothing, so it must not spend the budget.
 #[tokio::test]
 async fn failed_web_reads_do_not_spend_the_budget() {
     let mw = ResearchBudgetMiddleware::new();

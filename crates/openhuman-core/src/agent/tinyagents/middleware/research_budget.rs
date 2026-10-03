@@ -23,9 +23,10 @@ use crate::agent::tinyagents::host::OpenHumanRunContext;
 pub(super) const DIRECT_WEB_READ_LIMIT: usize = 8;
 
 /// The instruction appended when the budget is spent and no non-web tool
-/// remains, so every tool is withdrawn. It says outright that tools are gone and a call will not run:
-/// told only to "answer", a native model with a transcript full of tool calls
-/// and no tool channel writes its next call as plain-text markup (DeepSeek V4's
+/// remains, so every tool is withdrawn. It says outright that tools are gone
+/// and a call will not run: told only to "answer", a native model with a
+/// transcript full of tool calls and no tool channel writes its next call as
+/// plain-text markup (DeepSeek V4's
 /// `<｜DSML｜invoke …>`), which then stood as the turn's answer. Replaying a
 /// bench request that hit this budget, the old wording leaked a call 6 times in
 /// 8 and this wording 0 times in 8. The harness also withholds and re-prompts
@@ -40,7 +41,7 @@ pub(crate) const WEB_BUDGET_EXHAUSTED_INSTRUCTION: &str = "The direct web resear
 const BLOCKED_AFTER_FAILURES: usize = 2;
 
 /// The one-time note sent after [`BLOCKED_AFTER_FAILURES`] failed web calls in a
-/// row (403/429 walls, an offline sandbox).
+/// row (a blocked network, an offline sandbox).
 pub(crate) const WEB_BLOCKED_NOTE: &str = "Web access looks blocked: the last web calls failed. Do not keep retrying web tools; continue the task with your other tools and the information already available.";
 
 /// The direct web-read tools this budget governs: the `web_search` family
