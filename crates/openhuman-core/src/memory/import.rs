@@ -70,7 +70,10 @@ async fn store_batch(bound: &BoundEngine, batch: Vec<ImportedItem>) -> BatchOutc
             };
         }
         Err(error) => {
-            tracing::debug!(code = error.code(), "[memory:import] batch refused; storing one by one");
+            tracing::debug!(
+                code = error.code(),
+                "[memory:import] batch refused; storing one by one"
+            );
         }
     }
     let mut outcome = BatchOutcome::default();

@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::Config;
 use crate::memory::engine::{self, BoundEngine};
 use crate::memory::error::{MemoryError, MemoryResult};
-use crate::memory::ops::store_on;
+use crate::memory::ops::store_many_on;
 use crate::memory::types::ImportPhase;
 use crate::threads::store::blocking as threads;
 use crate::threads::store::ConversationMessage;
@@ -39,6 +39,9 @@ use super::buffer::{Batch, CommittedTurn};
 
 /// The tag every backfilled conversation carries.
 pub const BACKFILL_TAG: &str = "backfill";
+
+/// Conversation items per bulk store (`MemoryEngine::store_many`).
+const STORE_GROUP: usize = 25;
 
 /// Backfills running now, per workspace.
 static RUNNING: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
@@ -337,17 +340,26 @@ async fn run(
     batch_turns: u32,
 ) {
     for plan in plans {
-        for batch in batches(
+        let cut = batches(
             &plan.thread_id,
             &plan.turns,
             plan.range.clone(),
             batch_turns,
-        ) {
-            let turns = batch.turns.len() as u64;
-            let end = batch.last() + 1;
-            let mut item = batch.into_item();
-            item.meta_mut().tags.push(BACKFILL_TAG.to_string());
-            if let Err(error) = store_on(bound, item).await {
+        );
+        for group in cut.chunks(STORE_GROUP) {
+            let turns: u64 = group.iter().map(|batch| batch.turns.len() as u64).sum();
+            let end = group.last().map_or(0, |batch| batch.last() + 1);
+            let items: Vec<_> = group
+                .iter()
+                .cloned()
+                .map(|batch| {
+                    let mut item = batch.into_item();
+                    item.meta_mut().tags.push(BACKFILL_TAG.to_string());
+                    item
+                })
+                .collect();
+            let count = items.len() as u64;
+            if let Err(error) = store_many_on(bound, items).await {
                 tracing::warn!(
                     code = error.code(),
                     "[memory:backfill] storing a batch failed; stopping"
@@ -360,7 +372,7 @@ async fn run(
             }
             file.stored.insert(plan.thread_id.clone(), end);
             file.state.turns_stored += turns;
-            file.state.items_stored += 1;
+            file.state.items_stored += count;
             write_file(workspace_dir, &file);
         }
         file.state.threads_done += 1;
