@@ -1387,6 +1387,7 @@ impl OpenHumanSessionHost {
             tokenjuice_compaction_enabled,
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction,
         ) = {
             let context = self
                 .context
@@ -1397,6 +1398,7 @@ impl OpenHumanSessionHost {
                 context.compaction_enabled(),
                 context.microcompact_keep_recent(),
                 context.autocompact_enabled(),
+                context.compaction(),
             )
         };
         let artifact_store = super::artifact_wiring::build_artifact_store(
@@ -1416,6 +1418,7 @@ impl OpenHumanSessionHost {
             runtime_config: self.runtime_config.clone(),
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction,
             transcript_snapshot: None,
         };
         let driver = Arc::new(OpenHumanSessionDriver::new(
@@ -1720,14 +1723,11 @@ impl OpenHumanSessionHost {
                             .count()
                             .max(1) as u32;
                         let output = receipt.outcome.output.clone().unwrap_or_default();
-                        let input = receipt
-                            .outcome
-                            .history
-                            .iter()
-                            .rev()
-                            .find(|message| matches!(message, Message::User(_)))
-                            .map(user_text_with_markers)
-                            .unwrap_or_default();
+                        // Skips compaction checkpoints (user-role, not the user's words).
+                        let input =
+                            crate::agent::tinyagents::last_user_message(&receipt.outcome.history)
+                                .map(user_text_with_markers)
+                                .unwrap_or_default();
                         let sidecar = receipt
                             .options
                             .context

@@ -29,6 +29,7 @@ fn classified_halt_returns_partial_work_without_provider_usage() {
             ToolCallOutcome { call_id: "a".into(), name: "list".into(), arguments: serde_json::json!({}), success: true, content: "three items".into(), duration_ms: 1 },
             ToolCallOutcome { call_id: "b".into(), name: "search".into(), arguments: serde_json::json!({}), success: false, content: "403 Forbidden".into(), duration_ms: 1 },
         ],
+        compaction: None,
     };
     let close = classified_halt_close(&outcome).expect("classified halt");
     assert_eq!(close.usage.model_calls, 0);

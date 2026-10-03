@@ -55,6 +55,11 @@ pub(crate) struct TurnContextMiddleware {
     /// summarizer tokens or rewrite history. The deterministic hard-trim backstop
     /// still installs regardless. Defaults to `true` (see [`defaults`](Self::defaults)).
     pub(crate) autocompact_enabled: bool,
+    /// `[context].compaction_trigger_tokens` and `compaction_strategy`: the
+    /// absolute compaction trigger override (installing compaction even when
+    /// the window is unknown; `None` keeps the window-relative default) and
+    /// how a compaction writes its checkpoint.
+    pub(crate) compaction: crate::config::CompactionSettings,
     /// Live transcript snapshot sink (#4466). When set, a
     /// [`TranscriptSnapshotMiddleware`] mirrors the running conversation into
     /// this shared buffer before every model call, so an erroring run can still
@@ -346,6 +351,7 @@ impl TurnContextMiddleware {
             runtime_config: None,
             microcompact_keep_recent: 0,
             autocompact_enabled: true,
+            compaction: Default::default(),
             transcript_snapshot: None,
         }
     }
