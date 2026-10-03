@@ -120,6 +120,20 @@ pub(super) fn items_get(params: Map<String, Value>) -> ControllerFuture {
     })
 }
 
+pub(super) fn conversations_backfill_status(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        parse::<EmptyParams>(params)?;
+        finish(conversations::backfill::status(&load().await?).await)
+    })
+}
+
+pub(super) fn conversations_backfill_start(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let params = parse::<conversations::backfill::BackfillStartParams>(params)?;
+        finish(conversations::backfill::start(&load().await?, params).await)
+    })
+}
+
 pub(super) fn conversations_get(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         parse::<EmptyParams>(params)?;

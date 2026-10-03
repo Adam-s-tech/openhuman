@@ -40,6 +40,8 @@ fn handler_for(function: &str) -> crate::core::all::ControllerHandler {
         "items_get" => handlers::items_get,
         "conversations_get" => handlers::conversations_get,
         "conversations_set" => handlers::conversations_set,
+        "conversations_backfill_status" => handlers::conversations_backfill_status,
+        "conversations_backfill_start" => handlers::conversations_backfill_start,
         "sources_list" => handlers::sources_list,
         "sources_add" => handlers::sources_add,
         "sources_remove" => handlers::sources_remove,

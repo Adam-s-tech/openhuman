@@ -10,6 +10,7 @@
 //! numbers `meta.turns`, and the latest stored batches the UI lists — lives in
 //! `<workspace>/memory/conversations_state.json`. Turn text never touches it.
 
+pub mod backfill;
 pub mod buffer;
 
 use std::collections::{BTreeMap, HashMap};
@@ -139,6 +140,19 @@ fn remember_stored(workspace_dir: &Path, batch: &Batch, stored_at: DateTime<Utc>
     );
     state.recent.truncate(RECENT_LIMIT);
     write_state(workspace_dir, &state);
+}
+
+/// How many turns of `thread_id` live ingestion has taken (stored or still
+/// buffered): the thread's most recent turns, which the backfill leaves alone.
+#[must_use]
+pub fn live_turns_taken(workspace_dir: &Path, thread_id: &str) -> u32 {
+    let _guard = STATE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    read_state(workspace_dir)
+        .threads
+        .get(thread_id)
+        .map_or(0, |counter| counter.next)
 }
 
 /// The latest stored batches, newest first.

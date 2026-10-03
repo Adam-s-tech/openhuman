@@ -4,7 +4,7 @@
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 /// Every function of the namespace, in spec order.
-pub const FUNCTIONS: [&str; 22] = [
+pub const FUNCTIONS: [&str; 24] = [
     "engines_list",
     "engine_get",
     "engine_set",
@@ -17,6 +17,8 @@ pub const FUNCTIONS: [&str; 22] = [
     "items_get",
     "conversations_get",
     "conversations_set",
+    "conversations_backfill_status",
+    "conversations_backfill_start",
     "sources_list",
     "sources_add",
     "sources_remove",
@@ -198,6 +200,20 @@ pub fn schema(function: &str) -> ControllerSchema {
                     opt("idle_secs", TypeSchema::BoundedU64 { min: 1, max: 86_400 }, "Idle seconds before a partial batch is stored."),
                 ],
             outputs: out("Same as memory_conversations_get."),
+        },
+        "conversations_backfill_status" => ControllerSchema {
+            namespace: "memory",
+            function: "conversations_backfill_status",
+            description: "Progress of storing past chats, and how many threads and turns from before automatic ingestion are still unstored.",
+            inputs: vec![],
+            outputs: out("{state: {phase, threads_total, threads_done, turns_stored, items_stored, error?, finished_at?}, pending_threads, pending_turns}"),
+        },
+        "conversations_backfill_start" => ControllerSchema {
+            namespace: "memory",
+            function: "conversations_backfill_start",
+            description: "Store past chats (turns from before automatic ingestion) as conversation memory, in the background. Uploads chat history to the selected engine, so it requires consent: true.",
+            inputs: vec![req("consent", TypeSchema::Bool, "The user agreed to upload past chats to the engine.")],
+            outputs: out("Same as memory_conversations_backfill_status."),
         },
         "sources_list" => ControllerSchema {
             namespace: "memory",
