@@ -6,7 +6,7 @@ use crate::memory::test_fixtures::{bind_reference, config_in};
 use serde_json::{json, Map, Value};
 
 /// Every method of the spec's RPC table (`docs/specs/memory-v2.md`), exactly.
-const SPEC_METHODS: [&str; 22] = [
+const SPEC_METHODS: [&str; 24] = [
     "openhuman.memory_engines_list",
     "openhuman.memory_engine_get",
     "openhuman.memory_engine_set",
@@ -19,6 +19,8 @@ const SPEC_METHODS: [&str; 22] = [
     "openhuman.memory_items_get",
     "openhuman.memory_conversations_get",
     "openhuman.memory_conversations_set",
+    "openhuman.memory_conversations_backfill_status",
+    "openhuman.memory_conversations_backfill_start",
     "openhuman.memory_sources_list",
     "openhuman.memory_sources_add",
     "openhuman.memory_sources_remove",

@@ -45,6 +45,8 @@ export const CORE_RPC_METHODS = {
   memoryItemsGet: 'openhuman.memory_items_get',
   memoryConversationsGet: 'openhuman.memory_conversations_get',
   memoryConversationsSet: 'openhuman.memory_conversations_set',
+  memoryConversationsBackfillStatus: 'openhuman.memory_conversations_backfill_status',
+  memoryConversationsBackfillStart: 'openhuman.memory_conversations_backfill_start',
   memorySourcesList: 'openhuman.memory_sources_list',
   memorySourcesAdd: 'openhuman.memory_sources_add',
   memorySourcesRemove: 'openhuman.memory_sources_remove',

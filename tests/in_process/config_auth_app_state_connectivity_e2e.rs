@@ -1865,6 +1865,8 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
                 "openhuman.memory_context_get",
                 "openhuman.memory_context_refresh",
                 "openhuman.memory_context_set",
+                "openhuman.memory_conversations_backfill_start",
+                "openhuman.memory_conversations_backfill_status",
                 "openhuman.memory_conversations_get",
                 "openhuman.memory_conversations_set",
                 "openhuman.memory_engine_get",
