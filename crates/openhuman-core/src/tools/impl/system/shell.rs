@@ -39,6 +39,17 @@ const SAFE_ENV_VARS: &[&str] = &[
     "ProgramW6432",
 ];
 
+/// Exit status coreutils `timeout` returns when its own limit expires.
+const COMMAND_TIMEOUT_EXIT_CODE: i32 = 124;
+/// Appended to an exit-124 failure: the command's own `timeout` fired, not the
+/// tool's (#6953). Without it, `exit code 124 [stdout] ok` reads like a bug.
+const COMMAND_TIMEOUT_NOTE: &str = "[exit 124: the command's own `timeout` limit expired; the shell tool's timeout_secs did not fire]";
+
+/// The result when the tool's own `timeout_secs` deadline killed the command.
+fn tool_timeout_message(secs: u64) -> String {
+    format!("Command timed out after {secs}s and was killed: the shell tool's timeout_secs limit fired.")
+}
+
 /// Shell command execution tool with sandboxing
 pub struct ShellTool {
     security: Arc<SecurityPolicy>,
@@ -444,14 +455,23 @@ impl ShellTool {
                     // Surface the exit code AND both streams so the agent can
                     // diagnose the failure (e.g. 127 missing dependency, 126
                     // sandbox/permission wall) instead of looping on it (#4095).
-                    tinytools::command_failure(output.status.code(), &stdout, &stderr)
+                    let mut failure =
+                        tinytools::command_failure(output.status.code(), &stdout, &stderr);
+                    if output.status.code() == Some(COMMAND_TIMEOUT_EXIT_CODE) {
+                        tracing::debug!("[shell] exit 124: attributing to the command's own timeout");
+                        failure.content.push(tinytools::ToolContent::Text {
+                            text: COMMAND_TIMEOUT_NOTE.to_string(),
+                        });
+                    }
+                    failure
                 }
             }
             Ok(Err(e)) => ToolResult::error(format!("Failed to execute command: {e}")),
-            Err(_) => ToolResult::error(format!(
-                "Command timed out after {}s and was killed",
-                explicit_timeout.map(|d| d.as_secs()).unwrap_or(0)
-            )),
+            Err(_) => {
+                let secs = explicit_timeout.map(|d| d.as_secs()).unwrap_or(0);
+                tracing::debug!(timeout_secs = secs, "[shell] tool timeout_secs fired");
+                ToolResult::error(tool_timeout_message(secs))
+            }
         };
         (true, tool_result)
     }
