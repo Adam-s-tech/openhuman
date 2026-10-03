@@ -1775,7 +1775,10 @@ async fn inference_agent_chat_reports_hit_cap_inner() {
     let reply = result["result"]
         .as_str()
         .unwrap_or_else(|| panic!("the reply stays a string in `result`: {result}"));
-    assert!(!reply.trim().is_empty(), "a capped turn still answers: {result}");
+    assert!(
+        !reply.trim().is_empty(),
+        "a capped turn still answers: {result}"
+    );
     assert_eq!(
         result["checkpoint"],
         json!(reply),
