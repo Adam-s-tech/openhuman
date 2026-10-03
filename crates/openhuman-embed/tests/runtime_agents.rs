@@ -21,6 +21,29 @@ use wiremock::{Mock, ResponseTemplate};
 
 const API_KEY: &str = "th_test_key";
 
+struct RecordingBudgetStopHook {
+    inner: openhuman_core::agent::stop_hooks::BudgetStopHook,
+    reason: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+}
+
+#[async_trait::async_trait]
+impl openhuman_core::agent::stop_hooks::StopHook for RecordingBudgetStopHook {
+    fn name(&self) -> &str {
+        "budget"
+    }
+
+    async fn check(
+        &self,
+        state: &openhuman_core::agent::stop_hooks::TurnState<'_>,
+    ) -> openhuman_core::agent::stop_hooks::StopDecision {
+        let decision = openhuman_core::agent::stop_hooks::StopHook::check(&self.inner, state).await;
+        if let openhuman_core::agent::stop_hooks::StopDecision::Stop { reason } = &decision {
+            *self.reason.lock().expect("stop reason lock") = Some(reason.clone());
+        }
+        decision
+    }
+}
+
 /// A skills fixture with one bundle.
 fn skills_fixture() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("skills fixture");
@@ -67,6 +90,7 @@ fn one_runtime_hosts_independently_configured_agents() {
 
             let provider_a = wiremock::MockServer::start().await;
             let provider_b = wiremock::MockServer::start().await;
+            let budget_provider = wiremock::MockServer::start().await;
             Mock::given(method("POST"))
                 .and(path("/v1/chat/completions"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("alpha-ok")))
@@ -76,6 +100,14 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .and(path("/v1/chat/completions"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(chat_completion("beta-ok")))
                 .mount(&provider_b)
+                .await;
+            let mut budget_completion = chat_completion("budget-metered");
+            budget_completion["usage"]["prompt_tokens"] = serde_json::json!(1_000_000);
+            budget_completion["usage"]["total_tokens"] = serde_json::json!(1_000_001);
+            Mock::given(method("POST"))
+                .and(path("/v1/chat/completions"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(budget_completion))
+                .mount(&budget_provider)
                 .await;
             #[allow(unused_variables)]
             let skills = skills_fixture();
@@ -219,6 +251,24 @@ fn one_runtime_hosts_independently_configured_agents() {
                 )
                 .expect("withholding agent instantiates");
 
+            let budget_agent = runtime
+                .agent(
+                    AgentSpec::new("budget")
+                        .provider(
+                            Provider::openai_compatible(
+                                format!("{}/v1", budget_provider.uri()),
+                                "sk-budget",
+                            )
+                            .model("gpt-5.5"),
+                        )
+                        .access(Access::full())
+                        .definition(
+                            AgentDefinitionSpec::new()
+                                .tools(ToolScopeSpec::Named(vec!["shell".to_string()])),
+                        ),
+                )
+                .expect("budget agent instantiates");
+
             withholding_agent
                 .turn("hide the configured tool")
                 .session("hidden-turn")
@@ -231,6 +281,27 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .send()
                 .await
                 .expect("visible turn runs");
+
+            let stop_reason = std::sync::Arc::new(std::sync::Mutex::new(None));
+            let budgeted_turn = openhuman_core::agent::stop_hooks::with_stop_hooks(
+                vec![std::sync::Arc::new(RecordingBudgetStopHook {
+                    inner: openhuman_core::agent::stop_hooks::BudgetStopHook::new(1.0),
+                    reason: std::sync::Arc::clone(&stop_reason),
+                })],
+                budget_agent.run("report a metered response"),
+            )
+            .await
+            .expect("budgeted runtime-owned agent turn returns");
+            assert_eq!(budget_provider.received_requests().await.unwrap().len(), 1);
+            assert_eq!(
+                stop_reason.lock().expect("stop reason lock").as_deref(),
+                Some("turn cost $5.0000 reached cap $1.0000")
+            );
+            let usage = budgeted_turn
+                .usage
+                .expect("runtime-owned agent reports turn usage");
+            assert_eq!(usage.input_tokens, 1_000_000);
+            assert!(usage.cost_usd >= 1.0, "budgeted usage: {usage:?}");
             let withholding_requests = withholding_provider
                 .received_requests()
                 .await
@@ -259,6 +330,7 @@ fn one_runtime_hosts_independently_configured_agents() {
                 vec![
                     "alpha".to_string(),
                     "beta".to_string(),
+                    "budget".to_string(),
                     "gamma".to_string(),
                     "withholding".to_string()
                 ]
@@ -454,6 +526,7 @@ fn one_runtime_hosts_independently_configured_agents() {
             // Dropping every handle releases the id.
             drop(withholding_agent);
             drop(gamma);
+            drop(budget_agent);
             assert_eq!(
                 runtime.agent_ids(),
                 vec!["alpha".to_string(), "beta".to_string()]

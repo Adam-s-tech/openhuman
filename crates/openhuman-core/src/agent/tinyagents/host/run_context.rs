@@ -322,7 +322,7 @@ impl OpenHumanRunContext {
         Self {
             origin: None,
             progress: None,
-            stop_hooks: Vec::new(),
+            stop_hooks: crate::agent::stop_hooks::current_stop_hooks(),
             parent: None,
             prepared_context_sources: Arc::new(Vec::new()),
             file_state_agent_id: None,
