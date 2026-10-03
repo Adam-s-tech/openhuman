@@ -51,10 +51,11 @@ pub struct ContextConfig {
     pub tool_result_budget_bytes: usize,
 
     /// Tool results larger than this **token** count are stored behind a
-    /// TinyJuice recovery handle (orchestrator session only), and the
-    /// `summarizer` model is available to them on request: it runs only when
-    /// the agent calls `juice_summarize`, never on its own as the result
-    /// arrives (TinyJuice `LlmSummaryMode::OnDemand`). Default: 4000 tokens.
+    /// TinyJuice recovery handle (orchestrator session only). The registered
+    /// `juice_summarize` tool currently returns TinyJuice's deterministic
+    /// overview; OpenHuman does not pass the turn's summarizer model into that
+    /// tool yet. Ingest-time LLM summaries are disabled
+    /// (`LlmSummaryMode::OnDemand`). Default: 4000 tokens.
     /// Set to 0 to disable the summary model.
     ///
     /// Token count is estimated as `chars / 4` (the same heuristic used
