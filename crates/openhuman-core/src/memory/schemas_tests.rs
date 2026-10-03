@@ -15,6 +15,8 @@ const SPEC_METHODS: [&str; 20] = [
     "openhuman.memory_learn",
     "openhuman.memory_forget",
     "openhuman.memory_items_list",
+    "openhuman.memory_explore",
+    "openhuman.memory_items_get",
     "openhuman.memory_conversations_get",
     "openhuman.memory_conversations_set",
     "openhuman.memory_sources_list",
@@ -149,6 +151,8 @@ async fn memory_off_surfaces_the_memory_off_code() {
         ("learn", json!({"text": "t"})),
         ("forget", json!({"ids": ["a"]})),
         ("items_list", json!({})),
+        ("explore", json!({"facet": "kind"})),
+        ("items_get", json!({"ids": ["a"]})),
         ("context_refresh", json!({})),
         ("sources_sync", json!({})),
     ] {
