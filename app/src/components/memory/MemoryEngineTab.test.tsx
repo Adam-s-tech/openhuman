@@ -39,7 +39,8 @@ const CORTEXDB: EngineDescriptor = {
   label: 'CortexDB',
   description: 'Your own CortexDB',
   hosted: false,
-  needs_endpoint: true,
+  // As the engine reports it: the endpoint has a default, so it is optional.
+  needs_endpoint: false,
   needs_key: true,
   default_endpoint: 'https://api-v1.cortexdb.ai',
   fetch_modes: ['keyword', 'vector', 'hybrid'],
@@ -132,6 +133,46 @@ describe('MemoryEngineTab', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('memory-engine-connect-cortexdb')).not.toBeInTheDocument()
     );
+  });
+
+  it('connects CortexDB to a local server instead of the default endpoint', async () => {
+    hoisted.engineSet.mockResolvedValue({
+      engine: 'cortexdb',
+      endpoint: 'http://127.0.0.1:3141',
+      has_key: true,
+      status: 'ok',
+      fetch_modes: ['hybrid'],
+    });
+    renderTab();
+    fireEvent.click(await screen.findByTestId('memory-engine-cortexdb-use'));
+
+    fireEvent.change(screen.getByTestId('memory-engine-connect-cortexdb-endpoint'), {
+      target: { value: ' http://127.0.0.1:3141 ' },
+    });
+    fireEvent.change(screen.getByTestId('memory-engine-connect-cortexdb-key'), {
+      target: { value: 'local-key' },
+    });
+    fireEvent.click(screen.getByTestId('memory-engine-connect-cortexdb-submit'));
+
+    await waitFor(() =>
+      expect(hoisted.engineSet).toHaveBeenCalledWith({
+        engine: 'cortexdb',
+        endpoint: 'http://127.0.0.1:3141',
+        api_key: 'local-key',
+      })
+    );
+  });
+
+  it('refuses to connect CortexDB with a blank endpoint', async () => {
+    renderTab();
+    fireEvent.click(await screen.findByTestId('memory-engine-cortexdb-use'));
+    fireEvent.change(screen.getByTestId('memory-engine-connect-cortexdb-endpoint'), {
+      target: { value: '   ' },
+    });
+    fireEvent.change(screen.getByTestId('memory-engine-connect-cortexdb-key'), {
+      target: { value: 'secret' },
+    });
+    expect(screen.getByTestId('memory-engine-connect-cortexdb-submit')).toBeDisabled();
   });
 
   it('marks the active engine and reports a degraded status', async () => {
