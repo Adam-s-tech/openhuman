@@ -31,6 +31,7 @@ async fn list(config: &Config, filter: MetaFilter) -> Vec<tinymemory::Hit> {
             filter: Some(filter),
             limit: Some(100),
             cursor: None,
+            path: Vec::new(),
         },
     )
     .await

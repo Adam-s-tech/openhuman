@@ -139,6 +139,7 @@ pub(super) async fn enforce_retention_cap(
                 filter: Some(digest_filter(flow_id)),
                 limit: Some(MAX_LIMIT),
                 cursor,
+                path: Vec::new(),
             },
         )
         .await?;
