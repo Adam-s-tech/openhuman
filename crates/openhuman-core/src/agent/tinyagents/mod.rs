@@ -21,6 +21,7 @@
 
 pub mod config;
 pub mod discovery;
+mod compaction_carry;
 mod embeddings;
 mod harness_assembly;
 mod harness_context_ladder;
@@ -77,6 +78,7 @@ pub(crate) use reasoning::{apply_requested_effort, parse_reasoning_effort};
 pub(crate) use topology::all_graph_topologies;
 pub use turn_models::TurnModelSource;
 pub(crate) use turn_models::TurnModels;
+pub(crate) use compaction_carry::{last_user_message, CompactionCarry};
 pub(crate) use turn_outcome::{
     HaltSummarySlot, TinyagentsTurnOutcome, ToolCallOutcome, ToolOutcomeSink,
 };

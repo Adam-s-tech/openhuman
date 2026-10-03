@@ -1723,14 +1723,12 @@ impl OpenHumanSessionHost {
                             .count()
                             .max(1) as u32;
                         let output = receipt.outcome.output.clone().unwrap_or_default();
-                        let input = receipt
-                            .outcome
-                            .history
-                            .iter()
-                            .rev()
-                            .find(|message| matches!(message, Message::User(_)))
-                            .map(user_text_with_markers)
-                            .unwrap_or_default();
+                        // Skips compaction checkpoints: user-role, not the
+                        // user's words.
+                        let input =
+                            crate::agent::tinyagents::last_user_message(&receipt.outcome.history)
+                                .map(user_text_with_markers)
+                                .unwrap_or_default();
                         let sidecar = receipt
                             .options
                             .context
