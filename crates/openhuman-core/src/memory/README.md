@@ -29,6 +29,7 @@ Chat thread persistence is not memory: see [`threads/store`](../threads/store/RE
 | --- | --- |
 | `engine.rs` | `resolve` binds the `[memory]` engine or says why memory is off; engines are cached per config fingerprint. |
 | `ops.rs` | Select engine, recall, fetch, learn, forget, list. `store_item` scrubs first. |
+| `explore.rs` | The explorer: `memory_explore` by facet under a `{facet, value}` path, `memory_items_get`, and the path → filter narrowing `memory_items_list` shares. |
 | `tools.rs` | The single `memory` agent tool (`recall`, `fetch`, `learn`, `forget`). |
 | `conversations/` | Per-thread turn buffer and idle flusher. Tool calls keep name and id only, never arguments. |
 | `sources/` | Source registry, state and sync (folder, file, link, github, rss, composio). |
