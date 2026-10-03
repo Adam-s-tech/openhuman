@@ -80,6 +80,7 @@ pub(crate) fn apply_requested_effort(thread_id: &str, raw: Option<&str>) -> Resu
 pub(crate) fn turn_reasoning_for(
     ctx: &crate::agent::tinyagents::host::OpenHumanRunContext,
     config: Option<&Config>,
+    _max_output_tokens: Option<u32>,
 ) -> Option<ReasoningConfig> {
     if ctx.spawn_depth > 0 {
         return None;
