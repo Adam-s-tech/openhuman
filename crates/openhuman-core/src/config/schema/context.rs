@@ -127,8 +127,8 @@ pub struct ContextConfig {
 
     /// Absolute token count at which context compaction (the summarization
     /// step) fires, overriding the default of min(80% of the model's context
-    /// window, 350k tokens) (the rest of this sentence describes the
-    /// window. Also enables compaction for a model whose window is unknown.
+    /// window, 350k tokens). Also enables compaction for a model whose window
+    /// is unknown.
     ///
     /// For benchmarks and debugging that need compaction to happen early;
     /// leave unset in normal use. `None` or `0` means no override. Env:
