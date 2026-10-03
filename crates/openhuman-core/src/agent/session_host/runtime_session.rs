@@ -360,7 +360,6 @@ impl OpenHumanTurnPrelude {
         }
     }
 
-
     #[cfg(test)]
     fn synthesized_tool_names_for_test(&self) -> std::collections::HashSet<String> {
         self.tool_surface

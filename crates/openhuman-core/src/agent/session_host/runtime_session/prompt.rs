@@ -82,5 +82,4 @@ impl OpenHumanTurnPrelude {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .build_system_prompt_tiered(&context)
     }
-
 }
