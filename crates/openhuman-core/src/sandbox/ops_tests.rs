@@ -391,3 +391,31 @@ async fn concurrent_local_jail_runs_keep_their_outputs_separate() {
     assert_eq!((a.stdout.as_str(), a.stderr.as_str()), ("a1\na2\n", "a-err\n"));
     assert_eq!((b.stdout.as_str(), b.stderr.as_str()), ("b1\nb2\n", "b-err\n"));
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn local_jail_captures_under_the_state_dir_and_removes_the_call_dir() {
+    let action = tempfile::tempdir().unwrap();
+    let state = tempfile::tempdir().unwrap();
+    let policy = local_policy(action.path(), state.path());
+    let capture_root = sandbox_capture_root(state.path());
+    assert_eq!(
+        capture_root,
+        state.path().join("artifacts").join("sandbox-capture")
+    );
+
+    // While running, exactly one per-call dir holding both streams exists.
+    let during = run_local(
+        &policy,
+        &format!("ls '{}'/*", capture_root.display()),
+    )
+    .await;
+    assert!(during.success(), "stderr: {}", during.stderr);
+    assert_eq!(during.stdout, "stderr\nstdout\n");
+
+    assert!(
+        entries(&capture_root).is_empty(),
+        "per-call capture dir left behind: {:?}",
+        entries(&capture_root)
+    );
+}
