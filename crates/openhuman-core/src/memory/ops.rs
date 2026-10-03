@@ -304,7 +304,7 @@ pub async fn store_many_on(
     let policy = crate::security::scrub::host_policy();
     let scrubbed: Vec<StoreItem> = items
         .into_iter()
-        .map(|item| tinymemory::safety::scrub_item_with(item, policy.clone()).value)
+        .map(|item| tinymemory::safety::scrub_item_with(item, policy).value)
         .collect();
     let receipts = bound.engine.store_many(scrubbed).await?;
     tracing::debug!(
