@@ -19,11 +19,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-#[cfg(any(
-    target_os = "linux",
-    target_os = "macos",
-    target_os = "windows"
-))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 use openhuman_core::sandbox::cwd_jail::spawn;
 use openhuman_core::sandbox::cwd_jail::Jail;
 
