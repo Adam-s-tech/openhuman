@@ -17,10 +17,9 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     let project = tmp.path().join("project");
     std::fs::create_dir_all(&workspace).unwrap();
     std::fs::create_dir_all(&project).unwrap();
-    let store = new_tool_result_store(
-        crate::security::policy::tool_result_artifacts_dir(&workspace),
-        "session/one",
-    );
+    // `detached` adds its own `tool-results` namespace; give it the artifacts
+    // directory so the final path matches the policy-granted root.
+    let store = new_tool_result_store(workspace.join("artifacts"), "session/one");
     let raw = format!(
         "{} {}",
         "x".repeat(4096),
@@ -64,9 +63,11 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     let read = reader.execute(json!({"path": pointer})).await.unwrap();
     assert!(!read.is_error, "{}", read.output());
     assert!(read.output().contains("xxxx"));
-    assert!(!read
-        .output()
-        .contains("ghp_abcdefghijklmnopqrstuvwxyz123456"));
+    assert!(
+        !read
+            .output()
+            .contains("ghp_abcdefghijklmnopqrstuvwxyz123456")
+    );
 }
 
 /// The legacy store still reads the layout older builds wrote, so its sweep
@@ -88,12 +89,14 @@ fn legacy_store_is_rooted_in_the_action_dir() {
 fn read_targets_use_openhumans_tool_names() {
     let path = "artifacts/tool-results/s/shell/c.txt";
     assert!(artifact_read_target(None, "file_read", &json!({"path": path})).is_some());
-    assert!(artifact_read_target(
-        None,
-        "use_skill",
-        &json!({"skill": "files", "tool": "file_read", "args": {"path": path, "offset": 3}})
-    )
-    .is_some_and(|read| read.offset == 3));
+    assert!(
+        artifact_read_target(
+            None,
+            "use_skill",
+            &json!({"skill": "files", "tool": "file_read", "args": {"path": path, "offset": 3}})
+        )
+        .is_some_and(|read| read.offset == 3)
+    );
     assert!(artifact_read_target(None, "glob", &json!({"path": path})).is_none());
 }
 
@@ -105,12 +108,14 @@ fn read_targets_recognise_the_detached_stores_absolute_pointers() {
     let store = new_tool_result_store(tmp.path().join("tool-results"), "s");
     let pointer = store.path_for_read_tool("shell", Some("c"));
     assert!(artifact_read_target(Some(&store), "file_read", &json!({"path": pointer})).is_some());
-    assert!(artifact_read_target(
-        Some(&store),
-        "use_skill",
-        &json!({"skill": "files", "tool": "file_read", "args": {"path": pointer, "offset": 3}})
-    )
-    .is_some_and(|read| read.offset == 3));
+    assert!(
+        artifact_read_target(
+            Some(&store),
+            "use_skill",
+            &json!({"skill": "files", "tool": "file_read", "args": {"path": pointer, "offset": 3}})
+        )
+        .is_some_and(|read| read.offset == 3)
+    );
     // Without the store there is nothing to recognise an absolute path against.
     assert!(artifact_read_target(None, "file_read", &json!({"path": pointer})).is_none());
 }
@@ -125,7 +130,9 @@ fn a_page_names_file_read_as_the_continuation() {
     };
     let page = page_artifact_read("y".repeat(5_000), &read, 1_000);
     assert!(
-        page.contains("Continue with file_read {\"path\":\"artifacts/tool-results/s/shell/c.txt\",\"offset\":"),
+        page.contains(
+            "Continue with file_read {\"path\":\"artifacts/tool-results/s/shell/c.txt\",\"offset\":"
+        ),
         "{page}"
     );
 }
