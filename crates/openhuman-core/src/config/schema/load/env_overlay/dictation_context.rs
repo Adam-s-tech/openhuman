@@ -84,6 +84,16 @@ impl Config {
                 _ => {}
             }
         }
+        if let Some(val) = env.get("OPENHUMAN_COMPACTION_STRATEGY") {
+            match crate::openhuman::config::schema::CompactionStrategy::parse(&val) {
+                Some(strategy) => self.context.compaction_strategy = strategy,
+                None if val.trim().is_empty() => {}
+                None => tracing::warn!(
+                    value = %val.trim(),
+                    "[config] ignoring unknown OPENHUMAN_COMPACTION_STRATEGY (task_state | summary)"
+                ),
+            }
+        }
         // Absolute compaction trigger (benchmarks / debugging). `0` or an
         // empty value clears an override set in `config.toml`.
         if let Some(val) = env.get("OPENHUMAN_COMPACTION_TRIGGER_TOKENS") {

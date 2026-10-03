@@ -90,6 +90,9 @@ pub struct ContextManager {
     /// overriding the window fraction. See
     /// [`ContextConfig::compaction_trigger_tokens`].
     compaction_trigger_tokens: Option<u64>,
+    /// `[context].compaction_strategy`. See
+    /// [`ContextConfig::compaction_strategy`].
+    compaction_strategy: crate::openhuman::config::schema::CompactionStrategy,
 }
 
 impl ContextManager {
@@ -124,6 +127,7 @@ impl ContextManager {
             // autocompaction specifically is turned off.
             autocompact_enabled: config.enabled && config.autocompact_enabled,
             compaction_trigger_tokens: config.compaction_trigger_tokens.filter(|t| *t > 0),
+            compaction_strategy: config.compaction_strategy,
         }
     }
 
@@ -166,6 +170,11 @@ impl ContextManager {
     /// configured (benchmarks / debugging).
     pub fn compaction_trigger_tokens(&self) -> Option<u64> {
         self.compaction_trigger_tokens
+    }
+
+    /// How compaction writes its checkpoint.
+    pub fn compaction_strategy(&self) -> crate::openhuman::config::schema::CompactionStrategy {
+        self.compaction_strategy
     }
 
     // ─── Budget tracking ──────────────────────────────────────────

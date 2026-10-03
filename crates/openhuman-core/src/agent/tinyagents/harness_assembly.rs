@@ -294,6 +294,7 @@ pub(super) fn assemble_turn_harness(
     // Capture context settings before `install` consumes `context_mw`.
     let autocompact_enabled = context_mw.autocompact_enabled;
     let compaction_trigger_tokens = context_mw.compaction_trigger_tokens;
+    let compaction_strategy = context_mw.compaction_strategy;
     // Captured for the same reason `autocompact_enabled` is — `install` consumes
     // `context_mw` — and used to site microcompact below, after compression.
     let microcompact_keep_recent = context_mw.microcompact_keep_recent;
@@ -582,6 +583,7 @@ pub(super) fn assemble_turn_harness(
         context_window,
         autocompact_enabled,
         compaction_trigger_tokens,
+        compaction_strategy,
         microcompact_keep_recent,
         summarizer_model,
         pause_at_cap && subagent_scope.is_none(),

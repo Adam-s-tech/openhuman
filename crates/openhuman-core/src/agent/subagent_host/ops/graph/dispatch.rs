@@ -554,6 +554,7 @@ fn build_subagent_context_mw(
             // opt-outs, same as `ContextManager::autocompact_enabled`.
             mw.autocompact_enabled = ctx.enabled && ctx.autocompact_enabled;
             mw.compaction_trigger_tokens = ctx.compaction_trigger_tokens.filter(|t| *t > 0);
+            mw.compaction_strategy = ctx.compaction_strategy;
             tracing::debug!(
                 tokenjuice_compaction_enabled = mw.tokenjuice_compaction_enabled,
                 compression = ?mw.tokenjuice_compression,

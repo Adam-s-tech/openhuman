@@ -134,6 +134,41 @@ pub struct ContextConfig {
     /// `OPENHUMAN_COMPACTION_TRIGGER_TOKENS`.
     #[serde(default)]
     pub compaction_trigger_tokens: Option<u64>,
+
+    /// How a compaction writes its checkpoint. `task_state` (the default) is a
+    /// typed task state: facts copied from tool calls (original task, files
+    /// modified and read, recent commands and errors) plus one structured
+    /// model call, over a 20k-token verbatim tail. `summary` is the earlier
+    /// free-form LLM summary over the last 8 messages. Env:
+    /// `OPENHUMAN_COMPACTION_STRATEGY`.
+    #[serde(default)]
+    pub compaction_strategy: CompactionStrategy,
+}
+
+/// How a context compaction writes its checkpoint. See
+/// [`ContextConfig::compaction_strategy`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CompactionStrategy {
+    /// Typed task state (TinyAgents `TaskStateSummarizer`) over a
+    /// token-budgeted tail. Chosen by the openhuman-benchmarks compaction eval.
+    #[default]
+    TaskState,
+    /// Free-form LLM summary (TinyAgents `ModelSummarizer`) over the last
+    /// `keep_last` messages.
+    Summary,
+}
+
+impl CompactionStrategy {
+    /// Parses a config or env value (`task_state`/`typed`, `summary`).
+    #[must_use]
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().replace('-', "_").as_str() {
+            "task_state" | "typed" | "s4" => Some(Self::TaskState),
+            "summary" | "free_form" | "s0" => Some(Self::Summary),
+            _ => None,
+        }
+    }
 }
 
 fn default_enabled() -> bool {
@@ -179,6 +214,7 @@ impl Default for ContextConfig {
             prefer_markdown_tool_output: default_true(),
             compaction_enabled: default_true(),
             compaction_trigger_tokens: None,
+            compaction_strategy: CompactionStrategy::default(),
         }
     }
 }
