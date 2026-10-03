@@ -53,6 +53,7 @@ pub(super) fn install_context_ladder(
     context_window: Option<u64>,
     autocompact_enabled: bool,
     compaction_trigger_tokens: Option<u64>,
+    compaction_strategy: crate::config::CompactionStrategy,
     microcompact_keep_recent: usize,
     summarizer_model: TurnChatModel,
     wrap_up_at_cap: bool,
@@ -95,19 +96,15 @@ pub(super) fn install_context_ladder(
             // adapter (issue #4461): a summarizer failure must no longer abort the
             // turn (warn + circuit-breaker + deterministic trim instead), and an
             // identical re-issued input slice must not re-run the summarizer LLM.
-            let summarizer = tinyagents_harness::summarization::FaultTolerantCachingSummarizer::new(
-                Box::new(tinyagents_harness::summarization::ModelSummarizer::new(
-                    summarizer_model,
-                    model,
-                )),
-                &policy,
-            );
             // The summary is a user-role, reference-only checkpoint
             // (`SummaryPlacement::User`, the crate default): the system prompt
             // and tool declarations stay byte-stable across a compaction.
-            let mw = Arc::new(ContextCompressionMiddleware::with_summarizer(
+            let mw = Arc::new(compression_middleware(
                 policy,
-                Box::new(summarizer),
+                compaction_strategy,
+                context_window,
+                summarizer_model,
+                model,
             ));
             // Lifecycle `before_model` runs the threshold compaction; the
             // model wrap runs the provider-overflow → compact → retry-once
@@ -237,6 +234,65 @@ pub(super) fn install_context_ladder(
     }
 
     (compression_mw, wrap_up_fired)
+}
+
+/// Longest verbatim tail kept by a task-state compaction (tokens). Measured
+/// default for large-window coding agents; small windows keep a fifth of
+/// the window instead.
+const TASK_STATE_KEEP_RECENT_TOKENS: u64 = 20_000;
+
+/// The compression middleware for `strategy`.
+///
+/// `TaskState` (the default) writes a typed task-state checkpoint
+/// (`TaskStateSummarizer`) over a token-budgeted tail: `min(20k, window/5)`
+/// recent tokens verbatim, and history folded in chunks of at most 40% of the
+/// window so a small model never sees more than it can read. `Summary` is the
+/// free-form `ModelSummarizer` over the policy's last `keep_last` messages.
+pub(super) fn compression_middleware(
+    policy: tinyagents_harness::summarization::SummarizationPolicy,
+    strategy: crate::config::CompactionStrategy,
+    context_window: Option<u64>,
+    summarizer_model: TurnChatModel,
+    model: &str,
+) -> ContextCompressionMiddleware {
+    use tinyagents_harness::summarization::{
+        FaultTolerantCachingSummarizer, ModelSummarizer, TaskStateSummarizer,
+        DEFAULT_TASK_STATE_CHUNK_TOKENS,
+    };
+    let window = context_window.filter(|w| *w > 0);
+    match strategy {
+        crate::config::CompactionStrategy::TaskState => {
+            let keep_recent = window.map_or(TASK_STATE_KEEP_RECENT_TOKENS, |w| {
+                (w / 5).min(TASK_STATE_KEEP_RECENT_TOKENS)
+            });
+            let chunk = window.map_or(DEFAULT_TASK_STATE_CHUNK_TOKENS, |w| {
+                (w * 2 / 5).clamp(4_000, DEFAULT_TASK_STATE_CHUNK_TOKENS)
+            });
+            tracing::info!(
+                model,
+                keep_recent_tokens = keep_recent,
+                max_chunk_tokens = chunk,
+                context_window = ?window,
+                "[context_compression] strategy=task_state"
+            );
+            let summarizer = FaultTolerantCachingSummarizer::new(
+                Box::new(
+                    TaskStateSummarizer::new(summarizer_model, model).with_max_chunk_tokens(chunk),
+                ),
+                &policy,
+            );
+            ContextCompressionMiddleware::with_summarizer(policy, Box::new(summarizer))
+                .with_keep_recent_tokens(keep_recent)
+        }
+        crate::config::CompactionStrategy::Summary => {
+            tracing::info!(model, "[context_compression] strategy=summary");
+            let summarizer = FaultTolerantCachingSummarizer::new(
+                Box::new(ModelSummarizer::new(summarizer_model, model)),
+                &policy,
+            );
+            ContextCompressionMiddleware::with_summarizer(policy, Box::new(summarizer))
+        }
+    }
 }
 
 /// The summarization policy for this turn, or `None` when compaction has
