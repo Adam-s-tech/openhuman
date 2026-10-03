@@ -166,6 +166,15 @@ async fn config_override_wins_over_provider() {
     assert_eq!(resolved.window, Some(64_000));
     assert_eq!(resolved.source, WindowSource::ConfigOverride);
     assert_eq!(fetcher.call_count(), 0, "an override skips discovery");
+    assert_eq!(remembered_window("openrouter", model), None);
+    assert_eq!(
+        crate::inference::model_context::context_window_for_route(
+            &format!("openrouter:{model}"),
+            model,
+            &config,
+        ),
+        Some(64_000)
+    );
 }
 
 #[tokio::test]
