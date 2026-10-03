@@ -47,6 +47,10 @@ use turn_runner_hosted::{root_hosted_harness, PrecomposedRootContext};
 #[path = "turn_runner_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "budget_stop_turn_tests.rs"]
+mod budget_stop_tests;
+
 /// Drive a turn through the tinyagents harness over the routes' **shared**,
 /// `Arc`-owned tool registry sets (`Arc<Vec<Box<dyn Tool>>>`), advertising
 /// exactly `specs` (already filtered/deduped by the caller's visibility rules).
