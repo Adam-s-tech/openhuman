@@ -121,7 +121,8 @@ export default function MemoryItemDialog({ id, onClose, onForgotten }: MemoryIte
           </Button>
           <Button
             type="button"
-            variant="destructive"
+            variant="primary"
+            tone="danger"
             size="sm"
             data-testid="memory-item-forget"
             disabled={!item || forgetting}
