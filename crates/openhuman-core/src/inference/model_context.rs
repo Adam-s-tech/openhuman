@@ -30,7 +30,12 @@ const TIER_FLASH_CONTEXT: u64 = 1_000_000;
 /// Returns `None` when the model is unknown — callers should skip pre-dispatch
 /// trimming rather than guess.
 pub fn context_window_for_model(model: &str) -> Option<u64> {
-    crate::inference::context_window::remembered_window(model)
+    static_context_window_for_model(model)
+}
+
+/// Resolve the synchronous window for a model on a specific provider route.
+pub(crate) fn context_window_for_route(provider: &str, model: &str) -> Option<u64> {
+    crate::inference::context_window::remembered_window(provider, model)
         .or_else(|| static_context_window_for_model(model))
 }
 

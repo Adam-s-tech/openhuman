@@ -75,26 +75,26 @@ pub(crate) fn config_override(model: &str, config: &Config) -> Option<u64> {
         .map(|entry| u64::from(entry.context_window))
 }
 
-fn remembered() -> &'static Mutex<HashMap<String, u64>> {
-    static MAP: OnceLock<Mutex<HashMap<String, u64>>> = OnceLock::new();
+fn remembered() -> &'static Mutex<HashMap<(String, String), u64>> {
+    static MAP: OnceLock<Mutex<HashMap<(String, String), u64>>> = OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 /// The last provider-sourced (or overridden) window resolved for `model` in
 /// this process.
-pub(crate) fn remembered_window(model: &str) -> Option<u64> {
+pub(crate) fn remembered_window(provider: &str, model: &str) -> Option<u64> {
     remembered()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .get(&model.trim().to_ascii_lowercase())
+        .get(&(provider.trim().to_ascii_lowercase(), model.trim().to_ascii_lowercase()))
         .copied()
 }
 
-fn remember_window(model: &str, window: u64) {
+fn remember_window(provider: &str, model: &str, window: u64) {
     remembered()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .insert(model.trim().to_ascii_lowercase(), window);
+        .insert((provider.trim().to_ascii_lowercase(), model.trim().to_ascii_lowercase()), window);
 }
 
 /// Logs a static guess at `warn` the first time per model, `debug` after.
@@ -198,7 +198,7 @@ pub(crate) async fn resolve_context_window_with(
                 | WindowSource::ProviderReported
                 | WindowSource::LearnedFromOverflow
         ) {
-            remember_window(model, window);
+            remember_window(provider, model, window);
         }
     }
     tracing::debug!(
