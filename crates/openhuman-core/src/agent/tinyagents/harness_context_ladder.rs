@@ -66,9 +66,10 @@ pub(super) fn install_context_ladder(
     //
     // 1. `ContextCompressionMiddleware` — the **summarization** step. Once the
     //    running token estimate crosses `window * SUMMARIZE_THRESHOLD_FRACTION`
-    //    (90% of *this model's* context window), it folds the older slice of the
-    //    transcript into a single LLM-generated system summary (keeping system
-    //    messages + the recent window verbatim). This is keyed to whatever model
+    //    (90% of *this model's* context window, or the absolute
+    //    `compaction_trigger_tokens` override), it folds the older slice of the
+    //    transcript into a single LLM-generated, user-role checkpoint (keeping
+    //    system messages + the recent window verbatim). This is keyed to whatever model
     //    the turn is running on, preserving the legacy context threshold.
     // 2. `ImageAwareMessageTrimMiddleware` — a deterministic, no-extra-LLM-call
     //    hard cap (issue #4462; replaces the crate `MessageTrimMiddleware`).
@@ -119,19 +120,16 @@ pub(super) fn install_context_ladder(
             compression_mw = Some(mw);
         }
     }
-    if let Some(window) = context_window.filter(|w| *w > 0) {
-
-        // Deterministic hard-cap trim (issue #4462). The crate
-        // `MessageTrimMiddleware` regressed three legacy `token_budget.rs`
-        // guards: it priced a base64 image at ~2M tokens (chars/4) and could
-        // evict system messages, it reordered system messages to the front, and
-        // its budget was the fixed `window − AGENT_TURN_MAX_OUTPUT_TOKENS`
-        // (floored 1024) that collapses an 8k local model's input budget from
-        // ~7373 to 1024. Our seam-owned `ImageAwareMessageTrimMiddleware`
-        // restores all three: image markers priced at a flat cost, the
-        // proportional reply reserve, system messages always kept in place, and a
-        // grep-able warn with drop/token counts on any eviction.
-    }
+    // Deterministic hard-cap trim (issue #4462). The crate
+    // `MessageTrimMiddleware` regressed three legacy `token_budget.rs`
+    // guards: it priced a base64 image at ~2M tokens (chars/4) and could
+    // evict system messages, it reordered system messages to the front, and
+    // its budget was the fixed `window − AGENT_TURN_MAX_OUTPUT_TOKENS`
+    // (floored 1024) that collapses an 8k local model's input budget from
+    // ~7373 to 1024. Our seam-owned `ImageAwareMessageTrimMiddleware`
+    // restores all three: image markers priced at a flat cost, the
+    // proportional reply reserve, system messages always kept in place, and a
+    // grep-able warn with drop/token counts on any eviction.
 
     // ── The context ladder, cheapest sufficient step first (issue #6014) ──────
     //
