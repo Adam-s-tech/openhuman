@@ -200,6 +200,78 @@ export interface ItemsListRequest {
   filter?: MetaFilter;
   limit?: number;
   cursor?: string;
+  /** Explorer path; the core narrows `filter` by each step. */
+  path?: PathStep[];
+}
+
+// ─── Explorer ────────────────────────────────────────────────────────────────
+
+/**
+ * A metadata dimension the explorer groups by — TinyMemory's standard facets,
+ * the same for every engine.
+ */
+export type Facet =
+  | 'kind'
+  | 'source'
+  | 'source_id'
+  | 'workspace'
+  | 'folder'
+  | 'file_path'
+  | 'language'
+  | 'repo'
+  | 'url'
+  | 'thread'
+  | 'agent'
+  | 'tool_call'
+  | 'tag';
+
+export const FACETS: readonly Facet[] = [
+  'kind',
+  'source',
+  'source_id',
+  'workspace',
+  'folder',
+  'file_path',
+  'language',
+  'repo',
+  'url',
+  'thread',
+  'agent',
+  'tool_call',
+  'tag',
+];
+
+/** One step down the explorer: the items whose `facet` is `value`. */
+export interface PathStep {
+  facet: Facet;
+  value: string;
+}
+
+export interface ExploreRequest {
+  facet: Facet;
+  path?: PathStep[];
+  filter?: MetaFilter;
+  limit?: number;
+  scan_limit?: number;
+}
+
+export interface FacetBucket {
+  value: string;
+  count: number;
+}
+
+export interface ExplorePage {
+  facet: Facet;
+  /** Largest first. */
+  buckets: FacetBucket[];
+  /** Items under the path (that were read, when `truncated`). */
+  total: number;
+  /** Of those, items with no value for the facet. */
+  missing: number;
+  /** Values left out by the bucket limit. */
+  more_buckets: number;
+  /** The engine stopped scanning early, so counts are a lower bound. */
+  truncated: boolean;
 }
 
 export interface ItemsPage {
@@ -407,6 +479,15 @@ export function memoryForget(ids: string[]): Promise<{ forgotten: number }> {
 
 export function memoryItemsList(req: ItemsListRequest = {}): Promise<ItemsPage> {
   return call<ItemsPage>(CORE_RPC_METHODS.memoryItemsList, req);
+}
+
+export function memoryExplore(req: ExploreRequest): Promise<ExplorePage> {
+  return call<ExplorePage>(CORE_RPC_METHODS.memoryExplore, req);
+}
+
+/** Items read whole, in the order asked; unknown ids are left out. */
+export function memoryItemsGet(ids: string[]): Promise<{ items: Hit[] }> {
+  return call<{ items: Hit[] }>(CORE_RPC_METHODS.memoryItemsGet, { ids });
 }
 
 // ─── Conversations ───────────────────────────────────────────────────────────

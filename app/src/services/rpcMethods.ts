@@ -41,6 +41,8 @@ export const CORE_RPC_METHODS = {
   memoryLearn: 'openhuman.memory_learn',
   memoryForget: 'openhuman.memory_forget',
   memoryItemsList: 'openhuman.memory_items_list',
+  memoryExplore: 'openhuman.memory_explore',
+  memoryItemsGet: 'openhuman.memory_items_get',
   memoryConversationsGet: 'openhuman.memory_conversations_get',
   memoryConversationsSet: 'openhuman.memory_conversations_set',
   memorySourcesList: 'openhuman.memory_sources_list',
