@@ -76,10 +76,12 @@ pub async fn with_stop_hooks<F: std::future::Future>(
 /// Stop a turn when its cumulative cost reaches the configured USD cap.
 #[derive(Debug, Clone, Copy)]
 pub struct BudgetStopHook {
+    /// Cumulative USD charge at which the turn pauses.
     pub max_usd: f64,
 }
 
 impl BudgetStopHook {
+    /// Construct a hook that pauses after a turn reaches `max_usd`.
     pub fn new(max_usd: f64) -> Self {
         Self { max_usd }
     }
