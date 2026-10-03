@@ -980,14 +980,21 @@ impl OpenHumanSessionHost {
         }
         // Host-first, so a host tool wins a name collision -- see
         // `HostTurnTools::merge_into`, which owns that rule and why.
-        let (host_policy, withheld_tool_names) =
-            super::host_tools::merge_for_turn(host, agent_id, session_id, &mut tools, &mut visible);
+        let (host_policy, withheld_tool_names, permanent_tool_names) =
+            super::host_tools::merge_for_turn(
+                host,
+                agent_id,
+                session_id,
+                &mut tools,
+                &mut visible,
+            )?;
         let mut builder = OpenHumanSessionHost::builder()
             .crate_native_provider(provider_role, Arc::clone(&base_config))
             .tools(tools)
             .synthesized_tools(delegation_tools)
             .visible_tool_names(visible)
             .withheld_tool_names(withheld_tool_names)
+            .permanent_tool_names(permanent_tool_names)
             .deferred_tools(target_def.map_or_else(Vec::new, |d| d.deferred_tools.clone()))
             .memory(memory)
             .auto_recall(Some(auto_recall))
@@ -1049,7 +1056,21 @@ impl OpenHumanSessionHost {
                 // names no registry holds; without handing the definition over
                 // here the lookup misses and the turn is rejected as a policy
                 // failure before any provider call (#6404/#6392/#6393).
-                session_definition: target_def.cloned().map(Arc::new),
+                session_definition: target_def.cloned().map(|mut definition| {
+                    if let crate::agent::harness::definition::ToolScope::Named(names) =
+                        &mut definition.tools
+                    {
+                        for name in &agent.permanent_tool_names {
+                            if !names.contains(name) {
+                                names.push(name.clone());
+                            }
+                        }
+                    }
+                    definition
+                        .deferred_tools
+                        .retain(|name| !agent.permanent_tool_names.contains(name));
+                    Arc::new(definition)
+                }),
             })
         });
         if agent.hosted_base.is_none() {

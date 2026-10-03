@@ -122,6 +122,7 @@ struct OpenHumanTurnToolSurface {
     /// as the final allowlist, and classified `Allow` by the policy, so a
     /// found tool is callable. See `OpenHumanSessionHost::deferred_tool_names`.
     deferred_tool_names: std::collections::HashSet<String>,
+    permanent_tool_names: std::collections::HashSet<String>,
     /// Whether this belt reaches deferred tools at all; fixed at build.
     discovery_enabled: bool,
     /// The definition's own `deferred_tools`; see `meta::deferred_set`.
@@ -366,7 +367,12 @@ impl OpenHumanTurnPrelude {
             .iter()
             .map(|spec| spec.as_ref().clone())
             .collect::<Vec<_>>();
-        let instructions = self.tool_dispatcher.prompt_instructions(&specs);
+        let prompt_specs = specs
+            .iter()
+            .filter(|spec| !surface.permanent_tool_names.contains(&spec.name))
+            .cloned()
+            .collect::<Vec<_>>();
+        let instructions = self.tool_dispatcher.prompt_instructions(&prompt_specs);
         let tool_refs = surface
             .tools
             .iter()
@@ -374,7 +380,9 @@ impl OpenHumanTurnPrelude {
             .map(|tool| tool.as_ref())
             .collect::<Vec<_>>();
         let mut prompt_tools = PromptTool::from_tool_refs(tool_refs.iter().copied());
+        prompt_tools.retain(|tool| !surface.permanent_tool_names.contains(tool.name.as_ref()));
         let mut visible_tool_names = surface.tool_policy_session.visible_tool_names_for_prompt();
+        visible_tool_names.retain(|name| !surface.permanent_tool_names.contains(name));
         crate::agent::prompts::swap_deferred_for_discovery_bridge(
             &mut prompt_tools,
             &mut visible_tool_names,
@@ -431,19 +439,19 @@ impl OpenHumanTurnPrelude {
     /// semantics, but keeps the mutable authority in hook state rather than a
     /// second turn loop. A revoked delegate is removed from the executable
     /// source, schema, and policy together before this request is prepared.
-    fn refresh_delegation_tool_surface(&self) {
+    fn refresh_delegation_tool_surface(&self) -> Result<()> {
         use crate::agent::harness::definition::AgentDefinitionRegistry;
         use crate::tools::agent_policy::ToolPolicyEngine;
         use crate::tools::orchestrator_tools::collect_orchestrator_tools;
 
         let Some(registry) = AgentDefinitionRegistry::global() else {
-            return;
+            return Ok(());
         };
         let Some(definition) = registry.get(&self.agent_definition_id).cloned() else {
-            return;
+            return Ok(());
         };
         if definition.subagents.is_empty() {
-            return;
+            return Ok(());
         }
         let (integrations, integrations_are_authoritative) = {
             let mutable = self
@@ -472,6 +480,10 @@ impl OpenHumanTurnPrelude {
             integrations_are_authoritative,
         );
         collected.extend(rebuilt);
+        super::managed_tools::reject_synthesized_collisions(
+            &surface.permanent_tool_names,
+            &collected,
+        )?;
         let synthesized =
             super::builder::drop_synthesized_name_collisions(&surface.tools, collected);
         let synthesized_names = synthesized
@@ -508,6 +520,11 @@ impl OpenHumanTurnPrelude {
                 .retain(|name| !deferred.contains(name));
             surface.deferred_tool_names = deferred;
         }
+        let permanent = surface.permanent_tool_names.clone();
+        surface.visible_tool_names.extend(permanent.iter().cloned());
+        surface
+            .deferred_tool_names
+            .retain(|name| !permanent.contains(name));
 
         let specs = surface
             .durable_tool_specs
@@ -561,6 +578,7 @@ impl OpenHumanTurnPrelude {
         surface.synthesized_tools = synthesized_tools;
         surface.visible_tool_specs = Arc::new(visible);
         surface.tool_policy_session = policy;
+        Ok(())
     }
 
     fn drain_host_events(&self) -> bool {
@@ -1517,6 +1535,7 @@ impl OpenHumanSessionHost {
                     visible_tool_specs: self.visible_tool_specs.clone(),
                     visible_tool_names: self.visible_tool_names.clone(),
                     deferred_tool_names: self.deferred_tool_names.clone(),
+                    permanent_tool_names: self.permanent_tool_names.clone(),
                     discovery_enabled: self.discovery_enabled,
                     requested_deferred_tools: self.requested_deferred_tools.clone(),
                     auto_include_new_synthesized_tools: true,
@@ -1596,7 +1615,10 @@ impl OpenHumanSessionHost {
                         })?;
                         prelude
                             .refresh_turn_boundary(!view.resumed && view.history.is_empty())
-                            .await;
+                            .await
+                            .map_err(|error| {
+                                tinyagents_runtime::RuntimeError::Driver(error.to_string())
+                            })?;
                         let context_window = prelude
                             .turn_model_source
                             .effective_context_window(&prelude.model_name)
@@ -1636,6 +1658,18 @@ impl OpenHumanSessionHost {
                             .map_err(|error| {
                                 tinyagents_runtime::RuntimeError::Driver(error.to_string())
                             })?;
+                        {
+                            let surface = prelude
+                                .tool_surface
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                            preparation.prefix = super::managed_tools::refresh_prefix(
+                                preparation.prefix.as_ref().unwrap_or(view.prefix),
+                                &surface.visible_tool_specs,
+                                &surface.permanent_tool_names,
+                            )
+                            .or(preparation.prefix);
+                        }
                         if overrides.suppress_tools {
                             // One-off tool-less turn: must not become the
                             // thread's recorded tool list.
@@ -1887,6 +1921,7 @@ impl OpenHumanSessionHost {
             visible_tool_specs: self.visible_tool_specs.clone(),
             visible_tool_names: self.visible_tool_names.clone(),
             deferred_tool_names: self.deferred_tool_names.clone(),
+            permanent_tool_names: self.permanent_tool_names.clone(),
             discovery_enabled: self.discovery_enabled,
             requested_deferred_tools: self.requested_deferred_tools.clone(),
             auto_include_new_synthesized_tools: auto_include_new_synthesized_tools

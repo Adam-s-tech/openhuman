@@ -22,7 +22,9 @@
 //! that composes its prompt**. A resumed session reuses its persisted system
 //! messages, so a belt that moves under one is described by the prompt it had
 //! when the thread opened; a host that varies its belt should run such turns
-//! on a session of their own.
+//! on a session of their own. Permanent attachments are the exception: their
+//! catalogue occupies a managed system section refreshed independently of
+//! the frozen host prompt.
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -46,6 +48,8 @@ pub struct HostTurnTools {
     /// The tools themselves, placed **ahead of** the config-derived belt so a
     /// host tool wins a collision on its name.
     pub tools: Vec<Box<dyn Tool>>,
+    /// Tool names permanently advertised directly and rendered in a managed prompt section.
+    pub permanent: HashSet<String>,
     /// Names to add to the provider-visible allow-list.
     pub visible: HashSet<String>,
     /// Names to remove from the provider-visible allow-list for this turn.
@@ -67,6 +71,7 @@ impl HostTurnTools {
         let visible = tools.iter().map(|tool| tool.name().to_string()).collect();
         Self {
             tools,
+            permanent: HashSet::new(),
             visible,
             withheld: HashSet::new(),
             policy: None,
@@ -98,12 +103,13 @@ impl HostTurnTools {
         agent_id: &str,
         tools: &mut Vec<Box<dyn Tool>>,
         visible: &mut HashSet<String>,
-    ) -> MergedHostTurnTools {
+    ) -> Result<MergedHostTurnTools> {
         if self.is_empty() {
-            return MergedHostTurnTools {
+            return Ok(MergedHostTurnTools {
                 policy: None,
                 withheld: HashSet::new(),
-            };
+                permanent: HashSet::new(),
+            });
         }
         log::debug!(
             "[agent::builder] host supplied {} tool(s) for agent_id={agent_id}: {:?}",
@@ -113,12 +119,33 @@ impl HostTurnTools {
                 .map(|tool| tool.name())
                 .collect::<Vec<_>>(),
         );
-        tools.splice(0..0, self.tools);
+        for name in &self.permanent {
+            anyhow::ensure!(
+                !tools.iter().any(|tool| tool.name() == name),
+                "permanent tool name collision: {name}"
+            );
+            anyhow::ensure!(
+                self.tools.iter().filter(|tool| tool.name() == name).count() == 1,
+                "duplicate permanent tool name: {name}"
+            );
+        }
+        let permanent = &self.permanent;
+        tools.splice(
+            0..0,
+            self.tools.into_iter().map(|tool| {
+                if permanent.contains(tool.name()) {
+                    Box::new(super::permanent_tool::PermanentTool(tool)) as Box<dyn Tool>
+                } else {
+                    tool
+                }
+            }),
+        );
         visible.extend(self.visible);
-        MergedHostTurnTools {
+        Ok(MergedHostTurnTools {
             policy: self.policy,
             withheld: self.withheld,
-        }
+            permanent: self.permanent,
+        })
     }
 
     /// Sets the gate for the whole session.
@@ -156,6 +183,7 @@ impl HostTurnTools {
 pub(super) struct MergedHostTurnTools {
     pub policy: Option<Arc<dyn ToolPolicy>>,
     pub withheld: HashSet<String>,
+    pub permanent: HashSet<String>,
 }
 
 pub(super) fn merge_for_turn(
@@ -164,13 +192,20 @@ pub(super) fn merge_for_turn(
     session_id: Option<&str>,
     tools: &mut Vec<Box<dyn Tool>>,
     visible: &mut HashSet<String>,
-) -> (Option<Arc<dyn ToolPolicy>>, HashSet<String>) {
+) -> Result<(
+    Option<Arc<dyn ToolPolicy>>,
+    HashSet<String>,
+    HashSet<String>,
+)> {
     match host
         .map(|build| build(TurnContext::new(agent_id, session_id)))
         .map(|host_tools| host_tools.merge_into(agent_id, tools, visible))
     {
-        Some(merged) => (merged.policy, merged.withheld),
-        None => (None, HashSet::new()),
+        Some(merged) => {
+            let merged = merged?;
+            Ok((merged.policy, merged.withheld, merged.permanent))
+        }
+        None => Ok((None, HashSet::new(), HashSet::new())),
     }
 }
 
