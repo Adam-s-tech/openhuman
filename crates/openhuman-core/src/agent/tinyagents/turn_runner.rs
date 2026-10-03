@@ -240,6 +240,10 @@ async fn run_turn_via_tinyagents_inner(
     // tool's OWN `display_label`/`display_detail` instead of only ever
     // guessing from the bare name (issue: tool-call presentation).
     let bridge_tool_sets = tool_sets.clone();
+    // A turn runs on a chat thread exactly when its run context carries one;
+    // `into_tinyagents` stamps that id onto the `RunConfig` the tools read.
+    // Thread-scoped tools (`goal_*`) are only registered when it is `Some`.
+    let has_thread = run_context.thread_id.is_some();
     // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry id are built by
     // the caller via `build_turn_models`: the seam is crate-native and names no `Provider` (#4249,
     // Phase 5). The telemetry id (`{provider_id}.{model}` in Langfuse) rides in as a param.
@@ -288,6 +292,7 @@ async fn run_turn_via_tinyagents_inner(
             &run_context,
             hosted_root.as_ref().map(|(base, _)| base.config.as_ref()),
         ),
+        has_thread,
     );
 
     // Fail-closed registry validation gate (issue #4249, Workstream 10 — registry).

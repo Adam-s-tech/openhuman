@@ -26,11 +26,6 @@
       "id": "tinycomputer",
       "expect": "v0.9.1-2-g2b0ee5c",
       "reason": "Pin carries the cpal 0.18 bump (tinycomputer#72, needed so cpal shares alsa-sys with tinyvoice) past the release tag; re-pin to the next release of this module."
-    },
-    {
-      "id": "tinyjuice",
-      "expect": "v0.5.2-28-g021bcfcd",
-      "reason": "Carries tinyjuice#55/#56 on-demand summarization source and contract changes ahead of the v0.5.2 runtime artifact; keep the released module pinned until a release containing #56 is available, then reconcile both pins."
     }
   ]
 }
