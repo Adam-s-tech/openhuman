@@ -373,3 +373,65 @@ async fn session_locator_is_memoized_across_calls() {
          same-binding check rejects the second transcript bind"
     );
 }
+
+const THREAD_GOAL_TOOLS: [&str; 3] = ["goal_get", "goal_set", "goal_complete"];
+
+/// Build a text-dialect (XML) session over the real per-thread goal tools,
+/// optionally bound to a chat thread, and render its first-turn system prompt.
+fn text_dialect_prompt_and_snapshot(thread_id: Option<&str>) -> (String, ToolSnapshot) {
+    let _ = crate::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins();
+    let action_dir = tempfile::tempdir().expect("tempdir");
+    let model: Arc<dyn tinyinference_llm::model::ChatModel<()>> =
+        Arc::new(tinyagents_harness::testkit::ScriptedModel::new(Vec::new()));
+    let tools = crate::agent::goals::goal_tools(action_dir.path());
+    let mut host = crate::agent::SessionHostBuilder::new()
+        .chat_model(model)
+        .tools(tools)
+        .action_dir(action_dir.path().to_path_buf())
+        .memory(crate::memory::test_support::noop_memory())
+        .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
+        .build()
+        .expect("session build");
+    host.set_thread_id(thread_id);
+    host.ensure_runtime_session().expect("runtime session");
+    let state = host
+        .runtime_state
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let prelude = state.prelude.as_ref().expect("prelude");
+    let tiered = prelude
+        .build_system_prompt_tiered(crate::agent::prompts::LearnedContextData::default())
+        .expect("system prompt");
+    let snapshot = futures::executor::block_on(prelude.prepare(true))
+        .expect("tool surface")
+        .tools
+        .expect("declared tools");
+    (tiered.text, snapshot)
+}
+
+/// Issue #6956 follow-up: the harness drops `goal_*` for a thread-less turn, so
+/// a text-dialect prompt that still catalogued them taught the model tools that
+/// answer "unregistered tool" when called.
+#[test]
+fn text_dialect_prompt_omits_thread_goal_tools_without_a_thread() {
+    let (prompt, snapshot) = text_dialect_prompt_and_snapshot(None);
+    for name in THREAD_GOAL_TOOLS {
+        assert!(!prompt.contains(name), "{name} leaked into the prompt");
+        assert!(
+            !snapshot.specs().iter().any(|spec| spec.name == name),
+            "{name} leaked into the declared tools"
+        );
+    }
+}
+
+#[test]
+fn text_dialect_prompt_lists_thread_goal_tools_on_a_thread() {
+    let (prompt, snapshot) = text_dialect_prompt_and_snapshot(Some("thread-goals"));
+    for name in THREAD_GOAL_TOOLS {
+        assert!(prompt.contains(name), "{name} missing from the prompt");
+        assert!(
+            snapshot.specs().iter().any(|spec| spec.name == name),
+            "{name} missing from the declared tools"
+        );
+    }
+}
