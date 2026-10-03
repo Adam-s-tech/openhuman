@@ -25,7 +25,8 @@ async fn varied_queries_against_one_forbidden_endpoint_stop_on_first_failure() {
     assert_eq!(drain_pause_count(&handle), 1);
     let summary = slot.lock().unwrap().clone().unwrap();
     assert!(summary.contains("authentication"), "{summary}");
-    assert!(summary.contains("example.test/restricted"), "{summary}");
+    // A fetch is scoped by host, never by page or query.
+    assert!(summary.contains("example.test"), "{summary}");
     assert!(!summary.contains("query=first"), "{summary}");
 }
 
@@ -556,7 +557,7 @@ fn web_fetch_failure_scope_is_the_host_not_the_page() {
 
 #[test]
 fn fetched_site_status_reads_only_the_web_fetch_error_shape() {
-    let status = super::super::repeated_failure::fetched_site_status;
+    let status = super::super::fetched_site::fetched_site_status;
     assert_eq!(status(FETCH_403), Some(403));
     assert_eq!(status(FETCH_429), Some(429));
     assert_eq!(status(FETCH_404), Some(404));
