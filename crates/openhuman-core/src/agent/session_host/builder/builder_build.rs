@@ -177,6 +177,14 @@ impl SessionHostBuilder {
                 "[tools] withheld deferred tool schemas; reachable via the harness tool_search bridge"
             );
         }
+        if !self.withheld_tool_names.is_empty() {
+            visible_names.retain(|name| !self.withheld_tool_names.contains(name));
+            deferred_names.retain(|name| !self.withheld_tool_names.contains(name));
+            if visible_names.is_empty() {
+                visible_names
+                    .insert(crate::agent::harness::definition::NO_TOOLS_SENTINEL.to_string());
+            }
+        }
         // What the policy classifies and the harness registers: the advertised
         // set plus the deferred set. A deferred tool outside this union would
         // be `HideFromPrompt`, and the direct-call gate refuses those.

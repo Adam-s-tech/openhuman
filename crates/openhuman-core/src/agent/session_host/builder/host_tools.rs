@@ -53,7 +53,8 @@ pub struct HostTurnTools {
     /// This is applied after the config-derived scope and `visible` names are
     /// combined, so a host can hide a tool that the agent normally receives
     /// without changing the agent's scope for other turns. Withheld tools
-    /// remain registered and their execution policy is unchanged.
+    /// remain in the registry; hosts that require a call boundary must also
+    /// enforce one through the session's tool policy.
     pub withheld: HashSet<String>,
     /// The session's admission gate, if the host sets one.
     pub policy: Option<Arc<dyn ToolPolicy>>,
@@ -97,9 +98,12 @@ impl HostTurnTools {
         agent_id: &str,
         tools: &mut Vec<Box<dyn Tool>>,
         visible: &mut HashSet<String>,
-    ) -> Option<Arc<dyn ToolPolicy>> {
+    ) -> MergedHostTurnTools {
         if self.is_empty() {
-            return None;
+            return MergedHostTurnTools {
+                policy: None,
+                withheld: HashSet::new(),
+            };
         }
         log::debug!(
             "[agent::builder] host supplied {} tool(s) for agent_id={agent_id}: {:?}",
@@ -111,8 +115,10 @@ impl HostTurnTools {
         );
         tools.splice(0..0, self.tools);
         visible.extend(self.visible);
-        visible.retain(|name| !self.withheld.contains(name));
-        self.policy
+        MergedHostTurnTools {
+            policy: self.policy,
+            withheld: self.withheld,
+        }
     }
 
     /// Sets the gate for the whole session.
@@ -143,6 +149,13 @@ impl HostTurnTools {
             && self.withheld.is_empty()
             && self.policy.is_none()
     }
+}
+
+/// The parts of a host turn belt that the session builder applies after
+/// expanding the agent's static scope.
+pub(super) struct MergedHostTurnTools {
+    pub policy: Option<Arc<dyn ToolPolicy>>,
+    pub withheld: HashSet<String>,
 }
 
 impl std::fmt::Debug for HostTurnTools {
