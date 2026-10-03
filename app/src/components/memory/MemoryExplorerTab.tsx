@@ -185,7 +185,7 @@ export default function MemoryExplorerTab() {
             ? fill(t('memoryPage.explorer.total'), { count: page.total })
             : t('memoryPage.explorer.groupDescription')
         }
-        actions={
+        headerRight={
           <NativeSelect
             aria-label={t('memoryPage.explorer.groupBy')}
             data-testid="memory-explorer-facet"
@@ -212,7 +212,7 @@ export default function MemoryExplorerTab() {
               <li key={bucket.value}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-surface-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500"
                   data-testid={`memory-explorer-bucket-${bucket.value}`}
                   onClick={() => drill(bucket.value)}>
                   <span
@@ -222,7 +222,7 @@ export default function MemoryExplorerTab() {
                   </span>
                   <span className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-surface-muted sm:block">
                     <span
-                      className="block h-full rounded-full bg-primary"
+                      className="block h-full rounded-full bg-primary-500"
                       style={{ width: `${Math.round((bucket.count / maxCount) * 100)}%` }}
                     />
                   </span>
