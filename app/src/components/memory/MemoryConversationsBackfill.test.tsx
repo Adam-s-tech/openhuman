@@ -19,14 +19,7 @@ function view(
   extra: Partial<BackfillView['state']> = {}
 ): BackfillView {
   return {
-    state: {
-      phase,
-      threads_total: 0,
-      threads_done: 0,
-      turns_stored: 0,
-      items_stored: 0,
-      ...extra,
-    },
+    state: { phase, threads_total: 0, threads_done: 0, turns_stored: 0, items_stored: 0, ...extra },
     pending_threads: pending[0],
     pending_turns: pending[1],
   };
@@ -87,7 +80,9 @@ describe('MemoryConversationsBackfill', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     hoisted.status
       .mockResolvedValueOnce(view('running', [2, 5], { threads_total: 2, threads_done: 1 }))
-      .mockResolvedValue(view('done', [0, 0], { threads_total: 2, threads_done: 2, turns_stored: 5 }));
+      .mockResolvedValue(
+        view('done', [0, 0], { threads_total: 2, threads_done: 2, turns_stored: 5 })
+      );
     renderWithProviders(<MemoryConversationsBackfill />);
     expect(await screen.findByTestId('memory-backfill-running')).toHaveTextContent('1');
     await act(async () => {
