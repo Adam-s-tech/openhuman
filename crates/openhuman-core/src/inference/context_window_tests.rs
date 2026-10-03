@@ -123,9 +123,13 @@ async fn deepseek_v41_flash_uses_provider_window_not_static_128k() {
     assert_eq!(resolved.window, Some(1_048_576));
     assert_eq!(resolved.source, WindowSource::ProviderReported);
 
-    // The synchronous lookup (usage meters) now reports the same window.
+    // The route-aware synchronous lookup used by the context breakdown
+    // reports the same provider-specific window.
     assert_eq!(
-        crate::inference::model_context::context_window_for_model(V41_FLASH),
+        crate::inference::model_context::context_window_for_route(
+            &format!("openrouter:{V41_FLASH}"),
+            V41_FLASH,
+        ),
         Some(1_048_576)
     );
 }

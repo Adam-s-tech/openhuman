@@ -21,11 +21,10 @@ const TIER_FLASH_CONTEXT: u64 = 1_000_000;
 
 /// Resolve the context window (in tokens) for a model id or OpenHuman tier alias.
 ///
-/// Prefers the window a turn last resolved for this model from the provider
-/// (or a config override) — see [`crate::inference::context_window`] — and
-/// otherwise falls back to [`static_context_window_for_model`]. Turns resolve
-/// through the async provider path; this synchronous form serves usage meters
-/// and the context breakdown.
+/// Returns the static model estimate. Call [`context_window_for_route`] when
+/// the provider route is known; provider-discovered values are stored per
+/// route and model. Thread usage prefers its persisted per-turn value before
+/// consulting either lookup.
 ///
 /// Returns `None` when the model is unknown — callers should skip pre-dispatch
 /// trimming rather than guess.
