@@ -208,7 +208,9 @@ const WEB_FETCH_TOOL: &str = "web_fetch";
 /// from some other source is not either.
 pub(super) fn fetched_site_status(text: &str) -> Option<u16> {
     let rest = text.trim_start().strip_prefix("HTTP ")?;
-    let code = rest.get(..3).filter(|c| c.bytes().all(|b| b.is_ascii_digit()))?;
+    let code = rest
+        .get(..3)
+        .filter(|c| c.bytes().all(|b| b.is_ascii_digit()))?;
     let rest = rest[3..].strip_prefix(' ')?;
     let status: u16 = code.parse().ok().filter(|s| (400..=599).contains(s))?;
     let (_reason, after_from) = rest.lines().next()?.split_once(" from ")?;

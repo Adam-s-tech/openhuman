@@ -424,7 +424,12 @@ async fn refusals_from_different_hosts_are_counted_separately() {
     let handle = SteeringHandle::allow_all();
     let slot = std::sync::Arc::new(std::sync::Mutex::new(None));
     let mw = RepeatedToolFailureMiddleware::new(handle.clone(), 3, slot.clone());
-    for (id, host) in [("h1", "a.test"), ("h2", "b.test"), ("h3", "c.test"), ("h4", "d.test")] {
+    for (id, host) in [
+        ("h1", "a.test"),
+        ("h2", "b.test"),
+        ("h3", "c.test"),
+        ("h4", "d.test"),
+    ] {
         fail_call(
             &mw,
             id,
@@ -454,7 +459,10 @@ async fn a_good_fetch_from_a_host_clears_its_refusal_count() {
     }
     let mut call = TaToolCall::new("c-ok", "web_fetch", fetch_args("https://example.test/open"));
     mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
-    let mut ok = tool_result("web_fetch", "status=200 url=https://example.test/open\nhello");
+    let mut ok = tool_result(
+        "web_fetch",
+        "status=200 url=https://example.test/open\nhello",
+    );
     mw.after_tool(&mut ctx(), &(), &invocation("c-ok", "web_fetch"), &mut ok)
         .await
         .unwrap();
