@@ -69,7 +69,7 @@ async fn a_wrapped_read_of_a_persisted_artifact_is_paged_not_resummarized_or_rep
         &rendered[page_end..]
     );
     assert!(
-        !tmp.path().join("session").exists(),
+        !tmp.path().join("tool-results/session").exists(),
         "reading an artifact must not persist it again as a new artifact"
     );
 }
