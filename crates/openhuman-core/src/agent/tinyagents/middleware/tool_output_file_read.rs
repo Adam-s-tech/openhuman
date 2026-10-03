@@ -56,7 +56,7 @@ pub(crate) fn is_file_read_call(tool_name: &str, args: &Value) -> bool {
 /// least one runs a reader, and nothing redirects, substitutes or feeds a
 /// heredoc.
 pub(crate) fn is_file_read_command(command: &str) -> bool {
-    if command.contains(['>', '<', '`']) || command.contains("$(") {
+    if command.contains(['>', '<', '`', '$']) {
         return false;
     }
     let mut reads = false;
@@ -73,7 +73,7 @@ pub(crate) fn is_file_read_command(command: &str) -> bool {
         if program == "sed"
             && segment
                 .split_whitespace()
-                .any(|w| w.starts_with("-i") || w == "--in-place")
+                .any(|w| w.starts_with("-i") || w == "--in-place" || w.starts_with("--in-place="))
         {
             return false;
         }

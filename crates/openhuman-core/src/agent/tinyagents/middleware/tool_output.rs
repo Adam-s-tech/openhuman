@@ -496,7 +496,8 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Too
         //      paraphrase of code it is about to edit, which it would only
         //      fetch back): TinyJuice's deterministic handle and preview, then
         //      step 3's bound, apply. See [`super::tool_output_file_read`].
-        let verbatim_file_read = file_read && content.len() <= budget_bytes;
+        let verbatim_file_read =
+            file_read && (budget_bytes == 0 || content.len() <= budget_bytes);
         if file_read {
             tracing::info!(
                 tool = tool_name,

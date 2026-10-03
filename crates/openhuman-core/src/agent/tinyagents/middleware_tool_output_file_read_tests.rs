@@ -43,6 +43,21 @@ async fn a_file_read_within_the_budget_is_left_verbatim() {
 }
 
 #[tokio::test]
+async fn a_zero_budget_leaves_file_reads_verbatim() {
+    let stub = StubSummarizer::replying(Ok("a paraphrase of the file".into()));
+    let mut mw = summarizer_mw(stub.clone());
+    mw.tokenjuice_compaction_enabled = true;
+    mw.budget_bytes = 0;
+    let file = "package vm\\n".repeat(400);
+    let (text, requests) =
+        run_shell(&mw, "read-zero-budget", "cat vm/vmExprFunction.go", &file).await;
+
+    assert_eq!(text, file);
+    assert!(!stub.was_prepared());
+    assert!(requests.is_empty());
+}
+
+#[tokio::test]
 async fn a_file_read_past_the_budget_is_compacted_without_a_summary() {
     let stub = StubSummarizer::replying(Ok("a paraphrase of the file".into()));
     let mut mw = summarizer_mw(stub.clone());
