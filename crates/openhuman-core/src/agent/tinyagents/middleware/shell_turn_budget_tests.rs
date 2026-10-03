@@ -150,3 +150,21 @@ async fn a_turn_without_a_deadline_is_untouched() {
     before(&budget, &mut ctx, &mut call).await;
     assert_eq!(call.arguments, json!({"command": "make"}));
 }
+
+#[test]
+fn installing_reads_the_turn_ceiling_from_the_harness_policy() {
+    let mut harness: AgentHarness<(), OpenHumanRunContext> = AgentHarness::new();
+    let mut policy = harness.policy().clone();
+    policy.limits.max_wall_clock_ms = Some(120_000);
+    harness.with_policy(policy);
+    let before = harness.middleware().len();
+
+    let shell = install_time_notes(&mut harness);
+
+    assert_eq!(shell.budget, Some(SECS(120)));
+    assert_eq!(
+        harness.middleware().len(),
+        before + 2,
+        "the turn clock and the shell notes are both installed"
+    );
+}
