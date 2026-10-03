@@ -228,6 +228,12 @@ impl OpenHumanTurnPrelude {
                 surface
                     .visible_tool_specs
                     .iter()
+                    .filter(|spec| {
+                        self.thread_id.is_some()
+                            || !crate::agent::tinyagents::harness_tool_registration::is_thread_goal_tool(
+                                &spec.name,
+                            )
+                    })
                     .chain(
                         surface
                             .tool_specs
