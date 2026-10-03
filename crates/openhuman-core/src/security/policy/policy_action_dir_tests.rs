@@ -112,7 +112,7 @@ async fn tool_result_artifacts_are_readable_by_absolute_path_under_workspace_onl
     assert!(policy
         .trusted_roots
         .iter()
-        .any(|r| r.path == grant && r.access == TrustedAccess::ReadOnly));
+        .any(|r| r.path == grant && r.access == TrustedAccess::Read));
 
     let result = artifacts.join("call.txt");
     policy

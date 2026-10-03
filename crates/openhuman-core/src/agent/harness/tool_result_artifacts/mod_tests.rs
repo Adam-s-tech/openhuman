@@ -1,5 +1,5 @@
 use super::*;
-use crate::security::{AutonomyLevel, SecurityPolicy};
+use crate::security::SecurityPolicy;
 use serde_json::json;
 use std::sync::Arc;
 use tinyagents_harness::artifacts::tool_results::apply_per_result_persistence;

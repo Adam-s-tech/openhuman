@@ -190,7 +190,7 @@ impl SecurityPolicy {
         if !trusted_roots.iter().any(|r| r.path == tool_results) {
             trusted_roots.push(TrustedRoot {
                 path: tool_results,
-                access: TrustedAccess::ReadOnly,
+                access: TrustedAccess::Read,
             });
         }
 
