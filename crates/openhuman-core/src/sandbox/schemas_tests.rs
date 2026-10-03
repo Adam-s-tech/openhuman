@@ -166,7 +166,7 @@ async fn handle_validate_policy_valid() {
     let policy = super::super::types::SandboxPolicy {
         backend: super::super::types::SandboxBackendKind::Docker,
         workspace_root: std::path::PathBuf::from("/tmp/safe"),
-        state_dir: PathBuf::from("/tmp/state"),
+        state_dir: std::path::PathBuf::from("/tmp/state"),
         read_only_mounts: vec![],
         allow_network: false,
         env_passthrough: vec![],
@@ -185,7 +185,7 @@ async fn handle_validate_policy_dangerous() {
     let policy = super::super::types::SandboxPolicy {
         backend: super::super::types::SandboxBackendKind::Docker,
         workspace_root: std::path::PathBuf::from("/"),
-        state_dir: PathBuf::from("/tmp/state"),
+        state_dir: std::path::PathBuf::from("/tmp/state"),
         read_only_mounts: vec![],
         allow_network: false,
         env_passthrough: vec![],
