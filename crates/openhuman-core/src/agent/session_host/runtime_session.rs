@@ -5,6 +5,8 @@
 //! prefix reconciliation, tool snapshots, resume and persistence remain inside
 //! the runtime session.
 
+mod prompt;
+
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -227,6 +229,12 @@ impl OpenHumanTurnPrelude {
                             .iter()
                             .filter(|spec| surface.deferred_tool_names.contains(&spec.name)),
                     )
+                    .filter(|spec| {
+                        self.thread_id.is_some()
+                            || !crate::agent::tinyagents::harness_tool_registration::is_thread_goal_tool(
+                                &spec.name,
+                            )
+                    })
                     .map(|spec| spec.as_ref().clone())
                     .collect(),
             )
@@ -308,6 +316,82 @@ impl OpenHumanTurnPrelude {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .build_system_prompt_tiered(&context)
+    }
+
+    async fn fetch_learned_context(&self) -> crate::agent::prompts::LearnedContextData {
+        if !self.learning_enabled && !self.explicit_preferences_enabled {
+            return Default::default();
+        }
+        if !self.learning_enabled && self.explicit_preferences_enabled {
+            return crate::agent::prompts::LearnedContextData {
+                user_profile: crate::memory::preferences::load_general_preferences_on(
+                    &self.memory,
+                    crate::memory::preferences::STANDING_PREFS_LIMIT,
+                )
+                .await,
+                ..Default::default()
+            };
+        }
+        use crate::memory::MemoryCategory;
+        let observations = self
+            .memory
+            .list(
+                Some("learning_observations"),
+                Some(&MemoryCategory::Custom("learning_observations".into())),
+                None,
+            )
+            .await
+            .unwrap_or_default();
+        let patterns = self
+            .memory
+            .list(
+                Some("learning_patterns"),
+                Some(&MemoryCategory::Custom("learning_patterns".into())),
+                None,
+            )
+            .await
+            .unwrap_or_default();
+        let reflections = self
+            .memory
+            .list(
+                Some(crate::agent::learning::reflection::REFLECTIONS_NAMESPACE),
+                Some(&MemoryCategory::Custom(
+                    crate::agent::learning::reflection::REFLECTIONS_NAMESPACE.into(),
+                )),
+                None,
+            )
+            .await
+            .unwrap_or_default();
+        let limits = self.config.resolved_memory_limits();
+        crate::agent::prompts::LearnedContextData {
+            observations: observations
+                .iter()
+                .rev()
+                .take(5)
+                .map(|entry| sanitize_prelude_entry(&entry.content))
+                .collect(),
+            patterns: patterns
+                .iter()
+                .take(3)
+                .map(|entry| sanitize_prelude_entry(&entry.content))
+                .collect(),
+            user_profile: crate::memory::preferences::load_general_preferences_on(
+                &self.memory,
+                crate::memory::preferences::STANDING_PREFS_LIMIT,
+            )
+            .await,
+            reflections: reflections
+                .iter()
+                .rev()
+                .take(10)
+                .map(|entry| sanitize_prelude_entry(&entry.content))
+                .collect(),
+            tree_root_summaries: collect_prelude_tree_roots(
+                limits.per_namespace_max_chars,
+                limits.total_tree_max_chars,
+            )
+            .await,
+        }
     }
 
     #[cfg(test)]
@@ -1014,6 +1098,7 @@ impl OpenHumanSessionHost {
             tokenjuice_compaction_enabled,
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction,
         ) = {
             let context = self
                 .context
@@ -1024,6 +1109,7 @@ impl OpenHumanSessionHost {
                 context.compaction_enabled(),
                 context.microcompact_keep_recent(),
                 context.autocompact_enabled(),
+                context.compaction(),
             )
         };
         let artifact_store = super::artifact_wiring::build_artifact_store(
@@ -1043,6 +1129,7 @@ impl OpenHumanSessionHost {
             runtime_config: self.runtime_config.clone(),
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction,
             transcript_snapshot: None,
         };
         let driver = Arc::new(OpenHumanSessionDriver::new(
@@ -1332,14 +1419,11 @@ impl OpenHumanSessionHost {
                             .count()
                             .max(1) as u32;
                         let output = receipt.outcome.output.clone().unwrap_or_default();
-                        let input = receipt
-                            .outcome
-                            .history
-                            .iter()
-                            .rev()
-                            .find(|message| matches!(message, Message::User(_)))
-                            .map(user_text_with_markers)
-                            .unwrap_or_default();
+                        // Skips compaction checkpoints (user-role, not the user's words).
+                        let input =
+                            crate::agent::tinyagents::last_user_message(&receipt.outcome.history)
+                                .map(user_text_with_markers)
+                                .unwrap_or_default();
                         let sidecar = receipt
                             .options
                             .context

@@ -292,7 +292,7 @@ fn one_runtime_hosts_independently_configured_agents() {
             )
             .await
             .expect("budgeted runtime-owned agent turn returns");
-            assert_eq!(budget_provider.received_requests().await.unwrap().len(), 1);
+            assert_eq!(common::chat_requests(&budget_provider).await.len(), 1);
             assert_eq!(
                 stop_reason.lock().expect("stop reason lock").as_deref(),
                 Some("turn cost $5.0000 reached cap $1.0000")
@@ -302,10 +302,7 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .expect("runtime-owned agent reports turn usage");
             assert_eq!(usage.input_tokens, 1_000_000);
             assert!(usage.cost_usd >= 1.0, "budgeted usage: {usage:?}");
-            let withholding_requests = withholding_provider
-                .received_requests()
-                .await
-                .expect("provider recorded both withholding turns");
+            let withholding_requests = common::chat_requests(&withholding_provider).await;
             assert_eq!(withholding_requests.len(), 2);
             let hidden_request: serde_json::Value =
                 serde_json::from_slice(&withholding_requests[0].body).unwrap();
@@ -381,20 +378,20 @@ fn one_runtime_hosts_independently_configured_agents() {
             // only its own configured MCP servers (asserted above).
             let a0 = alpha.run("hello from alpha").await.expect("alpha turn");
             assert!(a0.reply.contains("alpha-ok"), "{:?}", a0.reply);
-            assert_eq!(provider_a.received_requests().await.unwrap().len(), 1);
-            assert_eq!(provider_b.received_requests().await.unwrap().len(), 0);
+            assert_eq!(common::chat_requests(&provider_a).await.len(), 1);
+            assert_eq!(common::chat_requests(&provider_b).await.len(), 0);
             let b0 = beta.run("hello from beta").await.expect("beta turn");
             assert!(b0.reply.contains("beta-ok"), "{:?}", b0.reply);
-            assert_eq!(provider_b.received_requests().await.unwrap().len(), 1);
+            assert_eq!(common::chat_requests(&provider_b).await.len(), 1);
 
             let a1 = alpha.run("hello from alpha").await.expect("alpha turn");
             assert!(a1.reply.contains("alpha-ok"), "{:?}", a1.reply);
-            assert_eq!(provider_a.received_requests().await.unwrap().len(), 2);
-            assert_eq!(provider_b.received_requests().await.unwrap().len(), 1);
+            assert_eq!(common::chat_requests(&provider_a).await.len(), 2);
+            assert_eq!(common::chat_requests(&provider_b).await.len(), 1);
 
             // The request bodies carry each agent's own model.
-            let a_reqs = provider_a.received_requests().await.unwrap();
-            let b_reqs = provider_b.received_requests().await.unwrap();
+            let a_reqs = common::chat_requests(&provider_a).await;
+            let b_reqs = common::chat_requests(&provider_b).await;
             let a_body: serde_json::Value = serde_json::from_slice(&a_reqs[0].body).unwrap();
             let b_body: serde_json::Value = serde_json::from_slice(&b_reqs[0].body).unwrap();
             assert_eq!(a_body["model"], "alpha-model");
@@ -449,7 +446,7 @@ fn one_runtime_hosts_independently_configured_agents() {
                 .await
                 .expect("alpha second turn");
             assert_eq!(a2.session_id, a1.session_id);
-            let a2_req = provider_a.received_requests().await.unwrap().remove(2);
+            let a2_req = common::chat_requests(&provider_a).await.remove(2);
             let a2_body: serde_json::Value = serde_json::from_slice(&a2_req.body).unwrap();
             let a2_messages = a2_body["messages"].as_array().cloned().unwrap_or_default();
             assert!(
@@ -503,8 +500,8 @@ fn one_runtime_hosts_independently_configured_agents() {
                 }
             }
             assert_eq!((a_count, b_count), (25, 25));
-            assert_eq!(provider_a.received_requests().await.unwrap().len(), 3 + 25);
-            assert_eq!(provider_b.received_requests().await.unwrap().len(), 1 + 25);
+            assert_eq!(common::chat_requests(&provider_a).await.len(), 3 + 25);
+            assert_eq!(common::chat_requests(&provider_b).await.len(), 1 + 25);
 
             // Ids are unique while alive, and validated.
             let err = runtime

@@ -151,6 +151,11 @@ pub(super) fn assemble_turn_harness(
     // The turn's reasoning choice (`reasoning::turn_reasoning_for`), attached
     // to every model request this harness builds.
     reasoning: Option<tinyinference_llm::model::ReasoningConfig>,
+    // Whether this turn runs on a chat thread (`OpenHumanRunContext::thread_id`
+    // is `Some`). The per-thread `goal_*` tools resolve their target from the
+    // run's thread, so a thread-less turn (a headless `inference_agent_chat`
+    // without a `thread_id`) is not offered them at all (issue #6956).
+    has_thread: bool,
 ) -> AssembledTurnHarness {
     let mut harness: AgentHarness<(), OpenHumanRunContext> = AgentHarness::new();
     // Cross-route fallback ownership (issue #4249, Workstream 02.2): populate the
@@ -293,6 +298,7 @@ pub(super) fn assemble_turn_harness(
 
     // Capture context settings before `install` consumes `context_mw`.
     let autocompact_enabled = context_mw.autocompact_enabled;
+    let compaction = context_mw.compaction;
     // Captured for the same reason `autocompact_enabled` is — `install` consumes
     // `context_mw` — and used to site microcompact below, after compression.
     let microcompact_keep_recent = context_mw.microcompact_keep_recent;
@@ -401,6 +407,7 @@ pub(super) fn assemble_turn_harness(
             &early_exit_set,
             early_exit_hook.as_ref(),
             is_subagent_run,
+            has_thread,
             &session_deferred,
         );
 
@@ -566,16 +573,18 @@ pub(super) fn assemble_turn_harness(
         model,
         context_window,
         autocompact_enabled,
+        compaction.trigger_tokens,
+        compaction.strategy,
         microcompact_keep_recent,
         summarizer_model,
         pause_at_cap && subagent_scope.is_none(),
         &tool_outcome_sink,
     );
 
-    // Direct web lookup is for a bounded answer. Once enough search/fetch
-    // results have returned, spend the next model call on synthesis rather
-    // than another variation of the same query. Sub-agent runs keep their own
-    // budgets and are not narrowed here.
+    // Direct web lookup is bounded. Once enough search/fetch results have
+    // returned, the web tools leave the request so the run works with what it
+    // has; a run with nothing but web tools answers instead. Sub-agent runs
+    // keep their own budgets and are not narrowed here.
     if subagent_scope.is_none() {
         harness.push_middleware(Arc::new(middleware::ResearchBudgetMiddleware::new()));
     }
@@ -714,3 +723,7 @@ pub(super) fn assemble_turn_harness(
         prompt_cache_guard,
     }
 }
+
+#[cfg(test)]
+#[path = "harness_assembly_tests.rs"]
+mod tests;

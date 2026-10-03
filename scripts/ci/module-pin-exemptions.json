@@ -13,19 +13,14 @@
   ],
   "exemptions": [
     {
+      "id": "tinymemory",
+      "expect": "v1.22.4-189-g0aa4a863",
+      "reason": "Memory v2 compiles against the newer TinyMemory host APIs while the downloadable module remains the verified v1.22.4 artifact. Keep the artifact version and digest pinned until a module release is published; review bus compatibility before removing this exemption."
+    },
+    {
       "id": "tinywallet",
-      "expect": "v0.7.2-2-g5b18a06",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinyjuice",
-      "expect": "v0.5.1-2-gb2f7172",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
-    },
-    {
-      "id": "tinyvoice",
-      "expect": "v0.1.10-2-gb8594d5",
-      "reason": "Pin carries the legacy test-file rename commits (#6903) past the release tag; re-pin to the next release of this module once its rename PR is released."
+      "expect": "v0.7.3-2-gb5391776",
+      "reason": "Pin carries the test-file rename commits after the v0.7.3 release; re-pin to the next tinywallet release containing them."
     },
     {
       "id": "tinymcp",

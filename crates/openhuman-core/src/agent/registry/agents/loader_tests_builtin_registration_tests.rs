@@ -346,7 +346,7 @@ fn master_agent_has_coding_hint_and_named_tools() {
         }
         ToolScope::Wildcard => panic!("orchestrator must have named tool allowlist"),
     }
-    assert_eq!(def.max_iterations, 15);
+    assert_eq!(def.max_iterations, 50);
     assert!(
         !def.omit_memory_context,
         "the user-facing agent opens new sessions with the memory context"

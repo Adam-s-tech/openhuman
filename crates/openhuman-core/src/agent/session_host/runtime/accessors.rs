@@ -269,10 +269,18 @@ impl OpenHumanSessionHost {
     /// transcript, and it inherits its parent's thread id only for
     /// correlation.
     pub fn set_thread_id(&mut self, thread_id: Option<impl AsRef<str>>) {
-        self.thread_id = thread_id.and_then(|thread_id| {
+        let thread_id = thread_id.and_then(|thread_id| {
             let thread_id = thread_id.as_ref().trim();
             (!thread_id.is_empty()).then(|| thread_id.to_owned())
         });
+        // The runtime session caches its prompt and declaration snapshot from
+        // the first turn. Changing identity after that would desynchronize
+        // thread-scoped tools from the cached session state.
+        if self.runtime_session.is_some() && thread_id != self.thread_id {
+            tracing::warn!("cannot change thread id after runtime session initialization");
+            return;
+        }
+        self.thread_id = thread_id;
         self.session = match (&self.thread_id, self.session_parent_prefix.is_some()) {
             (Some(thread_id), false) => Some(tinyagents_session::transcript::SessionRef::scoped(
                 thread_id.clone(),
