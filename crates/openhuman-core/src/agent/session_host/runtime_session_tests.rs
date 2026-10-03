@@ -427,6 +427,7 @@ fn text_dialect_prompt_omits_thread_goal_tools_without_a_thread() {
 #[test]
 fn text_dialect_prompt_lists_thread_goal_tools_on_a_thread() {
     let (prompt, snapshot) = text_dialect_prompt_and_snapshot(Some("thread-goals"));
+    eprintln!("DBG specs={:?}\nPROMPT={prompt}", snapshot.specs().iter().map(|s| s.name.clone()).collect::<Vec<_>>());
     for name in THREAD_GOAL_TOOLS {
         assert!(prompt.contains(name), "{name} missing from the prompt");
         assert!(
