@@ -158,6 +158,22 @@ pub(super) struct MergedHostTurnTools {
     pub withheld: HashSet<String>,
 }
 
+pub(super) fn merge_for_turn(
+    host: Option<&HostTools>,
+    agent_id: &str,
+    session_id: Option<&str>,
+    tools: &mut Vec<Box<dyn Tool>>,
+    visible: &mut HashSet<String>,
+) -> (Option<Arc<dyn ToolPolicy>>, HashSet<String>) {
+    match host
+        .map(|build| build(TurnContext::new(agent_id, session_id)))
+        .map(|host_tools| host_tools.merge_into(agent_id, tools, visible))
+    {
+        Some(merged) => (merged.policy, merged.withheld),
+        None => (None, HashSet::new()),
+    }
+}
+
 impl std::fmt::Debug for HostTurnTools {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HostTurnTools")
