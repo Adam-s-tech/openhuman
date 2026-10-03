@@ -151,7 +151,7 @@ export default function MemoryItemDialog({ id, onClose, onForgotten }: MemoryIte
               </span>
             </div>
             <pre
-              className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md bg-surface-subtle p-3 text-sm text-content"
+              className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md bg-surface-muted p-3 text-sm text-content"
               data-testid="memory-item-text">
               {item.text}
             </pre>
