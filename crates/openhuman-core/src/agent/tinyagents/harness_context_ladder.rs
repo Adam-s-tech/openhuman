@@ -52,6 +52,7 @@ pub(super) fn install_context_ladder(
     model: &str,
     context_window: Option<u64>,
     autocompact_enabled: bool,
+    compaction_trigger_tokens: Option<u64>,
     microcompact_keep_recent: usize,
     summarizer_model: TurnChatModel,
     wrap_up_at_cap: bool,
@@ -86,9 +87,9 @@ pub(super) fn install_context_ladder(
     // estimates) — the `AgentEvent::Compressed` projection only carries the token
     // deltas, so provenance would otherwise be dropped (issue #4249, 03.1 item 6).
     let mut compression_mw: Option<Arc<ContextCompressionMiddleware>> = None;
-    if let Some(window) = context_window.filter(|w| *w > 0) {
-        if autocompact_enabled {
-            let policy = tinyagents_harness::summarization::summarization_policy(window);
+    let compression_policy = compression_policy(context_window, compaction_trigger_tokens);
+    if autocompact_enabled {
+        if let Some(policy) = compression_policy {
             // Wrap the LLM-backed summarizer in a fault-tolerant, per-turn-caching
             // adapter (issue #4461): a summarizer failure must no longer abort the
             // turn (warn + circuit-breaker + deterministic trim instead), and an
@@ -100,13 +101,25 @@ pub(super) fn install_context_ladder(
                 )),
                 &policy,
             );
+            // The summary is a user-role, reference-only checkpoint
+            // (`SummaryPlacement::User`, the crate default): the system prompt
+            // and tool declarations stay byte-stable across a compaction.
             let mw = Arc::new(ContextCompressionMiddleware::with_summarizer(
                 policy,
                 Box::new(summarizer),
             ));
+            // Lifecycle `before_model` runs the threshold compaction; the
+            // model wrap runs the provider-overflow → compact → retry-once
+            // recovery. One instance in both places shares one per-run fold,
+            // so the overflow path extends the threshold path's compaction
+            // instead of compacting from scratch, and a request the threshold
+            // path already compacted is not compacted again on the way in.
             harness.push_middleware(mw.clone());
+            harness.push_model_middleware(mw.clone());
             compression_mw = Some(mw);
         }
+    }
+    if let Some(window) = context_window.filter(|w| *w > 0) {
 
         // Deterministic hard-cap trim (issue #4462). The crate
         // `MessageTrimMiddleware` regressed three legacy `token_budget.rs`
@@ -227,3 +240,39 @@ pub(super) fn install_context_ladder(
 
     (compression_mw, wrap_up_fired)
 }
+
+/// The summarization policy for this turn, or `None` when compaction has
+/// nothing to size against.
+///
+/// Normally 90% of the model's context window. `trigger_override` (the
+/// `[context].compaction_trigger_tokens` / `OPENHUMAN_COMPACTION_TRIGGER_TOKENS`
+/// bench knob) pins the trigger to that absolute token count instead, and
+/// enables compaction even when the window is unknown.
+pub(super) fn compression_policy(
+    context_window: Option<u64>,
+    trigger_override: Option<u64>,
+) -> Option<tinyagents_harness::summarization::SummarizationPolicy> {
+    use tinyagents_harness::summarization::{
+        summarization_policy, SummarizationPolicy, DEFAULT_SUMMARIZE_KEEP_LAST,
+    };
+    let window = context_window.filter(|w| *w > 0);
+    match trigger_override.filter(|t| *t > 0) {
+        Some(tokens) => {
+            tracing::info!(
+                trigger_tokens = tokens,
+                context_window = ?window,
+                "[context_compression] compaction trigger override active"
+            );
+            let base = window.map(summarization_policy).unwrap_or(SummarizationPolicy {
+                keep_last: DEFAULT_SUMMARIZE_KEEP_LAST,
+                ..SummarizationPolicy::default()
+            });
+            Some(base.with_trigger_override(tokens))
+        }
+        None => window.map(summarization_policy),
+    }
+}
+
+#[cfg(test)]
+#[path = "harness_context_ladder_tests.rs"]
+mod tests;
