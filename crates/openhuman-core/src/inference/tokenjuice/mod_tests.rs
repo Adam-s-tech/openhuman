@@ -33,7 +33,7 @@ async fn the_module_defers_a_summary_until_requested() {
     let output = compact_tool_output(ToolOutputCompaction {
         content: content.clone(),
         tool_name: "web_fetch",
-        enabled: false,
+        enabled: true,
         profile: AgentTokenjuiceCompression::Full,
         runtime_config: None,
         arguments: None,
