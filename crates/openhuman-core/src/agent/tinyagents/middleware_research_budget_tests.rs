@@ -32,7 +32,11 @@ fn coding_request() -> ModelRequest {
 }
 
 fn tool_names(request: &ModelRequest) -> Vec<&str> {
-    request.tools.iter().map(|tool| tool.name.as_str()).collect()
+    request
+        .tools
+        .iter()
+        .map(|tool| tool.name.as_str())
+        .collect()
 }
 
 async fn record_reads(
@@ -124,7 +128,10 @@ async fn a_spent_web_budget_keeps_the_non_web_tools() {
         tinyinference_llm::model::ToolChoice::Auto
     );
     let instruction = request.messages.last().unwrap().text();
-    assert_eq!(instruction, research_budget::WEB_BUDGET_EXHAUSTED_INSTRUCTION);
+    assert_eq!(
+        instruction,
+        research_budget::WEB_BUDGET_EXHAUSTED_INSTRUCTION
+    );
     assert!(instruction.contains("remaining tools"));
 
     // Every later request of the turn stays narrowed the same way.
