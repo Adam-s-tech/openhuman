@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 use crate::agent::harness::tool_result_artifacts::{
     legacy_action_dir_store, new_tool_result_store,
 };
+#[cfg(test)]
+use crate::security::policy::tool_result_artifacts_dir;
 use tinyagents_harness::artifacts::tool_results::ToolResultArtifactStore;
 
 /// How long another session's tool-result artifacts survive before a later

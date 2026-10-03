@@ -17,10 +17,7 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     let project = tmp.path().join("project");
     std::fs::create_dir_all(&workspace).unwrap();
     std::fs::create_dir_all(&project).unwrap();
-    let store = new_tool_result_store(
-        workspace.join("artifacts"),
-        "session/one",
-    );
+    let store = new_tool_result_store(workspace.join("artifacts"), "session/one");
     let raw = format!(
         "{} {}",
         "x".repeat(4096),
