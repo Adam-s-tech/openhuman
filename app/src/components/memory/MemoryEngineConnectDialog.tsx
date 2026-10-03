@@ -35,16 +35,19 @@ export default function MemoryEngineConnectDialog({
   const [endpoint, setEndpoint] = useState(currentEndpoint || engine.default_endpoint || '');
   const [apiKey, setApiKey] = useState('');
 
+  // A self-hosted engine always takes an endpoint, even one with a default
+  // (CortexDB defaults to its cloud): otherwise a local server is unreachable.
+  const showEndpoint = engine.needs_endpoint || !engine.hosted;
   const keyRequired = engine.needs_key && !keySaved;
   const canSubmit =
     !saving &&
-    (!engine.needs_endpoint || endpoint.trim().length > 0) &&
+    (!showEndpoint || endpoint.trim().length > 0) &&
     (!keyRequired || apiKey.trim().length > 0);
 
   const submit = async () => {
     if (!canSubmit) return;
     const req: EngineSetRequest = { engine: engine.id };
-    if (engine.needs_endpoint) req.endpoint = endpoint.trim();
+    if (showEndpoint) req.endpoint = endpoint.trim();
     if (apiKey.trim()) req.api_key = apiKey.trim();
     if (await onSubmit(req)) onClose();
   };
@@ -79,7 +82,7 @@ export default function MemoryEngineConnectDialog({
           event.preventDefault();
           void submit();
         }}>
-        {engine.needs_endpoint && (
+        {showEndpoint && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${baseId}-endpoint`} className="text-xs text-content-secondary">
               {t('memoryPage.engine.endpoint')}
