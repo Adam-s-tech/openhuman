@@ -8,7 +8,8 @@ use serde_json::json;
 use tinybus::EventHandler;
 use tokio::sync::Mutex;
 
-static TRIAGE_ENV_GUARD: Mutex<()> = Mutex::new(());
+static TRIAGE_ENV_GUARD: std::sync::LazyLock<Mutex<()>> =
+    std::sync::LazyLock::new(|| Mutex::new(()));
 
 #[tokio::test]
 async fn ignores_non_composio_events() {
