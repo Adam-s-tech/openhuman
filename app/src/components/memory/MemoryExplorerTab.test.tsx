@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ExplorePage, Hit } from '../../services/api/memoryApi';
+import type { ExplorePage, Facet, Hit } from '../../services/api/memoryApi';
 import { renderWithProviders } from '../../test/test-utils';
 import MemoryExplorerTab from './MemoryExplorerTab';
 import { facetValueLabel, nextFacet } from './memoryFacetLabels';
@@ -201,9 +201,8 @@ describe('explorer helpers', () => {
   it('suggests the next unused facet, falling back past the drill order', () => {
     expect(nextFacet([], ['kind'])).toBe('kind');
     expect(nextFacet([{ facet: 'kind', value: 'document' }], ['kind'])).toBe('source');
-    const drilled = ['kind', 'source', 'source_id', 'folder', 'file_path', 'thread', 'tag'].map(
-      facet => ({ facet, value: 'x' }) as const
-    );
+    const order: Facet[] = ['kind', 'source', 'source_id', 'folder', 'file_path', 'thread', 'tag'];
+    const drilled = order.map(facet => ({ facet, value: 'x' }));
     expect(nextFacet(drilled, ['kind', 'workspace'])).toBe('workspace');
   });
 
