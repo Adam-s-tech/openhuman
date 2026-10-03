@@ -44,13 +44,18 @@ async fn the_module_defers_a_summary_until_requested() {
     .await;
 
     assert_eq!(output.summarized_from_bytes, None);
-    assert!(!output.text.contains("the rate limit is 60 requests a minute"));
+    assert!(!output
+        .text
+        .contains("the rate limit is 60 requests a minute"));
     assert!(
         output.text.contains(RETRIEVE_TOOL_NAME),
         "the original stays retrievable: {}",
         output.text
     );
-    assert!(seen.lock().unwrap().is_none(), "ingest called the summary model");
+    assert!(
+        seen.lock().unwrap().is_none(),
+        "ingest called the summary model"
+    );
 }
 
 /// A result that was registered for a summary and never reached the module
