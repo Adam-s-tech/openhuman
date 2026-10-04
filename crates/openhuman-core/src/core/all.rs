@@ -906,18 +906,12 @@ fn build_internal_only_controllers() -> Vec<GroupedController> {
     controllers
 }
 
-/// Returns a vector of all currently registered controllers.
-///
-/// Filtered by the ambient [`crate::core::runtime::DomainSet`] (#4796): a
-/// controller whose [`DomainGroup`] is disabled under the active context is
-/// omitted. With no active context, or under `DomainSet::full()`, this returns
-/// the complete set (byte-identical to pre-#4796).
+/// Returns registered controllers filtered by the ambient [`crate::core::runtime::DomainSet`].
 pub fn all_registered_controllers() -> Vec<RegisteredController> {
     let view = registry_view();
     registered_controllers(&view)
 }
 
-/// Apply the ambient domain filter to a stable registry snapshot.
 fn registered_controllers(view: &RegistryView) -> Vec<RegisteredController> {
     let found = view
         .iter()
