@@ -4,7 +4,7 @@
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 /// Every function of the namespace, in spec order.
-pub const FUNCTIONS: [&str; 30] = [
+pub const FUNCTIONS: [&str; 29] = [
     "engines_list",
     "engine_get",
     "engine_set",
@@ -34,7 +34,6 @@ pub const FUNCTIONS: [&str; 30] = [
     "import_scan",
     "import_start",
     "import_status",
-    "status",
 ];
 
 fn field(name: &'static str, ty: TypeSchema, comment: &'static str, required: bool) -> FieldSchema {
@@ -361,13 +360,6 @@ pub fn schema(function: &str) -> ControllerSchema {
             description: "Progress of the v1 import.",
             inputs: vec![],
             outputs: out("{state: ImportState}"),
-        },
-        "status" => ControllerSchema {
-            namespace: "memory",
-            function: "status",
-            description: "Whether memory is on, with what engine, and what the lifecycle is doing: the policy, pending jobs and the last run.",
-            inputs: vec![],
-            outputs: out("{on, engine?, reason?, policy, pending_jobs, last_run?}"),
         },
         _ => ControllerSchema {
             namespace: "memory",

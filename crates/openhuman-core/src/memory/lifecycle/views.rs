@@ -165,8 +165,8 @@ pub async fn pack_preview(config: &Config, params: PackPreviewParams) -> MemoryR
     };
     tracing::debug!(mode, tokens = pack.tokens, "[memory:views] pack preview");
     Ok(PackPreviewView {
-        agent_id: identity.agent_id,
         root: identity.root().to_string(),
+        agent_id: identity.agent_id,
         mode,
         pack,
     })
