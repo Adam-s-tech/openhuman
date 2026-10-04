@@ -1,4 +1,5 @@
 //! Resolve every admitted media source on a disposable provider request.
+use super::super::{is_missing_local_reference, SOURCE_MISSING_MARKER};
 use super::AttachmentAccessScope;
 use super::*;
 use sha2::{Digest, Sha256};
@@ -37,6 +38,11 @@ impl AttachmentModel {
             ));
         }
         if is_local {
+            if is_missing_local_reference(&self.config, &source, scope).await {
+                return Err(tinyinference_llm::Error::Model(format!(
+                    "{SOURCE_MISSING_MARKER} local attachment source is missing"
+                )));
+            }
             // Old transcripts can point into the private host image stash.
             // Publish only its validated managed originals into the acting
             // workspace, and retain that stable path for metadata and caches.
@@ -45,6 +51,11 @@ impl AttachmentModel {
                 .map_err(|e| tinyinference_llm::Error::Model(e.to_string()))?;
             let recovered = migrated.is_some();
             let source = migrated.unwrap_or(source);
+            if is_missing_local_reference(&self.config, &source, scope).await {
+                return Err(tinyinference_llm::Error::Model(format!(
+                    "{SOURCE_MISSING_MARKER} local attachment source is missing"
+                )));
+            }
             let bytes = self.read(&source, modality, scope).await?;
             return Ok(Some((
                 modality,

@@ -1,8 +1,8 @@
 use super::*;
 use std::sync::Mutex;
 #[derive(Default)]
-struct Probe {
-    requests: Mutex<Vec<ModelRequest>>,
+pub(super) struct Probe {
+    pub(super) requests: Mutex<Vec<ModelRequest>>,
     profile: ModelProfile,
 }
 #[async_trait]
@@ -60,6 +60,8 @@ async fn local_native_resolution_changes_only_ephemeral_request() {
         b"original-png"
     );
 }
+
+#[cfg(unix)]
 #[tokio::test]
 async fn blocked_attachment_fails_before_model_call() {
     let mut config = Config::default();

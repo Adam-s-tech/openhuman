@@ -92,16 +92,23 @@ pub(crate) async fn run_channel_turn_via_graph(
     // Keep originals and durable references in every entry path. Resolution
     // into provider bytes belongs to the model decorator, after snapshots.
     let mut attachment_workspace = None;
+    let mut attachment_config = None;
     for row in history.iter_mut().filter(|row| row.role == "user") {
         if row.content.contains("[FILE:") || row.content.contains("[IMAGE:") {
             if multimodal_files.max_files == 0 {
                 anyhow::bail!("attachments are disabled for this channel input");
             }
-            let mut config = crate::config::rpc::load_config_with_timeout()
-                .await
-                .map_err(anyhow::Error::msg)?;
-            config.multimodal = multimodal.clone();
-            config.multimodal_files = multimodal_files.clone();
+            if attachment_config.is_none() {
+                let mut config = crate::config::rpc::load_config_with_timeout()
+                    .await
+                    .map_err(anyhow::Error::msg)?;
+                config.multimodal = multimodal.clone();
+                config.multimodal_files = multimodal_files.clone();
+                attachment_config = Some(config);
+            }
+            let config = attachment_config
+                .as_ref()
+                .expect("config loaded for a marker-bearing history row");
             let workspace = Some(config.action_dir.clone());
             attachment_workspace = workspace.clone();
             let scope = crate::agent::attachments::AttachmentAccessScope {

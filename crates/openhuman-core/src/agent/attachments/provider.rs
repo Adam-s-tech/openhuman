@@ -90,6 +90,26 @@ struct AttachmentModel {
     profile: ModelProfile,
     fallback_cache: std::sync::Mutex<std::collections::HashMap<String, String>>,
 }
+
+const MAX_HISTORICAL_MEDIA_BLOCKS: usize = 8;
+
+fn is_media_block(block: &ContentBlock) -> bool {
+    matches!(
+        block,
+        ContentBlock::Image(_)
+            | ContentBlock::Audio(_)
+            | ContentBlock::Video(_)
+            | ContentBlock::Document(_)
+    )
+}
+
+fn recoverable_historical_media_error(error: &tinyinference_llm::Error) -> bool {
+    let error = error.to_string();
+    error.contains(super::SOURCE_MISSING_MARKER)
+        || error.contains("attachments are disabled for this origin")
+        || error.contains("remote attachment fetch is disabled")
+}
+
 impl AttachmentModel {
     fn native(&self, modality: InputModality, mime: &str) -> bool {
         let known = match modality {
@@ -129,8 +149,21 @@ impl AttachmentModel {
         } else {
             file_mb
         };
-        let metadata = tokio::fs::metadata(&path)
+        let root = tokio::fs::canonicalize(super::action_root(&self.config, scope))
             .await
+            .map_err(|error| tinyinference_llm::Error::Model(error.to_string()))?;
+        let file = secure_open(&path, &root).map_err(|error| {
+            if error.kind() == std::io::ErrorKind::NotFound {
+                tinyinference_llm::Error::Model(format!(
+                    "{} local attachment source disappeared",
+                    super::SOURCE_MISSING_MARKER
+                ))
+            } else {
+                tinyinference_llm::Error::Model(error.to_string())
+            }
+        })?;
+        let metadata = file
+            .metadata()
             .map_err(|e| tinyinference_llm::Error::Model(e.to_string()))?;
         if !metadata.is_file() || metadata.len() > (mb * 1024 * 1024) as u64 {
             return Err(tinyinference_llm::Error::Model(
@@ -138,9 +171,7 @@ impl AttachmentModel {
             ));
         }
         use tokio::io::AsyncReadExt;
-        let file = tokio::fs::File::open(path)
-            .await
-            .map_err(|e| tinyinference_llm::Error::Model(e.to_string()))?;
+        let file = tokio::fs::File::from_std(file);
         let mut bytes = Vec::new();
         file.take((mb * 1024 * 1024 + 1) as u64)
             .read_to_end(&mut bytes)
@@ -187,15 +218,66 @@ impl AttachmentModel {
                 ));
             }
         }
-        for message in &mut request.messages {
+        let latest_user_message = request
+            .messages
+            .iter()
+            .rposition(|message| matches!(message, Message::User(_)));
+        let mut historical_media_to_resolve = std::collections::HashSet::new();
+        let mut remaining_historical = MAX_HISTORICAL_MEDIA_BLOCKS;
+        for (message_index, message) in request.messages.iter().enumerate().rev() {
+            if Some(message_index) == latest_user_message {
+                continue;
+            }
+            let Message::User(user) = message else {
+                continue;
+            };
+            for (block_index, block) in user.content.iter().enumerate().rev() {
+                if is_media_block(block) && remaining_historical > 0 {
+                    historical_media_to_resolve.insert((message_index, block_index));
+                    remaining_historical -= 1;
+                }
+            }
+        }
+        if scope.external_channel
+            && request.messages.iter().any(|message| {
+                matches!(message, Message::User(user) if user.content.iter().any(is_media_block))
+            })
+        {
+            return Err(tinyinference_llm::Error::Model(
+                "attachment resolution is disabled for external channel input".into(),
+            ));
+        }
+        for (message_index, message) in request.messages.iter_mut().enumerate() {
             let Message::User(user) = message else {
                 continue;
             };
             let mut out = Vec::new();
-            for block in std::mem::take(&mut user.content) {
-                let Some((modality, path, mut mime, bytes, recovered)) =
-                    self.resolve_block(&block, &scope).await?
-                else {
+            for (block_index, block) in std::mem::take(&mut user.content).into_iter().enumerate() {
+                if Some(message_index) != latest_user_message
+                    && is_media_block(&block)
+                    && !historical_media_to_resolve.contains(&(message_index, block_index))
+                {
+                    let hint = historical_source_hint(&block, &scope);
+                    out.push(ContentBlock::Text(format!(
+                        "[Earlier attachment omitted by history budget; workspace path: {hint}]"
+                    )));
+                    continue;
+                }
+                let resolved = match self.resolve_block(&block, &scope).await {
+                    Ok(resolved) => resolved,
+                    Err(error)
+                        if Some(message_index) != latest_user_message
+                            && recoverable_historical_media_error(&error) =>
+                    {
+                        let hint = historical_source_hint(&block, &scope);
+                        out.push(ContentBlock::Text(format!(
+                            "[Earlier attachment unavailable or omitted at workspace path: {hint}]"
+                        )));
+                        continue;
+                    }
+                    Err(error) => return Err(error),
+                };
+                let Some((modality, path, mut mime, bytes, recovered)) = resolved else {
                     out.push(block);
                     continue;
                 };
@@ -281,6 +363,48 @@ impl AttachmentModel {
         Ok(request)
     }
 }
+
+fn historical_source_hint(block: &ContentBlock, scope: &AttachmentAccessScope) -> String {
+    let source = match block {
+        ContentBlock::Image(image) if is_local_reference(&image.url) => &image.url,
+        ContentBlock::Audio(MediaRef::Path { path, .. })
+        | ContentBlock::Video(MediaRef::Path { path, .. })
+        | ContentBlock::Document(MediaRef::Path { path, .. }) => path,
+        _ => return "remote or inline media omitted".into(),
+    };
+    let path = std::path::Path::new(source);
+    let source = if path.is_absolute() {
+        let root = scope.workspace.as_deref();
+        root.and_then(|root| {
+            path.strip_prefix(root)
+                .ok()
+                .map(std::path::Path::to_path_buf)
+        })
+        .or_else(|| path.file_name().map(std::path::PathBuf::from))
+        .unwrap_or_default()
+        .to_string_lossy()
+        .into_owned()
+    } else {
+        source.to_owned()
+    };
+    source.chars().take(180).collect()
+}
+
+fn is_local_reference(source: &str) -> bool {
+    let bytes = source.as_bytes();
+    let windows_drive_path = bytes.len() >= 3
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && matches!(bytes[2], b'/' | b'\\');
+    windows_drive_path || url::Url::parse(source).is_err()
+}
+
+#[path = "provider_open.rs"]
+mod open;
+#[cfg(any(test, windows))]
+use open::normalize_windows_path_for_comparison;
+use open::secure_open;
+
 #[async_trait]
 impl ChatModel<()> for AttachmentModel {
     fn profile(&self) -> Option<&ModelProfile> {
@@ -319,5 +443,13 @@ mod source;
 mod tests;
 
 #[cfg(test)]
+#[path = "provider_history_tests.rs"]
+mod history_tests;
+
+#[cfg(test)]
 #[path = "provider_routing_tests.rs"]
 mod routing_tests;
+
+#[cfg(test)]
+#[path = "provider_security_tests.rs"]
+mod security_tests;

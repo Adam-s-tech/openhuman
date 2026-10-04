@@ -152,16 +152,18 @@ pub async fn message_append(
     request: AppendConversationMessageRequest,
 ) -> Result<Outcome<ApiEnvelope<ConversationMessageRecord>>, ThreadsError> {
     let origin = crate::core::runtime::CoreContext::current_turn_origin();
-    let config = crate::config::Config::load_or_init()
+    let config = crate::config::rpc::load_config_with_timeout()
         .await
         .map_err(|error| ThreadsError::Message(format!("load config: {error}")))?;
-    message_append_with_config(request, &config, origin.as_ref()).await
+    let persistence_dir = workspace_dir().await.map_err(ThreadsError::Message)?;
+    message_append_with_config(request, &config, origin.as_ref(), &persistence_dir).await
 }
 
 async fn message_append_with_config(
     mut request: AppendConversationMessageRequest,
     config: &crate::config::Config,
     origin: Option<&crate::agent::turn_origin::AgentTurnOrigin>,
+    persistence_dir: &std::path::Path,
 ) -> Result<Outcome<ApiEnvelope<ConversationMessageRecord>>, ThreadsError> {
     if request.message.sender == "user" {
         let raw_upload = request.message.content.contains("[IMAGE:")
@@ -261,9 +263,8 @@ async fn message_append_with_config(
             }
         }
     }
-    let dir = config.workspace_dir.clone();
     let message = conversations::blocking::append_message(
-        dir,
+        persistence_dir.to_path_buf(),
         request.thread_id.clone(),
         record_to_message(request.message),
     )

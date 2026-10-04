@@ -22,6 +22,14 @@ async fn setup() -> (tempfile::TempDir, crate::config::Config) {
     (temp, config)
 }
 
+async fn append_with_test_config(
+    request: AppendConversationMessageRequest,
+    config: &crate::config::Config,
+    origin: Option<&crate::agent::turn_origin::AgentTurnOrigin>,
+) -> Result<Outcome<ApiEnvelope<ConversationMessageRecord>>, ThreadsError> {
+    message_append_with_config(request, config, origin, &config.workspace_dir).await
+}
+
 fn request(id: &str, content: &str, sender: &str) -> AppendConversationMessageRequest {
     AppendConversationMessageRequest {
         thread_id: "uploads".into(),
@@ -42,7 +50,7 @@ fn request(id: &str, content: &str, sender: &str) -> AppendConversationMessageRe
 #[tokio::test]
 async fn user_append_stages_original_strips_upload_bytes_and_reuses_returned_content() {
     let (_temp, config) = setup().await;
-    let first = message_append_with_config(
+    let first = append_with_test_config(
         request(
             "one",
             "look [IMAGE:data:image/png;base64,iVBORw0KGgo=]",
@@ -74,7 +82,7 @@ async fn user_append_stages_original_strips_upload_bytes_and_reuses_returned_con
     );
     assert_eq!(first.extra_metadata["attachmentKinds"], json!(["image"]));
     assert_eq!(first.extra_metadata["other"], "kept");
-    let second = message_append_with_config(request("two", &first.content, "user"), &config, None)
+    let second = append_with_test_config(request("two", &first.content, "user"), &config, None)
         .await
         .unwrap()
         .value
@@ -105,7 +113,7 @@ async fn user_append_stages_original_strips_upload_bytes_and_reuses_returned_con
 async fn rejected_upload_never_appends_a_message() {
     let (_temp, mut config) = setup().await;
     config.multimodal_files.max_files = 0;
-    assert!(message_append_with_config(
+    assert!(append_with_test_config(
         request(
             "disabled",
             "[IMAGE:data:image/png;base64,iVBORw0KGgo=]",
@@ -117,7 +125,7 @@ async fn rejected_upload_never_appends_a_message() {
     .await
     .is_err());
     config.multimodal_files.max_files = 3;
-    assert!(message_append_with_config(
+    assert!(append_with_test_config(
         request("bad", "[FILE:data:application/zip;base64,!]", "user"),
         &config,
         None,
@@ -125,7 +133,7 @@ async fn rejected_upload_never_appends_a_message() {
     .await
     .is_err());
     assert!(
-        message_append_with_config(request("missing", "image.png", "user"), &config, None)
+        append_with_test_config(request("missing", "image.png", "user"), &config, None)
             .await
             .is_err()
     );
@@ -155,13 +163,11 @@ async fn external_origin_cannot_reuse_an_existing_attachment_marker() {
         reply_target: "room".into(),
         message_id: "message".into(),
     };
-    assert!(message_append_with_config(
-        request("external", &staged, "user"),
-        &config,
-        Some(&origin)
-    )
-    .await
-    .is_err());
+    assert!(
+        append_with_test_config(request("external", &staged, "user"), &config, Some(&origin))
+            .await
+            .is_err()
+    );
     assert!(
         conversations::blocking::get_messages(config.workspace_dir, "uploads".into())
             .await
@@ -175,7 +181,7 @@ async fn ordinary_user_text_and_agent_images_are_preserved() {
     let (_temp, config) = setup().await;
     let mut user = request("text", "ordinary text", "user");
     user.message.extra_metadata = json!({"other":"kept"});
-    let stored = message_append_with_config(user, &config, None)
+    let stored = append_with_test_config(user, &config, None)
         .await
         .unwrap()
         .value
@@ -189,13 +195,52 @@ async fn ordinary_user_text_and_agent_images_are_preserved() {
         "assistant",
     );
     let expected = serde_json::to_value(&assistant.message).unwrap();
-    let stored = message_append_with_config(assistant, &config, None)
+    let stored = append_with_test_config(assistant, &config, None)
         .await
         .unwrap()
         .value
         .data
         .unwrap();
     assert_eq!(serde_json::to_value(stored).unwrap(), expected);
+}
+
+#[tokio::test]
+async fn append_uses_host_persistence_workspace_separate_from_rpc_config() {
+    let (temp, config) = setup().await;
+    let persistence_dir = temp.path().join("host-thread-store");
+    conversations::blocking::ensure_thread(
+        persistence_dir.clone(),
+        conversations::CreateConversationThread {
+            id: "uploads".into(),
+            title: "Host thread store".into(),
+            created_at: "2026-10-04T00:00:00Z".into(),
+            parent_thread_id: None,
+            labels: None,
+            personality_id: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    message_append_with_config(
+        request("host-store", "saved in host workspace", "assistant"),
+        &config,
+        None,
+        &persistence_dir,
+    )
+    .await
+    .unwrap();
+
+    let persisted = conversations::blocking::get_messages(persistence_dir, "uploads".into())
+        .await
+        .unwrap();
+    assert_eq!(persisted.len(), 1);
+    assert!(
+        conversations::blocking::get_messages(config.workspace_dir, "uploads".into())
+            .await
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[tokio::test]
@@ -206,7 +251,7 @@ async fn poster_only_user_metadata_is_rejected_before_persistence() {
         "attachmentNames": ["video.mp4"],
         "attachmentPosters": ["data:image/png;base64,iVBORw0KGgo="]
     });
-    assert!(message_append_with_config(upload, &config, None)
+    assert!(append_with_test_config(upload, &config, None)
         .await
         .is_err());
     assert!(

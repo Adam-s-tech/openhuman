@@ -260,6 +260,9 @@ async fn repeated_names_do_not_overwrite_and_escape_names_are_sanitized() {
     assert_ne!(a.path, b.path);
     assert_eq!(a.name, "../../same.zip");
     assert_eq!(Path::new(&a.path).file_name().unwrap(), "same.zip");
+    let unicode_name = filename(&"界".repeat(100));
+    assert!(unicode_name.len() <= 180);
+    assert!(unicode_name.len() >= 177);
     assert!(safe_relative_path(&a.path));
     assert_eq!(
         tokio::fs::read(config.action_dir.join(a.path))

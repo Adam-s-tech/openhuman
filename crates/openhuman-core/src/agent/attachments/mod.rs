@@ -24,6 +24,7 @@ pub(crate) struct AttachmentAccessScope {
 }
 
 const REQUEST_SCOPE_KEY: &str = "__openhuman_attachment_access_scope";
+pub(super) const SOURCE_MISSING_MARKER: &str = "[attachment-source-missing]";
 
 pub(crate) fn attach_request_scope(
     request: &mut tinyinference_llm::model::ModelRequest,
@@ -182,19 +183,42 @@ pub(crate) async fn resolve_path(
         .map_err(anyhow::Error::msg)
 }
 
+pub(super) async fn is_missing_local_reference(
+    config: &Config,
+    reference: &str,
+    scope: &AttachmentAccessScope,
+) -> bool {
+    let root = action_root(config, scope);
+    let path_policy = policy(config, &root);
+    if !path_policy.is_path_string_allowed(reference) {
+        return false;
+    }
+    let requested = Path::new(reference);
+    let path = if requested.is_absolute() {
+        requested.to_path_buf()
+    } else {
+        root.join(requested)
+    };
+    matches!(
+        tokio::fs::symlink_metadata(path).await,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound
+    )
+}
+
 fn filename(name: &str) -> String {
     let leaf = name.rsplit(['/', '\\']).next().unwrap_or("attachment");
-    let sanitized: String = leaf
-        .chars()
-        .take(180)
-        .map(|c| {
-            if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect();
+    let mut sanitized = String::new();
+    for c in leaf.chars() {
+        let c = if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') {
+            c
+        } else {
+            '_'
+        };
+        if sanitized.len() + c.len_utf8() > 180 {
+            break;
+        }
+        sanitized.push(c);
+    }
     if sanitized.is_empty() || sanitized == "." || sanitized == ".." {
         "attachment".into()
     } else {
