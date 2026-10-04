@@ -77,9 +77,7 @@ describe('MemoryBackgroundTab', () => {
     renderWithProviders(<MemoryBackgroundTab />);
     fireEvent.click(await screen.findByTestId('memory-jobs-run-all'));
     await waitFor(() => expect(hoisted.run).toHaveBeenCalledWith(undefined));
-    expect(await screen.findByTestId('memory-background-notice')).toHaveTextContent(
-      'Ran 2 jobs.'
-    );
+    expect(await screen.findByTestId('memory-background-notice')).toHaveTextContent('Ran 2 jobs.');
     expect(hoisted.list).toHaveBeenCalledTimes(2);
   });
 

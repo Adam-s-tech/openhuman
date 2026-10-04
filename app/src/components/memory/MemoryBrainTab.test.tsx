@@ -168,13 +168,9 @@ describe('MemoryBrainTab', () => {
     hoisted.ingest.mockRejectedValue(new Error('INVALID_REQUEST: unreadable'));
     renderWithProviders(<MemoryBrainTab />);
     fireEvent.click(await screen.findByTestId('memory-brain-add'));
-    fireEvent.change(screen.getByTestId('memory-brain-ingest-text'), {
-      target: { value: 'x' },
-    });
+    fireEvent.change(screen.getByTestId('memory-brain-ingest-text'), { target: { value: 'x' } });
     fireEvent.click(screen.getByTestId('memory-brain-ingest-submit'));
-    expect(await screen.findByTestId('memory-brain-ingest-error')).toHaveTextContent(
-      'unreadable'
-    );
+    expect(await screen.findByTestId('memory-brain-ingest-error')).toHaveTextContent('unreadable');
     expect(screen.getByTestId('memory-brain-ingest')).toBeInTheDocument();
   });
 
