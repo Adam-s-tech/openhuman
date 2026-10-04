@@ -191,6 +191,7 @@ impl SessionHostBuilder {
             }
         }
         visible_names.extend(self.permanent_tool_names.iter().cloned());
+        eprintln!("BUILDER visible={visible_names:?} permanent={:?}", self.permanent_tool_names);
         deferred_names.retain(|name| !self.permanent_tool_names.contains(name));
         // What the policy classifies and the harness registers: the advertised
         // set plus the deferred set. A deferred tool outside this union would
