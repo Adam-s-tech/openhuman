@@ -125,8 +125,84 @@ fn check_is_a_harness_instruction_that_names_the_spec_rules() {
     let check = check_message();
     assert!(check.starts_with("<harness_instruction>"));
     assert!(check.contains(CHECK_MARKER));
-    for needle in ["original request", "literal rule", "derived from the spec"] {
+    for needle in [
+        "original request",
+        "literal rule",
+        "derived from the request",
+        "individual requirements",
+        "prohibited case",
+        "case in parentheses",
+        "exact examples, inputs and conditions",
+        "complete outcome",
+        "expected errors and side effects",
+        "check both readings",
+        "equivalent paths or workflows",
+        "outcomes, notifications and state changes",
+        "re-run the affected checks",
+    ] {
         assert!(check.contains(needle), "check must mention `{needle}`");
+    }
+    assert!(
+        !check.contains("coding task"),
+        "the check applies to any task"
+    );
+}
+
+/// #6990: the installed policy sends the same requirements check with coding
+/// and reporting requests, permits corrective tool calls, then accepts the
+/// new answer without injecting a second check.
+#[tokio::test]
+async fn requirements_check_allows_a_fix_for_different_tasks() {
+    for task in [
+        "Reject variadic defaults with the exact error 'invalid default argument declaration'.",
+        "Report all active projects (including paused projects), and exclude archived projects.",
+    ] {
+        let mut responses: Vec<_> = (0..MIN_TOOL_ROUNDS)
+            .map(|i| tool_round(&format!("c{i}"), "lookup"))
+            .collect();
+        responses.extend([
+            ModelResponse::assistant("draft: my checks passed".to_string()),
+            tool_round("fix", "lookup"),
+            ModelResponse::assistant("fixed and checked against the requirements".to_string()),
+            ModelResponse::assistant("must not be reached".to_string()),
+        ]);
+        let model = Arc::new(ScriptedModel::new(responses));
+        let mut harness: AgentHarness<()> = AgentHarness::new();
+        harness.register_model("mock", model.clone());
+        harness.register_tool(Arc::new(FakeTool::returning("lookup", "ok")));
+        harness.with_policy(RunPolicy {
+            limits: RunLimits::default().with_max_model_calls(50),
+            ..RunPolicy::default()
+        });
+        install(&mut harness, false, Some("orchestrator"), &None);
+
+        let run = harness
+            .invoke_default(&(), vec![Message::user(task)])
+            .await
+            .expect("task run succeeds");
+        assert_eq!(
+            run.text().as_deref(),
+            Some("fixed and checked against the requirements")
+        );
+        assert_eq!(run.model_calls, MIN_TOOL_ROUNDS + 3);
+        let requests = model.requests();
+        let verification = &requests[MIN_TOOL_ROUNDS + 1];
+        assert_eq!(
+            verification.messages.first().map(Message::text).as_deref(),
+            Some(task)
+        );
+        assert_eq!(
+            verification.messages.last().map(Message::text),
+            Some(check_message())
+        );
+        assert_eq!(
+            run.messages
+                .iter()
+                .filter(|message| message.text() == check_message())
+                .count(),
+            1,
+            "corrective tool calls must not reset the check"
+        );
     }
 }
 
