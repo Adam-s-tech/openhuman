@@ -257,13 +257,13 @@ async fn store_all_skips_a_bad_item_but_fails_when_nothing_stored() {
         tinymemory::MemoryMeta::default(),
     );
     assert_eq!(
-        store_all(&bound, vec![bad.clone(), good], "src")
+        store_all(&bound, vec![bad.clone(), good], "src", &tinymemory::Namespace::ROOT)
             .await
             .unwrap(),
         1
     );
-    assert!(store_all(&bound, vec![bad], "src").await.is_err());
-    assert_eq!(store_all(&bound, Vec::new(), "src").await.unwrap(), 0);
+    assert!(store_all(&bound, vec![bad], "src", &tinymemory::Namespace::ROOT).await.is_err());
+    assert_eq!(store_all(&bound, Vec::new(), "src", &tinymemory::Namespace::ROOT).await.unwrap(), 0);
 }
 
 #[test]

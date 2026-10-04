@@ -1,4 +1,5 @@
 use super::*;
+use tinymemory::Namespace;
 use crate::config::schema::MemorySourceKind;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use tinymemory::{ItemKind, MetaFilter};
@@ -78,7 +79,7 @@ async fn store_records_stores_the_non_empty_ones() {
         record("2", "Empty", " "),
         record("3", "Three", "third record"),
     ];
-    let stored_count = store_records(&bound, "notion", "conn-1", "src-n", &records)
+    let stored_count = store_records(&bound, "notion", "conn-1", "src-n", &Namespace::ROOT, &records)
         .await
         .unwrap();
     assert_eq!(stored_count, 2);
@@ -103,7 +104,7 @@ async fn store_records_with_nothing_to_store_is_zero() {
     bind_reference(&config);
     let bound = crate::memory::engine::resolve(&config).engine().unwrap();
     assert_eq!(
-        store_records(&bound, "notion", "c", "s", &[])
+        store_records(&bound, "notion", "c", "s", &Namespace::ROOT, &[])
             .await
             .unwrap(),
         0
@@ -152,6 +153,7 @@ async fn forget_connection_removes_only_that_connections_items() {
         "gmail",
         "conn-a",
         "src",
+        &Namespace::ROOT,
         &[record("1", "A", "from a")],
     )
     .await
@@ -161,6 +163,7 @@ async fn forget_connection_removes_only_that_connections_items() {
         "gmail",
         "conn-b",
         "src",
+        &Namespace::ROOT,
         &[record("2", "B", "from b")],
     )
     .await
