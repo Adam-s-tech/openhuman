@@ -160,7 +160,7 @@ pub(super) async fn enforce_retention_cap(
         .take(excess)
         .map(|hit| hit.id.0)
         .collect();
-    let view = crate::memory::ops::forget(config, ForgetParams { ids }).await?;
+    let view = crate::memory::ops::forget(config, ForgetParams { ids, reach: None }).await?;
     Ok(view.forgotten)
 }
 

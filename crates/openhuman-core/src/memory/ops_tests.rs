@@ -53,6 +53,7 @@ async fn every_engine_operation_reports_memory_off_without_an_engine() {
         &config,
         ForgetParams {
             ids: vec!["a".into()],
+            reach: None,
         },
     )
     .await
@@ -135,6 +136,7 @@ async fn learn_recall_fetch_list_and_forget_round_trip() {
         &config,
         ForgetParams {
             ids: vec![learned.id.clone(), "  ".into()],
+            reach: None,
         },
     )
     .await
@@ -152,6 +154,7 @@ async fn forget_needs_an_id() {
         &config,
         ForgetParams {
             ids: vec![" ".into()],
+            reach: None,
         },
     )
     .await

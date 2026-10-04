@@ -137,6 +137,7 @@ async fn items_get_reads_items_whole_in_the_order_asked() {
         &config,
         ItemsGetParams {
             ids: vec![ids[3].clone(), "nope".into(), ids[0].clone()],
+            reach: None,
         },
     )
     .await
@@ -163,6 +164,7 @@ async fn bad_requests_are_invalid_and_memory_off_is_reported() {
             &config,
             ItemsGetParams {
                 ids: vec!["x".into()]
+                reach: None,
             }
         )
         .await
@@ -192,7 +194,7 @@ async fn bad_requests_are_invalid_and_memory_off_is_reported() {
         );
     }
     assert_eq!(
-        items_get(&config, ItemsGetParams { ids: Vec::new() })
+        items_get(&config, ItemsGetParams { ids: Vec::new(), reach: None })
             .await
             .unwrap_err()
             .code(),
