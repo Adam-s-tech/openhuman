@@ -92,6 +92,9 @@ impl OpenHumanTurnPrelude {
         if self.omit_memory_context {
             identity.recall = false;
         }
+        if config.memory.conversations.enabled {
+            crate::memory::channels::record(&config.workspace_dir, &self.event_channel, &thread_id);
+        }
         let user_index = hooks::user_turn_index(committed_turns);
         let (in_prompt_from, compacted) = in_prompt_window(history, committed_turns, current);
         self.mutable
