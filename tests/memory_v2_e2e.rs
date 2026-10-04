@@ -1288,16 +1288,21 @@ async fn a_chat_turn_carries_its_pack_and_is_logged() {
     })
     .await;
 
-    // The pack is ephemeral: the stored thread holds only what was said.
-    let messages = f
+    // The pack is ephemeral: the committed transcript holds only what was
+    // said (the reply is logged after the durable commit, so it exists).
+    let transcript = f
         .ok(
-            "openhuman.threads_messages",
+            "openhuman.threads_transcript_get",
             json!({ "thread_id": "launch-thread" }),
         )
         .await;
     assert!(
-        !messages.to_string().contains("memory-context"),
-        "the pack never reaches the transcript: {messages}"
+        transcript.to_string().contains("Where should the launch event be held?"),
+        "the turn was committed: {transcript}"
+    );
+    assert!(
+        !transcript.to_string().contains("memory-context"),
+        "the pack never reaches the transcript: {transcript}"
     );
 }
 
