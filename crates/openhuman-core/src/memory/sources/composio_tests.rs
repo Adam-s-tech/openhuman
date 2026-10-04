@@ -1,8 +1,8 @@
 use super::*;
 use crate::config::schema::MemorySourceKind;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
-use tinymemory::Namespace;
-use tinymemory::{ItemKind, MetaFilter};
+use tinymemory_api::Namespace;
+use tinymemory_api::{ItemKind, MetaFilter};
 
 fn record(id: &str, title: &str, content: &str) -> ConnectorRecord {
     ConnectorRecord {

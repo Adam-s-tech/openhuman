@@ -1,7 +1,7 @@
 use super::*;
 
 use chrono::Utc;
-use tinymemory::{ItemKind, MetaFilter};
+use tinymemory_api::{ItemKind, MetaFilter};
 
 use crate::memory::conversations::{self, buffer::CommittedTurn};
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
@@ -10,7 +10,7 @@ fn turn(thread_id: &str) -> CommittedTurn {
     CommittedTurn {
         thread_id: thread_id.to_string(),
         agent_id: Some("orchestrator".into()),
-        namespace: tinymemory::Namespace::ROOT,
+        namespace: tinymemory_api::Namespace::ROOT,
         workspace: None,
         channel: None,
         user: "hello".into(),

@@ -2,7 +2,7 @@ use super::*;
 use crate::memory::ops::learn;
 use crate::memory::test_fixtures::{bind_reference, config_in};
 use crate::memory::types::LearnParams;
-use tinymemory::LearningKind;
+use tinymemory_api::LearningKind;
 
 fn params(text: &str, kind: LearningKind) -> LearnParams {
     LearnParams {
@@ -163,11 +163,11 @@ fn spec_for_never_goes_below_the_minimum_budget() {
     assert_eq!(spec_for(&config).budget_tokens, MIN_BUDGET_TOKENS as usize);
 }
 
-fn as_agent(agent: &str) -> tinymemory::MemoryMeta {
-    tinymemory::MemoryMeta {
+fn as_agent(agent: &str) -> tinymemory_api::MemoryMeta {
+    tinymemory_api::MemoryMeta {
         namespace: Namespace::agent(agent),
         agent_id: Some(agent.to_string()),
-        ..tinymemory::MemoryMeta::default()
+        ..tinymemory_api::MemoryMeta::default()
     }
 }
 

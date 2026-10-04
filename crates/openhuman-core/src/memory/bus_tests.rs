@@ -4,7 +4,7 @@ use crate::core::runtime::context::CoreContext;
 use crate::core::runtime::DomainSet;
 use crate::memory::conversations;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
-use tinymemory::{ItemKind, MetaFilter};
+use tinymemory_api::{ItemKind, MetaFilter};
 
 fn turn_event(workspace_dir: &std::path::Path, thread: &str) -> DomainEvent {
     DomainEvent::ConversationTurnCommitted {

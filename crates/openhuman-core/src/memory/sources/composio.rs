@@ -11,7 +11,7 @@
 
 use chrono::{TimeZone, Utc};
 use tinyconnectors_bus::records::ConnectorRecord;
-use tinymemory::{DocumentBody, MemoryMeta, SourceKind, SourceRef, StoreItem};
+use tinymemory_api::{DocumentBody, MemoryMeta, SourceKind, SourceRef, StoreItem};
 
 use crate::config::schema::MemorySourceConfig;
 use crate::config::Config;
@@ -74,7 +74,7 @@ pub async fn store_records(
     toolkit: &str,
     connection_id: &str,
     source_id: &str,
-    namespace: &tinymemory::Namespace,
+    namespace: &tinymemory_api::Namespace,
     records: &[ConnectorRecord],
 ) -> MemoryResult<u64> {
     let items: Vec<StoreItem> = records
@@ -150,14 +150,14 @@ pub async fn forget_connection(config: &Config, connection_id: &str) -> MemoryRe
         Err(MemoryError::Off(_)) => return Ok(0),
         Err(error) => return Err(error),
     };
-    let filter = tinymemory::MetaFilter {
+    let filter = tinymemory_api::MetaFilter {
         sources: vec![SourceKind::Composio],
         tags_any: vec![connection_tag(connection_id)],
-        ..tinymemory::MetaFilter::default()
+        ..tinymemory_api::MetaFilter::default()
     };
     let report = bound
         .engine
-        .forget(tinymemory::ForgetTarget::Filter(filter))
+        .forget(tinymemory_api::ForgetTarget::Filter(filter))
         .await?;
     Ok(report.forgotten)
 }

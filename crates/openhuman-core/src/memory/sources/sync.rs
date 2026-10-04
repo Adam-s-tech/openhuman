@@ -11,9 +11,9 @@ use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 
 use chrono::{DateTime, Utc};
-use tinymemory::documents::NativeConverter;
-use tinymemory::sources::readers::reader_for_request;
-use tinymemory::sources::{apply_kind_defaults, collect_items, MemorySourceEntry, SourceKind};
+use tinymemory_integrations::documents::NativeConverter;
+use tinymemory_integrations::sources::readers::reader_for_request;
+use tinymemory_integrations::sources::{apply_kind_defaults, collect_items, MemorySourceEntry, SourceKind};
 
 use crate::config::schema::{MemorySourceConfig, MemorySourceKind};
 use crate::config::Config;
@@ -88,9 +88,9 @@ pub async fn sync_one(config: &Config, source: &MemorySourceConfig) -> MemoryRes
 /// Stores `items` at `namespace`, the source's memory node.
 pub(super) async fn store_all(
     bound: &BoundEngine,
-    items: Vec<tinymemory::StoreItem>,
+    items: Vec<tinymemory_api::StoreItem>,
     source_id: &str,
-    namespace: &tinymemory::Namespace,
+    namespace: &tinymemory_api::Namespace,
 ) -> MemoryResult<u64> {
     let mut stored = 0u64;
     let mut last_error = None;

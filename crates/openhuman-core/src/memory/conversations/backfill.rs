@@ -143,7 +143,7 @@ pub fn turns_of(thread_id: &str, messages: &[ConversationMessage]) -> Vec<Commit
                 thread_id: thread_id.to_string(),
                 agent_id: None,
                 // Past chats are the main agent's: the shared root.
-                namespace: tinymemory::Namespace::ROOT,
+                namespace: tinymemory_api::Namespace::ROOT,
                 workspace: None,
                 channel: None,
                 user: text.to_string(),
@@ -159,7 +159,7 @@ pub fn turns_of(thread_id: &str, messages: &[ConversationMessage]) -> Vec<Commit
                 thread_id: thread_id.to_string(),
                 agent_id: None,
                 // Past chats are the main agent's: the shared root.
-                namespace: tinymemory::Namespace::ROOT,
+                namespace: tinymemory_api::Namespace::ROOT,
                 workspace: None,
                 channel: None,
                 user: String::new(),

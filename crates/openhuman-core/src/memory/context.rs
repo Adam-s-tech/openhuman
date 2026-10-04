@@ -26,8 +26,8 @@ use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tinymemory::context::{Brief, ContextCompiler, ContextSpec, DEFAULT_LEARNINGS_LIMIT};
-use tinymemory::{Namespace, Reach, Segment, SegmentKind};
+use tinymemory_tools::context::{Brief, ContextCompiler, ContextSpec, DEFAULT_LEARNINGS_LIMIT};
+use tinymemory_api::{Namespace, Reach, Segment, SegmentKind};
 
 use crate::config::Config;
 
@@ -212,7 +212,7 @@ pub async fn refresh_all(config: &Config) -> usize {
 /// [`refresh`] against an explicit engine and compiler.
 pub async fn refresh_with(
     config: &Config,
-    engine: &dyn tinymemory::MemoryEngine,
+    engine: &dyn tinymemory_api::MemoryEngine,
     compiler: ContextCompiler,
 ) -> MemoryResult<ContextView> {
     refresh_node_with(config, &Namespace::ROOT, engine, compiler).await
@@ -222,7 +222,7 @@ pub async fn refresh_with(
 pub async fn refresh_node_with(
     config: &Config,
     namespace: &Namespace,
-    engine: &dyn tinymemory::MemoryEngine,
+    engine: &dyn tinymemory_api::MemoryEngine,
     compiler: ContextCompiler,
 ) -> MemoryResult<ContextView> {
     let doc = compiler

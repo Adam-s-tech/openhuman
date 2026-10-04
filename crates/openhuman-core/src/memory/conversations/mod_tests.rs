@@ -1,13 +1,13 @@
 use super::*;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use chrono::Duration;
-use tinymemory::{ItemKind, MetaFilter, ToolCallRef};
+use tinymemory_api::{ItemKind, MetaFilter, ToolCallRef};
 
 fn turn(thread: &str, text: &str, at: DateTime<Utc>) -> CommittedTurn {
     CommittedTurn {
         thread_id: thread.to_string(),
         agent_id: Some("orchestrator".into()),
-        namespace: tinymemory::Namespace::ROOT,
+        namespace: tinymemory_api::Namespace::ROOT,
         workspace: Some("/work".into()),
         channel: Some("web".into()),
         user: text.to_string(),
@@ -21,8 +21,8 @@ fn turn(thread: &str, text: &str, at: DateTime<Utc>) -> CommittedTurn {
 }
 
 async fn conversations_in(
-    engine: &tinymemory::conformance::ReferenceEngine,
-) -> Vec<tinymemory::Hit> {
+    engine: &tinymemory_api::conformance::ReferenceEngine,
+) -> Vec<tinymemory_api::Hit> {
     stored(
         engine,
         MetaFilter {

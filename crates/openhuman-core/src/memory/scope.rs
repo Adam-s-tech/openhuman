@@ -1,6 +1,6 @@
 //! Whose memory a read or write belongs to: agent namespaces.
 //!
-//! Memory is a tree of nodes (`tinymemory::Namespace`). The root holds what
+//! Memory is a tree of nodes (`tinymemory_api::Namespace`). The root holds what
 //! every agent shares — the main chat agent's learnings, synced documents,
 //! imported and backfilled history. Every other agent has its own node,
 //! `agent:<id>`; a sub-agent's node nests under the agent that spawned it
@@ -22,7 +22,7 @@
 
 use std::future::Future;
 
-use tinymemory::{Namespace, Reach, Segment, SegmentKind};
+use tinymemory_api::{Namespace, Reach, Segment, SegmentKind};
 
 use crate::config::Config;
 

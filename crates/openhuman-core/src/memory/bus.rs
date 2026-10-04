@@ -12,7 +12,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use chrono::Utc;
 use tinybus::{EventHandler, SubscriptionHandle};
-use tinymemory::ToolCallRef;
+use tinymemory_api::ToolCallRef;
 
 use crate::core::events::DomainEvent;
 
@@ -50,7 +50,7 @@ pub fn committed_turn(event: &DomainEvent) -> Option<CommittedTurn> {
     Some(CommittedTurn {
         thread_id: thread_id.clone(),
         agent_id: agent_id.clone(),
-        namespace: tinymemory::Namespace::ROOT,
+        namespace: tinymemory_api::Namespace::ROOT,
         workspace: workspace.clone(),
         channel: channel.clone(),
         user: user_text.clone(),

@@ -9,9 +9,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Duration, Utc};
-use tinymemory::{
-    MemoryMeta, Namespace, Role, SourceKind, SourceRef, StoreItem, ToolCallRef, Turn, TurnRange,
-};
+use tinymemory_api::{MemoryMeta, Namespace, Role, SourceKind, SourceRef, StoreItem, ToolCallRef, Turn, TurnRange};
 
 /// One committed exchange: the user's message and the assistant's reply.
 #[derive(Debug, Clone, PartialEq)]

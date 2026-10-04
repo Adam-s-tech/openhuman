@@ -109,7 +109,7 @@ fn deep_spawn_chains_stop_at_the_depth_limit() {
     }
     assert_eq!(
         identity.namespace(&config).depth(),
-        tinymemory::namespace::MAX_DEPTH
+        tinymemory_api::namespace::MAX_DEPTH
     );
 }
 

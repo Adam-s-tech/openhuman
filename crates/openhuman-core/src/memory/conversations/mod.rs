@@ -280,14 +280,14 @@ pub async fn forget_channel(config: &Config, channel: &str) -> MemoryResult<usiz
         Err(MemoryError::Off(_)) => return Ok(0),
         Err(error) => return Err(error),
     };
-    let filter = tinymemory::MetaFilter {
-        kinds: vec![tinymemory::ItemKind::Conversation],
+    let filter = tinymemory_api::MetaFilter {
+        kinds: vec![tinymemory_api::ItemKind::Conversation],
         tags_any: vec![buffer::channel_tag(channel)],
-        ..tinymemory::MetaFilter::default()
+        ..tinymemory_api::MetaFilter::default()
     };
     let report = bound
         .engine
-        .forget(tinymemory::ForgetTarget::Filter(filter))
+        .forget(tinymemory_api::ForgetTarget::Filter(filter))
         .await?;
     tracing::debug!(
         forgotten = report.forgotten,

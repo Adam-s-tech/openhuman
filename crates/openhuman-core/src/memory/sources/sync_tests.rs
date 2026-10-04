@@ -2,7 +2,7 @@ use super::*;
 use crate::memory::error::INVALID_REQUEST;
 use crate::memory::sources::state;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
-use tinymemory::{ItemKind, MetaFilter};
+use tinymemory_api::{ItemKind, MetaFilter};
 
 fn folder_source(id: &str, dir: &std::path::Path, mins: Option<u32>) -> MemorySourceConfig {
     MemorySourceConfig {
@@ -244,36 +244,36 @@ async fn store_all_skips_a_bad_item_but_fails_when_nothing_stored() {
     let config = config_in(&tmp);
     bind_reference(&config);
     let bound = engine::resolve(&config).engine().unwrap();
-    let good = tinymemory::StoreItem::learning(
+    let good = tinymemory_api::StoreItem::learning(
         "a good one",
-        tinymemory::LearningKind::Fact,
+        tinymemory_api::LearningKind::Fact,
         0.8,
-        tinymemory::MemoryMeta::default(),
+        tinymemory_api::MemoryMeta::default(),
     );
-    let bad = tinymemory::StoreItem::learning(
+    let bad = tinymemory_api::StoreItem::learning(
         "   ",
-        tinymemory::LearningKind::Fact,
+        tinymemory_api::LearningKind::Fact,
         0.8,
-        tinymemory::MemoryMeta::default(),
+        tinymemory_api::MemoryMeta::default(),
     );
     assert_eq!(
         store_all(
             &bound,
             vec![bad.clone(), good],
             "src",
-            &tinymemory::Namespace::ROOT
+            &tinymemory_api::Namespace::ROOT
         )
         .await
         .unwrap(),
         1
     );
     assert!(
-        store_all(&bound, vec![bad], "src", &tinymemory::Namespace::ROOT)
+        store_all(&bound, vec![bad], "src", &tinymemory_api::Namespace::ROOT)
             .await
             .is_err()
     );
     assert_eq!(
-        store_all(&bound, Vec::new(), "src", &tinymemory::Namespace::ROOT)
+        store_all(&bound, Vec::new(), "src", &tinymemory_api::Namespace::ROOT)
             .await
             .unwrap(),
         0

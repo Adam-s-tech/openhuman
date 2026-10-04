@@ -2,7 +2,7 @@ use super::*;
 use crate::memory::error::INVALID_REQUEST;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use chrono::Duration;
-use tinymemory::{DocumentBody, MemoryMeta, SourceKind, SourceRef, StoreItem};
+use tinymemory_api::{DocumentBody, MemoryMeta, SourceKind, SourceRef, StoreItem};
 
 fn add_params(kind: &str, target: &str) -> SourcesAddParams {
     SourcesAddParams {
@@ -251,7 +251,7 @@ async fn forget_items_removes_only_that_sources_documents() {
         .unwrap();
     }
     assert_eq!(forget_items(&config, "src-a").await.unwrap(), 1);
-    let left = stored(&engine, tinymemory::MetaFilter::default()).await;
+    let left = stored(&engine, tinymemory_api::MetaFilter::default()).await;
     assert_eq!(left.len(), 1);
     assert_eq!(left[0].meta.source.id.as_deref(), Some("src-b"));
 }
@@ -272,7 +272,7 @@ fn a_source_can_store_at_an_agent_node() {
     assert_eq!(added.namespace.as_deref(), Some("agent:researcher"));
     assert_eq!(
         namespace_of(&config, &added.id),
-        tinymemory::Namespace::agent("researcher")
+        tinymemory_api::Namespace::agent("researcher")
     );
     assert!(namespace_of(&config, "unknown").is_root());
 

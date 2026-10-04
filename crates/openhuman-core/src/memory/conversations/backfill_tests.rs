@@ -2,7 +2,7 @@ use super::*;
 
 use std::time::Duration;
 
-use tinymemory::{ItemKind, MetaFilter};
+use tinymemory_api::{ItemKind, MetaFilter};
 
 use crate::memory::conversations;
 use crate::memory::error::{INVALID_REQUEST, MEMORY_OFF};
@@ -170,7 +170,7 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
         conversations::buffer::CommittedTurn {
             thread_id: "live-thread".into(),
             agent_id: None,
-            namespace: tinymemory::Namespace::ROOT,
+            namespace: tinymemory_api::Namespace::ROOT,
             workspace: None,
             channel: None,
             user: "After ingestion".into(),

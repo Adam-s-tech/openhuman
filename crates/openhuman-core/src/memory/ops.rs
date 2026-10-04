@@ -8,10 +8,7 @@
 //! process.
 
 use chrono::Utc;
-use tinymemory::{
-    FetchRequest, ForgetTarget, ItemId, LearningKind, ListRequest, MemoryMeta, RecallRequest,
-    StoreItem, StoreReceipt,
-};
+use tinymemory_api::{FetchRequest, ForgetTarget, ItemId, LearningKind, ListRequest, MemoryMeta, RecallRequest, StoreItem, StoreReceipt};
 
 use crate::config::Config;
 
@@ -34,7 +31,7 @@ pub fn engines_list(config: &Config) -> EnginesListView {
         Binding::Off { .. } => None,
     };
     EnginesListView {
-        engines: tinymemory::list_engines(),
+        engines: tinymemory_integrations::list_engines(),
         active,
     }
 }
@@ -48,11 +45,11 @@ pub async fn engine_get(config: &Config) -> EngineView {
         Binding::On(bound) => {
             let health = bound.engine.health().await;
             let (status, reason) = match health {
-                tinymemory::EngineHealth::Ok => (EngineStatus::Ok, None),
-                tinymemory::EngineHealth::Degraded(reason) => {
+                tinymemory_api::EngineHealth::Ok => (EngineStatus::Ok, None),
+                tinymemory_api::EngineHealth::Degraded(reason) => {
                     (EngineStatus::Degraded, Some(reason))
                 }
-                tinymemory::EngineHealth::Down(reason) => (EngineStatus::Down, Some(reason)),
+                tinymemory_api::EngineHealth::Down(reason) => (EngineStatus::Down, Some(reason)),
             };
             tracing::debug!(engine = %bound.id, ?status, "[memory:ops] engine_get");
             EngineView {
@@ -86,7 +83,7 @@ pub async fn engine_get(config: &Config) -> EngineView {
 /// store for a key). The caller persists `config`.
 pub fn apply_engine_set(config: &mut Config, params: &EngineSetParams) -> MemoryResult<()> {
     let engine_id = params.engine.trim();
-    if !tinymemory::list_engines()
+    if !tinymemory_integrations::list_engines()
         .iter()
         .any(|descriptor| descriptor.id == engine_id)
     {
@@ -279,7 +276,7 @@ pub async fn store_item(config: &Config, item: StoreItem) -> MemoryResult<StoreR
 /// Scrubs `item` and stores it on `bound`.
 pub async fn store_on(bound: &BoundEngine, item: StoreItem) -> MemoryResult<StoreReceipt> {
     let kind = item.kind();
-    let scrubbed = tinymemory::safety::scrub_item_with(item, crate::security::scrub::host_policy());
+    let scrubbed = tinymemory_integrations::safety::scrub_item_with(item, crate::security::scrub::host_policy());
     if scrubbed.report.changed() {
         tracing::debug!(
             kind = kind.as_str(),
@@ -307,7 +304,7 @@ pub async fn store_many_on(
     let policy = crate::security::scrub::host_policy();
     let scrubbed: Vec<StoreItem> = items
         .into_iter()
-        .map(|item| tinymemory::safety::scrub_item_with(item, policy).value)
+        .map(|item| tinymemory_integrations::safety::scrub_item_with(item, policy).value)
         .collect();
     let receipts = bound.engine.store_many(scrubbed).await?;
     tracing::debug!(
@@ -352,13 +349,13 @@ pub async fn forget(config: &Config, params: ForgetParams) -> MemoryResult<Forge
 async fn within_reach(
     bound: &BoundEngine,
     ids: Vec<ItemId>,
-    reach: tinymemory::Reach,
+    reach: tinymemory_api::Reach,
 ) -> MemoryResult<Vec<ItemId>> {
     let mut kept = Vec::new();
-    for chunk in ids.chunks(tinymemory::explore::MAX_GET_IDS) {
+    for chunk in ids.chunks(tinymemory_api::explore::MAX_GET_IDS) {
         let found = bound
             .engine
-            .get(tinymemory::GetRequest {
+            .get(tinymemory_api::GetRequest {
                 ids: chunk.to_vec(),
                 reach: Some(reach.clone()),
             })

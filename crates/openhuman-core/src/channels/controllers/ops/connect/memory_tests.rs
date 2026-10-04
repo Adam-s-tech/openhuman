@@ -1,7 +1,7 @@
 use super::*;
 use std::sync::Arc;
-use tinymemory::conformance::ReferenceEngine;
-use tinymemory::{MemoryEngine, MemoryMeta, Role, SourceKind, StoreItem, Turn};
+use tinymemory_api::conformance::ReferenceEngine;
+use tinymemory_api::{MemoryEngine, MemoryMeta, Role, SourceKind, StoreItem, Turn};
 
 fn conversation(channel: &str) -> StoreItem {
     let mut meta = MemoryMeta::from_source(SourceKind::Conversation, None);

@@ -8,9 +8,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-pub use tinymemory::{
-    Citation, EngineDescriptor, FetchMode, Hit, ItemKind, LearningKind, MemoryMeta, MetaFilter,
-};
+pub use tinymemory_api::{Citation, EngineDescriptor, FetchMode, Hit, ItemKind, LearningKind, MemoryMeta, MetaFilter};
 
 use crate::config::schema::MemorySourceKind;
 
@@ -171,7 +169,7 @@ pub struct ForgetParams {
     /// left alone as if it named nothing. The `memory` tool always sets the
     /// calling agent's reach.
     #[serde(default)]
-    pub reach: Option<tinymemory::Reach>,
+    pub reach: Option<tinymemory_api::Reach>,
 }
 
 /// `memory_forget` result.
@@ -383,12 +381,12 @@ impl ContextNodeParams {
     /// # Errors
     ///
     /// A malformed namespace.
-    pub fn node(&self) -> Result<tinymemory::Namespace, String> {
+    pub fn node(&self) -> Result<tinymemory_api::Namespace, String> {
         self.namespace
             .as_deref()
             .unwrap_or_default()
             .parse()
-            .map_err(|error: tinymemory::Error| {
+            .map_err(|error: tinymemory_api::Error| {
                 String::from(super::error::MemoryError::invalid(error.to_string()))
             })
     }

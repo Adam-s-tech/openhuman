@@ -22,7 +22,8 @@ use std::sync::{Arc, LazyLock, RwLock};
 
 use async_trait::async_trait;
 use sha2::{Digest, Sha256};
-use tinymemory::{BearerSource, EngineCredential, EngineSettings, MemoryEngine};
+use tinymemory_api::{MemoryEngine};
+use tinymemory_integrations::{BearerSource, EngineCredential, EngineSettings};
 
 use crate::config::schema::MEMORY_CORTEXDB_KEY_NAME;
 use crate::config::Config;
@@ -34,10 +35,10 @@ use crate::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 use super::error::{MemoryError, MemoryResult};
 
 /// Engine id of CortexDB behind the TinyHumans backend.
-pub const TINYHUMANS_ENGINE: &str = tinymemory::cortex::TINYHUMANS_ENGINE_ID;
+pub const TINYHUMANS_ENGINE: &str = tinymemory_integrations::cortex::TINYHUMANS_ENGINE_ID;
 
 /// Engine id of CortexDB reached directly.
-pub const CORTEXDB_ENGINE: &str = tinymemory::cortex::CORTEXDB_ENGINE_ID;
+pub const CORTEXDB_ENGINE: &str = tinymemory_integrations::cortex::CORTEXDB_ENGINE_ID;
 
 /// A bound engine.
 #[derive(Clone)]
@@ -199,7 +200,7 @@ fn resolve_cortexdb(config: &Config) -> Binding {
     let configured = config.memory.endpoint_for(CORTEXDB_ENGINE);
     let endpoint = configured
         .clone()
-        .unwrap_or_else(|| tinymemory::cortex::CORTEX_API_ENDPOINT.to_string());
+        .unwrap_or_else(|| tinymemory_integrations::cortex::CORTEX_API_ENDPOINT.to_string());
     let key = match read_cortexdb_key(config) {
         Ok(Some(key)) => key,
         Ok(None) => {
@@ -244,7 +245,7 @@ fn build_cached(
     let settings = EngineSettings {
         endpoint: Some(endpoint.to_string()),
     };
-    match tinymemory::build_engine(id, &settings, credential) {
+    match tinymemory_integrations::build_engine(id, &settings, credential) {
         Ok(engine) => {
             tracing::info!(engine = %id, "[memory:engine] engine bound");
             let bound = BoundEngine {
@@ -331,15 +332,15 @@ struct HostBearer {
 
 #[async_trait]
 impl BearerSource for HostBearer {
-    async fn bearer(&self) -> tinymemory::Result<String> {
+    async fn bearer(&self) -> tinymemory_api::Result<String> {
         match backend_bearer_secret(&self.config) {
             Ok(Some(token)) if !token.trim().is_empty() => Ok(token),
-            Ok(_) => Err(tinymemory::Error::Unauthorized(
+            Ok(_) => Err(tinymemory_api::Error::Unauthorized(
                 "no backend credential; sign in".to_string(),
             )),
             Err(error) => {
                 tracing::debug!(error = %error, "[memory:engine] backend credential unavailable");
-                Err(tinymemory::Error::Unauthorized(
+                Err(tinymemory_api::Error::Unauthorized(
                     "the backend credential is unavailable".to_string(),
                 ))
             }

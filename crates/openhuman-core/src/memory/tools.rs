@@ -22,7 +22,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 
 use async_trait::async_trait;
 use serde_json::{json, Value};
-use tinymemory::{MemoryMeta, Namespace, Reach, SourceKind, SourceRef, ToolCallRef};
+use tinymemory_api::{MemoryMeta, Namespace, Reach, SourceKind, SourceRef, ToolCallRef};
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult, ToolRunContext};
 
 use crate::config::Config;
@@ -41,7 +41,7 @@ const MAX_TURN_CITATIONS: usize = 20;
 static TURN_CITATIONS: LazyLock<Mutex<HashMap<String, Vec<TurnCitation>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-fn record_turn_citations(thread_id: &str, citations: &[tinymemory::Citation]) {
+fn record_turn_citations(thread_id: &str, citations: &[tinymemory_api::Citation]) {
     if citations.is_empty() {
         return;
     }
@@ -224,7 +224,7 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
         "learn" => match parse::<LearnParams>(args) {
             Ok(mut params) => {
                 params.meta = None;
-                let kind = params.kind.unwrap_or(tinymemory::LearningKind::Fact);
+                let kind = params.kind.unwrap_or(tinymemory_api::LearningKind::Fact);
                 let share = args.get("share").and_then(Value::as_bool) == Some(true);
                 ops::learn(config, params, Some(facts.learn_meta(share)))
                     .await
@@ -261,7 +261,7 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
 }
 
 /// Confines a model-supplied filter to the calling agent's reach.
-fn confine(filter: &mut Option<tinymemory::MetaFilter>, facts: &CallFacts) {
+fn confine(filter: &mut Option<tinymemory_api::MetaFilter>, facts: &CallFacts) {
     filter.get_or_insert_with(Default::default).reach = Some(facts.reach.clone());
 }
 

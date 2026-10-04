@@ -3,7 +3,7 @@ use crate::memory::scope::MemoryIdentity;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use tinymemory::{ItemKind, MetaFilter, Namespace};
+use tinymemory_api::{ItemKind, MetaFilter, Namespace};
 
 struct Ctx {
     root: PathBuf,
@@ -259,8 +259,8 @@ async fn fetch_with_an_undeclared_mode_is_unsupported() {
 
 #[test]
 fn turn_citations_are_capped_and_deduplicated() {
-    let citation = |n: usize| tinymemory::Citation {
-        id: tinymemory::ItemId(format!("cite-{n}")),
+    let citation = |n: usize| tinymemory_api::Citation {
+        id: tinymemory_api::ItemId(format!("cite-{n}")),
         kind: ItemKind::Learning,
         snippet: "s".repeat(1000),
         score: Some(0.5),
