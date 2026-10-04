@@ -601,3 +601,7 @@ pub(crate) fn enrich_request_input(
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "mod_access_tests.rs"]
+mod access_tests;
