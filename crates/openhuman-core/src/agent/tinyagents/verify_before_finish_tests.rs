@@ -1,6 +1,9 @@
 use super::*;
 
 use tinyagents_harness::limits::RunLimits;
+use tinyagents_harness::middleware::{
+    CapturedOutcomes, FinalCallWrapUpMiddleware, OutcomesUnavailable,
+};
 use tinyagents_harness::runtime::RunPolicy;
 use tinyagents_harness::testkit::{FakeTool, ScriptedModel};
 use tinyagents_harness::tinyinference_llm::message::Message;
@@ -26,6 +29,38 @@ fn tool_round(id: &str, name: &str) -> ModelResponse {
 /// then a draft and a checked answer. Returns how many check turns the run's
 /// transcript carries and its final text.
 async fn drive(rounds: usize, tool: &str, subagent: bool, agent: Option<&str>) -> (usize, String) {
+    drive_with(rounds, tool, subagent, agent, WrapUp::Absent, 50).await
+}
+
+/// No captured outcomes: the wrap-up under test only needs its budget notice.
+struct NoOutcomes;
+
+impl CapturedOutcomes for NoOutcomes {
+    fn content_for(&self, _: &str) -> Result<Option<String>, OutcomesUnavailable> {
+        Ok(None)
+    }
+}
+
+/// How the wrap-up middleware reaches the check in a driven run.
+#[derive(Clone, Copy)]
+enum WrapUp {
+    /// No wrap-up middleware at all.
+    Absent,
+    /// Installed with a budget notice, and handed to `install` (the wiring the
+    /// harness assembly does with `wrap_up_fired`).
+    Linked,
+    /// Installed with a budget notice but NOT handed to `install`.
+    Unlinked,
+}
+
+async fn drive_with(
+    rounds: usize,
+    tool: &str,
+    subagent: bool,
+    agent: Option<&str>,
+    wrap_up: WrapUp,
+    max_model_calls: u64,
+) -> (usize, String) {
     let mut responses: Vec<ModelResponse> = (0..rounds)
         .map(|i| tool_round(&format!("c{i}"), tool))
         .collect();
@@ -37,11 +72,23 @@ async fn drive(rounds: usize, tool: &str, subagent: bool, agent: Option<&str>) -
     harness.register_tool(Arc::new(FakeTool::returning("todo", "ok")));
     harness.with_policy(RunPolicy {
         limits: RunLimits::default()
-            .with_max_model_calls(50)
+            .with_max_model_calls(max_model_calls)
             .with_max_tool_calls(50),
         ..RunPolicy::default()
     });
-    install(&mut harness, subagent, agent);
+    let wrap_up_mw = (!matches!(wrap_up, WrapUp::Absent)).then(|| {
+        Arc::new(
+            FinalCallWrapUpMiddleware::new("CONCLUDE", "WRITE", Arc::new(NoOutcomes), 0)
+                .with_budget_notice([0.5]),
+        )
+    });
+    if let Some(mw) = &wrap_up_mw {
+        harness.push_middleware(mw.clone());
+    }
+    let linked = matches!(wrap_up, WrapUp::Linked)
+        .then(|| wrap_up_mw.as_ref())
+        .flatten();
+    install(&mut harness, subagent, agent, linked);
     let run = harness
         .invoke_default(&(), vec![Message::user("do the task")])
         .await
@@ -109,4 +156,42 @@ async fn subagent_turn_is_not_checked() {
     let (checks, text) = drive(MIN_TOOL_ROUNDS, "lookup", true, Some("orchestrator")).await;
     assert_eq!(checks, 0);
     assert_eq!(text, "draft");
+}
+
+/// tinyagents#301: once the wrap-up has announced a budget notice the check
+/// stays quiet. This only holds when `install` is handed the SAME `Arc` that is
+/// installed as the wrap-up middleware, which is what the harness assembly does.
+#[tokio::test]
+async fn a_linked_wrap_up_budget_notice_silences_the_check() {
+    // 5 tool rounds + the draft = 6 calls of a budget of 8: the 0.5 notice
+    // fires on the 4th, before the draft.
+    let rounds = MIN_TOOL_ROUNDS;
+    let (checks, text) = drive_with(
+        rounds,
+        "lookup",
+        false,
+        Some("orchestrator"),
+        WrapUp::Linked,
+        8,
+    )
+    .await;
+    assert_eq!(checks, 0, "a budget notice said finish; no re-verify turn");
+    assert_eq!(text, "draft");
+}
+
+#[tokio::test]
+async fn an_unlinked_wrap_up_does_not_silence_the_check() {
+    let (checks, _) = drive_with(
+        MIN_TOOL_ROUNDS,
+        "lookup",
+        false,
+        Some("orchestrator"),
+        WrapUp::Unlinked,
+        8,
+    )
+    .await;
+    assert_eq!(
+        checks, 1,
+        "without the shared Arc the check cannot see the notice"
+    );
 }
