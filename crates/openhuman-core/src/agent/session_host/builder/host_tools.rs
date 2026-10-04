@@ -146,6 +146,7 @@ impl HostTurnTools {
         if !visible.is_empty() {
             visible.extend(self.visible);
         }
+        eprintln!("HOST_TOOLS visible={visible:?} permanent={:?}", self.permanent);
         Ok(MergedHostTurnTools {
             policy: self.policy,
             withheld: self.withheld,
