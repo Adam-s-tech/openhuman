@@ -40,7 +40,11 @@ pub(super) fn refresh_prefix(
     if messages == prefix.messages() {
         None
     } else {
-        Some(PrefixSnapshot::new(messages))
+        // The TinyAgents session freezes the prefix after its first committed
+        // turn. This host-managed catalogue is the sole permitted refresh; the
+        // runtime preserves prior conversation and starts a successor transcript
+        // generation when it changes.
+        Some(PrefixSnapshot::new(messages).refreshing())
     }
 }
 
