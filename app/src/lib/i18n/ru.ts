@@ -4902,10 +4902,11 @@ const messages: TranslationMap = {
     'Сводка, с которой начинается каждый новый чат, собранная из вашей памяти.',
   'memoryPage.loading': 'Загрузка памяти…',
   'memoryPage.loadMore': 'Загрузить ещё',
-  'memoryPage.explorer.facet.namespace': "Узел памяти",
-  'memoryPage.explorer.namespace.root': "Общий (корень)",
-  'memoryPage.context.node': "Узел памяти",
-  'memoryPage.context.nodeHint': "У каждого агента своя сводка, собранная из его собственной памяти и того, что ему доступно из общей.",
+  'memoryPage.explorer.facet.namespace': 'Узел памяти',
+  'memoryPage.explorer.namespace.root': 'Общий (корень)',
+  'memoryPage.context.node': 'Узел памяти',
+  'memoryPage.context.nodeHint':
+    'У каждого агента своя сводка, собранная из его собственной памяти и того, что ему доступно из общей.',
   'memoryPage.backfill.title': 'Прошлые разговоры',
   'memoryPage.backfill.description':
     'Чаты, созданные до включения автосохранения, попадут в память только после синхронизации.',

@@ -4967,10 +4967,11 @@ const messages: TranslationMap = {
     'Le résumé qui ouvre chaque nouvelle discussion, compilé à partir de votre mémoire.',
   'memoryPage.loading': 'Chargement de la mémoire…',
   'memoryPage.loadMore': 'Charger plus',
-  'memoryPage.explorer.facet.namespace': "Nœud de mémoire",
-  'memoryPage.explorer.namespace.root': "Partagé (racine)",
-  'memoryPage.context.node': "Nœud de mémoire",
-  'memoryPage.context.nodeHint': "Chaque agent a son propre résumé, construit à partir de sa propre mémoire et de ce qui est partagé avec lui.",
+  'memoryPage.explorer.facet.namespace': 'Nœud de mémoire',
+  'memoryPage.explorer.namespace.root': 'Partagé (racine)',
+  'memoryPage.context.node': 'Nœud de mémoire',
+  'memoryPage.context.nodeHint':
+    'Chaque agent a son propre résumé, construit à partir de sa propre mémoire et de ce qui est partagé avec lui.',
   'memoryPage.backfill.title': 'Conversations passées',
   'memoryPage.backfill.description':
     'Les discussions antérieures à l’activation de l’enregistrement automatique ne sont en mémoire qu’une fois synchronisées.',

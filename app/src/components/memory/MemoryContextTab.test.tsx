@@ -34,14 +34,16 @@ beforeEach(() => {
   hoisted.get.mockReset().mockResolvedValue(CTX);
   hoisted.refresh.mockReset();
   hoisted.set.mockReset();
-  hoisted.explore.mockReset().mockResolvedValue({
-    facet: 'namespace',
-    buckets: [{ value: 'root', count: 3 }],
-    total: 3,
-    missing: 0,
-    more_buckets: 0,
-    truncated: false,
-  });
+  hoisted.explore
+    .mockReset()
+    .mockResolvedValue({
+      facet: 'namespace',
+      buckets: [{ value: 'root', count: 3 }],
+      total: 3,
+      missing: 0,
+      more_buckets: 0,
+      truncated: false,
+    });
 });
 
 describe('MemoryContextTab', () => {
@@ -112,9 +114,7 @@ describe('MemoryContextTab', () => {
       truncated: false,
     });
     hoisted.get.mockImplementation(async (node: string) =>
-      node === 'agent:researcher'
-        ? { ...CTX, namespace: node, markdown: 'Prefers **arxiv**' }
-        : CTX
+      node === 'agent:researcher' ? { ...CTX, namespace: node, markdown: 'Prefers **arxiv**' } : CTX
     );
     hoisted.refresh.mockImplementation(async (node: string) => ({
       ...CTX,
