@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::config::MemoryAgentConfig;
+use crate::config::schema::MemoryAgentConfig;
 
 fn config() -> Config {
     Config::default()
