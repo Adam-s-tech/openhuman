@@ -197,11 +197,11 @@ pub async fn run(config: &Config, selection: Selection) -> MemoryResult<Vec<JobR
             Selection::All => true,
             Selection::One(id) => &queued.id == id,
         });
-    if let Selection::One(id) = &selection
-        && take.is_empty()
-    {
-        queue.pending = keep;
-        return Err(MemoryError::invalid(format!("no queued job `{id}`")));
+    if let Selection::One(id) = &selection {
+        if take.is_empty() {
+            queue.pending = keep;
+            return Err(MemoryError::invalid(format!("no queued job `{id}`")));
+        }
     }
     queue.pending = keep;
     let mut runs = Vec::new();
