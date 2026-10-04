@@ -167,22 +167,14 @@ impl<'a> Builder<'a> {
         }
     }
 
-    /// `~/.cargo` is read-write (registry, git checkouts, `cargo install`).
-    /// When it also holds registry credentials (`credentials.toml`), granting
-    /// it whole would hand the token to every jailed command, so grant only the
-    /// parts Cargo needs.
+    /// Grant only the parts of `~/.cargo` that jailed Cargo needs. The root is
+    /// never writable: `bin` and Cargo configuration run later outside the
+    /// jail, so writable access there would persist an escape for host tools.
     fn add_cargo_home(&mut self, cargo: &Path) {
         if !cargo.is_dir() {
             return;
         }
-        let has_credentials = ["credentials.toml", "credentials"]
-            .iter()
-            .any(|f| cargo.join(f).exists());
-        if !has_credentials {
-            self.read_write(cargo, "toolchain");
-            return;
-        }
-        tracing::debug!("[sandbox:grants] ~/.cargo holds credentials; granting its parts only");
+        tracing::debug!("[sandbox:grants] granting ~/.cargo parts with host code read-only");
         self.read_only(&cargo.join("bin"), "toolchain");
         self.read_write(&cargo.join("registry"), "toolchain");
         self.read_write(&cargo.join("git"), "toolchain");

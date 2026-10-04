@@ -80,9 +80,23 @@ fn credential_floor_holds_for_a_symlink_into_a_credential_dir() {
 #[test]
 fn toolchain_homes_are_granted_when_they_exist() {
     let home = fake_home();
+    let cargo = home.path().join(".cargo");
+    for dir in ["bin", "registry", "git"] {
+        fs::create_dir_all(cargo.join(dir)).unwrap();
+    }
+    for file in ["config.toml", "config", "env"] {
+        fs::write(cargo.join(file), "").unwrap();
+    }
     let g = resolve_local_jail_grants(Some(home.path()), &LocalJailConfig::default());
     let h = canon(home.path());
-    assert!(has(&g.read_write, &h.join(".cargo")));
+    let cargo = h.join(".cargo");
+    assert!(!has(&g.read_write, &cargo), "Cargo home must never be writable");
+    assert!(has(&g.read_only, &cargo.join("bin")));
+    assert!(has(&g.read_write, &cargo.join("registry")));
+    assert!(has(&g.read_write, &cargo.join("git")));
+    for file in ["config.toml", "config", "env"] {
+        assert!(has(&g.read_only, &cargo.join(file)), "{file} should be read-only");
+    }
     for ro in [".rustup", ".nvm", ".npm"] {
         assert!(has(&g.read_only, &h.join(ro)), "{ro} should be read-only");
         assert!(

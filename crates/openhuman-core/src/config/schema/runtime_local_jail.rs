@@ -2,9 +2,10 @@
 //! (Landlock on Linux, Seatbelt on macOS).
 //!
 //! With a real jail in force, a command can touch only what the policy grants.
-//! The built-in set covers the everyday toolchain (`~/.cargo`, `~/.rustup`,
-//! `~/.nvm`, `~/.npm`, `/usr/local`, `/opt`, git config); this section extends
-//! or trims it.
+//! The built-in set covers the everyday toolchain (`~/.cargo/bin` and Cargo
+//! configuration read-only, the registry and git caches read-write,
+//! `~/.rustup`, `~/.nvm`, `~/.npm`, `/usr/local`, `/opt`, and git config); this
+//! section extends or trims it.
 //!
 //! Credential stores (`~/.ssh`, `~/.gnupg`, `~/.aws`, ...) are never granted:
 //! entries naming one, or a parent that would expose one (such as `~`), are
@@ -16,9 +17,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 pub struct LocalJailConfig {
-    /// Grant the built-in toolchain homes that exist on this machine
-    /// (`~/.cargo` read-write; `~/.rustup`, `~/.nvm`, `~/.npm`, `/usr/local`
-    /// and `/opt` read-only) plus the user's git config. Set `false` to
+    /// Grant built-in toolchain paths that exist on this machine (Cargo's
+    /// `bin` and configuration read-only, its `registry` and `git` caches
+    /// read-write; `~/.rustup`, `~/.nvm`, `~/.npm`, `/usr/local` and `/opt`
+    /// read-only), plus the user's git config. Set `false` to
     /// confine commands to the workspace, the system baseline and
     /// `extra_read_only` / `extra_read_write`.
     #[serde(default = "default_true")]

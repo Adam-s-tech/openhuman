@@ -41,24 +41,22 @@ fn unique_tempdir(tag: &str) -> PathBuf {
 //
 // Landlock is always compiled in on Linux (tinybox-jail enables it by default),
 // but the running kernel may not support it; then `spawn` answers
-// `Unsupported` rather than running the command unconfined, and these tests
-// skip.
+// `Unsupported` rather than running the command unconfined. These tests require
+// Landlock so CI cannot report an unexercised confinement check as passing.
 
 #[cfg(target_os = "linux")]
-fn landlock_in_force() -> bool {
-    let ok = openhuman_core::sandbox::cwd_jail::default_backend().name() == "landlock";
-    if !ok {
-        eprintln!("SKIP: this kernel has no Landlock");
-    }
-    ok
+fn require_landlock() {
+    assert_eq!(
+        openhuman_core::sandbox::cwd_jail::default_backend().name(),
+        "landlock",
+        "the Linux Rust E2E job requires Landlock support"
+    );
 }
 
 #[cfg(target_os = "linux")]
 #[test]
 fn linux_landlock_blocks_write_outside_root() {
-    if !landlock_in_force() {
-        return;
-    }
+    require_landlock();
     let root = unique_tempdir("ll-root");
     let outside = unique_tempdir("ll-outside");
     let outside_target = outside.join("forbidden.txt");
@@ -85,9 +83,7 @@ fn linux_landlock_blocks_write_outside_root() {
 #[cfg(target_os = "linux")]
 #[test]
 fn linux_landlock_allows_write_inside_root() {
-    if !landlock_in_force() {
-        return;
-    }
+    require_landlock();
     let root = unique_tempdir("ll-root-write");
     let inside = root.join("ok.txt");
 

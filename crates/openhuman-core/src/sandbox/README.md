@@ -75,12 +75,13 @@ backend, and delegates local OS-level confinement to `tinybox-jail`.
 - Local grants: a real jail (Landlock, Seatbelt) denies everything it is not
   told about, so `resolve_sandbox_policy` adds the grant set from
   `grants::resolve_local_jail_grants` and `[runtime.local_jail]`
-  (`LocalJailConfig`): `~/.cargo` read-write; `~/.rustup`, `~/.nvm`, `~/.npm`,
-  `/usr/local`, `/opt` and the user's git config files (symlink and `include`
-  targets canonicalized) read-only, each only when it exists; plus the
-  `extra_read_only` / `extra_read_write` lists. When `~/.cargo` holds
-  `credentials.toml` only its `bin`, `registry`, `git` and config files are
-  granted. Credential stores (`~/.ssh`, `~/.gnupg`, `~/.aws`, ... and any
+  (`LocalJailConfig`): `~/.cargo/bin` and its configuration files read-only;
+  `~/.cargo/registry` and `~/.cargo/git` read-write; `~/.rustup`, `~/.nvm`,
+  `~/.npm`, `/usr/local`, `/opt` and the user's git config files (symlink and
+  `include` targets canonicalized) read-only, each only when it exists; plus
+  the `extra_read_only` / `extra_read_write` lists. Cargo binaries and
+  configuration remain read-only whether or not registry credentials exist.
+  Credential stores (`~/.ssh`, `~/.gnupg`, `~/.aws`, ... and any
   parent that would contain one) are never granted, and `/proc` only with
   `allow_proc = true` (off by default: `/proc/<pid>/environ` exposes every
   process's environment). Each call also gets a private writable scratch
