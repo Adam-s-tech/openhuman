@@ -13,9 +13,14 @@ describe('resolveMemoryChip', () => {
   it('maps v1 sub-tabs', () => {
     expect(resolveMemoryChip('graph')).toBe('ask');
     expect(resolveMemoryChip('goals')).toBe('ask');
-    expect(resolveMemoryChip('sources')).toBe('documents');
-    expect(resolveMemoryChip('sync')).toBe('documents');
-    expect(resolveMemoryChip('history')).toBe('documents');
+    expect(resolveMemoryChip('sources')).toBe('brain');
+    expect(resolveMemoryChip('sync')).toBe('brain');
+    expect(resolveMemoryChip('history')).toBe('brain');
+  });
+
+  it('maps retired v2 chips', () => {
+    expect(resolveMemoryChip('documents')).toBe('brain');
+    expect(resolveMemoryChip('context')).toBe('ask');
   });
 
   it('returns null for nothing or an unknown value', () => {
