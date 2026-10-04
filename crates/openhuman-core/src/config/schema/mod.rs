@@ -92,7 +92,7 @@ pub use dictation::{DictationActivationMode, DictationConfig};
 pub use identity_cost::{CostConfig, ModelPricing};
 pub use local_ai::{LocalAiConfig, LocalAiUsage};
 pub use memory::{
-    migrate_legacy_source, MemoryConfig, MemoryContextConfig, MemoryConversationsConfig,
+    migrate_legacy_source, MemoryAgentConfig, MemoryConfig, MemoryContextConfig, MemoryConversationsConfig,
     MemoryEngineSettings, MemorySourceConfig, MemorySourceKind, MEMORY_CORTEXDB_KEY_NAME,
 };
 pub use modules::{ModuleOverride, ModulesConfig};
