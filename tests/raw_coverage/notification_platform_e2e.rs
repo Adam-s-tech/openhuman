@@ -19,7 +19,7 @@
 use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use axum::extract::State;
@@ -40,13 +40,18 @@ use openhuman_rpc::server::build_core_http_router;
 
 // ── env serialisation ────────────────────────────────────────────────────────
 
-static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
-fn platform_e2e_env_lock() -> std::sync::MutexGuard<'static, ()> {
+fn platform_e2e_env_lock() -> tokio::sync::MutexGuard<'static, ()> {
     ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .blocking_lock()
+}
+
+async fn platform_e2e_env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
+    ENV_LOCK
+        .get_or_init(|| tokio::sync::Mutex::new(()))
+        .lock().await
 }
 
 const TEST_JWT: &str = "e2e-notification-platform-jwt";
@@ -330,7 +335,7 @@ fn default_state() -> BackendState {
 /// `openhuman.notification_mark_acted`.
 #[tokio::test]
 async fn notification_centre_lifecycle_over_rpc() {
-    let _env_lock = platform_e2e_env_lock();
+    let _env_lock = platform_e2e_env_lock_async().await;
     let h = Harness::start(default_state()).await;
 
     // Enable the provider so ingest stores rather than skipping.
@@ -587,7 +592,7 @@ async fn notification_centre_lifecycle_over_rpc() {
 /// Covers: `openhuman.notification_core_list`, `openhuman.notification_core_mark_read`.
 #[tokio::test]
 async fn notification_core_sync_down_and_mark_read() {
-    let _env_lock = platform_e2e_env_lock();
+    let _env_lock = platform_e2e_env_lock_async().await;
     let h = Harness::start(default_state()).await;
 
     // Empty workspace first: the contract is an empty page, not an error.
@@ -800,7 +805,7 @@ async fn notification_core_sync_down_and_mark_read() {
 /// Covers: `openhuman.health_snapshot`, `openhuman.health_system_info`.
 #[tokio::test]
 async fn health_snapshot_and_system_info_report_this_process() {
-    let _env_lock = platform_e2e_env_lock();
+    let _env_lock = platform_e2e_env_lock_async().await;
     let h = Harness::start(default_state()).await;
 
     mark_component_ok("e2e_platform_probe_ok");
@@ -905,7 +910,7 @@ async fn health_snapshot_and_system_info_report_this_process() {
 /// Covers: `openhuman.doctor_report`, `openhuman.doctor_models`.
 #[tokio::test]
 async fn doctor_report_and_models_are_internally_consistent() {
-    let _env_lock = platform_e2e_env_lock();
+    let _env_lock = platform_e2e_env_lock_async().await;
     let h = Harness::start(default_state()).await;
 
     let report = post_json_rpc(&h.rpc_base, 9301, "openhuman.doctor_report", json!({})).await;
@@ -1062,7 +1067,7 @@ async fn doctor_report_and_models_are_internally_consistent() {
 /// Covers: `openhuman.service_daemon_host_get`, `openhuman.service_daemon_host_set`.
 #[tokio::test]
 async fn service_daemon_host_preferences_round_trip_to_disk() {
-    let _env_lock = platform_e2e_env_lock();
+    let _env_lock = platform_e2e_env_lock_async().await;
     let h = Harness::start(default_state()).await;
 
     let initial = post_json_rpc(
@@ -1175,7 +1180,7 @@ async fn service_daemon_host_preferences_round_trip_to_disk() {
 /// `openhuman.provider_surfaces_list_queue`.
 #[tokio::test]
 async fn provider_surfaces_respond_queue_upserts_by_event_identity() {
-    let _env_lock = platform_e2e_env_lock();
+    let _env_lock = platform_e2e_env_lock_async().await;
     let h = Harness::start(default_state()).await;
 
     let event = json!({
@@ -1337,7 +1342,7 @@ async fn provider_surfaces_respond_queue_upserts_by_event_identity() {
 /// Covers: `openhuman.announcements_get_latest`.
 #[tokio::test]
 async fn announcements_get_latest_passes_through_and_folds_404_to_null() {
-    let _env_lock = platform_e2e_env_lock();
+    let _env_lock = platform_e2e_env_lock_async().await;
 
     // ── signed out: refused locally, before the backend is dialled.
     let h = Harness::start(default_state()).await;

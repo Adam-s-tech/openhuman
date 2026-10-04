@@ -49,6 +49,8 @@ pub struct ServiceSet {
     pub login_gated: bool,
     /// Spawn the periodic self-update checker.
     pub update_scheduler: bool,
+    /// Start memory queue workers during runtime bootstrap.
+    pub memory_queue: bool,
     /// Run one-shot harness initialization during runtime bootstrap.
     pub harness_init: bool,
     /// Refresh the skill catalog during runtime bootstrap.
@@ -57,9 +59,7 @@ pub struct ServiceSet {
     pub mcp_boot: bool,
     /// Composio integration sync: periodic connection sync + one-shot memory-source reconcile.
     pub integrations: bool,
-    /// Memory background work: seeding the `memory_context_refresh` /
-    /// `memory_sources_sync` cron jobs and recovering source sync state left by
-    /// an interrupted process.
+    /// Workspace memory-source periodic sync — repos, folders, RSS, web pages.
     pub memory_sync: bool,
 }
 
@@ -73,6 +73,7 @@ impl ServiceSet {
             channels: true,
             login_gated: true,
             update_scheduler: true,
+            memory_queue: true,
             harness_init: true,
             skill_catalog_refresh: true,
             mcp_boot: true,
@@ -91,6 +92,7 @@ impl ServiceSet {
             channels: false,
             login_gated: false,
             update_scheduler: false,
+            memory_queue: false,
             harness_init: false,
             skill_catalog_refresh: false,
             mcp_boot: false,
@@ -109,6 +111,7 @@ impl ServiceSet {
             channels: false,
             login_gated: false,
             update_scheduler: false,
+            memory_queue: false,
             harness_init: false,
             skill_catalog_refresh: false,
             mcp_boot: false,
@@ -137,6 +140,7 @@ impl ServiceSet {
             channels: false,
             login_gated: true,
             update_scheduler: false,
+            memory_queue: true,
             harness_init: true,
             skill_catalog_refresh: true,
             mcp_boot: false,
@@ -166,7 +170,7 @@ impl ServiceSet {
 pub struct DomainSet {
     /// Agent definition/registry/experience, orchestration, session DB/import.
     pub agent: bool,
-    /// Memory v2: engine, recall/fetch/learn, sources, conversations, context.md, import.
+    /// Documents, knowledge graph, memory tree/sources/sync/diff/goals.
     pub memory: bool,
     /// Conversation threads, per-thread goals, todos.
     pub threads: bool,
@@ -762,21 +766,21 @@ impl CoreRuntime {
         let _ = local_addr;
     }
 
-    /// Mark the start of serving.
-    pub fn serving_started(&self) {
-        log::debug!("[core] serving started");
-    }
-
     /// Cleanup to run once a transport has stopped serving, whether it ended
-    /// cleanly or with an error: memory stores the conversation turns it still
-    /// has buffered, within [`crate::memory::exit::EXIT_BUDGET`]. There is no
-    /// local model runtime to stop: the user runs Ollama / LM Studio / MLX
+    /// cleanly or with an error.
+    ///
+    /// Memory goes first. The engine's queue worker holds leases on in-flight
+    /// jobs, and releasing them is a write to the store, so it has to happen
+    /// while the store is still open and before anything else on the way out
+    /// (tinymemory#133). Bounded inside, on one shared deadline: a wedged
+    /// store costs at most that budget, never the exit. There is no local
+    /// model runtime to stop: the user runs Ollama / LM Studio / MLX
     /// themselves and OpenHuman never spawns it.
     pub async fn exit_cleanup(&self) {
-        if let Some(config) = self.config.as_ref() {
-            crate::memory::exit::run(config).await;
+        if let Some(config) = &self.config {
+            let _ = crate::memory::exit::run(config).await;
         }
-        log::debug!("[core] shutdown: exit cleanup done");
+        log::debug!("[core] shutdown: exit cleanup done (no owned local runtime to stop)");
     }
 
     /// Spawn each selected background service.

@@ -20,7 +20,7 @@
 //! JSON-RPC router (`build_core_http_router`) and asserted on, so the number the
 //! gate reports and the coverage that exists are the same thing.
 
-use crate::env_guard::env_lock;
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use crate::rpc_harness::{error_message, payload};
@@ -149,7 +149,7 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
 /// report both would render two contradictory banners in the UI.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn approval_get_gate_state_returns_a_consistent_boot_snapshot() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(
@@ -241,7 +241,7 @@ async fn approval_get_gate_state_returns_a_consistent_boot_snapshot() {
 /// the gate lifecycle.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn approval_preauthorize_flow_succeeds_without_a_gate_installed() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let flow_id = format!("flow-{}", uuid::Uuid::new_v4());
@@ -298,7 +298,7 @@ async fn approval_preauthorize_flow_succeeds_without_a_gate_installed() {
 /// dispatch would leave these calls panicking or succeeding with defaults.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn approval_preauthorize_flow_rejects_malformed_params_over_the_wire() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let missing_flow = rpc(
@@ -423,7 +423,7 @@ fn composio_write_tools_declare_an_external_effect_so_the_approval_gate_parks_th
 /// not `0`, which a paging client would follow forever.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_run_events_returns_a_drained_empty_page_for_an_unknown_run() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(
@@ -470,7 +470,7 @@ async fn agent_run_events_returns_a_drained_empty_page_for_an_unknown_run() {
 /// actually supposed to reject this.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_run_events_rejects_a_missing_run_id() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(
@@ -508,7 +508,7 @@ async fn agent_run_events_rejects_a_missing_run_id() {
 /// observable.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_run_events_accepts_an_oversized_limit_without_erroring() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(
@@ -534,7 +534,7 @@ async fn agent_run_events_accepts_an_oversized_limit_without_erroring() {
 /// distinct from an error, which the UI would surface as a failure.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_run_status_returns_null_for_an_unknown_run() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(
@@ -561,7 +561,7 @@ async fn agent_run_status_returns_null_for_an_unknown_run() {
 /// unfiltered poll.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_runs_active_accepts_every_filter_combination() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     for (id, params, label) in [
@@ -594,7 +594,7 @@ async fn agent_runs_active_accepts_every_filter_combination() {
 /// shape-only check would not catch.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_graph_topologies_exports_structure_without_run_state() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(
@@ -630,7 +630,7 @@ async fn agent_graph_topologies_exports_structure_without_run_state() {
 /// stale or partial source.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agent_registry_snapshot_counts_agree_with_the_component_inventory() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(

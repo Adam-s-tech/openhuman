@@ -411,28 +411,33 @@ impl TurnModelSource {
         }
     }
 
-    /// Resolve the model's effective context window (async provider probe) — the
-    /// value that drives the context-window summarization step. Resolved before
-    /// [`build`](Self::build) so the harness graph makes no async `Provider` call.
+    /// Resolve the model's effective context window — the value that drives the
+    /// context-window summarization step. Resolved before [`build`](Self::build)
+    /// so the harness graph makes no async call.
+    ///
+    /// A crate-native source asks the provider: config override, then the
+    /// provider's own model listing (bounded and cached, corrected by any limit
+    /// an overflow error stated), and only then the static tables
+    /// ([`crate::inference::context_window`]).
     pub(crate) async fn effective_context_window(&self, model: &str) -> Option<u64> {
         if let Some(direct) = &self.direct_model {
             return direct
                 .profile()
                 .and_then(|profile| profile.max_input_tokens);
         }
-        let provider_string = self.crate_native.as_ref().map(|source| {
-            source.primary_override.clone().unwrap_or_else(|| {
-                crate::inference::provider::provider_for_role(&source.role, &source.config)
-            })
+        let Some(source) = self.crate_native.as_ref() else {
+            return crate::inference::model_context::context_window_for_model(model);
+        };
+        let provider_string = source.primary_override.clone().unwrap_or_else(|| {
+            crate::inference::provider::provider_for_role(&source.role, &source.config)
         });
-        let local_kind = provider_string
-            .as_deref()
-            .and_then(tinyinference_local::profile::kind_from_provider_string);
-        tinyinference_local::profile::context_window_with_local_fallback(
+        crate::inference::context_window::resolve_context_window(
+            &source.role,
+            &provider_string,
             model,
-            crate::inference::model_context::context_window_for_model(model),
-            local_kind,
+            &source.config,
         )
+        .await
     }
 
     /// Build this turn's [`TurnModels`] (primary + tier routes + summarizer),

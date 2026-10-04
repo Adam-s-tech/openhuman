@@ -777,14 +777,22 @@ impl OpenHumanSessionHost {
         }
         // Host-first, so a host tool wins a name collision -- see
         // `HostTurnTools::merge_into`, which owns that rule and why.
-        let host_policy = host
-            .map(|build| build(super::host_tools::TurnContext::new(agent_id, session_id)))
-            .and_then(|host_tools| host_tools.merge_into(agent_id, &mut tools, &mut visible));
+        let merged_host_tools = super::host_tools::merge_for_turn(
+            host,
+            agent_id,
+            session_id,
+            &mut tools,
+            &mut visible,
+        )?;
+        let host_policy = merged_host_tools.policy;
+        let withheld_tool_names = merged_host_tools.withheld;
         let mut builder = OpenHumanSessionHost::builder()
             .crate_native_provider(provider_role, Arc::clone(&base_config))
             .tools(tools)
             .synthesized_tools(delegation_tools)
             .visible_tool_names(visible)
+            .withheld_tool_names(withheld_tool_names)
+            .permanent_tool_names(merged_host_tools.permanent)
             .deferred_tools(target_def.map_or_else(Vec::new, |d| d.deferred_tools.clone()))
             .tool_dispatcher(tool_dispatcher)
             .prompt_builder(prompt_builder)

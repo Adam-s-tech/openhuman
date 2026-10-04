@@ -8,6 +8,18 @@
 use openhuman_core::config::Config;
 use openhuman_core::core::runtime::{AGENT_WORKER_STACK_BYTES, MAX_BLOCKING_THREADS};
 use serde_json::json;
+use wiremock::{MockServer, Request};
+
+/// Requests that represent model inference, excluding the new `/models` discovery call.
+pub async fn chat_requests(server: &MockServer) -> Vec<Request> {
+    server
+        .received_requests()
+        .await
+        .expect("provider recorded requests")
+        .into_iter()
+        .filter(|request| request.url.path().ends_with("/chat/completions"))
+        .collect()
+}
 
 /// An OpenAI-compatible chat completion carrying `content`.
 pub fn chat_completion(content: &str) -> serde_json::Value {

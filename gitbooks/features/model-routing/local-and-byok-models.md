@@ -130,6 +130,8 @@ Add your key in the desktop app under the LLM settings, which stores it in the O
 
 Anything else that speaks the OpenAI-compatible API works too: register it with your own slug and endpoint, and it routes the same way.
 
+On a headless core (`openhuman-core serve`) custom cloud providers are only built when a backend session or TinyHumans API key is present. If you run the core with no account, wire the endpoint as the `local-openai` runtime instead (`LOCAL_OPENAI_URL`, key in `local_ai.api_key`, workloads pinned to `local-openai:<model>`); see [Headless without a TinyHumans account](../cloud-deploy.md#headless-without-a-tinyhumans-account).
+
 ### 2. Route workloads to it
 
 Provider strings follow `<slug>:<model>`, using the same workload fields as the local route:

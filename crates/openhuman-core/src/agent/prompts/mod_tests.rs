@@ -81,6 +81,8 @@ fn agents_md_ctx(global: Option<String>, local: Option<String>) -> PromptContext
 mod agents_md_registration_tests;
 #[path = "mod_tests_builder_sections_tests.rs"]
 mod builder_sections_tests;
+#[path = "mod_tests_grounding_spec_check_tests.rs"]
+mod grounding_spec_check_tests;
 #[path = "mod_tests_subagent_render_tests.rs"]
 mod subagent_render_tests;
 #[path = "mod_tests_tools_sections_tests.rs"]
@@ -165,7 +167,8 @@ fn swapping_deferred_entries_leaves_the_bridge_in_their_place() {
         visible.contains("tool_search") && !visible.contains("tool_call"),
         "`tool_search` replaces them; there is no `tool_call` wrapper: {visible:?}"
     );
-    for name in ["tool_search"] {
+    {
+        let name = "tool_search";
         assert!(
             tools.iter().any(|tool| tool.name == name
                 && tool

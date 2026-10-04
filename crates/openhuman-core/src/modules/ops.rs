@@ -318,7 +318,8 @@ where
         .await
         .map_err(|error| {
             format!(
-                "{error}. This is terminal for the running process; restart the app to try again"
+                "{error}. {}; restart the app to try again",
+                crate::tools::status::MODULE_FAULT_MARKER
             )
         })
 }

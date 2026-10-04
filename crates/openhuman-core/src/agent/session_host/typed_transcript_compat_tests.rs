@@ -307,7 +307,7 @@ fn typed_and_legacy_rows_bridge_to_identical_model_messages() {
         AssistantMessage, ContentBlock, ImageRef, Message, ToolMessage, UserMessage,
     };
 
-    let messages = vec![
+    let messages = [
         Message::User(UserMessage {
             content: vec![
                 ContentBlock::Text("see ".into()),
@@ -369,8 +369,7 @@ fn regenerate_typed_session_compat() {
         let tools = legacy
             .lines()
             .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-            .filter(|value| value.get("kind").and_then(Value::as_str) == Some("tools"))
-            .next_back()
+            .rfind(|value| value.get("kind").and_then(Value::as_str) == Some("tools"))
             .map(|value| value["tools"].clone())
             .expect("legacy fixture records its tools");
         append_tools_record(&path, &tools).expect("tools record");

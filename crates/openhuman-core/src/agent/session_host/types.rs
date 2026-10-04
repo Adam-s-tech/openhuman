@@ -190,6 +190,7 @@ pub struct OpenHumanSessionHost {
     /// policy session exactly like a visible tool — a found tool the gate
     /// refused as "prompt-hidden" would be the old unusable find again.
     pub(super) deferred_tool_names: std::collections::HashSet<String>,
+    pub(super) permanent_tool_names: std::collections::HashSet<String>,
     /// Whether this belt reaches deferred tools at all: a wildcard belt
     /// always does, a `[tools] named` belt only by listing `tool_search`.
     /// Fixed at build; the refresh paths use it to recompute
@@ -494,6 +495,7 @@ pub struct OpenHumanSessionHost {
 
 /// A builder for creating `OpenHumanSessionHost` instances with custom configuration.
 pub struct SessionHostBuilder {
+    pub(super) permanent_tool_names: std::collections::HashSet<String>,
     pub(super) turn_model_source: Option<TurnModelSource>,
     pub(super) tools: Option<Vec<Box<dyn Tool>>>,
     /// Delegation tools synthesised for the session's initial connection set.
@@ -501,6 +503,9 @@ pub struct SessionHostBuilder {
     pub(super) synthesized_tools: Option<Vec<Box<dyn Tool>>>,
     /// When set, restricts which tools the main agent sees/calls.
     pub(super) visible_tool_names: Option<std::collections::HashSet<String>>,
+    /// Names removed from the final provider-visible set after wildcard
+    /// expansion and tool synthesis.
+    pub(super) withheld_tool_names: std::collections::HashSet<String>,
     /// See [`SessionHostBuilder::deferred_tools`].
     pub(super) deferred_tools: Vec<String>,
     /// Optional explicit profile ceiling for tools delegated agents may inherit.

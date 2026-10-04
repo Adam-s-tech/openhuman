@@ -74,6 +74,9 @@ pub struct ContextManager {
     /// `[context].autocompact_enabled` so a diagnostic/test opt-out doesn't spend
     /// summarizer tokens or rewrite history. See [`ContextConfig::autocompact_enabled`].
     autocompact_enabled: bool,
+    /// `[context].compaction_trigger_tokens` and `compaction_strategy`. See
+    /// [`ContextConfig::compaction_settings`].
+    compaction: crate::config::CompactionSettings,
 }
 
 impl ContextManager {
@@ -102,6 +105,7 @@ impl ContextManager {
             // Summarization is off when the whole context system is disabled OR
             // autocompaction specifically is turned off.
             autocompact_enabled: config.enabled && config.autocompact_enabled,
+            compaction: config.compaction_settings(),
         }
     }
 
@@ -138,6 +142,12 @@ impl ContextManager {
     /// `TurnContextMiddleware`.
     pub fn autocompact_enabled(&self) -> bool {
         self.autocompact_enabled
+    }
+
+    /// The compaction trigger override (benchmarks / debugging) and the
+    /// checkpoint strategy.
+    pub fn compaction(&self) -> crate::config::CompactionSettings {
+        self.compaction
     }
 
     // ─── Budget tracking ──────────────────────────────────────────

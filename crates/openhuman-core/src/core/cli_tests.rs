@@ -59,8 +59,8 @@ fn launch_options_reject_missing_or_empty_values() {
 /// suites mutate env under `TEST_ENV_LOCK` alone, so neither lock suffices on
 /// its own. Taken in the established order: `TEST_ENV_LOCK`, then backend.
 fn env_lock() -> (
-    std::sync::MutexGuard<'static, ()>,
-    std::sync::MutexGuard<'static, ()>,
+    tokio::sync::MutexGuard<'static, ()>,
+    tokio::sync::MutexGuard<'static, ()>,
 ) {
     (
         crate::config::test_env::lock_env(),

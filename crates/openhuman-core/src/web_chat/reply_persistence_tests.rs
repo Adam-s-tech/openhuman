@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::persist_delivered_reply;
 use crate::memory::types::TurnCitation;
@@ -10,9 +10,9 @@ fn temp_ws() -> PathBuf {
     dir
 }
 
-fn seed_thread(ws: &PathBuf, thread_id: &str) {
+fn seed_thread(ws: &Path, thread_id: &str) {
     conversations::ensure_thread(
-        ws.clone(),
+        ws.to_path_buf(),
         CreateConversationThread {
             id: thread_id.to_string(),
             title: "Chat".to_string(),

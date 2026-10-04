@@ -240,6 +240,14 @@ path = "../../tests/observability_wallet_expected_e2e.rs"
 name = "skills_mcp_registry_live"
 path = "../../tests/skills_mcp_registry_live.rs"
 
+[[test]]
+name = "memory_roundtrip_e2e"
+path = "../../tests/memory_roundtrip_e2e.rs"
+
+[[example]]
+name = "run_memory_reconcile"
+path = "../../examples/run_memory_reconcile.rs"
+
 [[example]]
 name = "embed_headless"
 path = "../../examples/embed_headless.rs"
@@ -339,7 +347,6 @@ flows = ["openhuman-core/flows", "openhuman-tinyhumans/flows"]
 skills = ["openhuman-core/skills", "openhuman-tinyhumans/skills"]
 mcp = ["openhuman-core/mcp", "openhuman-tinyhumans/mcp"]
 channels = ["openhuman-core/channels", "openhuman-tinyhumans/channels"]
-sandbox-landlock = ["openhuman-core/sandbox-landlock", "openhuman-tinyhumans/sandbox-landlock"]
 whatsapp-web = ["openhuman-core/whatsapp-web", "openhuman-tinyhumans/whatsapp-web"]
 e2e-test-support = ["openhuman-core/e2e-test-support"]
 rss-bench = ["openhuman-core/rss-bench"]

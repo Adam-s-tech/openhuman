@@ -39,21 +39,18 @@ static JSON_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
 /// Serializes tests in this binary: `HOME` / `OPENHUMAN_WORKSPACE` / backend URL overrides are
 /// process-global, so parallel tests would clobber each other and hit the wrong `config.toml` or
 /// inherited `VITE_BACKEND_URL`.
-static JSON_RPC_E2E_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+static JSON_RPC_E2E_ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
 static JSON_RPC_E2E_KEYRING_INIT: OnceLock<()> = OnceLock::new();
 static CHAT_COMPLETION_MODELS: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
 static CHAT_COMPLETION_REQUESTS: OnceLock<Mutex<Vec<Value>>> = OnceLock::new();
 
-fn json_rpc_e2e_env_lock() -> std::sync::MutexGuard<'static, ()> {
+async fn json_rpc_e2e_env_lock_async() -> tokio::sync::MutexGuard<'static, ()> {
     JSON_RPC_E2E_KEYRING_INIT.get_or_init(|| unsafe {
         std::env::set_var("OPENHUMAN_KEYRING_BACKEND", "file");
     });
-    let mutex = JSON_RPC_E2E_ENV_LOCK.get_or_init(|| Mutex::new(()));
-    // Recover from poison so that a panic in one test does not cascade to all others.
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
+    let mutex = JSON_RPC_E2E_ENV_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
+    // A tokio mutex is never poisoned, so a panic in one test cannot cascade to the others.
+    mutex.lock().await
 }
 
 fn run_json_rpc_e2e_on_agent_stack<F, Fut>(name: &str, future_factory: F)
@@ -1176,7 +1173,7 @@ fn ensure_test_rpc_auth() {
 
 #[tokio::test]
 async fn json_rpc_config_update_browser_settings_persists_backend() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -1246,7 +1243,7 @@ async fn json_rpc_config_update_browser_settings_persists_backend() {
 
 #[tokio::test]
 async fn json_rpc_reasoning_effort_persists_and_rejects_unknown_levels() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -1323,7 +1320,7 @@ async fn json_rpc_reasoning_effort_persists_and_rejects_unknown_levels() {
 
 #[tokio::test]
 async fn json_rpc_tokenjuice_detect_and_cache_stats() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{rpc_addr}");
 
@@ -1361,7 +1358,7 @@ async fn json_rpc_tokenjuice_detect_and_cache_stats() {
 
 #[tokio::test]
 async fn json_rpc_tokenjuice_settings_and_savings() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{rpc_addr}");
 
@@ -1437,7 +1434,7 @@ async fn json_rpc_tokenjuice_settings_and_savings() {
 
 #[tokio::test]
 async fn json_rpc_tool_registry_lists_and_gets_entries() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{rpc_addr}");
 
@@ -1530,7 +1527,7 @@ async fn json_rpc_tool_registry_lists_and_gets_entries() {
 
 #[tokio::test]
 async fn json_rpc_harness_init_status_returns_snapshot_envelope() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{rpc_addr}");
 
@@ -1575,7 +1572,7 @@ async fn json_rpc_harness_init_status_returns_snapshot_envelope() {
 
 #[tokio::test]
 async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2184,7 +2181,7 @@ fn json_rpc_protocol_auth_and_agent_hello() {
 }
 
 async fn json_rpc_protocol_auth_and_agent_hello_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2321,7 +2318,7 @@ fn json_rpc_prompt_injection_is_rejected_before_model_call() {
 }
 
 async fn json_rpc_prompt_injection_is_rejected_before_model_call_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2421,7 +2418,7 @@ async fn json_rpc_prompt_injection_is_rejected_before_model_call_inner() {
 
 #[tokio::test]
 async fn json_rpc_thread_labels_create_and_update() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2532,7 +2529,7 @@ async fn json_rpc_thread_labels_create_and_update() {
 /// queued (no active turn at all, here) is a no-op, not an error — see C3.
 #[tokio::test]
 async fn json_rpc_thread_goal_and_todos_get_and_queue_remove_are_wired() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2623,7 +2620,7 @@ async fn json_rpc_plan_review_decide_unknown_and_invalid() {
     // The plan-review gate is in-memory and parks a live turn; over RPC we can
     // still exercise the decision surface: deciding an unknown/expired request
     // resolves nothing (`resolved: false`), and an invalid decision errors.
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2682,7 +2679,7 @@ async fn json_rpc_plan_review_decide_unknown_and_invalid() {
 
 #[tokio::test]
 async fn json_rpc_thread_title_create_and_update() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2776,7 +2773,7 @@ async fn json_rpc_thread_title_create_and_update() {
 
 #[tokio::test]
 async fn json_rpc_thread_not_found_errors_are_structured() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2843,7 +2840,7 @@ async fn json_rpc_thread_not_found_errors_are_structured() {
 
 #[tokio::test]
 async fn json_rpc_thread_generate_title_falls_back_when_provider_path_is_unavailable() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -2952,7 +2949,7 @@ async fn json_rpc_thread_generate_title_falls_back_when_provider_path_is_unavail
 
 #[tokio::test]
 async fn json_rpc_thread_turn_state_lifecycle() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -3159,7 +3156,7 @@ async fn json_rpc_thread_turn_state_lifecycle() {
 
 #[tokio::test]
 async fn json_rpc_run_ledger_lifecycle() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -3276,7 +3273,7 @@ async fn json_rpc_run_ledger_lifecycle() {
 
 #[tokio::test]
 async fn json_rpc_agent_work_list_groups_runs_by_bucket() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -3382,7 +3379,7 @@ async fn json_rpc_agent_work_list_groups_runs_by_bucket() {
 
 #[tokio::test]
 async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -3487,7 +3484,7 @@ async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
 
 #[tokio::test]
 async fn json_rpc_agent_team_coordination_roundtrip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -3840,7 +3837,7 @@ fn json_rpc_web_chat_routing_cases_use_expected_backend_models() {
 }
 
 async fn json_rpc_web_chat_routing_cases_use_expected_backend_models_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -3955,7 +3952,7 @@ fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_route_
 
 async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_route_change_inner()
 {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4214,7 +4211,7 @@ fn json_rpc_web_chat_custom_chat_provider_with_auth_none_omits_auth_header() {
 }
 
 async fn json_rpc_web_chat_custom_chat_provider_with_auth_none_omits_auth_header_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4380,7 +4377,7 @@ async fn json_rpc_web_chat_custom_chat_provider_with_auth_none_omits_auth_header
 
 #[tokio::test]
 async fn json_rpc_rejects_non_object_params_with_clear_error() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4421,7 +4418,7 @@ async fn json_rpc_rejects_non_object_params_with_clear_error() {
 
 #[tokio::test]
 async fn json_rpc_removed_screen_intelligence_methods_are_not_found() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4454,7 +4451,7 @@ async fn json_rpc_removed_screen_intelligence_methods_are_not_found() {
 
 #[tokio::test]
 async fn json_rpc_app_state_snapshot_returns_runtime_shape() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4541,7 +4538,7 @@ async fn json_rpc_app_state_snapshot_returns_runtime_shape() {
 
 #[tokio::test]
 async fn json_rpc_wallet_setup_round_trips_status() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4649,7 +4646,7 @@ async fn json_rpc_wallet_setup_round_trips_status() {
 #[tokio::test]
 #[ignore = "drives the loaded wallet module; run alone with an installed tinywallet artifact"]
 async fn json_rpc_wallet_execution_surface_round_trips() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4661,7 +4658,7 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
     let (wallet_rpc_addr, raw_txs) = start_mock_wallet_evm_rpc().await;
     let _evm_provider_guard = EnvVarGuard::set(
         "OPENHUMAN_WALLET_RPC_EVM",
-        &format!("http://{wallet_rpc_addr}"),
+        format!("http://{wallet_rpc_addr}"),
     );
     // The same mock stands in for every other chain, so the run never reaches a
     // public endpoint: chain_status probes each one.
@@ -4788,7 +4785,7 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         .port();
     let _dead_btc_guard = EnvVarGuard::set(
         "OPENHUMAN_WALLET_RPC_BTC",
-        &format!("http://127.0.0.1:{closed_port}"),
+        format!("http://127.0.0.1:{closed_port}"),
     );
     let cs = post_json_rpc(&rpc_base, 20031, "openhuman.wallet_chain_status", json!({})).await;
     let body = assert_no_jsonrpc_error(&cs, "wallet_chain_status_unreachable");
@@ -4938,7 +4935,7 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
 /// chain are rejected before any network call).
 #[tokio::test]
 async fn json_rpc_wallet_tx_reads_and_web3_gates_round_trip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -4950,7 +4947,7 @@ async fn json_rpc_wallet_tx_reads_and_web3_gates_round_trip() {
     let (wallet_rpc_addr, _raw_txs) = start_mock_wallet_evm_rpc().await;
     let _evm_provider_guard = EnvVarGuard::set(
         "OPENHUMAN_WALLET_RPC_EVM",
-        &format!("http://{wallet_rpc_addr}"),
+        format!("http://{wallet_rpc_addr}"),
     );
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
@@ -5364,7 +5361,7 @@ async fn wallet_setup_via_rpc(rpc_base: &str, encrypted_mnemonic: &str) {
 #[tokio::test]
 #[ignore = "drives the loaded wallet module; run alone with an installed tinywallet artifact"]
 async fn json_rpc_wallet_evm_base_network_prepare_execute_round_trips() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -5449,7 +5446,7 @@ async fn json_rpc_wallet_evm_base_network_prepare_execute_round_trips() {
 #[tokio::test]
 #[ignore = "drives the loaded wallet module; run alone with an installed tinywallet artifact"]
 async fn json_rpc_wallet_btc_prepare_execute_round_trips() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -5541,7 +5538,7 @@ async fn json_rpc_wallet_btc_prepare_execute_round_trips() {
 /// Solana: native SOL transfer end-to-end through controllers.
 #[tokio::test]
 async fn json_rpc_wallet_solana_prepare_execute_round_trips() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -5611,7 +5608,7 @@ async fn json_rpc_wallet_solana_prepare_execute_round_trips() {
 #[tokio::test]
 #[ignore = "drives the loaded wallet module; run alone with an installed tinywallet artifact"]
 async fn json_rpc_wallet_tron_prepare_execute_round_trips() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -5700,7 +5697,7 @@ async fn json_rpc_wallet_tron_prepare_execute_round_trips() {
 #[tokio::test]
 #[ignore = "drives the loaded wallet module; run alone with an installed tinywallet artifact"]
 async fn json_rpc_wallet_tron_trc20_prepare_execute_round_trips() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -5790,7 +5787,7 @@ async fn json_rpc_wallet_tron_trc20_prepare_execute_round_trips() {
 /// Solana, and Tron, with chain_id populated for EVM rows.
 #[tokio::test]
 async fn json_rpc_wallet_network_defaults_lists_all_chains() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -5855,7 +5852,7 @@ async fn json_rpc_wallet_network_defaults_lists_all_chains() {
 /// (its serde default). The field is deprecated but still surfaced for backward compat.
 #[tokio::test]
 async fn json_rpc_app_state_snapshot_chat_onboarding_defaults_false() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -5919,7 +5916,7 @@ encrypt = false
 /// `unreachable` and no runtime binary on PATH may have been executed.
 #[tokio::test]
 async fn json_rpc_inference_status_reports_unreachable_without_spawning_a_runtime() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6096,7 +6093,7 @@ async fn json_rpc_inference_status_reports_unreachable_without_spawning_a_runtim
 /// whatever that floor is gets `below_minimum` and one over it gets `ok`.
 #[tokio::test]
 async fn json_rpc_local_ai_ollama_diagnostics_rejects_a_short_context_model() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6260,7 +6257,7 @@ async fn json_rpc_local_ai_ollama_diagnostics_rejects_a_short_context_model() {
 
 #[tokio::test]
 async fn json_rpc_local_ai_lm_studio_config_diagnostics_and_prompt() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6411,7 +6408,7 @@ async fn json_rpc_local_ai_lm_studio_config_diagnostics_and_prompt() {
 
 #[tokio::test]
 async fn json_rpc_local_ai_ollama_endpoint_normalizes_bind_address_and_clears() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6471,7 +6468,7 @@ async fn json_rpc_local_ai_ollama_endpoint_normalizes_bind_address_and_clears() 
 
 #[tokio::test]
 async fn json_rpc_inference_namespace_lm_studio_prompt_and_status() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6640,7 +6637,7 @@ async fn json_rpc_inference_namespace_lm_studio_prompt_and_status() {
 
 #[tokio::test]
 async fn json_rpc_inference_prompt_requires_external_ollama_runtime_when_unreachable() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6708,7 +6705,7 @@ async fn json_rpc_inference_prompt_requires_external_ollama_runtime_when_unreach
 /// exactly as the desktop app or a CI script would.
 #[tokio::test]
 async fn billing_rpc_e2e() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6858,7 +6855,7 @@ async fn billing_rpc_e2e() {
 /// session JWT, then exercises every team controller through the RPC surface.
 #[tokio::test]
 async fn team_rpc_e2e() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -6989,7 +6986,7 @@ async fn team_rpc_e2e() {
 
 #[tokio::test]
 async fn about_app_rpc_list_lookup_and_search() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -7101,7 +7098,7 @@ async fn about_app_rpc_list_lookup_and_search() {
 
 #[tokio::test]
 async fn voice_status_returns_availability() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -7166,7 +7163,7 @@ async fn voice_status_returns_availability() {
 
 #[tokio::test]
 async fn notification_settings_roundtrip_and_disabled_ingest_skip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -7257,7 +7254,7 @@ async fn credentials_crud_roundtrip() {
     //
     // Provider credentials are stored locally (auth-profiles.json) and require
     // no upstream network calls, so no mock session/JWT is needed.
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -7402,7 +7399,7 @@ async fn credentials_crud_roundtrip() {
 /// (controller registration, param decoding, response shape) was not.
 #[tokio::test]
 async fn skills_uninstall_rpc_e2e() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
 
@@ -7510,7 +7507,7 @@ async fn skills_uninstall_rpc_e2e() {
 /// POST /rpc without any Authorization header → 401 with error=unauthorized.
 #[tokio::test]
 async fn rpc_rejects_unauthenticated_request() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7537,7 +7534,7 @@ async fn rpc_rejects_unauthenticated_request() {
 /// POST /rpc with a syntactically valid but wrong bearer token → 401.
 #[tokio::test]
 async fn rpc_rejects_wrong_token() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7568,7 +7565,7 @@ async fn rpc_rejects_wrong_token() {
 /// headers) so the assertion is `!= 401`, not `.is_success()`.
 #[tokio::test]
 async fn public_paths_accessible_without_token() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7647,7 +7644,7 @@ async fn public_paths_accessible_without_token() {
 /// GET /events/webhooks with neither header nor query token → 401.
 #[tokio::test]
 async fn webhook_sse_rejects_unauthenticated() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7674,7 +7671,7 @@ async fn webhook_sse_rejects_unauthenticated() {
 /// `encodeURIComponent(null)` / `encodeURIComponent("")` mishaps on the FE.
 #[tokio::test]
 async fn webhook_sse_rejects_empty_query_token() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7694,7 +7691,7 @@ async fn webhook_sse_rejects_empty_query_token() {
 /// GET /events/webhooks?token=garbage → 401.
 #[tokio::test]
 async fn webhook_sse_rejects_wrong_query_token() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7719,7 +7716,7 @@ async fn webhook_sse_rejects_wrong_query_token() {
 /// GET /events/webhooks?token=<valid> → 200 (SSE stream opens).
 #[tokio::test]
 async fn webhook_sse_accepts_valid_query_token() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7757,7 +7754,7 @@ async fn webhook_sse_accepts_valid_query_token() {
 /// when the token itself is hex-only).
 #[tokio::test]
 async fn webhook_sse_accepts_percent_encoded_query_token() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7797,7 +7794,7 @@ async fn webhook_sse_accepts_percent_encoded_query_token() {
 /// CLI / non-browser callers should still be able to subscribe the header way.
 #[tokio::test]
 async fn webhook_sse_accepts_valid_bearer_header() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7822,7 +7819,7 @@ async fn webhook_sse_accepts_valid_bearer_header() {
 /// Simulate an external process using a guessed token — must be rejected.
 #[tokio::test]
 async fn external_process_with_guessed_token_is_rejected() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth(); // server validates against TEST_RPC_TOKEN
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
@@ -7855,7 +7852,7 @@ async fn external_process_with_guessed_token_is_rejected() {
 
 #[tokio::test]
 async fn rpc_update_apply_can_be_disabled_by_config_policy() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     ensure_test_rpc_auth();
 
     let tmp = tempdir().expect("tempdir");
@@ -7926,7 +7923,7 @@ async fn rpc_update_apply_can_be_disabled_by_config_policy() {
 /// the transport layer, not just at the unit level.
 #[tokio::test]
 async fn channels_status_reflects_managed_dm_credential_e2e() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8035,7 +8032,7 @@ async fn channels_status_reflects_managed_dm_credential_e2e() {
 ///    which proves the method is wired all the way through.
 #[tokio::test]
 async fn voice_cloud_transcribe_registered_e2e() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8111,7 +8108,7 @@ async fn voice_cloud_transcribe_registered_e2e() {
 
 #[tokio::test]
 async fn mcp_clients_lifecycle() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8253,7 +8250,7 @@ async fn mcp_clients_lifecycle() {
 /// is how a user adds any server now — the registry is browse-only.
 #[tokio::test]
 async fn mcp_clients_declare_connect_tool_call_happy_path() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8424,7 +8421,7 @@ async fn mcp_clients_declare_connect_tool_call_happy_path() {
 /// and asserts the response carries `enabled=false` (issue #3196).
 #[tokio::test]
 async fn mcp_clients_set_enabled_smoke() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8508,7 +8505,7 @@ async fn mcp_clients_set_enabled_smoke() {
 /// removes that one value; (d) dropping the entry uninstalls the server.
 #[tokio::test]
 async fn mcp_clients_config_round_trip_merges_credentials_and_removes_absent_servers() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8690,7 +8687,7 @@ async fn installed_server_id(rpc_base: &str, id: i64, name: &str) -> String {
 /// gap A6).
 #[tokio::test]
 async fn mcp_clients_registry_settings_roundtrip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8807,7 +8804,7 @@ async fn mcp_clients_registry_settings_roundtrip() {
 
 #[tokio::test]
 async fn json_rpc_config_autonomy_settings_roundtrip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -8986,7 +8983,7 @@ async fn json_rpc_config_autonomy_settings_roundtrip() {
 /// uses), with the same bounds the UI shows and a validation error on garbage.
 #[tokio::test]
 async fn json_rpc_config_agent_timeout_settings_roundtrip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -9119,7 +9116,7 @@ async fn json_rpc_config_agent_timeout_settings_roundtrip() {
 
 #[tokio::test]
 async fn port_conflict_recovery_core_starts_on_fallback_port_e2e() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
 
     // ── 1. occupy port 7788 with a dummy listener ─────────────────────────
     // Use std::net so the binding is synchronous and stable before we call
@@ -9215,7 +9212,7 @@ async fn port_conflict_recovery_core_starts_on_fallback_port_e2e() {
 /// rather than hanging.
 #[tokio::test]
 async fn json_rpc_task_sources_crud_and_status() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -9375,7 +9372,7 @@ async fn json_rpc_task_sources_crud_and_status() {
 /// end to end over RPC rather than a successful fetch.
 #[tokio::test]
 async fn json_rpc_task_sources_fetch_pipeline_e2e() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -9516,7 +9513,7 @@ async fn json_rpc_task_sources_fetch_pipeline_e2e() {
 /// `HOME` isolates per-test.
 #[tokio::test]
 async fn json_rpc_workflows_lifecycle_round_trip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -9700,7 +9697,7 @@ fn approval_gated_graph_json() -> Value {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_lifecycle_round_trip() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     // 1. Create an approval-gated flow.
@@ -9924,7 +9921,7 @@ async fn json_rpc_flows_lifecycle_round_trip() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_run_detached_returns_before_run_completes() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     // 1. Create a trivial, immediately-completable flow.
@@ -10038,7 +10035,7 @@ async fn json_rpc_flows_run_detached_returns_before_run_completes() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_update_forces_require_approval_on_side_effect_graph() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     // 1. Create a trigger-only (read-only) flow with require_approval: false.
@@ -10133,7 +10130,7 @@ async fn json_rpc_flows_update_forces_require_approval_on_side_effect_graph() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_suggestion_lifecycle_methods_are_wired() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     // Empty to start.
@@ -10327,7 +10324,7 @@ fn json_rpc_flows_full_arc_discover_build_create_run() {
 
 #[cfg(feature = "flows")]
 async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     // Drain the scripted-completion FIFO even if an assertion below panics, so a
     // leftover entry can't bleed into another test sharing this binary.
     let _fifo_guard = ScriptedFifoGuard;
@@ -10572,7 +10569,7 @@ async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_resume_deny_routes_to_error_port() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     let graph = json!({
@@ -10661,7 +10658,7 @@ async fn json_rpc_flows_resume_deny_routes_to_error_port() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_validate_reports_warnings_and_errors() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     // 1. Webhook trigger — structurally valid, but does not fire yet → warning.
@@ -10802,7 +10799,7 @@ async fn json_rpc_flows_validate_reports_warnings_and_errors() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_import_native_and_n8n() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     // 1. Native import — a valid tinyflows graph, warning-free.
@@ -10914,7 +10911,7 @@ async fn json_rpc_flows_import_native_and_n8n() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_list_connections_aggregates_secret_free() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     // Seed an HTTP credential through the same encrypted-at-rest store the op
@@ -10979,7 +10976,7 @@ fn json_rpc_channel_web_chat_with_speak_reply_invokes_reply_speech() {
 }
 
 async fn json_rpc_channel_web_chat_with_speak_reply_invokes_reply_speech_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -11096,7 +11093,7 @@ async fn json_rpc_channel_web_chat_with_speak_reply_invokes_reply_speech_inner()
 /// "unknown param 'always_on_enabled'" before reaching the handler).
 #[tokio::test]
 async fn json_rpc_voice_server_settings_roundtrip_always_on_and_wake_word() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -11195,7 +11192,7 @@ fn json_rpc_workflow_run_engine_executes_builtin_to_completion() {
 }
 
 async fn json_rpc_workflow_run_engine_executes_builtin_to_completion_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -11340,7 +11337,7 @@ fn json_rpc_agent_team_live_member_run_roundtrip() {
 /// quality gate with the worker output as evidence, and returns to idle —
 /// surfaced by polling `agent_team_get`.
 async fn json_rpc_agent_team_live_member_run_roundtrip_inner() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -11645,7 +11642,7 @@ async fn poll_team_members_status(
 /// the composer footer seeds itself from when a thread is selected.
 #[tokio::test]
 async fn json_rpc_threads_token_usage_reads_persisted_thread_totals() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -11834,7 +11831,7 @@ fn seed_raw_transcript(workspace: &Path, stem: &str, thread_id: &str, body: &[&s
 
 #[tokio::test]
 async fn json_rpc_threads_transcript_get_projects_and_paginates() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     // Config resolves the runtime workspace to `OPENHUMAN_WORKSPACE/workspace`
     // (see resolve_config_dir_for_workspace), so seed transcripts there.
@@ -12049,7 +12046,7 @@ async fn json_rpc_threads_transcript_get_projects_and_paginates() {
 /// so a change that deleted too much fails here rather than passing quietly.
 #[tokio::test]
 async fn json_rpc_memory_diff_surface_is_gone_and_memory_still_answers() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -12198,7 +12195,7 @@ async fn auth_store_provider_credentials_writes_an_owner_only_store_file() {
         return;
     }
 
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -12278,7 +12275,7 @@ async fn auth_store_provider_credentials_writes_an_owner_only_store_file() {
 /// the handler reports success without calling a provider.
 #[tokio::test]
 async fn voice_test_provider_honours_validate_only_for_the_stt_workload() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -12444,7 +12441,7 @@ fn strict_create_refusal(response: &Value) -> Option<String> {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_strict_create_refuses_binding_to_undeclared_agent_field() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     let create = post_json_rpc(
@@ -12484,7 +12481,7 @@ async fn json_rpc_flows_strict_create_refuses_binding_to_undeclared_agent_field(
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_strict_create_accepts_binding_to_schemaless_agent() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     let create = post_json_rpc(
@@ -12530,7 +12527,7 @@ async fn json_rpc_flows_strict_create_accepts_binding_to_schemaless_agent() {
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_strict_create_accepts_prose_prompt_beside_real_messages() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     let create = post_json_rpc(
@@ -12577,7 +12574,7 @@ async fn json_rpc_flows_strict_create_accepts_prose_prompt_beside_real_messages(
 #[cfg(feature = "flows")]
 #[tokio::test]
 async fn json_rpc_flows_strict_create_still_refuses_prose_prompt_without_messages() {
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let (rpc_base, _tmp, api_join, rpc_join, _guards) = boot_flows_rpc_env().await;
 
     let create = post_json_rpc(
@@ -12613,7 +12610,7 @@ async fn json_rpc_agent_run_mode_set_and_get_round_trip() {
     // thread's Plan/Build mode through the per-thread `RunModeHandle`
     // registry (`agent::tinyagents::run_mode`) — no thread/session bootstrap
     // needed since the registry is a bare thread_id-keyed map.
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -12697,7 +12694,7 @@ async fn json_rpc_agent_context_breakdown_default_agent_returns_sections() {
     // system/tools sections as a stacked-bar-friendly list. Called with no
     // params it must default `agent_id` to "orchestrator" and still work
     // against a bare `write_min_config` setup (no thread bootstrap needed).
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -12762,7 +12759,7 @@ async fn json_rpc_commands_list_merges_builtins() {
     // `commands.list` (wire method `openhuman.commands_list`, no params) must
     // at least surface the fixed built-in slash commands (skills.list /
     // flows.list are best-effort and may be empty in this bare setup).
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -12850,7 +12847,7 @@ async fn json_rpc_threads_edit_message_truncates_and_restarts_turn_inner() {
     // (which does have a reply, per the module's own doc comment on the
     // "editing the newest unanswered message" gap), and verifies the store
     // was actually mutated rather than just accepting the RPC.
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");
@@ -13059,7 +13056,7 @@ async fn json_rpc_threads_regenerate_truncates_and_restarts_turn_inner() {
     // the old reply from the message log, then restarts with the same user
     // prompt. Verifies the old reply id is gone and a fresh one appears once
     // the new turn completes.
-    let _env_lock = json_rpc_e2e_env_lock();
+    let _env_lock = json_rpc_e2e_env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let openhuman_home = home.join(".openhuman");

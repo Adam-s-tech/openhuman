@@ -1,7 +1,7 @@
 //! Focused JSON-RPC E2E coverage for config, auth/credentials, app_state,
 //! and connectivity controller surfaces.
 
-use crate::env_guard::{env_lock, EnvVarGuard};
+use crate::env_guard::{env_lock, env_lock_async, EnvVarGuard};
 use crate::rpc_auth::ensure_rpc_auth;
 use crate::rpc_harness::{ok, payload, rpc, schema};
 use std::net::SocketAddr;
@@ -458,9 +458,11 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         assert!(local_ai.use_local_for_subconscious());
     }
 
-    let mut search = openhuman_core::config::schema::SearchConfig::default();
-    search.brave = openhuman_core::config::schema::SearchEngineCredentials {
-        api_key: Some(" brave-key ".into()),
+    let mut search = openhuman_core::config::schema::SearchConfig {
+        brave: openhuman_core::config::schema::SearchEngineCredentials {
+            api_key: Some(" brave-key ".into()),
+        },
+        ..Default::default()
     };
     assert_eq!(
         search.brave.key(),
@@ -568,12 +570,8 @@ fn config_proxy_public_paths_normalize_validate_and_apply_scope() {
     let _all_lower = EnvVarGuard::unset("all_proxy");
     let _no_lower = EnvVarGuard::unset("no_proxy");
 
-    assert!(ProxyConfig::supported_service_keys()
-        .iter()
-        .any(|key| *key == "memory.embeddings"));
-    assert!(ProxyConfig::supported_service_selectors()
-        .iter()
-        .any(|selector| *selector == "tool.*"));
+    assert!(ProxyConfig::supported_service_keys().contains(&"memory.embeddings"));
+    assert!(ProxyConfig::supported_service_selectors().contains(&"tool.*"));
 
     let services = ProxyConfig {
         enabled: true,
@@ -827,7 +825,7 @@ async fn credentials_session_expired_subscriber_ignores_unrelated_events() {
 /// sentinel the JSON-RPC layer demotes, without a backend request.
 #[tokio::test]
 async fn hosted_rpcs_answer_backend_unavailable_for_a_local_session() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let local_session = rpc(
@@ -872,7 +870,7 @@ async fn hosted_rpcs_answer_backend_unavailable_for_a_local_session() {
 
 #[tokio::test]
 async fn credentials_session_expired_subscriber_clears_remote_session_but_keeps_local_session() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     // The host hands the core an already-obtained session; no backend is
@@ -973,7 +971,7 @@ async fn credentials_session_expired_subscriber_clears_remote_session_but_keeps_
 
 #[tokio::test]
 async fn config_loaders_resolve_user_workspace_markers_and_ignore_workspace_when_scoped() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path().join("home");
     let root = home.join(".openhuman");
@@ -1090,19 +1088,17 @@ async fn config_loaders_resolve_user_workspace_markers_and_ignore_workspace_when
 
 #[tokio::test]
 async fn config_default_path_loader_ignores_workspace_override_and_projects_dir_trims() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path().join("home");
     let root = home.join(".openhuman");
     let user_dir = root.join("users").join("default-loader-user");
     let workspace_override = tmp.path().join("workspace-override");
-    let _guards = vec![
-        EnvVarGuard::set_to_path("HOME", &home),
+    let _guards = [EnvVarGuard::set_to_path("HOME", &home),
         EnvVarGuard::unset(APP_ENV_VAR),
         EnvVarGuard::unset(VITE_APP_ENV_VAR),
         EnvVarGuard::set_to_path("OPENHUMAN_WORKSPACE", &workspace_override),
-        EnvVarGuard::set("OPENHUMAN_MODEL", " default-loader-model "),
-    ];
+        EnvVarGuard::set("OPENHUMAN_MODEL", " default-loader-model ")];
 
     let missing = Config::load_from_default_paths()
         .await
@@ -1144,7 +1140,7 @@ async fn config_default_path_loader_ignores_workspace_override_and_projects_dir_
 
 #[tokio::test]
 async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let config_dir = tmp.path().join("config");
     let workspace_dir = tmp.path().join("workspace");
@@ -1251,7 +1247,7 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
     assert!(!config.runtime_python.enabled);
     assert_eq!(config.runtime_python.minimum_version, "3.13.0");
     assert!(config.runtime_python.prefer_system);
-    assert_eq!(config.observability.analytics_enabled, false);
+    assert!(!config.observability.analytics_enabled);
     assert_eq!(
         config.observability.sentry_dsn.as_deref(),
         Some("https://dsn.example/1")
@@ -1284,7 +1280,7 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
 
 #[tokio::test]
 async fn config_save_and_load_encrypts_channel_secret_fields() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let _keyring_guard = EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file");
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path().join("home");
@@ -1309,9 +1305,11 @@ async fn config_save_and_load_encrypts_channel_secret_fields() {
         .expect("config parent")
         .join("workspace");
 
-    let mut config = Config::default();
-    config.config_path = config_path.clone();
-    config.workspace_dir = workspace_dir.clone();
+    let mut config = Config {
+        config_path: config_path.clone(),
+        workspace_dir: workspace_dir.clone(),
+        ..Default::default()
+    };
     config.secrets.encrypt = true;
     config.api_key = Some("api-secret".into());
     config.search.brave.api_key = Some("brave-secret".into());
@@ -1550,11 +1548,13 @@ fn auth_service_direct_paths_cover_profile_selection_and_validation() {
 
 #[tokio::test]
 async fn auth_provider_prefix_listing_sorts_filters_and_excludes_app_session() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let mut config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     config.secrets.encrypt = false;
     std::fs::create_dir_all(config.config_path.parent().expect("config parent"))
         .expect("create config parent");
@@ -1619,11 +1619,13 @@ async fn auth_provider_prefix_listing_sorts_filters_and_excludes_app_session() {
 
 #[tokio::test]
 async fn composio_direct_credentials_helpers_trim_store_and_clear_key() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let mut config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     config.secrets.encrypt = false;
     std::fs::create_dir_all(config.config_path.parent().expect("config parent"))
         .expect("create config parent");
@@ -1683,11 +1685,13 @@ async fn composio_direct_credentials_helpers_trim_store_and_clear_key() {
 
 #[tokio::test]
 async fn credentials_public_ops_cover_service_and_missing_session_error_paths() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let mut config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     config.secrets.encrypt = false;
     config.local_ai.runtime_enabled = false;
     config.voice_server.auto_start = false;
@@ -1755,12 +1759,14 @@ async fn credentials_public_ops_cover_service_and_missing_session_error_paths() 
 
 #[tokio::test]
 async fn credentials_secret_helpers_round_trip_with_file_keyring_backend() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let _keyring_guard = EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file");
     let tmp = tempdir().expect("tempdir");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
-    config.workspace_dir = tmp.path().join("workspace");
+    let config = Config {
+        config_path: tmp.path().join("config.toml"),
+        workspace_dir: tmp.path().join("workspace"),
+        ..Default::default()
+    };
     std::fs::create_dir_all(config.config_path.parent().expect("config parent"))
         .expect("create config parent");
 
@@ -1783,7 +1789,7 @@ async fn credentials_secret_helpers_round_trip_with_file_keyring_backend() {
 
 #[tokio::test]
 async fn worker_a_controller_schemas_are_fully_exposed() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let schema = schema(&harness.rpc_base).await;
@@ -1958,7 +1964,7 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
 
 #[tokio::test]
 async fn config_controller_mutations_round_trip_over_json_rpc() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let initial = rpc(&harness.rpc_base, 10_001, "openhuman.config_get", json!({})).await;
@@ -2252,7 +2258,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
 
 #[tokio::test]
 async fn config_runtime_flags_settings_readbacks_and_validation_paths_are_exercised() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let refused = rpc(
@@ -2654,15 +2660,13 @@ async fn config_runtime_flags_settings_readbacks_and_validation_paths_are_exerci
 
 #[tokio::test]
 async fn config_auto_approve_public_helper_persists_once_and_is_idempotent() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path().join("home");
-    let _guards = vec![
-        EnvVarGuard::set_to_path("HOME", &home),
+    let _guards = [EnvVarGuard::set_to_path("HOME", &home),
         EnvVarGuard::unset("OPENHUMAN_WORKSPACE"),
         EnvVarGuard::unset(APP_ENV_VAR),
-        EnvVarGuard::unset(VITE_APP_ENV_VAR),
-    ];
+        EnvVarGuard::unset(VITE_APP_ENV_VAR)];
 
     openhuman_core::config::add_auto_approve_tool("tool.config.round10")
         .await
@@ -2687,7 +2691,7 @@ async fn config_auto_approve_public_helper_persists_once_and_is_idempotent() {
 
 #[tokio::test]
 async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let state = rpc(
@@ -2963,7 +2967,7 @@ async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
 
 #[tokio::test]
 async fn auth_local_session_normalizes_user_and_app_state_snapshot_uses_stored_identity() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let session = rpc(
@@ -3070,7 +3074,7 @@ async fn auth_local_session_normalizes_user_and_app_state_snapshot_uses_stored_i
 
 #[tokio::test]
 async fn auth_remote_backend_bearer_only_paths_round_trip_with_a_handed_over_session() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (backend_base, backend_state, backend_join) = serve_mock_backend().await;
     let harness = setup().await;
     let _backend_guard = EnvVarGuard::set("BACKEND_URL", &backend_base);
@@ -3283,7 +3287,7 @@ async fn auth_remote_backend_bearer_only_paths_round_trip_with_a_handed_over_ses
 
 #[tokio::test]
 async fn app_state_update_persists_and_snapshot_reads_local_state() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let updated = rpc(
@@ -3392,7 +3396,7 @@ async fn app_state_update_persists_and_snapshot_reads_local_state() {
 
 #[tokio::test]
 async fn app_state_snapshot_degrades_runtime_service_status_failures() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
     let service_state_path = harness.home.join("service-status-failure.json");
     std::fs::write(
@@ -3443,7 +3447,7 @@ async fn app_state_snapshot_degrades_runtime_service_status_failures() {
 
 #[tokio::test]
 async fn app_state_snapshot_and_update_surface_state_dir_creation_errors() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let config = rpc(&harness.rpc_base, 30_101, "openhuman.config_get", json!({})).await;
@@ -3487,7 +3491,7 @@ async fn app_state_snapshot_and_update_surface_state_dir_creation_errors() {
 async fn app_state_snapshot_keeps_unquarantinable_local_state_path_but_uses_defaults() {
     use std::os::unix::fs::PermissionsExt;
 
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let config = rpc(&harness.rpc_base, 31_151, "openhuman.config_get", json!({})).await;
@@ -3558,7 +3562,7 @@ async fn app_state_snapshot_keeps_unquarantinable_local_state_path_but_uses_defa
 
 #[tokio::test]
 async fn app_state_snapshot_quarantines_unreadable_local_state_path() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let config = rpc(&harness.rpc_base, 31_101, "openhuman.config_get", json!({})).await;

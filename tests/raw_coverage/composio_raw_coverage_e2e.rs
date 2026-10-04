@@ -3,7 +3,7 @@
 //! These tests avoid live Composio/backend calls and exercise public helper
 //! surfaces that feed the JSON-RPC and agent-tool paths.
 
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 
 use serde_json::{json, Value};
 use tempfile::tempdir;
@@ -21,7 +21,7 @@ use openhuman_core::integrations::composio::{
 
 use tinytools::Tool;
 
-static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
+static ENV_LOCK: &OnceLock<tokio::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 #[tokio::test]
 async fn composio_connected_integrations_public_helpers_handle_empty_auth_and_identity_edges() {
@@ -145,8 +145,10 @@ async fn composio_action_tool_execute_reports_missing_route_without_network() {
     let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let tmp = tempfile::tempdir().expect("temp config directory");
-    let mut config = Config::default();
-    config.config_path = tmp.path().join("config.toml");
+    let config = Config {
+        config_path: tmp.path().join("config.toml"),
+        ..Default::default()
+    };
     let tool = ComposioActionTool::new(
         Arc::new(config),
         "GMAIL_SEND_EMAIL".into(),
@@ -204,9 +206,9 @@ fn composio_client_factory_modes_are_deterministic_without_network() {
 #[tokio::test]
 async fn composio_controller_registry_and_scope_handlers_cover_validation_edges() {
     let _env_lock = ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
+        .get_or_init(|| tokio::sync::Mutex::new(()))
         .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+        .await;
     crate::tinyhumans_boot::boot();
     // The controller loads config through the process workspace resolver. Pin
     // the test to an isolated workspace so the scope store does not depend on
