@@ -2,7 +2,6 @@ use super::*;
 use tinymemory_tools::MemoryLayout;
 use crate::config::schema::MemorySourceKind;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
-use tinymemory_api::Namespace;
 use tinymemory_api::{ItemKind, MetaFilter};
 
 fn record(id: &str, title: &str, content: &str) -> ConnectorRecord {
