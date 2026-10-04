@@ -10,7 +10,7 @@ impl OpenHumanTurnPrelude {
     /// Hands a committed, user-authored, threaded turn to memory's
     /// conversation ingestion (`DomainEvent::ConversationTurnCommitted`).
     /// Tool calls travel by name and id only.
-    fn publish_committed_turn(&self, receipt: &CommitReceipt<OpenHumanRunContext>) {
+    pub(super) fn publish_committed_turn(&self, receipt: &CommitReceipt<OpenHumanRunContext>) {
         let user_text = self
             .mutable
             .lock()
