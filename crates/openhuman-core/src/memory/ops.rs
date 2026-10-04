@@ -3,9 +3,8 @@
 //!
 //! Every operation takes the [`Config`] it runs against, so the RPC handlers
 //! (which load config per call) and the agent tool (which carries its
-//! session's config) share one implementation. Writes go through
-//! [`store_item`], which scrubs secrets and PII before anything leaves the
-//! process.
+//! session's config) share one implementation. Every write is
+//! scrubbed of secrets and PII by the bound engine itself ([`super::guard`]).
 
 use chrono::Utc;
 use tinymemory_api::{FetchRequest, ForgetTarget, ItemId, LearningKind, ListRequest, MemoryMeta, RecallRequest, StoreItem, StoreReceipt};
@@ -273,17 +272,10 @@ pub async fn store_item(config: &Config, item: StoreItem) -> MemoryResult<StoreR
     store_on(&bound, item).await
 }
 
-/// Scrubs `item` and stores it on `bound`.
+/// Stores `item` on `bound`; the bound engine scrubs it ([`super::guard`]).
 pub async fn store_on(bound: &BoundEngine, item: StoreItem) -> MemoryResult<StoreReceipt> {
     let kind = item.kind();
-    let scrubbed = tinymemory_integrations::safety::scrub_item_with(item, crate::security::scrub::host_policy());
-    if scrubbed.report.changed() {
-        tracing::debug!(
-            kind = kind.as_str(),
-            "[memory:ops] item scrubbed before store"
-        );
-    }
-    let receipt = bound.engine.store(scrubbed.value).await?;
+    let receipt = bound.engine.store(item).await?;
     tracing::debug!(
         engine = %bound.id,
         kind = kind.as_str(),
@@ -293,20 +285,15 @@ pub async fn store_on(bound: &BoundEngine, item: StoreItem) -> MemoryResult<Stor
     Ok(receipt)
 }
 
-/// Scrubs `items` and stores them on `bound` in one bulk call
-/// (`MemoryEngine::store_many`): each is listed on return, ranked recall
-/// may lag behind for all but the last. For imports and backfills.
+/// Stores `items` on `bound` in one bulk call (`MemoryEngine::store_many`):
+/// each is listed on return, ranked recall may lag behind for all but the
+/// last. For imports and backfills.
 pub async fn store_many_on(
     bound: &BoundEngine,
     items: Vec<StoreItem>,
 ) -> MemoryResult<Vec<StoreReceipt>> {
     let count = items.len();
-    let policy = crate::security::scrub::host_policy();
-    let scrubbed: Vec<StoreItem> = items
-        .into_iter()
-        .map(|item| tinymemory_integrations::safety::scrub_item_with(item, policy).value)
-        .collect();
-    let receipts = bound.engine.store_many(scrubbed).await?;
+    let receipts = bound.engine.store_many(items).await?;
     tracing::debug!(
         engine = %bound.id,
         count,

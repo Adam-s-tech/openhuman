@@ -40,7 +40,7 @@ pub const TINYHUMANS_ENGINE: &str = tinymemory_integrations::cortex::TINYHUMANS_
 /// Engine id of CortexDB reached directly.
 pub const CORTEXDB_ENGINE: &str = tinymemory_integrations::cortex::CORTEXDB_ENGINE_ID;
 
-/// A bound engine.
+/// A bound engine. Its writes are scrubbed ([`super::guard`]).
 #[derive(Clone)]
 pub struct BoundEngine {
     /// The engine.
@@ -125,7 +125,7 @@ pub fn resolve(config: &Config) -> Binding {
             return Binding::On(BoundEngine {
                 id: engine.descriptor().id.to_string(),
                 endpoint: "test://engine".to_string(),
-                engine,
+                engine: super::guard::ScrubbingEngine::wrap(engine),
             });
         }
     }
@@ -249,7 +249,7 @@ fn build_cached(
         Ok(engine) => {
             tracing::info!(engine = %id, "[memory:engine] engine bound");
             let bound = BoundEngine {
-                engine,
+                engine: super::guard::ScrubbingEngine::wrap(engine),
                 id: id.to_string(),
                 endpoint: endpoint.to_string(),
             };
