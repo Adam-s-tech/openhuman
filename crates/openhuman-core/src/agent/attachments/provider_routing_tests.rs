@@ -387,3 +387,93 @@ async fn streaming_prepares_only_the_ephemeral_request_and_preserves_order_and_o
         b"stream pdf"
     );
 }
+
+#[tokio::test]
+async fn fallback_truncates_text_and_keeps_corrupt_archives_uncached() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut config = (*offline_config(temp.path())).clone();
+    config.multimodal_files.max_extracted_text_chars = 1_000;
+    let transport = Arc::new(CaptureModel::new(vec![]));
+    let model = controlled_wrapper(transport, Arc::new(config), &[]);
+
+    let (text, cacheable) = model
+        .fallback(
+            InputModality::Document,
+            "long.txt",
+            "text/plain",
+            &vec![b'x'; 1_001],
+        )
+        .await
+        .unwrap();
+    assert!(cacheable);
+    assert!(text.contains("[Attachment context truncated]"));
+    assert!(!text.contains(&"x".repeat(1_001)));
+
+    let (archive, cacheable) = model
+        .fallback(
+            InputModality::Document,
+            "corrupt.zip",
+            "application/zip",
+            b"not a zip archive",
+        )
+        .await
+        .unwrap();
+    assert!(!cacheable);
+    assert!(archive.contains("Archive inspection unavailable"));
+    assert!(archive.contains("workspace path: corrupt.zip"));
+}
+
+#[cfg(unix)]
+#[test]
+fn secure_open_rejects_invalid_paths_and_reads_authorized_absolute_paths() {
+    use std::{io::Read, os::unix::ffi::OsStrExt};
+
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("workspace");
+    std::fs::create_dir(&root).unwrap();
+    let file = root.join("allowed.txt");
+    std::fs::write(&file, b"allowed bytes").unwrap();
+
+    let mut opened = secure_open(&file, &root).unwrap();
+    let mut contents = Vec::new();
+    opened.read_to_end(&mut contents).unwrap();
+    assert_eq!(contents, b"allowed bytes");
+
+    let relative = secure_open(std::path::Path::new("relative.txt"), &root).unwrap_err();
+    assert_eq!(relative.kind(), std::io::ErrorKind::InvalidInput);
+    let directory = secure_open(&root, &root).unwrap_err();
+    assert_eq!(directory.kind(), std::io::ErrorKind::InvalidInput);
+    let traversal = secure_open(&root.join("../outside.txt"), &root).unwrap_err();
+    assert_eq!(traversal.kind(), std::io::ErrorKind::InvalidInput);
+
+    let nul_name = std::ffi::OsStr::from_bytes(b"bad\0name");
+    let nul_path = root.join(nul_name);
+    let nul = secure_open(&nul_path, &root).unwrap_err();
+    assert_eq!(nul.kind(), std::io::ErrorKind::InvalidInput);
+}
+
+#[tokio::test]
+async fn unsupported_media_urls_and_oversized_inline_sources_fail_before_inference() {
+    let temp = tempfile::tempdir().unwrap();
+    let config = offline_config(temp.path());
+    let transport = Arc::new(CaptureModel::new(vec![]));
+    let model = controlled_wrapper(transport.clone(), config, &[]);
+
+    let unsupported = user_request(vec![ContentBlock::Document(MediaRef::Url {
+        url: "file:///etc/passwd".into(),
+        media_type: Some("application/pdf".into()),
+    })]);
+    let error = model.prepare(unsupported).await.unwrap_err();
+    assert!(error.to_string().contains("unsupported media URL scheme"));
+
+    let max_encoded_bytes = 50 * 1024 * 1024 * 4 / 3 + 4;
+    let oversized = user_request(vec![ContentBlock::Document(MediaRef::Base64 {
+        data: "A".repeat(max_encoded_bytes + 1),
+        media_type: "application/octet-stream".into(),
+    })]);
+    let error = model.prepare(oversized).await.unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("inline media exceeds size limit"));
+    assert!(transport.requests.lock().unwrap().is_empty());
+}
