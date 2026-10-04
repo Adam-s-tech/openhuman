@@ -597,7 +597,12 @@ pub(super) fn assemble_turn_harness(
     );
     // Issue #6952: one spec check before a root orchestrator turn's first answer.
     let agent_definition_id = tool_policy.as_ref().map(|p| p.agent_definition_id.as_str());
-    verify_before_finish::install(&mut harness, subagent_scope.is_some(), agent_definition_id);
+    verify_before_finish::install(
+        &mut harness,
+        subagent_scope.is_some(),
+        agent_definition_id,
+        wrap_up_fired.as_ref(),
+    );
 
     // Direct web lookup is bounded. Once enough search/fetch results have
     // returned, the web tools leave the request so the run works with what it

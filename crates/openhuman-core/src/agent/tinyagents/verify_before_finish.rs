@@ -14,7 +14,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use tinyagents_harness::middleware::{FinishActivity, VerifyBeforeFinishMiddleware};
+use tinyagents_harness::middleware::{
+    FinalCallWrapUpMiddleware, FinishActivity, VerifyBeforeFinishMiddleware,
+};
 use tinyagents_harness::runtime::AgentHarness;
 
 use crate::agent::session_host::turn_checkpoint::wrap_harness_instruction;
@@ -59,10 +61,16 @@ pub(super) fn check_message() -> String {
 /// Install the check on `harness` when [`applies`] says so. The policy-level
 /// turn wall clock is declared to the middleware because it cannot read
 /// `RunPolicy` from the run context.
+///
+/// `wrap_up` must be the same `Arc` that is installed as the turn's wrap-up
+/// middleware (`with_wrap_up` only sees announcements made by that instance).
+/// Once it has announced a budget notice ("N calls left, finish now") the check
+/// stays quiet, so the two directives cannot contradict each other (tinyagents#301).
 pub(super) fn install<C: Send + Sync + 'static>(
     harness: &mut AgentHarness<(), C>,
     is_subagent: bool,
     agent_definition_id: Option<&str>,
+    wrap_up: Option<&Arc<FinalCallWrapUpMiddleware>>,
 ) {
     if !applies(is_subagent, agent_definition_id) {
         tracing::debug!(
@@ -77,8 +85,12 @@ pub(super) fn install<C: Send + Sync + 'static>(
     if let Some(ms) = super::agent_turn_wall_clock_ms() {
         middleware = middleware.with_wall_clock_limit(Duration::from_millis(ms));
     }
+    if let Some(wrap_up) = wrap_up {
+        middleware = middleware.with_wrap_up(Arc::clone(wrap_up));
+    }
     tracing::debug!(
         min_tool_rounds = MIN_TOOL_ROUNDS,
+        wrap_up_linked = wrap_up.is_some(),
         "[verify_before_finish] installed for a root orchestrator turn"
     );
     harness.push_middleware(Arc::new(middleware));
