@@ -126,6 +126,21 @@ async fn a_disabled_host_reports_unavailable_without_starting_a_broker() {
         super::extract_text(&config, b"%PDF-1.4\n").await,
         Err(DocumentCallError::Unavailable(_))
     ));
+    let extraction = tinydocs_bus::ExtractDocumentSpec::new(tinydocs_bus::DocumentFormat::Pdf);
+    assert!(matches!(
+        super::extract_document(&config, b"%PDF-1.4\n", &extraction).await,
+        Err(DocumentCallError::Unavailable(_))
+    ));
+    let rendering = tinydocs_bus::RenderPdfSpec {
+        pages: vec![1],
+        max_dimension: 256,
+        max_total_pixels: 65_536,
+        max_output_bytes: 1_048_576,
+    };
+    assert!(matches!(
+        super::render_pdf(&config, b"%PDF-1.4\n", &rendering).await,
+        Err(DocumentCallError::Unavailable(_))
+    ));
 }
 
 #[test]
@@ -166,9 +181,7 @@ fn every_member_this_client_calls_is_one_the_contract_declares() {
 }
 
 #[test]
-fn pinned_release_reports_intake_unavailable_without_loading() {
-    assert_eq!(registry::find(MODULE_ID).unwrap().version, "0.1.20");
-    assert!(
-        matches!(intake_available(),Err(DocumentCallError::Unavailable(message)) if message.contains("pinned TinyDocs release"))
-    );
+fn pinned_release_exposes_intake_without_loading() {
+    assert_eq!(registry::find(MODULE_ID).unwrap().version, "0.1.21");
+    assert!(intake_available().is_ok());
 }

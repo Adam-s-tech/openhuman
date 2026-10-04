@@ -92,12 +92,11 @@ retain the source references so later requests can reevaluate routing.
 
 ## Published document capability
 
-The currently pinned TinyDocs `0.1.20` artifact predates `ExtractDocument` and
-`RenderPdf`. The host gates these calls until a published module and its verified
-registry checksums expose the new methods. The published legacy PDF text-layer
-reader remains usable. Office extraction and scanned-page rendering report
-unavailability and keep the original path; compiling the new contract alone
-does not make these operations available at runtime.
+The pinned TinyDocs `0.1.21` release exposes `ExtractDocument` and `RenderPdf`.
+Its source tag and all 11 platform archive digests match the published release
+manifest. Office extraction, PDF text extraction, and bounded scanned-page
+rendering use this native module through the shared bus contract. A disabled or
+unavailable module leaves the original workspace path available to tools.
 
 TinyDocs is an in-process native module. Input, section, text, page, pixel, and
 output bounds constrain the work exposed by the intake contract, but do not
