@@ -34,22 +34,19 @@ pub(super) const TODO_TOOL: &str = "todo";
 /// Opening words of the check, also how tests recognise it on a transcript.
 pub(super) const CHECK_MARKER: &str = "Before finishing";
 
-const CHECK_INSTRUCTION: &str = "Before finishing: re-read the original request. For each \
-explicit requirement, filter, rule or threshold it states, cite evidence from the final \
-environment that it holds. Tests count only if derived from the spec, not from your \
-implementation.\n\n\
-For a coding task:\n\
-1. Split the task statement into individual requirements. Include every negative constraint \
-(such as 'cannot' or 'must be rejected'), exact error, return value, and case in parentheses.\n\
-2. For each requirement, name and run a check that exercises the exact syntax, input or \
-API call stated in the task. Check rejection errors as well as rejection itself, and the \
-whole return value as well as its fields.\n\
-3. Where a sentence allows two readings, examine both against the surrounding contract. \
-Use the literal rule where it resolves the ambiguity; otherwise exercise both readings \
-and state any remaining uncertainty instead of treating a check of your guess as proof.\n\
-4. Find every code path that performs the same action and check that required side effects \
-(callbacks, events and state changes) are consistent across those paths.\n\n\
-If you flagged an interpretation that contradicts a stated rule, apply the literal rule. \
+const CHECK_INSTRUCTION: &str = "Before finishing: re-read the original request and check \
+the final result against it.\n\
+1. Split the task statement into individual requirements. Include every constraint, \
+prohibited case, expected output or error, threshold, and case in parentheses.\n\
+2. For each requirement, name and perform an independent check using the exact examples, \
+inputs and conditions stated in the request. Verify the complete outcome, including \
+expected errors and side effects, and cite evidence from the final environment. Checks \
+count only if derived from the request, not from your own approach.\n\
+3. Where a sentence allows two readings, examine both against the surrounding requirements. \
+Apply the literal rule where it resolves the ambiguity; otherwise check both readings and \
+state any remaining uncertainty instead of treating a check of your guess as proof.\n\
+4. Find equivalent paths or workflows that perform the same action and verify that their \
+required outcomes, notifications and state changes are consistent.\n\n\
 Fix anything that fails and re-run the affected checks. If all holds, give your final \
 answer in full, since it replaces your previous reply.";
 
