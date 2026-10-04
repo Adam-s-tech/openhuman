@@ -70,6 +70,7 @@ async fn missing_historical_media_does_not_block_latest_valid_media() {
         .contains("data:image/png;base64,"));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn secure_open_refuses_replaced_final_symlink() {
     use std::os::unix::fs::symlink;
