@@ -52,7 +52,7 @@ export const TOOL_CATALOG: ToolDefinition[] = [
     description: 'Create or modify files on disk.',
     category: 'Files',
     defaultEnabled: true,
-    rustToolNames: ['file_write', 'update_memory_md'],
+    rustToolNames: ['file_write'],
   },
 
   // Vision
@@ -101,28 +101,12 @@ export const TOOL_CATALOG: ToolDefinition[] = [
 
   // Memory
   {
-    id: 'memory_store',
-    displayName: 'Store Memory',
-    description: 'Save information for later recall.',
+    id: 'memory',
+    displayName: 'Memory',
+    description: 'Recall, search, learn and forget long-term memory.',
     category: 'Memory',
     defaultEnabled: true,
-    rustToolNames: ['memory_store'],
-  },
-  {
-    id: 'memory_recall',
-    displayName: 'Recall Memory',
-    description: 'Retrieve previously stored information.',
-    category: 'Memory',
-    defaultEnabled: true,
-    rustToolNames: ['memory_recall'],
-  },
-  {
-    id: 'memory_forget',
-    displayName: 'Forget Memory',
-    description: 'Remove stored information.',
-    category: 'Memory',
-    defaultEnabled: true,
-    rustToolNames: ['memory_forget'],
+    rustToolNames: ['memory'],
   },
 
   // Automation
