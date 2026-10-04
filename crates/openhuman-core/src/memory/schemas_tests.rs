@@ -101,6 +101,9 @@ fn required_inputs_match_the_spec() {
         optional("context_set"),
         ["enabled", "interval_mins", "budget_tokens"]
     );
+    for node in ["context_get", "context_refresh"] {
+        assert_eq!(optional(node), ["namespace"], "{node}");
+    }
     assert_eq!(
         optional("conversations_set"),
         ["enabled", "batch_turns", "idle_secs"]
@@ -110,8 +113,6 @@ fn required_inputs_match_the_spec() {
         "engine_get",
         "conversations_get",
         "sources_list",
-        "context_get",
-        "context_refresh",
         "import_scan",
         "import_status",
     ] {
