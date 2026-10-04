@@ -1,7 +1,7 @@
 //! Handing committed turns to memory's conversation ingestion.
 
-use tinyagents_harness::session::CommitReceipt;
-use tinyagents_harness::Message;
+use tinyagents_runtime::CommitReceipt;
+use tinyinference_llm::message::Message;
 
 use super::OpenHumanSessionHost;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
