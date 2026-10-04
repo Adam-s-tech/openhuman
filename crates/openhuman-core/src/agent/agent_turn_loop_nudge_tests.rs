@@ -195,8 +195,11 @@ async fn a_second_validation_failure_rearms_the_nudge() {
     .await;
 
     assert_eq!(requests.len(), 3);
-    assert_eq!(requests.iter().map(|r| nudge_count(r)).collect::<Vec<_>>(), [0, 1, 1],
-        "each failure nudges exactly the request that follows it; a consumed nudge is not carried over");
+    assert_eq!(
+        requests.iter().map(|r| nudge_count(r)).collect::<Vec<_>>(),
+        [0, 1, 1],
+        "each failure nudges exactly the request that follows it; a consumed nudge is not carried over"
+    );
     assert!(
         matches!(requests[2].last(), Some(message) if matches!(message, Message::Tool(_)) && message.text() == FAILED_TOOL_RESULT_WITH_NUDGE),
         "the re-armed nudge must end the request after the second failure"

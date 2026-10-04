@@ -114,9 +114,10 @@ async fn create_sandbox_backend_local() {
     // Assert the BACKEND -> STATUS pairing, not a fixed value. This test
     // previously asserted `Ready` unconditionally, which is precisely the
     // defect being fixed: on a host with no OS jail, `pick_backend` falls back
-    // to `NoopBackend` and the handle claimed the sandbox was ready while
-    // commands ran unconfined. Which branch runs here depends on the CI host,
-    // so pin the relationship instead of the outcome.
+    // to `NoopBackend` (or TinyBox's `unsupported` backend) and the handle
+    // claimed the sandbox was ready while commands ran unconfined. Which branch
+    // runs here depends on the CI host, so pin the relationship instead of the
+    // outcome.
     let backend_id = handle
         .backend_id
         .as_deref()
@@ -127,7 +128,7 @@ async fn create_sandbox_backend_local() {
         assert_eq!(
             handle.status,
             SandboxStatus::Inactive,
-            "the noop passthrough enforces nothing, so it must not report `Ready`"
+            "the {backend_id} backend does not enforce a jail, so it must not report `Ready`"
         );
     } else {
         assert_eq!(

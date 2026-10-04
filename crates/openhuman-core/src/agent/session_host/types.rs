@@ -545,6 +545,8 @@ pub struct OpenHumanSessionHost {
 pub struct SessionHostBuilder {
     pub(super) permanent_tool_names: std::collections::HashSet<String>,
     pub(super) turn_model_source: Option<TurnModelSource>,
+    /// Explicit host config for injected-model attachment staging and services.
+    pub(super) runtime_config: Option<Arc<crate::config::Config>>,
     pub(super) tools: Option<Vec<Box<dyn Tool>>>,
     /// Delegation tools synthesised for the session's initial connection set.
     /// Held in [`OpenHumanSessionHost::synthesized_tools`], never inside [`OpenHumanSessionHost::tools`].

@@ -1,5 +1,19 @@
 use super::*;
 
+#[test]
+fn repeated_tool_failure_middleware_observes_outcomes_after_control_requests() {
+    let mw = RepeatedToolFailureMiddleware::new(
+        SteeringHandle::allow_all(),
+        3,
+        std::sync::Arc::new(std::sync::Mutex::new(None)),
+    );
+
+    // The harness consults this contract when an earlier middleware has
+    // requested control; this observer must still receive failures so its
+    // no-progress accounting and corrective nudge remain active.
+    assert!(Middleware::is_observer(&mw));
+}
+
 #[tokio::test]
 async fn sampling_tool_output_still_hits_the_byte_budget_backstop() {
     // Unlike the proposal tools, sampling tools are deliberately NOT

@@ -227,8 +227,10 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
                 definition.model.resolve(parent_model)
             }
         };
-        if !images.is_empty()
-            && crate::inference::provider::factory::oh_tier_supports_vision(&subagent_model)
+        if crate::agent::attachments::should_forward_parent_images(prompt)
+            && !images.is_empty()
+            && (agent_id == "vision_agent"
+                || crate::inference::provider::factory::oh_tier_supports_vision(&subagent_model))
         {
             log::info!(
                 "[agent] forwarding {} image placeholder(s) to vision sub-agent '{}'",
@@ -241,6 +243,28 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
             prompt
         }
     };
+
+    if agent_id == "vision_agent" {
+        match crate::agent::attachments::has_resolvable_image(
+            prompt,
+            parent_workspace_descriptor.as_ref(),
+            run_context.origin.as_ref(),
+        )
+        .await
+        {
+            Ok(true) => (),
+            Ok(false) => {
+                return Ok(ToolResult::error(
+                    "vision_agent requires a resolvable image attachment or image_paths.",
+                ));
+            }
+            Err(error) => {
+                return Ok(ToolResult::error(format!(
+                    "vision image unavailable: {error}"
+                )));
+            }
+        }
+    }
 
     // ── Async-by-default delegation (#continuity) ─────────────────────────
     // Interactive delegations route through the durable async sub-agent

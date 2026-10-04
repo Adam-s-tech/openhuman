@@ -84,12 +84,17 @@
 # 304 -> 307 on 2026-10-04: TinyBox v0.1.15 adds the required TinyBus runtime
 # integration to the always-on flows graph; native builds remain unchanged.
 #
+# 304 -> 318 on 2026-10-04: lossless PNG optimization adds an 11-name
+# oxipng closure and the merged TinyBox default Landlock backend adds three
+# names. A global-cut simulation of oxipng,landlock recovers 325/304 exactly;
+# native accounting now includes libdeflate-sys (three native builds).
+#
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-EXPECTED_NAMES=307
+EXPECTED_NAMES=318
 
 exec python3 scripts/dep-sim.py --cut-nothing --expect-names "${EXPECTED_NAMES}"

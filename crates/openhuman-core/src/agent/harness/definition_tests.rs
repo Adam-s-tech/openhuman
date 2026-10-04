@@ -365,6 +365,9 @@ fn all_builtin_agent_definitions_have_expected_effective_max_iterations() {
         .expect("built-in agent TOML must always parse");
 
     let expected: &[(&str, usize)] = &[
+        // Extended policy (or high `max_iterations`) -> effective cap raised.
+        // 305bad073b deliberately raised the orchestrator cap to 200.
+        // Keep this exhaustive snapshot aligned with the bundled definition.
         // Explicitly raised for code work (#6958), above the extended default.
         ("orchestrator", 200),
         // #5204: general-purpose read-only flow context/memory retrieval
