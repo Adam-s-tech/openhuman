@@ -44,7 +44,6 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Pen
             .lock()
             .map(|mut pending| std::mem::take(&mut *pending))
             .unwrap_or_default();
-        eprintln!("NUDGE_INJECTOR pending={}", nudges.len());
         if !nudges.is_empty() {
             let hoists = ctx
                 .model_profile
