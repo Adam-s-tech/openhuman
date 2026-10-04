@@ -914,6 +914,11 @@ fn build_internal_only_controllers() -> Vec<GroupedController> {
 /// the complete set (byte-identical to pre-#4796).
 pub fn all_registered_controllers() -> Vec<RegisteredController> {
     let view = registry_view();
+    registered_controllers(&view)
+}
+
+/// Apply the ambient domain filter to a stable registry snapshot.
+fn registered_controllers(view: &RegistryView) -> Vec<RegisteredController> {
     let found = view
         .iter()
         .filter(|g| group_allowed(g.group))
