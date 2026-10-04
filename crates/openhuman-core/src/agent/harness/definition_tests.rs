@@ -363,7 +363,7 @@ fn all_builtin_agent_definitions_have_expected_effective_max_iterations() {
 
     let expected: &[(&str, usize)] = &[
         // Extended policy (or high `max_iterations`) -> effective cap raised.
-        ("orchestrator", 50),
+        ("orchestrator", 200),
         ("planner", 50),
         ("task_manager_agent", 50),
         // Gated with `flows` (#4797) — absent from a slim build.
