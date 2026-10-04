@@ -102,6 +102,21 @@ impl MockBackend {
         assert!(response.status().is_success(), "mock behaviour accepted");
     }
 
+    /// Every request the mock logged, whole (url, method, headers, body).
+    async fn request_rows(&self) -> Vec<Value> {
+        let body: Value = reqwest::get(format!("{}/__admin/requests", self.origin))
+            .await
+            .expect("read the mock request log")
+            .json()
+            .await
+            .expect("request log json");
+        body.get("data")
+            .or(Some(&body))
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default()
+    }
+
     /// Every request the mock logged, as `(url, body)` pairs.
     async fn request_bodies(&self) -> Vec<(String, String)> {
         let body: Value = reqwest::get(format!("{}/__admin/requests", self.origin))
@@ -1300,6 +1315,23 @@ async fn a_chat_turn_carries_its_pack_and_is_logged() {
             && body.contains("\"assistant\"")
     })
     .await;
+
+    // Every memory call carries the host's attribution, as every other
+    // backend call does.
+    let memory_calls: Vec<Value> = f
+        .mock
+        .request_rows()
+        .await
+        .into_iter()
+        .filter(|row| row["url"].as_str().is_some_and(|url| url.starts_with("/memory/")))
+        .collect();
+    assert!(!memory_calls.is_empty());
+    for row in &memory_calls {
+        assert!(
+            row["headers"]["x-sdk-name"].is_string(),
+            "a memory call without x-sdk-name: {row}"
+        );
+    }
 
     // The pack is ephemeral: the committed transcript holds only what was
     // said (the reply is logged after the durable commit, so it exists).
