@@ -17,6 +17,7 @@
 
 pub mod hooks;
 pub mod jobs;
+pub mod views;
 
 use std::sync::Arc;
 
