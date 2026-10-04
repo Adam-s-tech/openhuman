@@ -12,7 +12,7 @@
 
 use serde::{Deserialize, Serialize};
 use tinymemory_api::{
-    ExploreRequest, Facet, Hit, Namespace, StoreItem, WaitFor, WriteOptions,
+    ExploreRequest, Facet, Hit, Namespace, StoreItem, WriteOptions,
 };
 use tinymemory_integrations::documents::{NativeConverter, RawDocument};
 use tinymemory_tools::{Brain, BrainSource, MemoryLayout};
@@ -247,7 +247,7 @@ pub async fn ingest(config: &Config, params: BrainIngestParams) -> MemoryResult<
     }
     let filed = document.source.to_string();
     let ingested = brain(config)?
-        .ingest_with(document, WriteOptions::new(WaitFor::Accepted))
+        .ingest_with(document, WriteOptions::accepted())
         .await?;
     jobs::enqueue(config, layout(config).root(), vec![ingested.job]).await;
     tracing::debug!(source = %filed, replayed = ingested.receipt.replayed, "[memory:brain] ingested");
