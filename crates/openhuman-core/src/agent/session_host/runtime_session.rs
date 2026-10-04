@@ -979,10 +979,9 @@ impl OpenHumanSessionHost {
                 SessionTurnRequest::new(user_message_from_text(user_message)),
                 options,
             );
-        let outcome =
-            crate::memory::scope::within_agent(&agent_id, Box::pin(turn))
-                .await
-                .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        let outcome = crate::memory::scope::within_agent(&agent_id, Box::pin(turn))
+            .await
+            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
         Ok(outcome.output.unwrap_or_default())
     }
 

@@ -148,7 +148,11 @@ pub fn namespace_for(config: &Config, agent_id: &str, team: Option<&str>) -> Nam
 /// Whether `agent_id` reads and writes the root node.
 #[must_use]
 pub fn is_root_agent(config: &Config, agent_id: &str) -> bool {
-    config.memory.root_agents.iter().any(|root| root == agent_id)
+    config
+        .memory
+        .root_agents
+        .iter()
+        .any(|root| root == agent_id)
 }
 
 /// `namespace` with a sanitized `kind:id` segment appended; past the depth

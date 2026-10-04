@@ -25,10 +25,7 @@ fn facts() -> CallFacts {
         thread_id: Some("thread-tool-1".into()),
         agent_id: Some("orchestrator".into()),
         tool_call_id: Some("call-9".into()),
-        ..CallFacts::of(&MemoryIdentity::for_agent(
-            &Config::default(),
-            "orchestrator",
-        ))
+        ..CallFacts::of(&Config::default(), &MemoryIdentity::agent("orchestrator"))
     }
 }
 
@@ -36,7 +33,7 @@ fn facts() -> CallFacts {
 fn facts_of(agent_id: &str) -> CallFacts {
     CallFacts {
         thread_id: Some(format!("thread-{agent_id}")),
-        ..CallFacts::of(&MemoryIdentity::for_agent(&Config::default(), agent_id))
+        ..CallFacts::of(&Config::default(), &MemoryIdentity::agent(agent_id))
     }
 }
 

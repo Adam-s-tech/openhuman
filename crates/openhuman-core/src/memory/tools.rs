@@ -118,10 +118,10 @@ impl CallFacts {
         let identity = super::scope::current().unwrap_or_else(|| {
             // Outside a scoped turn (a legacy driver), fall back to the
             // parent context's agent, else the root.
-            crate::agent::harness::fork_context::current_parent().map_or_else(
-                super::scope::MemoryIdentity::root,
-                |parent| super::scope::MemoryIdentity::agent(&parent.agent_definition_id),
-            )
+            crate::agent::harness::fork_context::current_parent()
+                .map_or_else(super::scope::MemoryIdentity::root, |parent| {
+                    super::scope::MemoryIdentity::agent(&parent.agent_definition_id)
+                })
         });
         Self {
             workspace: Some(workspace.display().to_string()),

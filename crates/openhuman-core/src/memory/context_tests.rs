@@ -212,7 +212,7 @@ async fn each_agent_gets_its_own_context_md_from_its_reach() {
     assert_eq!(refresh_all(&config).await, 3);
     assert!(context_path_for(&config.workspace_dir, &Namespace::agent("planner")).is_file());
 
-    let injected = crate::memory::scope::within_agent(&config, "researcher", async {
+    let injected = crate::memory::scope::within_agent("researcher", async {
         injection_block(&config).unwrap()
     })
     .await;
@@ -235,8 +235,7 @@ async fn an_agent_without_a_document_falls_back_to_its_ancestor_s() {
     .unwrap();
     refresh(&config).await.unwrap();
     let injected =
-        crate::memory::scope::within_agent(&config, "scout", async { injection_block(&config) })
-            .await;
+        crate::memory::scope::within_agent("scout", async { injection_block(&config) }).await;
     assert!(injected.unwrap().contains("Sam"));
 
     config.memory.agents.insert(
@@ -247,7 +246,6 @@ async fn an_agent_without_a_document_falls_back_to_its_ancestor_s() {
         },
     );
     let none =
-        crate::memory::scope::within_agent(&config, "quiet", async { injection_block(&config) })
-            .await;
+        crate::memory::scope::within_agent("quiet", async { injection_block(&config) }).await;
     assert!(none.is_none(), "an agent can switch its context off");
 }
