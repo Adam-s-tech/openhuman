@@ -10,7 +10,7 @@ fn add_params(kind: &str, target: &str) -> SourcesAddParams {
         target: target.to_string(),
         label: None,
         schedule_mins: None,
-    namespace: None,
+        namespace: None,
     }
 }
 
@@ -21,7 +21,7 @@ fn source(id: &str, mins: Option<u32>) -> MemorySourceConfig {
         target: "/tmp/x".to_string(),
         label: id.to_string(),
         schedule_mins: mins,
-    namespace: None,
+        namespace: None,
     }
 }
 
@@ -278,7 +278,10 @@ fn a_source_can_store_at_an_agent_node() {
 
     let mut bad = add_params("link", "https://example.com/b");
     bad.namespace = Some("nope".into());
-    assert_eq!(apply_add(&mut config, &bad).unwrap_err().code(), INVALID_REQUEST);
+    assert_eq!(
+        apply_add(&mut config, &bad).unwrap_err().code(),
+        INVALID_REQUEST
+    );
 
     let mut hand_edited = source("x", None);
     hand_edited.namespace = Some("not a node".into());

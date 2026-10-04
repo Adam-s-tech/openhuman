@@ -194,10 +194,16 @@ async fn bad_requests_are_invalid_and_memory_off_is_reported() {
         );
     }
     assert_eq!(
-        items_get(&config, ItemsGetParams { ids: Vec::new(), reach: None })
-            .await
-            .unwrap_err()
-            .code(),
+        items_get(
+            &config,
+            ItemsGetParams {
+                ids: Vec::new(),
+                reach: None
+            }
+        )
+        .await
+        .unwrap_err()
+        .code(),
         INVALID_REQUEST
     );
 }

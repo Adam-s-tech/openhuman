@@ -1378,8 +1378,14 @@ async fn agent_namespaces_keep_memory_apart_over_rpc() {
         )
         .await;
     let ids = ids_of(&listed, "items");
-    assert!(ids.contains(&shared) && ids.contains(&researcher), "{listed}");
-    assert!(!ids.contains(&writer), "a sibling is out of reach: {listed}");
+    assert!(
+        ids.contains(&shared) && ids.contains(&researcher),
+        "{listed}"
+    );
+    assert!(
+        !ids.contains(&writer),
+        "a sibling is out of reach: {listed}"
+    );
 
     // `get` and `forget` within a reach leave the sibling's item alone.
     let got = f

@@ -1,8 +1,8 @@
 use super::*;
+use crate::memory::scope::MemoryIdentity;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use crate::memory::scope::MemoryIdentity;
 use tinymemory::{ItemKind, MetaFilter, Namespace};
 
 struct Ctx {
@@ -359,8 +359,18 @@ async fn agents_keep_their_own_memory_and_share_on_request() {
         }
     };
     learn(facts(), "the main agent knows the deploy day", false).await;
-    learn(facts_of("researcher"), "the researcher prefers arxiv", false).await;
-    learn(facts_of("writer"), "the writer drafts in british english", false).await;
+    learn(
+        facts_of("researcher"),
+        "the researcher prefers arxiv",
+        false,
+    )
+    .await;
+    learn(
+        facts_of("writer"),
+        "the writer drafts in british english",
+        false,
+    )
+    .await;
     learn(facts_of("writer"), "the user is called Sam", true).await;
 
     let all = stored(&engine, MetaFilter::kinds([ItemKind::Learning])).await;
@@ -370,12 +380,19 @@ async fn agents_keep_their_own_memory_and_share_on_request() {
             .map(|hit| (hit.meta.namespace.to_string(), hit.meta.agent_id.clone()))
             .unwrap()
     };
-    assert_eq!(at("deploy day"), ("root".into(), Some("orchestrator".into())));
+    assert_eq!(
+        at("deploy day"),
+        ("root".into(), Some("orchestrator".into()))
+    );
     assert_eq!(
         at("arxiv"),
         ("agent:researcher".into(), Some("researcher".into()))
     );
-    assert_eq!(at("Sam"), ("root".into(), Some("writer".into())), "shared to the root");
+    assert_eq!(
+        at("Sam"),
+        ("root".into(), Some("writer".into())),
+        "shared to the root"
+    );
 
     let fetched = run_action(
         &config,
@@ -387,7 +404,10 @@ async fn agents_keep_their_own_memory_and_share_on_request() {
     assert!(body.contains("arxiv"), "{body}");
     assert!(body.contains("deploy day"), "root memory is inherited");
     assert!(body.contains("Sam"), "shared learnings are inherited");
-    assert!(!body.contains("british english"), "a sibling's memory is out of reach: {body}");
+    assert!(
+        !body.contains("british english"),
+        "a sibling's memory is out of reach: {body}"
+    );
 
     let writers = stored(&engine, MetaFilter::default())
         .await
@@ -400,7 +420,11 @@ async fn agents_keep_their_own_memory_and_share_on_request() {
         &facts_of("researcher"),
     )
     .await;
-    assert!(forgot.text().contains("\"forgotten\":0"), "{}", forgot.text());
+    assert!(
+        forgot.text().contains("\"forgotten\":0"),
+        "{}",
+        forgot.text()
+    );
     assert_eq!(
         stored(&engine, MetaFilter::default())
             .await
@@ -410,10 +434,8 @@ async fn agents_keep_their_own_memory_and_share_on_request() {
         1,
         "a sibling's item is not forgotten"
     );
-    assert!(
-        stored(&engine, MetaFilter::default())
-            .await
-            .iter()
-            .all(|hit| hit.meta.namespace != Namespace::agent("nobody"))
-    );
+    assert!(stored(&engine, MetaFilter::default())
+        .await
+        .iter()
+        .all(|hit| hit.meta.namespace != Namespace::agent("nobody")));
 }

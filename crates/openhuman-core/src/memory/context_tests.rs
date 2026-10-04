@@ -175,10 +175,10 @@ fn as_agent(agent: &str) -> tinymemory::MemoryMeta {
 async fn each_agent_gets_its_own_context_md_from_its_reach() {
     let tmp = tempfile::tempdir().unwrap();
     let mut config = config_in(&tmp);
-    config
-        .memory
-        .agents
-        .insert("planner".into(), crate::config::schema::MemoryAgentConfig::default());
+    config.memory.agents.insert(
+        "planner".into(),
+        crate::config::schema::MemoryAgentConfig::default(),
+    );
     bind_reference(&config);
     let researcher = Namespace::agent("researcher");
     for (text, meta) in [
@@ -195,7 +195,10 @@ async fn each_agent_gets_its_own_context_md_from_its_reach() {
     assert_eq!(view.namespace, "agent:researcher");
     assert!(view.markdown.contains("arxiv"), "{}", view.markdown);
     assert!(view.markdown.contains("Sam"), "the root is inherited");
-    assert!(!view.markdown.contains("British"), "a sibling is out of reach");
+    assert!(
+        !view.markdown.contains("British"),
+        "a sibling is out of reach"
+    );
     let path = context_path_for(&config.workspace_dir, &researcher);
     assert!(path.ends_with("memory/context/agent-researcher/context.md"));
     assert!(path.is_file());
@@ -223,14 +226,17 @@ async fn an_agent_without_a_document_falls_back_to_its_ancestor_s() {
     let tmp = tempfile::tempdir().unwrap();
     let mut config = config_in(&tmp);
     bind_reference(&config);
-    learn(&config, params("The user is called Sam", LearningKind::Fact), None)
-        .await
-        .unwrap();
+    learn(
+        &config,
+        params("The user is called Sam", LearningKind::Fact),
+        None,
+    )
+    .await
+    .unwrap();
     refresh(&config).await.unwrap();
-    let injected = crate::memory::scope::within_agent(&config, "scout", async {
-        injection_block(&config)
-    })
-    .await;
+    let injected =
+        crate::memory::scope::within_agent(&config, "scout", async { injection_block(&config) })
+            .await;
     assert!(injected.unwrap().contains("Sam"));
 
     config.memory.agents.insert(
@@ -240,9 +246,8 @@ async fn an_agent_without_a_document_falls_back_to_its_ancestor_s() {
             ..Default::default()
         },
     );
-    let none = crate::memory::scope::within_agent(&config, "quiet", async {
-        injection_block(&config)
-    })
-    .await;
+    let none =
+        crate::memory::scope::within_agent(&config, "quiet", async { injection_block(&config) })
+            .await;
     assert!(none.is_none(), "an agent can switch its context off");
 }

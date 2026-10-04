@@ -1,7 +1,7 @@
 use super::*;
-use tinymemory::Namespace;
 use crate::config::schema::MemorySourceKind;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
+use tinymemory::Namespace;
 use tinymemory::{ItemKind, MetaFilter};
 
 fn record(id: &str, title: &str, content: &str) -> ConnectorRecord {
@@ -79,9 +79,16 @@ async fn store_records_stores_the_non_empty_ones() {
         record("2", "Empty", " "),
         record("3", "Three", "third record"),
     ];
-    let stored_count = store_records(&bound, "notion", "conn-1", "src-n", &Namespace::ROOT, &records)
-        .await
-        .unwrap();
+    let stored_count = store_records(
+        &bound,
+        "notion",
+        "conn-1",
+        "src-n",
+        &Namespace::ROOT,
+        &records,
+    )
+    .await
+    .unwrap();
     assert_eq!(stored_count, 2);
     let docs = stored(
         &engine,
@@ -125,7 +132,7 @@ fn source_id_for_toolkit_prefers_the_configured_source() {
             target: "gmail".into(),
             label: "Gmail".into(),
             schedule_mins: None,
-        namespace: None,
+            namespace: None,
         });
     config
         .memory
@@ -136,7 +143,7 @@ fn source_id_for_toolkit_prefers_the_configured_source() {
             target: "notion".into(),
             label: "Folder named like a toolkit".into(),
             schedule_mins: None,
-        namespace: None,
+            namespace: None,
         });
     assert_eq!(source_id_for_toolkit(&config, "GMAIL"), "src-gmail");
     assert_eq!(source_id_for_toolkit(&config, "notion"), "composio:notion");
@@ -193,7 +200,7 @@ async fn sync_toolkit_without_a_connector_is_an_error_not_a_panic() {
         target: "gmail".into(),
         label: "Gmail".into(),
         schedule_mins: None,
-    namespace: None,
+        namespace: None,
     };
     assert!(sync_toolkit(&config, &bound, &source).await.is_err());
 }

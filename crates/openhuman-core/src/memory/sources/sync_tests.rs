@@ -11,7 +11,7 @@ fn folder_source(id: &str, dir: &std::path::Path, mins: Option<u32>) -> MemorySo
         target: dir.display().to_string(),
         label: id.to_string(),
         schedule_mins: mins,
-    namespace: None,
+        namespace: None,
     }
 }
 
@@ -49,7 +49,7 @@ fn reader_entry_maps_every_kind() {
         target: target.into(),
         label: "L".into(),
         schedule_mins: None,
-    namespace: None,
+        namespace: None,
     };
     let folder = reader_entry(&mk(MemorySourceKind::Folder, "/p"))
         .unwrap()
@@ -257,13 +257,27 @@ async fn store_all_skips_a_bad_item_but_fails_when_nothing_stored() {
         tinymemory::MemoryMeta::default(),
     );
     assert_eq!(
-        store_all(&bound, vec![bad.clone(), good], "src", &tinymemory::Namespace::ROOT)
-            .await
-            .unwrap(),
+        store_all(
+            &bound,
+            vec![bad.clone(), good],
+            "src",
+            &tinymemory::Namespace::ROOT
+        )
+        .await
+        .unwrap(),
         1
     );
-    assert!(store_all(&bound, vec![bad], "src", &tinymemory::Namespace::ROOT).await.is_err());
-    assert_eq!(store_all(&bound, Vec::new(), "src", &tinymemory::Namespace::ROOT).await.unwrap(), 0);
+    assert!(
+        store_all(&bound, vec![bad], "src", &tinymemory::Namespace::ROOT)
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        store_all(&bound, Vec::new(), "src", &tinymemory::Namespace::ROOT)
+            .await
+            .unwrap(),
+        0
+    );
 }
 
 #[test]

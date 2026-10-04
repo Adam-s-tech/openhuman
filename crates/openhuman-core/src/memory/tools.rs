@@ -120,7 +120,9 @@ impl CallFacts {
             // parent context's agent, else the root.
             crate::agent::harness::fork_context::current_parent().map_or_else(
                 super::scope::MemoryIdentity::root,
-                |parent| super::scope::MemoryIdentity::for_agent(config, &parent.agent_definition_id),
+                |parent| {
+                    super::scope::MemoryIdentity::for_agent(config, &parent.agent_definition_id)
+                },
             )
         });
         Self {
@@ -216,9 +218,9 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
             Ok(mut params) => {
                 confine(&mut params.filter, facts);
                 ops::fetch(config, params)
-                .await
-                .map(|view| json!(view))
-                .map_err(render_error)
+                    .await
+                    .map(|view| json!(view))
+                    .map_err(render_error)
             }
             Err(error) => Err(error),
         },
@@ -245,9 +247,9 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
             Ok(mut params) => {
                 params.reach = Some(facts.reach.clone());
                 ops::forget(config, params)
-                .await
-                .map(|view| json!(view))
-                .map_err(render_error)
+                    .await
+                    .map(|view| json!(view))
+                    .map_err(render_error)
             }
             Err(error) => Err(error),
         },

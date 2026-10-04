@@ -96,7 +96,7 @@ async fn run_system_job_starts_due_source_syncs() {
             target: folder.display().to_string(),
             label: "Notes".into(),
             schedule_mins: Some(15),
-        namespace: None,
+            namespace: None,
         });
     run_system_job(&config, SOURCES_SYNC_JOB).await;
     // The sync runs in the background; wait for its recorded state.

@@ -13,8 +13,14 @@ fn ns(value: &str) -> Namespace {
 #[test]
 fn the_main_agent_is_the_root_and_others_get_their_own_node() {
     let config = config();
-    assert_eq!(namespace_for(&config, "orchestrator", None), Namespace::ROOT);
-    assert_eq!(namespace_for(&config, "researcher", None), ns("agent:researcher"));
+    assert_eq!(
+        namespace_for(&config, "orchestrator", None),
+        Namespace::ROOT
+    );
+    assert_eq!(
+        namespace_for(&config, "researcher", None),
+        ns("agent:researcher")
+    );
     assert_eq!(
         namespace_for(&config, "writer", Some("acme")),
         ns("team:acme/agent:writer")
@@ -74,7 +80,11 @@ fn sub_agents_nest_under_their_parent() {
     assert_eq!(scout.namespace, ns("agent:researcher/agent:scout"));
     assert_eq!(
         scout.reach().nodes(),
-        vec![Namespace::ROOT, ns("agent:researcher"), scout.namespace.clone()]
+        vec![
+            Namespace::ROOT,
+            ns("agent:researcher"),
+            scout.namespace.clone()
+        ]
     );
     assert_eq!(
         researcher.child(&config, "orchestrator").namespace,

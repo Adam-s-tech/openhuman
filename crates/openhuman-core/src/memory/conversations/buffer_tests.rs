@@ -203,7 +203,11 @@ fn a_batch_never_mixes_two_agents() {
     assert!(buffer.push(by("researcher", 0), 0, 10).is_empty());
     assert!(buffer.push(by("researcher", 1), 1, 10).is_empty());
     let flushed = buffer.push(by("writer", 2), 2, 10);
-    assert_eq!(flushed.len(), 1, "the researcher's turns are stored on their own");
+    assert_eq!(
+        flushed.len(),
+        1,
+        "the researcher's turns are stored on their own"
+    );
     assert_eq!(flushed[0].turns.len(), 2);
     let item = flushed[0].clone().into_item();
     assert_eq!(item.meta().namespace, Namespace::agent("researcher"));
@@ -211,5 +215,8 @@ fn a_batch_never_mixes_two_agents() {
     assert_eq!(buffer.pending("t"), 1);
     let rest = buffer.take_all();
     assert_eq!(rest[0].first, 2);
-    assert_eq!(rest[0].clone().into_item().meta().namespace, Namespace::agent("writer"));
+    assert_eq!(
+        rest[0].clone().into_item().meta().namespace,
+        Namespace::agent("writer")
+    );
 }
