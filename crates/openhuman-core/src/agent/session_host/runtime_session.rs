@@ -8,8 +8,6 @@
 mod memory_ingest;
 mod permanent;
 
-pub(super) use memory_ingest::committed_tool_calls;
-
 use std::sync::Arc;
 
 use anyhow::Result;

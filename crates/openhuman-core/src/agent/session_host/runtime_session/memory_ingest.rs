@@ -43,9 +43,7 @@ impl OpenHumanTurnPrelude {
 
 /// The tool calls of the last exchange in `history` (everything after the
 /// final user message), by name and id.
-pub(in crate::agent::session_host) fn committed_tool_calls(
-    history: &[Message],
-) -> Vec<crate::core::events::ConversationToolCall> {
+fn committed_tool_calls(history: &[Message]) -> Vec<crate::core::events::ConversationToolCall> {
     let start = history
         .iter()
         .rposition(|message| matches!(message, Message::User(_)))
