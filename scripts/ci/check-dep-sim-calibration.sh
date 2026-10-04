@@ -81,6 +81,8 @@
 # five additional crate names in the flows profile. The measured graph has 321
 # packages / 304 names and still 2 native builds; the kernel-floor history
 # records the upstream update and its measured increase.
+# 304 -> 307 on 2026-10-04: TinyBox v0.1.15 adds the required TinyBus runtime
+# integration to the always-on flows graph; native builds remain unchanged.
 #
 # 304 -> 318 on 2026-10-04: lossless PNG optimization adds an 11-name
 # oxipng closure and the merged TinyBox default Landlock backend adds three

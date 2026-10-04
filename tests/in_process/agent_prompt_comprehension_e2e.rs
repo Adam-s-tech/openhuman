@@ -655,7 +655,12 @@ async fn run_case_inner(case: Case) {
             .expect("summarizer turn must finish");
         }
         Entry::WebChat | Entry::WebChatNoAutomaticSummary => {
-            let client_id = format!("prompt-{}", case.agent);
+            // Cases in this module can exercise the same agent with distinct
+            // settings. Keep their durable session identities separate so a
+            // process-global session cache cannot resume a previous case.
+            let case_id = case.user_message.replace(' ', "-");
+            let client_id = format!("prompt-{}-{case_id}", case.agent);
+            let thread_id = format!("thread-{}-{case_id}", case.agent);
             let (mut events, ready) =
                 spawn_sse_collector(format!("{}/events?client_id={client_id}", stack.rpc_base));
             wait_for_sse_ready(ready).await;
@@ -665,7 +670,7 @@ async fn run_case_inner(case: Case) {
                 "openhuman.channel_web_chat",
                 json!({
                     "client_id": client_id,
-                    "thread_id": format!("thread-{}", case.agent),
+                    "thread_id": thread_id,
                     "message": case.user_message,
                     "model_override": "e2e-mock-model",
                 }),

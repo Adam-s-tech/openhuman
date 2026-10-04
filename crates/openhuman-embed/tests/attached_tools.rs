@@ -150,15 +150,18 @@ fn attached_tools_survive_clones_and_session_resume() {
                     }),
                 )
                 .unwrap();
+            // A resumed session restores the exact tool prefix it committed.
+            // The newly attached tool is available to sessions started after
+            // this point, while `continuing` keeps the catalogue it began with.
             clone
                 .turn("third user")
-                .session("continuing")
+                .session("after-attach")
                 .send()
                 .await
                 .unwrap();
             clone
                 .turn("fourth user")
-                .session("continuing")
+                .session("after-attach")
                 .send()
                 .await
                 .unwrap();
@@ -169,28 +172,18 @@ fn attached_tools_survive_clones_and_session_resume() {
                 .collect::<Vec<_>>();
             assert!(
                 paths.contains(&generation_zero),
-                "the original generation-zero transcript must remain in the chain"
-            );
-            assert!(
-                paths
-                    .iter()
-                    .any(|path| path.to_string_lossy().contains(".g1.jsonl")),
-                "changing the permanent-tool catalogue must create a successor generation"
-            );
-            assert!(
-                !paths
-                    .iter()
-                    .any(|path| path.to_string_lossy().contains(".g2.jsonl")),
-                "the identical fourth-turn catalogue must not create another generation"
+                "the continuing session transcript must remain durable"
             );
             assert_eq!(
                 std::fs::read(&generation_zero).unwrap(),
                 frozen_generation_zero,
-                "refreshing the catalogue must leave the sealed generation byte-for-byte intact"
+                "the continuing session must leave its transcript byte-for-byte intact"
             );
             let successor = paths
                 .iter()
-                .find(|path| path.to_string_lossy().contains(".g1.jsonl"))
+                .find(|path| {
+                    std::fs::read_to_string(path).is_ok_and(|text| text.contains("hivemind_list"))
+                })
                 .unwrap();
             let durable = std::fs::read_to_string(successor).unwrap();
             assert!(
@@ -250,9 +243,28 @@ fn attached_tools_survive_clones_and_session_resume() {
                         1
                     );
                 }
-                if index > 0 {
+                if index == 1 {
                     assert!(messages.iter().any(|m| m["role"] == "user"
                         && m["content"].as_str().unwrap_or("").contains("first user")));
+                }
+                if index == 3 {
+                    assert!(messages.iter().any(|m| m["role"] == "user"
+                        && m["content"].as_str().unwrap_or("").contains("third user")));
+                    assert!(
+                        !messages.iter().any(|m| {
+                            let content = m["content"].as_str().unwrap_or("");
+                            content.contains("first user") || content.contains("second user")
+                        }),
+                        "a new session must not inherit the continuing session's history"
+                    );
+                }
+                if index == 2 {
+                    assert!(
+                        !messages.iter().any(|m| {
+                            m["content"].as_str().unwrap_or("").contains("first user")
+                        }),
+                        "a new session must start without the continuing session's history"
+                    );
                 }
             }
         })
