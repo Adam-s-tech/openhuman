@@ -158,21 +158,24 @@ async fn subagent_turn_is_not_checked() {
     assert_eq!(text, "draft");
 }
 
+const BUDGET_ROUNDS: usize = 7;
+const BUDGET_CALLS: usize = 12;
+
 /// tinyagents#301: once the wrap-up has announced a budget notice the check
 /// stays quiet. This only holds when `install` is handed the SAME `Arc` that is
 /// installed as the wrap-up middleware, which is what the harness assembly does.
 #[tokio::test]
 async fn a_linked_wrap_up_budget_notice_silences_the_check() {
-    // 5 tool rounds + the draft = 6 calls of a budget of 8: the 0.5 notice
-    // fires on the 4th, before the draft.
-    let rounds = MIN_TOOL_ROUNDS;
+    // 7 tool rounds + the draft = 8 calls of a budget of 12: the 0.5 notice
+    // fires on the 6th call, before the draft, and leaves room for a check.
+    let rounds = BUDGET_ROUNDS;
     let (checks, text) = drive_with(
         rounds,
         "lookup",
         false,
         Some("orchestrator"),
         WrapUp::Linked,
-        8,
+        BUDGET_CALLS,
     )
     .await;
     assert_eq!(checks, 0, "a budget notice said finish; no re-verify turn");
@@ -182,12 +185,12 @@ async fn a_linked_wrap_up_budget_notice_silences_the_check() {
 #[tokio::test]
 async fn an_unlinked_wrap_up_does_not_silence_the_check() {
     let (checks, _) = drive_with(
-        MIN_TOOL_ROUNDS,
+        BUDGET_ROUNDS,
         "lookup",
         false,
         Some("orchestrator"),
         WrapUp::Unlinked,
-        8,
+        BUDGET_CALLS,
     )
     .await;
     assert_eq!(
