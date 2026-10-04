@@ -102,6 +102,29 @@ impl MockBackend {
         assert!(response.status().is_success(), "mock behaviour accepted");
     }
 
+    /// Every request the mock logged, as `(url, body)` pairs.
+    async fn request_bodies(&self) -> Vec<(String, String)> {
+        let body: Value = reqwest::get(format!("{}/__admin/requests", self.origin))
+            .await
+            .expect("read the mock request log")
+            .json()
+            .await
+            .expect("request log json");
+        body.get("data")
+            .or(Some(&body))
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default()
+            .iter()
+            .map(|row| {
+                (
+                    row.get("url").and_then(Value::as_str).unwrap_or_default().to_string(),
+                    row.get("body").and_then(Value::as_str).unwrap_or_default().to_string(),
+                )
+            })
+            .collect()
+    }
+
     /// Every request the mock logged, as `"METHOD /path"` strings.
     async fn request_paths(&self) -> Vec<String> {
         let body: Value = reqwest::get(format!("{}/__admin/requests", self.origin))
@@ -1206,6 +1229,76 @@ async fn brain_pack_preview_and_jobs_round_trip() {
     assert_eq!(gone["forgotten"], json!(1), "{gone}");
     let agents = f.ok("openhuman.memory_agents_list", json!({})).await;
     assert_eq!(agents["root"], json!("root"));
+}
+
+/// Waits until some logged mock request satisfies `found`.
+async fn wait_for_request(f: &Fixture, what: &str, found: impl Fn(&str, &str) -> bool) {
+    let deadline = Instant::now() + Duration::from_secs(60);
+    loop {
+        if f.mock
+            .request_bodies()
+            .await
+            .iter()
+            .any(|(url, body)| found(url, body))
+        {
+            return;
+        }
+        assert!(Instant::now() < deadline, "never saw {what}");
+        tokio::time::sleep(Duration::from_millis(250)).await;
+    }
+}
+
+#[tokio::test]
+async fn a_chat_turn_carries_its_pack_and_is_logged() {
+    let f = Fixture::new(true).await;
+    f.learn("The user prefers launch events in Lisbon").await;
+
+    let accepted = f
+        .ok(
+            "openhuman.channel_web_chat",
+            json!({
+                "client_id": "memory-v2-e2e",
+                "thread_id": "launch-thread",
+                "message": "Where should the launch event be held?",
+                "model_override": "e2e-mock-model",
+            }),
+        )
+        .await;
+    assert_eq!(accepted["accepted"], json!(true), "{accepted}");
+
+    // Pre-turn: the model request carries the pack, recalled for the turn.
+    wait_for_request(&f, "an inference request carrying the memory pack", |url, body| {
+        url.contains("chat/completions")
+            && body.contains("memory-context")
+            && body.contains("launch events in Lisbon")
+    })
+    .await;
+    // Pre-turn logs the user's message, post-turn the reply, each as one turn
+    // of the thread under the answering agent's node.
+    wait_for_request(&f, "the user turn logged", |url, body| {
+        url.contains("/memory/experience")
+            && body.contains("Where should the launch event be held?")
+            && body.contains("launch-thread")
+    })
+    .await;
+    wait_for_request(&f, "the reply logged", |url, body| {
+        url.contains("/memory/experience")
+            && body.contains("launch-thread")
+            && body.contains("\"assistant\"")
+    })
+    .await;
+
+    // The pack is ephemeral: the stored thread holds only what was said.
+    let messages = f
+        .ok(
+            "openhuman.threads_messages",
+            json!({ "thread_id": "launch-thread" }),
+        )
+        .await;
+    assert!(
+        !messages.to_string().contains("memory-context"),
+        "the pack never reaches the transcript: {messages}"
+    );
 }
 
 #[tokio::test]
