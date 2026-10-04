@@ -10,6 +10,7 @@ fn add_params(kind: &str, target: &str) -> SourcesAddParams {
         target: target.to_string(),
         label: None,
         schedule_mins: None,
+    namespace: None,
     }
 }
 
@@ -87,6 +88,7 @@ fn add_list_and_remove_round_trip_through_config() {
         &SourcesAddParams {
             label: Some("  My notes ".into()),
             schedule_mins: Some(60),
+            namespace: None,
             ..add_params("Folder", "/home/me/notes")
         },
     )
@@ -134,6 +136,7 @@ fn add_validates_kind_schedule_and_target() {
             &mut config,
             &SourcesAddParams {
                 schedule_mins: Some(MIN_SCHEDULE_MINS - 1),
+                namespace: None,
                 ..add_params("folder", "/p")
             }
         )
@@ -258,4 +261,26 @@ async fn forget_items_with_memory_off_is_not_an_error() {
     let tmp = tempfile::tempdir().unwrap();
     let config = config_in(&tmp);
     assert_eq!(forget_items(&config, "src-a").await.unwrap(), 0);
+}
+
+#[test]
+fn a_source_can_store_at_an_agent_node() {
+    let mut config = Config::default();
+    let mut params = add_params("link", "https://example.com/a");
+    params.namespace = Some("agent:researcher".into());
+    let added = add(&mut config, &params).unwrap();
+    assert_eq!(added.namespace.as_deref(), Some("agent:researcher"));
+    assert_eq!(
+        namespace_of(&config, &added.id),
+        tinymemory::Namespace::agent("researcher")
+    );
+    assert!(namespace_of(&config, "unknown").is_root());
+
+    let mut bad = add_params("link", "https://example.com/b");
+    bad.namespace = Some("nope".into());
+    assert_eq!(add(&mut config, &bad).unwrap_err().code(), INVALID_REQUEST);
+
+    let mut hand_edited = source("x", None);
+    hand_edited.namespace = Some("not a node".into());
+    assert!(namespace_of_source(&hand_edited).is_root());
 }
