@@ -16,7 +16,10 @@ fn binds_a_tenant_root_and_pins_it_on_the_config() {
 #[test]
 fn refuses_the_store_root_and_invalid_roots() {
     assert!(matches!(bind(""), Err(MemoryError::InvalidRequest(_))));
-    assert!(matches!(bind("not a namespace"), Err(MemoryError::InvalidRequest(_))));
+    assert!(matches!(
+        bind("not a namespace"),
+        Err(MemoryError::InvalidRequest(_))
+    ));
 }
 
 #[test]
