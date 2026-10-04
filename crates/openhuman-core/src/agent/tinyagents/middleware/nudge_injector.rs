@@ -27,6 +27,12 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Pen
         "pending_nudge_injector"
     }
 
+    // A prior middleware may request a retry/stop control after a failed tool
+    // call. The queued correction still has to reach that retry request.
+    fn is_observer(&self) -> bool {
+        true
+    }
+
     async fn before_model(
         &self,
         ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
