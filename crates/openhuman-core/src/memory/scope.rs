@@ -195,6 +195,19 @@ pub async fn within_agent<F: Future>(config: &Config, agent_id: &str, fut: F) ->
     within(identity, fut).await
 }
 
+/// [`within_agent`] with the host's config when it has one, else the
+/// defaults (the main agent at the root, every other agent on its own node).
+pub async fn within_agent_in<F: Future>(
+    config: Option<&Config>,
+    agent_id: &str,
+    fut: F,
+) -> F::Output {
+    match config {
+        Some(config) => within_agent(config, agent_id, fut).await,
+        None => within_agent(&Config::default(), agent_id, fut).await,
+    }
+}
+
 #[cfg(test)]
 #[path = "scope_tests.rs"]
 mod tests;

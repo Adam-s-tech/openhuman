@@ -1025,17 +1025,10 @@ impl OpenHumanSessionHost {
                 }
             }
         }
-        // Memory acts as this agent for the whole turn: what it learns lands
-        // on its node and what it recalls stays within its reach.
-        let default_config;
-        let memory_config = match self.runtime_config.as_deref() {
-            Some(config) => config,
-            None => {
-                default_config = crate::config::Config::default();
-                &default_config
-            }
-        };
-        let agent_id = self.agent_definition_id.clone();
+        let (agent_id, config) = (
+            self.agent_definition_id.clone(),
+            self.runtime_config.clone(),
+        );
         let turn = self
             .runtime_session
             .as_mut()
@@ -1044,7 +1037,7 @@ impl OpenHumanSessionHost {
                 SessionTurnRequest::new(user_message_from_text(user_message)),
                 options,
             );
-        let outcome = crate::memory::scope::within_agent(memory_config, &agent_id, turn)
+        let outcome = crate::memory::scope::within_agent_in(config.as_deref(), &agent_id, turn)
             .await
             .map_err(|error| anyhow::anyhow!(error.to_string()))?;
         Ok(outcome.output.unwrap_or_default())
