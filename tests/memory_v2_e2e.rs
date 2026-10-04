@@ -29,7 +29,7 @@ use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::MutexGuard;
+use tokio::sync::MutexGuard;
 use std::time::{Duration, Instant};
 
 use env_guard::{env_lock_with_file_keyring, EnvVarGuard};
