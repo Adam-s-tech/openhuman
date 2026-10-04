@@ -98,6 +98,7 @@ export function openHumanToolEntries(): Record<string, OpenHumanToolEntry> {
      * Memory writes/reads, rendered as `memory-chips` instead of the raw
      * JSON `ToolDataView` fallback (`ChatMemoryChips.tsx`).
      */
+    memory: { type: 'backend', display: 'inline', render: MemoryToolCall },
     memory_store: { type: 'backend', display: 'inline', render: MemoryStoreCall },
     memory_recall: { type: 'backend', display: 'inline', render: MemoryRecallCall },
     memory_hybrid_search: { type: 'backend', display: 'inline', render: MemoryHybridSearchCall },
