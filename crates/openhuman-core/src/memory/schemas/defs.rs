@@ -68,7 +68,15 @@ fn filter() -> FieldSchema {
     opt(
         "filter",
         TypeSchema::Json,
-        "MetaFilter: metadata fields, kinds, sources, tags_any, observed_after/before.",
+        "MetaFilter: metadata fields, kinds, sources, tags_any, observed_after/before, and reach ({at: namespace, inherit, descendants}) to read only some memory nodes.",
+    )
+}
+
+fn reach() -> FieldSchema {
+    opt(
+        "reach",
+        TypeSchema::Json,
+        "Reach {at: namespace, inherit, descendants}: only items in these memory nodes count; every node when omitted.",
     )
 }
 
@@ -161,7 +169,7 @@ pub fn schema(function: &str) -> ControllerSchema {
             namespace: "memory",
             function: "forget",
             description: "Remove items by id.",
-            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids.")],
+            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids."), reach()],
             outputs: out("{forgotten: number}"),
         },
         "items_list" => ControllerSchema {
@@ -188,7 +196,7 @@ pub fn schema(function: &str) -> ControllerSchema {
             namespace: "memory",
             function: "items_get",
             description: "Read stored items whole by id, in the order asked; unknown ids are left out.",
-            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids (1 to 200).")],
+            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids (1 to 200)."), reach()],
             outputs: out("{items: Hit[]}"),
         },
         "conversations_get" => ControllerSchema {
