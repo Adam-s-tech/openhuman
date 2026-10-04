@@ -227,6 +227,7 @@ impl SessionHostBuilder {
             &all_tools,
             &reachable_names,
         );
+        eprintln!("POLICY permanent={:?} allowed={:?} denied={:?}", self.permanent_tool_names, self.permanent_tool_names.iter().map(|name| (name, tool_policy_session.decision_for(name))).collect::<Vec<_>>(), self.permanent_tool_names.iter().map(|name| (name, tool_policy_session.decision_for(name))).collect::<Vec<_>>());
         // A pack whose owner this agent can hand off to directly is that
         // specialist's belt, not this agent's: close it (#6302).
         crate::tools::toolpacks::close_handed_off_packs(
