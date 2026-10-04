@@ -113,7 +113,7 @@ pub fn resolve_sandbox_policy(
 /// passes unnoticed. That is exactly how the original defect survived.
 pub(crate) fn local_status_for_backend(backend_name: &str) -> SandboxStatus {
     if backend_name == cwd_jail::NOOP_BACKEND_NAME
-        || backend_name == cwd_jail::detect::UNSUPPORTED_BACKEND_NAME
+        || backend_name == "unsupported"
     {
         // The noop backend enforces nothing — it spawns the command as-is. The
         // `unsupported` backend is what `pick_backend` answers when no OS jail
