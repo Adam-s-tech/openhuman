@@ -590,16 +590,3 @@ async fn run(cortex_url: String, cortex_key: String) {
         )
         .await;
 }
-
-fn find_files(root: &Path, name: &str) -> Vec<PathBuf> {
-    let mut found = Vec::new();
-    for entry in std::fs::read_dir(root).into_iter().flatten().flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            found.extend(find_files(&path, name));
-        } else if path.file_name().is_some_and(|n| n == name) {
-            found.push(path);
-        }
-    }
-    found
-}
