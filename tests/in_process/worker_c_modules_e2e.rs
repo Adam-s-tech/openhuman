@@ -4,7 +4,7 @@
 //! composio / threads slice and drives the real HTTP JSON-RPC router against
 //! an isolated workspace. It avoids live network calls.
 
-use crate::env_guard::env_lock_async;
+use crate::env_guard::{env_lock, env_lock_async};
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::ensure_rpc_auth;
 use crate::rpc_harness::{ok, rpc};
@@ -822,4 +822,3 @@ async fn serve_composio_direct_fixtures() -> (
     let join = tokio::spawn(async move { axum::serve(listener, app).await });
     (format!("http://{addr}"), hits, join)
 }
-
