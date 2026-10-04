@@ -119,7 +119,7 @@ pub(crate) async fn run_channel_turn_via_graph(
                 workspace: workspace.clone(),
             };
             row.content =
-                crate::agent::attachments::stage(&row.content, "channel", &config, &scope).await?;
+                crate::agent::attachments::stage(&row.content, "channel", config, &scope).await?;
             row.parts = None;
         }
     }
