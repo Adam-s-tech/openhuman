@@ -86,7 +86,6 @@ fn build_live_image_host(
     let mut host = crate::agent::SessionHostBuilder::new()
         .chat_model_with_config(model, std::sync::Arc::new(config))
         .tools(Vec::new())
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::NativeDialect))
         .build()
         .expect("configured image session");

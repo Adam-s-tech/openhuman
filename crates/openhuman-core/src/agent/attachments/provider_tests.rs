@@ -597,7 +597,6 @@ async fn configured_injected_builder_stages_and_resolves_in_explicit_acting_work
         .chat_model_with_config(probe.clone(), Arc::new(config.clone()))
         .action_dir(acting.clone())
         .tools(Vec::new())
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
         .build()
         .unwrap();
@@ -648,7 +647,6 @@ fn bare_injected_builder_does_not_load_operator_config() {
     let agent = crate::agent::SessionHostBuilder::new()
         .chat_model(Arc::new(Probe::default()))
         .tools(Vec::new())
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
         .build()
         .unwrap();
