@@ -3,10 +3,10 @@
 use tinyagents_runtime::CommitReceipt;
 use tinyinference_llm::message::Message;
 
-use super::OpenHumanSessionHost;
+use super::OpenHumanTurnPrelude;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 
-impl OpenHumanSessionHost {
+impl OpenHumanTurnPrelude {
     /// Hands a committed, user-authored, threaded turn to memory's
     /// conversation ingestion (`DomainEvent::ConversationTurnCommitted`).
     /// Tool calls travel by name and id only.
@@ -43,7 +43,7 @@ impl OpenHumanSessionHost {
 
 /// The tool calls of the last exchange in `history` (everything after the
 /// final user message), by name and id.
-pub(super) fn committed_tool_calls(
+pub(in crate::agent::session_host) fn committed_tool_calls(
     history: &[Message],
 ) -> Vec<crate::core::events::ConversationToolCall> {
     let start = history
