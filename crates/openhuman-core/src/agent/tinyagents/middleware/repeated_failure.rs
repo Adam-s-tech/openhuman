@@ -20,6 +20,7 @@ use tinyinference_llm::model::ModelRequest;
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;
 
+use super::fetched_site::{fetch_host_scope, fetched_site_policy, heuristic_text};
 use super::loop_guards::{
     is_repeat_call_exempt, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
     RECOVERABLE_REPEAT_FAILURE_THRESHOLD,
@@ -217,6 +218,10 @@ pub(super) fn failure_scope(tool: &str, arguments: &serde_json::Value) -> String
             Some(serde_json::Value::Number(value)) => value.to_string(),
             _ => continue,
         };
+        if let Some(host_scope) = fetch_host_scope(tool, field, &value) {
+            scope.push_str(&host_scope);
+            continue;
+        }
         scope.push(':');
         scope.push_str(field);
         scope.push('=');
@@ -306,6 +311,9 @@ fn classified_recovery_policy(
         && error.contains("restart the app to try again")
     {
         return Some(("unavailable", 1));
+    }
+    if let Some(policy) = fetched_site_policy(tool, error) {
+        return policy;
     }
     // A tool-owned JSON error contract is less ambiguous than rendered prose.
     // Read only explicit status/code fields; arbitrary response data is not a
@@ -468,6 +476,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
             false if body_level_failure => content.clone(),
             false => String::new(),
         };
+        let heuristic_failure_text = heuristic_text(tool_name, &failure_text);
 
         if !result.is_error && !body_level_failure {
             // Only a successful observation against this operation and scope
@@ -475,6 +484,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
             for class in [
                 "permission",
                 "authentication",
+                "site_refused",
                 "policy",
                 "unsupported",
                 "missing_window",
@@ -550,7 +560,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         // a provider error (a script calling an API) without the agent's own
         // inference having failed.
         if result.is_error && !is_command_exit_report(&failure_text) {
-            if let Some(kind) = terminal_inference_failure_kind(&failure_text) {
+            if let Some(kind) = terminal_inference_failure_kind(heuristic_failure_text) {
                 tracing::warn!(
                     tool = tool_name,
                     kind = ?kind,
@@ -596,9 +606,9 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         let recoverable = result.is_error
             && !hard_reject
             && !is_command_exit_report(&failure_text)
-            && (is_recoverable_tool_failure(&failure_text)
+            && (is_recoverable_tool_failure(heuristic_failure_text)
                 || matches!(
-                    crate::tools::status::classify(&failure_text, false).class,
+                    crate::tools::status::classify(heuristic_failure_text, false).class,
                     crate::tools::status::ToolFailureClass::Timeout
                         | crate::tools::status::ToolFailureClass::ServiceUnavailable
                         | crate::tools::status::ToolFailureClass::ModelConnection
