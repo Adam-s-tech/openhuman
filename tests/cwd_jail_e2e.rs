@@ -19,11 +19,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-#[cfg(any(
-    all(target_os = "linux", feature = "sandbox-landlock"),
-    target_os = "macos",
-    target_os = "windows"
-))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 use openhuman_core::sandbox::cwd_jail::spawn;
 use openhuman_core::sandbox::cwd_jail::Jail;
 
@@ -42,10 +38,25 @@ fn unique_tempdir(tag: &str) -> PathBuf {
 }
 
 // ── Linux: Landlock real-sandbox enforcement ────────────────────────
+//
+// Landlock is always compiled in on Linux (tinybox-jail enables it by default),
+// but the running kernel may not support it; then `spawn` answers
+// `Unsupported` rather than running the command unconfined. These tests require
+// Landlock so CI cannot report an unexercised confinement check as passing.
 
-#[cfg(all(target_os = "linux", feature = "sandbox-landlock"))]
+#[cfg(target_os = "linux")]
+fn require_landlock() {
+    assert_eq!(
+        openhuman_core::sandbox::cwd_jail::default_backend().name(),
+        "landlock",
+        "the Linux Rust E2E job requires Landlock support"
+    );
+}
+
+#[cfg(target_os = "linux")]
 #[test]
 fn linux_landlock_blocks_write_outside_root() {
+    require_landlock();
     let root = unique_tempdir("ll-root");
     let outside = unique_tempdir("ll-outside");
     let outside_target = outside.join("forbidden.txt");
@@ -69,9 +80,10 @@ fn linux_landlock_blocks_write_outside_root() {
     fs::remove_dir_all(&outside).ok();
 }
 
-#[cfg(all(target_os = "linux", feature = "sandbox-landlock"))]
+#[cfg(target_os = "linux")]
 #[test]
 fn linux_landlock_allows_write_inside_root() {
+    require_landlock();
     let root = unique_tempdir("ll-root-write");
     let inside = root.join("ok.txt");
 
