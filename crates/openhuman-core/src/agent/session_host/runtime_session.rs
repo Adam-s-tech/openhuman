@@ -1673,7 +1673,6 @@ impl OpenHumanSessionHost {
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
                             .clone();
                         let usage = holistic_last_turn_usage(&sidecar);
-                        let interrupted = sidecar.hit_cap || receipt.outcome.interrupted;
                         let tool_calls = sidecar
                             .tool_outcomes
                             .iter()
@@ -1731,7 +1730,7 @@ impl OpenHumanSessionHost {
                             let mut state = state
                                 .lock()
                                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-                            state.last_turn_hit_cap = interrupted;
+                            state.last_turn_hit_cap = sidecar.hit_cap;
                             state.last_turn_usage = Some(usage);
                             state.last_turn_citations = citations;
                         }
