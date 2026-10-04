@@ -1259,16 +1259,13 @@ async fn wait_for_request(f: &Fixture, what: &str, found: impl Fn(&str, &str) ->
 
 #[tokio::test]
 async fn a_chat_turn_carries_its_pack_and_is_logged() {
+    // Chat sessions resolve their hosted authority from the agent definition
+    // registry, which the full runtime initialises at startup.
+    openhuman_core::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins()
+        .expect("builtin agent definitions");
     let f = Fixture::new(true).await;
     f.learn("The user prefers launch events in Lisbon").await;
 
-    let direct = f
-        .call(
-            "openhuman.inference_agent_chat",
-            json!({ "message": "Where should the launch event be held?", "thread_id": "probe-thread" }),
-        )
-        .await;
-    eprintln!("DIRECT: {direct}");
     let accepted = f
         .ok(
             "openhuman.channel_web_chat",
