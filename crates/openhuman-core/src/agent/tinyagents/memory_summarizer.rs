@@ -58,6 +58,9 @@ impl MemoryRecallSummarizer {
         );
         let (record, pack) = futures::join!(summary, recall);
         let mut record = record?;
+        // A later compaction folds the previous checkpoint, recall included;
+        // keep one recall section, the current one.
+        strip_recalled(&mut record.summary);
         if let Some(pack) = pack {
             append(
                 &mut record.summary,
@@ -105,6 +108,34 @@ pub(crate) fn dropped_turns(messages: &[Message]) -> Vec<Turn> {
             (!text.trim().is_empty()).then(|| Turn::new(role, text))
         })
         .collect()
+}
+
+/// Drops a "Recalled from memory" section a summary carried over from an
+/// earlier checkpoint: the heading and everything after it.
+fn strip_recalled(summary: &mut Message) {
+    let blocks = match summary {
+        Message::User(message) => &mut message.content,
+        Message::System(message) => &mut message.content,
+        Message::Assistant(message) => &mut message.content,
+        Message::Tool(message) => &mut message.content,
+        Message::Custom(_) => return,
+    };
+    let Some(at) = blocks.iter().position(
+        |block| matches!(block, ContentBlock::Text(text) if text.contains(RECALLED_HEADING)),
+    ) else {
+        return;
+    };
+    blocks.truncate(at + 1);
+    if let Some(ContentBlock::Text(text)) = blocks.last_mut() {
+        if let Some(cut) = text.find(RECALLED_HEADING) {
+            text.truncate(cut);
+            let kept = text.trim_end().len();
+            text.truncate(kept);
+        }
+    }
+    if matches!(blocks.last(), Some(ContentBlock::Text(text)) if text.is_empty()) {
+        blocks.pop();
+    }
 }
 
 /// Appends `text` to the summary message, whatever its role.

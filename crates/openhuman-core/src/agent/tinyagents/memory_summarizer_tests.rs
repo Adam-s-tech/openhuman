@@ -110,3 +110,28 @@ async fn without_recall_the_summarizer_is_unchanged_and_its_failure_is_its_own()
     let failing = MemoryRecallSummarizer::wrap(Box::new(Failing), Some(turn));
     assert!(failing.summarize(&dropped()).await.is_err());
 }
+
+#[test]
+fn an_earlier_recall_section_is_dropped_before_the_new_one() {
+    let mut summary = Message::user(format!(
+        "the summary so far\n\n{RECALLED_HEADING}\n\n- an old recall"
+    ));
+    strip_recalled(&mut summary);
+    assert_eq!(summary.text(), "the summary so far");
+
+    let mut untouched = Message::user("nothing recalled here");
+    strip_recalled(&mut untouched);
+    assert_eq!(untouched.text(), "nothing recalled here");
+}
+
+#[tokio::test]
+async fn a_second_compaction_keeps_one_recall_section() {
+    let tmp = tempfile::tempdir().unwrap();
+    let turn = bound_turn(&tmp).await;
+    let summarizer = MemoryRecallSummarizer::wrap(Box::new(ConcatSummarizer), Some(turn));
+    let first = summarizer.summarize(&dropped()).await.unwrap();
+    let mut again = dropped();
+    again.insert(0, first.summary.clone());
+    let second = summarizer.summarize(&again).await.unwrap();
+    assert_eq!(second.summary.text().matches(RECALLED_HEADING).count(), 1);
+}
