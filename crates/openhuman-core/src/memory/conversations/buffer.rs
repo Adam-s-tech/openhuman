@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Duration, Utc};
 use tinymemory::{
-    MemoryMeta, Role, SourceKind, SourceRef, StoreItem, ToolCallRef, Turn, TurnRange,
+    MemoryMeta, Namespace, Role, SourceKind, SourceRef, StoreItem, ToolCallRef, Turn, TurnRange,
 };
 
 /// One committed exchange: the user's message and the assistant's reply.
@@ -20,6 +20,8 @@ pub struct CommittedTurn {
     pub thread_id: String,
     /// The agent that answered.
     pub agent_id: Option<String>,
+    /// The memory node of the agent that answered.
+    pub namespace: Namespace,
     /// The agent's working folder.
     pub workspace: Option<String>,
     /// The channel the turn arrived on.
@@ -40,7 +42,8 @@ pub fn channel_tag(channel: &str) -> String {
     format!("channel:{}", channel.to_ascii_lowercase())
 }
 
-/// Turns of one thread ready to be stored as one `Conversation` item.
+/// Turns of one thread, answered by one agent, ready to be stored as one
+/// `Conversation` item.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Batch {
     /// The thread.
@@ -61,8 +64,8 @@ impl Batch {
     /// The `Conversation` item this batch stores.
     ///
     /// Meta carries `thread_id`, `agent_id` and `workspace` (from the latest
-    /// turn that has them), `turns`, a `channel:<name>` tag, and
-    /// `source = conversation:<thread_id>`.
+    /// turn that has them), the answering agent's `namespace`, `turns`, a
+    /// `channel:<name>` tag, and `source = conversation:<thread_id>`.
     /// Tool calls ride on each assistant turn by name and id; arguments never
     /// enter the item.
     #[must_use]
@@ -79,6 +82,11 @@ impl Batch {
             .rev()
             .find_map(|turn| turn.workspace.clone());
         let observed_at = self.turns.last().map(|turn| turn.at);
+        let namespace = self
+            .turns
+            .last()
+            .map(|turn| turn.namespace.clone())
+            .unwrap_or_default();
         let tags: Vec<String> = self
             .turns
             .iter()
@@ -113,6 +121,7 @@ impl Batch {
         StoreItem::Conversation {
             turns,
             meta: MemoryMeta {
+                namespace,
                 workspace,
                 thread_id: Some(self.thread_id.clone()),
                 turns: Some(TurnRange {
@@ -146,10 +155,22 @@ pub struct ConversationBuffer {
 }
 
 impl ConversationBuffer {
-    /// Adds `turn` as turn number `index` of its thread. Returns the thread's
-    /// batch when it now holds `batch_turns` turns.
-    pub fn push(&mut self, turn: CommittedTurn, index: u32, batch_turns: u32) -> Option<Batch> {
+    /// Adds `turn` as turn number `index` of its thread. Returns the batches
+    /// that are ready: the thread's pending turns when a different agent
+    /// (namespace) answered them, so a batch never mixes two agents' memory,
+    /// and the thread's batch once it holds `batch_turns` turns.
+    pub fn push(&mut self, turn: CommittedTurn, index: u32, batch_turns: u32) -> Vec<Batch> {
         let thread_id = turn.thread_id.clone();
+        let mut ready = Vec::new();
+        let switched = self.threads.get(&thread_id).is_some_and(|pending| {
+            pending
+                .turns
+                .last()
+                .is_some_and(|last| last.namespace != turn.namespace)
+        });
+        if switched {
+            ready.extend(self.take(&thread_id));
+        }
         let pending = self.threads.entry(thread_id.clone()).or_default();
         if pending.turns.is_empty() {
             pending.first = index;
@@ -157,9 +178,9 @@ impl ConversationBuffer {
         pending.last_activity = Some(turn.at);
         pending.turns.push(turn);
         if pending.turns.len() >= batch_turns.max(1) as usize {
-            return self.take(&thread_id);
+            ready.extend(self.take(&thread_id));
         }
-        None
+        ready
     }
 
     /// Removes and returns every thread idle for at least `idle_secs` at `now`.

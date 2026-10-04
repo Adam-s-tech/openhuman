@@ -164,7 +164,7 @@ pub fn recent(workspace_dir: &Path) -> Vec<RecentConversation> {
 /// Buffers one committed turn, storing its thread's batch when full.
 ///
 /// A no-op when conversations are disabled or memory is off.
-pub async fn record_turn(config: &Config, turn: CommittedTurn) {
+pub async fn record_turn(config: &Config, mut turn: CommittedTurn) {
     let settings = &config.memory.conversations;
     if !settings.enabled {
         tracing::trace!("[memory:conversations] disabled; turn dropped");
@@ -173,6 +173,10 @@ pub async fn record_turn(config: &Config, turn: CommittedTurn) {
     if !engine::is_on(config) {
         tracing::trace!("[memory:conversations] memory off; turn dropped");
         return;
+    }
+    // The answering agent's node; the main chat agent's is the root.
+    if let Some(agent_id) = turn.agent_id.as_deref() {
+        turn.namespace = crate::memory::scope::namespace_for(config, agent_id, None);
     }
     let index = next_turn_index(&config.workspace_dir, &turn.thread_id, turn.at);
     let ready = {
@@ -184,9 +188,21 @@ pub async fn record_turn(config: &Config, turn: CommittedTurn) {
             .or_default()
             .push(turn, index, settings.batch_turns)
     };
-    if let Some(batch) = ready {
+    for batch in ready {
         store_batch(config, batch).await;
     }
+}
+
+/// Every workspace with buffered turns: the idle flusher visits each, not
+/// only the default profile's.
+#[must_use]
+pub fn buffered_workspaces() -> Vec<std::path::PathBuf> {
+    BUFFERS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .keys()
+        .cloned()
+        .collect()
 }
 
 /// Stores every thread idle for `idle_secs` at `now`.
