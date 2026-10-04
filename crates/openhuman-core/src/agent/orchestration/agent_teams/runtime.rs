@@ -235,7 +235,7 @@ async fn run_member_loop(
         )
         .await
     });
-    let outcome = crate::memory::scope::within(identity, member_turn)
+    let outcome = crate::memory::scope::within(identity, Box::pin(member_turn))
         .await
         // Flatten: outer Err = root-parent build failure, inner = drive_member result.
         .unwrap_or_else(Err);
