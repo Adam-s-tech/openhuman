@@ -64,6 +64,12 @@ async function openChat(page: Page, userId: string): Promise<void> {
   await expect(page.getByTestId('chat-message-input')).toBeVisible();
 }
 
+async function startFreshConversation(page: Page): Promise<void> {
+  await page.getByTestId('new-thread-button').click({ force: true });
+  await expect.poll(() => selectedThreadId(page)).not.toBeNull();
+  await expect(page.locator('[data-role="user"], [data-testid="agent-message"]')).toHaveCount(0);
+}
+
 test.describe('Chat management functional coverage', () => {
   test('attachment preview, remove, and document send path remain interactive', async ({
     page,
@@ -74,7 +80,7 @@ test.describe('Chat management functional coverage', () => {
       llmStreamChunkDelayMs: '5',
     });
     await openChat(page, 'pw-chat-attachments');
-    await expect.poll(() => selectedThreadId(page)).not.toBeNull();
+    await startFreshConversation(page);
 
     const fileInput = page.locator('input[type="file"]');
     await expect(fileInput).toHaveCount(1);
@@ -149,7 +155,7 @@ test.describe('Chat management functional coverage', () => {
   test('thread rename and delete remain usable from the conversation UI', async ({ page }) => {
     await resetMock();
     await openChat(page, 'pw-chat-rename-delete');
-    await expect.poll(() => selectedThreadId(page)).not.toBeNull();
+    await startFreshConversation(page);
     const threadId = await selectedThreadId(page);
     expect(threadId).not.toBeNull();
     const title = `Playwright thread ${Date.now()}`;
