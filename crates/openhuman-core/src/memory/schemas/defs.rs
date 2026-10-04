@@ -239,6 +239,7 @@ pub fn schema(function: &str) -> ControllerSchema {
                     req("target", TypeSchema::String, "Path, URL, owner/repo, feed URL or Composio toolkit."),
                     opt("label", TypeSchema::String, "Display label (default: the target)."),
                     opt("schedule_mins", TypeSchema::BoundedU64 { min: 15, max: u64::from(u32::MAX) }, "Minutes between scheduled syncs; omit for on demand only."),
+                    opt("namespace", TypeSchema::String, "Memory node to store the documents at, e.g. `agent:researcher`; the root (shared by every agent) when omitted."),
                 ],
             outputs: out("{source: Source}"),
         },
