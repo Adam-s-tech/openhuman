@@ -60,8 +60,8 @@ pub enum DomainEvent {
         text_chars: usize,
         iterations: usize,
     },
-    /// A threaded conversation turn was durably committed. Consumed by memory's
-    /// conversation ingestion (`memory::bus`). Carries the turn text, as
+    /// A threaded conversation turn was durably committed. Memory logs the
+    /// turn itself (`memory::lifecycle::hooks`); this is for observers. Carries the turn text, as
     /// `ChannelMessageProcessed` does; subscribers must never log it. Tool
     /// calls carry names and ids only — never arguments.
     ConversationTurnCommitted {
@@ -283,6 +283,17 @@ pub enum DomainEvent {
     },
     /// A memory recall query completed.
     MemoryRecalled { query: String, hit_count: usize },
+    /// A turn was given a memory pack before the model ran
+    /// (`memory::lifecycle::hooks::pre_turn`). Counts only, never content.
+    MemoryPackInjected {
+        thread_id: String,
+        /// The memory agent id the turn ran as.
+        agent_id: String,
+        /// The pack's estimated tokens.
+        tokens: usize,
+        /// How many items it cites.
+        refs: usize,
+    },
 
     // ── Channels ────────────────────────────────────────────────────────
     /// An inbound channel message from the transport layer, ready for processing.
@@ -1373,7 +1384,8 @@ impl DomainEvent {
 
             Self::EmbeddingModelUnhealthy { .. }
             | Self::MemoryStored { .. }
-            | Self::MemoryRecalled { .. } => "memory",
+            | Self::MemoryRecalled { .. }
+            | Self::MemoryPackInjected { .. } => "memory",
 
             Self::ChannelInboundMessage { .. }
             | Self::ChannelMessageReceived { .. }
@@ -1511,6 +1523,7 @@ impl DomainEvent {
             Self::MonitorLine { .. } => "MonitorLine",
             Self::MemoryStored { .. } => "MemoryStored",
             Self::MemoryRecalled { .. } => "MemoryRecalled",
+            Self::MemoryPackInjected { .. } => "MemoryPackInjected",
             Self::ChannelInboundMessage { .. } => "ChannelInboundMessage",
             Self::ChannelMessageReceived { .. } => "ChannelMessageReceived",
             Self::ChannelMessageProcessed { .. } => "ChannelMessageProcessed",
