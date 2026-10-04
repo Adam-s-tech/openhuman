@@ -205,15 +205,15 @@ pub(super) fn sources_sync(params: Map<String, Value>) -> ControllerFuture {
 
 pub(super) fn context_get(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
-        parse::<EmptyParams>(params)?;
-        to_json(context::view(&load().await?))
+        let namespace = parse::<ContextNodeParams>(params)?.node()?;
+        to_json(context::view_for(&load().await?, &namespace))
     })
 }
 
 pub(super) fn context_refresh(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
-        parse::<EmptyParams>(params)?;
-        finish(context::refresh(&load().await?).await)
+        let namespace = parse::<ContextNodeParams>(params)?.node()?;
+        finish(context::refresh_for(&load().await?, &namespace).await)
     })
 }
 

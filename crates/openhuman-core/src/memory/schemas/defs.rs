@@ -72,6 +72,14 @@ fn filter() -> FieldSchema {
     )
 }
 
+fn namespace() -> FieldSchema {
+    opt(
+        "namespace",
+        TypeSchema::String,
+        "Memory node, e.g. `agent:researcher` or `team:acme/agent:writer`; the root when omitted.",
+    )
+}
+
 fn path() -> FieldSchema {
     opt(
         "path",
@@ -254,15 +262,15 @@ pub fn schema(function: &str) -> ControllerSchema {
         "context_get" => ControllerSchema {
             namespace: "memory",
             function: "context_get",
-            description: "The compiled context.md and its settings.",
-            inputs: vec![],
-            outputs: out("{markdown, tokens, generated_at, interval_mins, budget_tokens, enabled}"),
+            description: "The compiled context.md of one memory node (the root by default) and its settings.",
+            inputs: vec![namespace()],
+            outputs: out("{namespace, markdown, tokens, generated_at, interval_mins, budget_tokens, enabled}"),
         },
         "context_refresh" => ControllerSchema {
             namespace: "memory",
             function: "context_refresh",
-            description: "Recompile context.md now.",
-            inputs: vec![],
+            description: "Recompile one memory node's context.md now (the root by default).",
+            inputs: vec![namespace()],
             outputs: out("Same as memory_context_get."),
         },
         "context_set" => ControllerSchema {

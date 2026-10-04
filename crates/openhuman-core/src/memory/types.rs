@@ -369,6 +369,32 @@ pub struct ContextView {
     pub enabled: bool,
 }
 
+/// `memory_context_get` / `memory_context_refresh` params.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextNodeParams {
+    /// The memory node; the root when omitted.
+    #[serde(default)]
+    pub namespace: Option<String>,
+}
+
+impl ContextNodeParams {
+    /// The node named, checked.
+    ///
+    /// # Errors
+    ///
+    /// A malformed namespace.
+    pub fn node(&self) -> Result<tinymemory::Namespace, String> {
+        self.namespace
+            .as_deref()
+            .unwrap_or_default()
+            .parse()
+            .map_err(|error: tinymemory::Error| {
+                String::from(super::error::MemoryError::invalid(error.to_string()))
+            })
+    }
+}
+
 /// `memory_context_set` params.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct ContextSetParams {
