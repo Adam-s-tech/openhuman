@@ -154,7 +154,9 @@ export default function MemoryBackgroundTab() {
                     </p>
                     <p className="text-xs text-content-muted">
                       <span className="font-mono">{job.root}</span>
-                      {queued ? ` · ${fill(t('memoryPage.background.queued'), { when: queued })}` : ''}
+                      {queued
+                        ? ` · ${fill(t('memoryPage.background.queued'), { when: queued })}`
+                        : ''}
                       {job.attempts > 0
                         ? ` · ${fill(t('memoryPage.background.attempts'), { count: job.attempts })}`
                         : ''}
@@ -216,9 +218,7 @@ export default function MemoryBackgroundTab() {
                         : ''}
                       {` · ${fill(t('memoryPage.background.stored'), { count: entry.stored ?? 0 })}`}
                     </p>
-                    {entry.reason && (
-                      <p className="text-xs text-content-muted">{entry.reason}</p>
-                    )}
+                    {entry.reason && <p className="text-xs text-content-muted">{entry.reason}</p>}
                   </div>
                 </li>
               );

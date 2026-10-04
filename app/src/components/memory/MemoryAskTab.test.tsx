@@ -28,13 +28,15 @@ beforeEach(() => {
   hoisted.agents
     .mockReset()
     .mockResolvedValue({ root: 'user:me', agents: [{ agent_id: 'researcher', turns: 12 }] });
-  hoisted.policy.mockReset().mockResolvedValue({
-    log_conversations: true,
-    recall: { enabled: true, budget_tokens: 1500 },
-    root: 'user:me',
-    agent_id: 'main',
-    host_bound: false,
-  });
+  hoisted.policy
+    .mockReset()
+    .mockResolvedValue({
+      log_conversations: true,
+      recall: { enabled: true, budget_tokens: 1500 },
+      root: 'user:me',
+      agent_id: 'main',
+      host_bound: false,
+    });
 });
 
 const PACK = {

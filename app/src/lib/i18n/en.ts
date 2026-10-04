@@ -5289,14 +5289,16 @@ const en: TranslationMap = {
   'memoryPage.tabs.background': 'Background',
   'memoryPage.tabs.settings': 'Settings',
   'memoryPage.header.brain': 'Documents every agent shares, filed by where they came from.',
-  'memoryPage.header.background': 'Belief builds and document imports memory runs in the background.',
+  'memoryPage.header.background':
+    'Belief builds and document imports memory runs in the background.',
   'memoryPage.header.settings': 'What memory adds to every turn, and how much of it.',
   'memoryPage.ask.viewLabel': 'Ask mode',
   'memoryPage.ask.viewAnswer': 'Answer',
   'memoryPage.ask.viewPack': 'Pack preview',
   'memoryPage.pack.queryLabel': 'Message (optional)',
   'memoryPage.pack.queryPlaceholder': 'What should we work on today?',
-  'memoryPage.pack.queryHelp': 'With a message, see the memory a reply to it would get. Leave it empty to see what a new chat starts with.',
+  'memoryPage.pack.queryHelp':
+    'With a message, see the memory a reply to it would get. Leave it empty to see what a new chat starts with.',
   'memoryPage.pack.agentLabel': 'Agent',
   'memoryPage.pack.agentDefault': 'Current agent',
   'memoryPage.pack.preview': 'Preview',
@@ -5312,21 +5314,25 @@ const en: TranslationMap = {
   'memoryPage.pack.skipped': 'Skipped',
   'memoryPage.learnings.builtBelief': 'Built belief',
   'memoryPage.conversations.logTitle': 'Conversation log',
-  'memoryPage.conversations.logDescription': 'Every turn of every chat is saved to memory as it happens, so agents can recall it later.',
+  'memoryPage.conversations.logDescription':
+    'Every turn of every chat is saved to memory as it happens, so agents can recall it later.',
   'memoryPage.conversations.logTurns': 'Log every turn',
   'memoryPage.conversations.agentsTitle': 'Agents',
-  'memoryPage.conversations.agentsDescription': 'Agents with saved conversations. Open one to see what it stored.',
+  'memoryPage.conversations.agentsDescription':
+    'Agents with saved conversations. Open one to see what it stored.',
   'memoryPage.conversations.agentsEmpty': 'No conversations saved yet.',
   'memoryPage.conversations.itemsEmpty': 'No conversations stored for this agent yet.',
   'memoryPage.brain.sourcesTitle': 'Brain',
-  'memoryPage.brain.sourcesDescription': 'Documents in the shared brain, grouped by where they came from.',
+  'memoryPage.brain.sourcesDescription':
+    'Documents in the shared brain, grouped by where they came from.',
   'memoryPage.brain.addDocument': 'Add document',
   'memoryPage.brain.empty': 'The brain is empty. Add a document, or sync a source below.',
   'memoryPage.brain.documents': '{count} documents',
   'memoryPage.brain.unfiled': '{count} documents have no source type.',
   'memoryPage.brain.forgetSource': 'Forget source',
   'memoryPage.brain.forgetTitle': 'Forget this source?',
-  'memoryPage.brain.forgetBody': 'Every {source} document will be removed from the brain. This cannot be undone.',
+  'memoryPage.brain.forgetBody':
+    'Every {source} document will be removed from the brain. This cannot be undone.',
   'memoryPage.brain.forgotten': 'Forgot {count} {source} documents.',
   'memoryPage.brain.source.pdf': 'PDF',
   'memoryPage.brain.source.markdown': 'Markdown',
@@ -5355,7 +5361,8 @@ const en: TranslationMap = {
   'memoryPage.brain.ingestReplayed': 'That document is already in the brain.',
   'memoryPage.brain.syncedTitle': 'Synced sources',
   'memoryPage.background.pendingTitle': 'Waiting to run',
-  'memoryPage.background.pendingDescription': 'Memory runs these jobs on its own. Run them now to skip the wait.',
+  'memoryPage.background.pendingDescription':
+    'Memory runs these jobs on its own. Run them now to skip the wait.',
   'memoryPage.background.pendingEmpty': 'Nothing is waiting.',
   'memoryPage.background.refresh': 'Refresh',
   'memoryPage.background.runAll': 'Run all now',
@@ -5375,7 +5382,8 @@ const en: TranslationMap = {
   'memoryPage.background.outcome.skipped': 'Skipped',
   'memoryPage.background.outcome.failed': 'Failed',
   'memoryPage.settings.recallTitle': 'Memory in every turn',
-  'memoryPage.settings.recallDescription': 'Before each reply, memory adds what it knows that is relevant. These limits decide how much.',
+  'memoryPage.settings.recallDescription':
+    'Before each reply, memory adds what it knows that is relevant. These limits decide how much.',
   'memoryPage.settings.recallEnabled': 'Add memory to every turn',
   'memoryPage.settings.budget': 'Size limit',
   'memoryPage.settings.budgetHelp': 'The most memory added to one turn.',
@@ -5386,16 +5394,20 @@ const en: TranslationMap = {
   'memoryPage.settings.teamLimit': 'Team memory',
   'memoryPage.settings.limitHelp': 'The most items of this kind per turn. 0 leaves them out.',
   'memoryPage.settings.buildBeliefsEvery': 'Build beliefs every',
-  'memoryPage.settings.buildBeliefsHelp': 'Distil learnings into beliefs after this many turns. 0 turns it off.',
+  'memoryPage.settings.buildBeliefsHelp':
+    'Distil learnings into beliefs after this many turns. 0 turns it off.',
   'memoryPage.settings.turns': 'turns',
   'memoryPage.settings.preTurnTimeout': 'Wait for memory',
-  'memoryPage.settings.preTurnTimeoutHelp': 'How long a reply waits for memory before going ahead without it.',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    'How long a reply waits for memory before going ahead without it.',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': 'Where memory is filed',
-  'memoryPage.settings.identityDescription': 'The root every agent shares and the agent this app runs as.',
+  'memoryPage.settings.identityDescription':
+    'The root every agent shares and the agent this app runs as.',
   'memoryPage.settings.root': 'Root',
   'memoryPage.settings.agentId': 'Agent',
-  'memoryPage.settings.hostBound': 'The app hosting OpenHuman sets these, so they cannot be changed here.',
+  'memoryPage.settings.hostBound':
+    'The app hosting OpenHuman sets these, so they cannot be changed here.',
   'memoryPage.import.title': 'Previous memory found',
   'memoryPage.import.counts':
     '{documents} documents, {conversations} conversations and {learnings} learnings from the earlier memory are on this device.',

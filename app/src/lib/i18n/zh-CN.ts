@@ -4743,7 +4743,8 @@ const messages: TranslationMap = {
   'memoryPage.ask.viewPack': '记忆包预览',
   'memoryPage.pack.queryLabel': '消息（可选）',
   'memoryPage.pack.queryPlaceholder': '今天我们做什么？',
-  'memoryPage.pack.queryHelp': '输入消息后，可查看回复该消息时会获得的记忆。留空则查看新聊天开始时带有的记忆。',
+  'memoryPage.pack.queryHelp':
+    '输入消息后，可查看回复该消息时会获得的记忆。留空则查看新聊天开始时带有的记忆。',
   'memoryPage.pack.agentLabel': '智能体',
   'memoryPage.pack.agentDefault': '当前智能体',
   'memoryPage.pack.preview': '预览',
@@ -4759,10 +4760,12 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': '已跳过',
   'memoryPage.learnings.builtBelief': '已构建的信念',
   'memoryPage.conversations.logTitle': '对话日志',
-  'memoryPage.conversations.logDescription': '每个聊天的每个轮次都会在发生时保存到记忆中，方便智能体日后回忆。',
+  'memoryPage.conversations.logDescription':
+    '每个聊天的每个轮次都会在发生时保存到记忆中，方便智能体日后回忆。',
   'memoryPage.conversations.logTurns': '记录每个轮次',
   'memoryPage.conversations.agentsTitle': '智能体',
-  'memoryPage.conversations.agentsDescription': '已保存对话的智能体。打开其中一个，查看它存储了什么。',
+  'memoryPage.conversations.agentsDescription':
+    '已保存对话的智能体。打开其中一个，查看它存储了什么。',
   'memoryPage.conversations.agentsEmpty': '尚未保存任何对话。',
   'memoryPage.conversations.itemsEmpty': '尚未为此智能体存储任何对话。',
   'memoryPage.brain.sourcesTitle': '大脑',
@@ -4822,7 +4825,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': '已跳过',
   'memoryPage.background.outcome.failed': '失败',
   'memoryPage.settings.recallTitle': '每个轮次中的记忆',
-  'memoryPage.settings.recallDescription': '每次回复前，记忆会加入它所知道的相关内容。这些限制决定加入多少。',
+  'memoryPage.settings.recallDescription':
+    '每次回复前，记忆会加入它所知道的相关内容。这些限制决定加入多少。',
   'memoryPage.settings.recallEnabled': '为每个轮次添加记忆',
   'memoryPage.settings.budget': '大小限制',
   'memoryPage.settings.budgetHelp': '单个轮次最多添加的记忆量。',

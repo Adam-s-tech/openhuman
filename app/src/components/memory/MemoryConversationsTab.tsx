@@ -24,8 +24,8 @@ import {
 import { Alert, AlertDescription, Button, Card, Switch } from '../ui';
 import { CenteredLoadingState } from '../ui/LoadingState';
 import MemoryConversationsBackfill from './MemoryConversationsBackfill';
-import MemoryHitRow from './MemoryHitRow';
 import { fill } from './memoryFormat';
+import MemoryHitRow from './MemoryHitRow';
 
 const log = debug('openhuman:memory:conversations');
 

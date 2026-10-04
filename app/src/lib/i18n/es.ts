@@ -5104,15 +5104,18 @@ const messages: TranslationMap = {
   'memoryPage.tabs.brain': 'Cerebro',
   'memoryPage.tabs.background': 'Segundo plano',
   'memoryPage.tabs.settings': 'Ajustes',
-  'memoryPage.header.brain': 'Documentos que comparten todos los agentes, archivados según su procedencia.',
-  'memoryPage.header.background': 'Construcciones de creencias e importaciones de documentos que la memoria ejecuta en segundo plano.',
+  'memoryPage.header.brain':
+    'Documentos que comparten todos los agentes, archivados según su procedencia.',
+  'memoryPage.header.background':
+    'Construcciones de creencias e importaciones de documentos que la memoria ejecuta en segundo plano.',
   'memoryPage.header.settings': 'Lo que la memoria añade a cada turno y en qué cantidad.',
   'memoryPage.ask.viewLabel': 'Modo consulta',
   'memoryPage.ask.viewAnswer': 'Respuesta',
   'memoryPage.ask.viewPack': 'Vista previa del paquete',
   'memoryPage.pack.queryLabel': 'Mensaje (opcional)',
   'memoryPage.pack.queryPlaceholder': '¿En qué trabajamos hoy?',
-  'memoryPage.pack.queryHelp': 'Con un mensaje, verás la memoria que recibiría una respuesta. Déjalo vacío para ver con qué empieza un chat nuevo.',
+  'memoryPage.pack.queryHelp':
+    'Con un mensaje, verás la memoria que recibiría una respuesta. Déjalo vacío para ver con qué empieza un chat nuevo.',
   'memoryPage.pack.agentLabel': 'Agente',
   'memoryPage.pack.agentDefault': 'Agente actual',
   'memoryPage.pack.preview': 'Vista previa',
@@ -5128,21 +5131,26 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': 'Omitidos',
   'memoryPage.learnings.builtBelief': 'Creencia construida',
   'memoryPage.conversations.logTitle': 'Registro de conversaciones',
-  'memoryPage.conversations.logDescription': 'Cada turno de cada chat se guarda en la memoria al instante, para que los agentes puedan recordarlo después.',
+  'memoryPage.conversations.logDescription':
+    'Cada turno de cada chat se guarda en la memoria al instante, para que los agentes puedan recordarlo después.',
   'memoryPage.conversations.logTurns': 'Registrar cada turno',
   'memoryPage.conversations.agentsTitle': 'Agentes',
-  'memoryPage.conversations.agentsDescription': 'Agentes con conversaciones guardadas. Abre uno para ver lo que almacenó.',
+  'memoryPage.conversations.agentsDescription':
+    'Agentes con conversaciones guardadas. Abre uno para ver lo que almacenó.',
   'memoryPage.conversations.agentsEmpty': 'Aún no hay conversaciones guardadas.',
   'memoryPage.conversations.itemsEmpty': 'Aún no hay conversaciones almacenadas para este agente.',
   'memoryPage.brain.sourcesTitle': 'Cerebro',
-  'memoryPage.brain.sourcesDescription': 'Documentos del cerebro compartido, agrupados según su procedencia.',
+  'memoryPage.brain.sourcesDescription':
+    'Documentos del cerebro compartido, agrupados según su procedencia.',
   'memoryPage.brain.addDocument': 'Añadir documento',
-  'memoryPage.brain.empty': 'El cerebro está vacío. Añade un documento o sincroniza una fuente más abajo.',
+  'memoryPage.brain.empty':
+    'El cerebro está vacío. Añade un documento o sincroniza una fuente más abajo.',
   'memoryPage.brain.documents': '{count} documentos',
   'memoryPage.brain.unfiled': '{count} documentos no tienen tipo de fuente.',
   'memoryPage.brain.forgetSource': 'Olvidar fuente',
   'memoryPage.brain.forgetTitle': '¿Olvidar esta fuente?',
-  'memoryPage.brain.forgetBody': 'Todos los documentos de {source} se eliminarán del cerebro. Esta acción no se puede deshacer.',
+  'memoryPage.brain.forgetBody':
+    'Todos los documentos de {source} se eliminarán del cerebro. Esta acción no se puede deshacer.',
   'memoryPage.brain.forgotten': 'Se olvidaron {count} documentos de {source}.',
   'memoryPage.brain.source.pdf': 'PDF',
   'memoryPage.brain.source.markdown': 'Markdown',
@@ -5171,7 +5179,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.ingestReplayed': 'Ese documento ya está en el cerebro.',
   'memoryPage.brain.syncedTitle': 'Fuentes sincronizadas',
   'memoryPage.background.pendingTitle': 'Pendientes de ejecución',
-  'memoryPage.background.pendingDescription': 'La memoria ejecuta estas tareas por sí sola. Ejecútalas ahora para no esperar.',
+  'memoryPage.background.pendingDescription':
+    'La memoria ejecuta estas tareas por sí sola. Ejecútalas ahora para no esperar.',
   'memoryPage.background.pendingEmpty': 'No hay nada pendiente.',
   'memoryPage.background.refresh': 'Actualizar',
   'memoryPage.background.runAll': 'Ejecutar todo ahora',
@@ -5191,7 +5200,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': 'Omitido',
   'memoryPage.background.outcome.failed': 'Fallido',
   'memoryPage.settings.recallTitle': 'Memoria en cada turno',
-  'memoryPage.settings.recallDescription': 'Antes de cada respuesta, la memoria añade lo relevante que sabe. Estos límites deciden la cantidad.',
+  'memoryPage.settings.recallDescription':
+    'Antes de cada respuesta, la memoria añade lo relevante que sabe. Estos límites deciden la cantidad.',
   'memoryPage.settings.recallEnabled': 'Añadir memoria a cada turno',
   'memoryPage.settings.budget': 'Límite de tamaño',
   'memoryPage.settings.budgetHelp': 'La mayor cantidad de memoria añadida a un turno.',
@@ -5200,18 +5210,23 @@ const messages: TranslationMap = {
   'memoryPage.settings.brainLimit': 'Documentos del cerebro',
   'memoryPage.settings.historyLimit': 'Conversaciones pasadas',
   'memoryPage.settings.teamLimit': 'Memoria del equipo',
-  'memoryPage.settings.limitHelp': 'El máximo de elementos de este tipo por turno. Con 0 se excluyen.',
+  'memoryPage.settings.limitHelp':
+    'El máximo de elementos de este tipo por turno. Con 0 se excluyen.',
   'memoryPage.settings.buildBeliefsEvery': 'Construir creencias cada',
-  'memoryPage.settings.buildBeliefsHelp': 'Condensar aprendizajes en creencias tras esta cantidad de turnos. Con 0 se desactiva.',
+  'memoryPage.settings.buildBeliefsHelp':
+    'Condensar aprendizajes en creencias tras esta cantidad de turnos. Con 0 se desactiva.',
   'memoryPage.settings.turns': 'turnos',
   'memoryPage.settings.preTurnTimeout': 'Espera por la memoria',
-  'memoryPage.settings.preTurnTimeoutHelp': 'Cuánto espera una respuesta a la memoria antes de continuar sin ella.',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    'Cuánto espera una respuesta a la memoria antes de continuar sin ella.',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': 'Dónde se archiva la memoria',
-  'memoryPage.settings.identityDescription': 'La raíz que comparten todos los agentes y el agente bajo el que se ejecuta esta app.',
+  'memoryPage.settings.identityDescription':
+    'La raíz que comparten todos los agentes y el agente bajo el que se ejecuta esta app.',
   'memoryPage.settings.root': 'Raíz',
   'memoryPage.settings.agentId': 'Agente',
-  'memoryPage.settings.hostBound': 'La app que aloja OpenHuman define estos valores, así que no se pueden cambiar aquí.',
+  'memoryPage.settings.hostBound':
+    'La app que aloja OpenHuman define estos valores, así que no se pueden cambiar aquí.',
   'memoryPage.import.title': 'Se encontró una memoria anterior',
   'memoryPage.import.counts':
     '{documents} documentos, {conversations} conversaciones y {learnings} aprendizajes de la memoria anterior están en este dispositivo.',

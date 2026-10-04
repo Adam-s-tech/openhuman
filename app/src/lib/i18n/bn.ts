@@ -5012,14 +5012,16 @@ const messages: TranslationMap = {
   'memoryPage.tabs.background': 'ব্যাকগ্রাউন্ড',
   'memoryPage.tabs.settings': 'সেটিংস',
   'memoryPage.header.brain': 'প্রতিটি এজেন্টের শেয়ার করা ডকুমেন্ট, উৎস অনুযায়ী সাজানো।',
-  'memoryPage.header.background': 'মেমোরি ব্যাকগ্রাউন্ডে যেসব বিশ্বাস তৈরি ও ডকুমেন্ট ইম্পোর্ট চালায়।',
+  'memoryPage.header.background':
+    'মেমোরি ব্যাকগ্রাউন্ডে যেসব বিশ্বাস তৈরি ও ডকুমেন্ট ইম্পোর্ট চালায়।',
   'memoryPage.header.settings': 'মেমোরি প্রতিটি পালায় কী যোগ করে, এবং কতটা।',
   'memoryPage.ask.viewLabel': 'প্রশ্নের মোড',
   'memoryPage.ask.viewAnswer': 'উত্তর',
   'memoryPage.ask.viewPack': 'প্যাকের প্রিভিউ',
   'memoryPage.pack.queryLabel': 'বার্তা (ঐচ্ছিক)',
   'memoryPage.pack.queryPlaceholder': 'আজ আমরা কী নিয়ে কাজ করব?',
-  'memoryPage.pack.queryHelp': 'বার্তাসহ দেখুন তার উত্তর কোন মেমোরি পাবে। ফাঁকা রাখলে দেখবেন নতুন চ্যাট কী নিয়ে শুরু হয়।',
+  'memoryPage.pack.queryHelp':
+    'বার্তাসহ দেখুন তার উত্তর কোন মেমোরি পাবে। ফাঁকা রাখলে দেখবেন নতুন চ্যাট কী নিয়ে শুরু হয়।',
   'memoryPage.pack.agentLabel': 'এজেন্ট',
   'memoryPage.pack.agentDefault': 'বর্তমান এজেন্ট',
   'memoryPage.pack.preview': 'প্রিভিউ',
@@ -5035,21 +5037,25 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': 'বাদ দেওয়া হয়েছে',
   'memoryPage.learnings.builtBelief': 'তৈরি বিশ্বাস',
   'memoryPage.conversations.logTitle': 'কথোপকথনের লগ',
-  'memoryPage.conversations.logDescription': 'প্রতিটি চ্যাটের প্রতিটি পালা ঘটার সঙ্গে সঙ্গে মেমোরিতে সংরক্ষিত হয়, যাতে এজেন্টরা পরে মনে করতে পারে।',
+  'memoryPage.conversations.logDescription':
+    'প্রতিটি চ্যাটের প্রতিটি পালা ঘটার সঙ্গে সঙ্গে মেমোরিতে সংরক্ষিত হয়, যাতে এজেন্টরা পরে মনে করতে পারে।',
   'memoryPage.conversations.logTurns': 'প্রতিটি পালা লগ করুন',
   'memoryPage.conversations.agentsTitle': 'এজেন্ট',
-  'memoryPage.conversations.agentsDescription': 'যেসব এজেন্টের কথোপকথন সংরক্ষিত আছে। একটি খুলে দেখুন সে কী সংরক্ষণ করেছে।',
+  'memoryPage.conversations.agentsDescription':
+    'যেসব এজেন্টের কথোপকথন সংরক্ষিত আছে। একটি খুলে দেখুন সে কী সংরক্ষণ করেছে।',
   'memoryPage.conversations.agentsEmpty': 'এখনও কোনো কথোপকথন সংরক্ষিত হয়নি।',
   'memoryPage.conversations.itemsEmpty': 'এই এজেন্টের কোনো কথোপকথন এখনও সংরক্ষিত হয়নি।',
   'memoryPage.brain.sourcesTitle': 'ব্রেন',
   'memoryPage.brain.sourcesDescription': 'শেয়ার করা ব্রেনের ডকুমেন্ট, উৎস অনুযায়ী দলবদ্ধ।',
   'memoryPage.brain.addDocument': 'ডকুমেন্ট যোগ করুন',
-  'memoryPage.brain.empty': 'ব্রেন খালি। একটি ডকুমেন্ট যোগ করুন, অথবা নিচ থেকে কোনো উৎস সিঙ্ক করুন।',
+  'memoryPage.brain.empty':
+    'ব্রেন খালি। একটি ডকুমেন্ট যোগ করুন, অথবা নিচ থেকে কোনো উৎস সিঙ্ক করুন।',
   'memoryPage.brain.documents': '{count}টি ডকুমেন্ট',
   'memoryPage.brain.unfiled': '{count}টি ডকুমেন্টের কোনো উৎসের ধরন নেই।',
   'memoryPage.brain.forgetSource': 'উৎস ভুলে যান',
   'memoryPage.brain.forgetTitle': 'এই উৎস ভুলে যাবেন?',
-  'memoryPage.brain.forgetBody': '{source}-এর সব ডকুমেন্ট ব্রেন থেকে সরিয়ে ফেলা হবে। এটি পূর্বাবস্থায় ফেরানো যাবে না।',
+  'memoryPage.brain.forgetBody':
+    '{source}-এর সব ডকুমেন্ট ব্রেন থেকে সরিয়ে ফেলা হবে। এটি পূর্বাবস্থায় ফেরানো যাবে না।',
   'memoryPage.brain.forgotten': '{source}-এর {count}টি ডকুমেন্ট ভুলে যাওয়া হয়েছে।',
   'memoryPage.brain.source.pdf': 'PDF',
   'memoryPage.brain.source.markdown': 'Markdown',
@@ -5078,7 +5084,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.ingestReplayed': 'সেই ডকুমেন্ট আগে থেকেই ব্রেনে আছে।',
   'memoryPage.brain.syncedTitle': 'সিঙ্ক করা উৎস',
   'memoryPage.background.pendingTitle': 'চলার অপেক্ষায়',
-  'memoryPage.background.pendingDescription': 'মেমোরি এই কাজগুলো নিজে থেকেই চালায়। অপেক্ষা এড়াতে এখনই চালান।',
+  'memoryPage.background.pendingDescription':
+    'মেমোরি এই কাজগুলো নিজে থেকেই চালায়। অপেক্ষা এড়াতে এখনই চালান।',
   'memoryPage.background.pendingEmpty': 'কিছুই অপেক্ষায় নেই।',
   'memoryPage.background.refresh': 'রিফ্রেশ',
   'memoryPage.background.runAll': 'সব এখনই চালান',
@@ -5098,7 +5105,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': 'বাদ দেওয়া হয়েছে',
   'memoryPage.background.outcome.failed': 'ব্যর্থ',
   'memoryPage.settings.recallTitle': 'প্রতিটি পালায় মেমোরি',
-  'memoryPage.settings.recallDescription': 'প্রতিটি উত্তরের আগে মেমোরি তার জানা প্রাসঙ্গিক বিষয় যোগ করে। এই সীমাগুলো ঠিক করে কতটা।',
+  'memoryPage.settings.recallDescription':
+    'প্রতিটি উত্তরের আগে মেমোরি তার জানা প্রাসঙ্গিক বিষয় যোগ করে। এই সীমাগুলো ঠিক করে কতটা।',
   'memoryPage.settings.recallEnabled': 'প্রতিটি পালায় মেমোরি যোগ করুন',
   'memoryPage.settings.budget': 'আকারের সীমা',
   'memoryPage.settings.budgetHelp': 'এক পালায় যোগ হওয়া সর্বোচ্চ মেমোরি।',
@@ -5109,16 +5117,20 @@ const messages: TranslationMap = {
   'memoryPage.settings.teamLimit': 'টিমের মেমোরি',
   'memoryPage.settings.limitHelp': 'প্রতি পালায় এই ধরনের সর্বোচ্চ আইটেম। ০ হলে এগুলো বাদ যায়।',
   'memoryPage.settings.buildBeliefsEvery': 'বিশ্বাস তৈরি করুন প্রতি',
-  'memoryPage.settings.buildBeliefsHelp': 'এতগুলো পালার পর শেখা বিষয় থেকে বিশ্বাস তৈরি করুন। ০ হলে এটি বন্ধ থাকে।',
+  'memoryPage.settings.buildBeliefsHelp':
+    'এতগুলো পালার পর শেখা বিষয় থেকে বিশ্বাস তৈরি করুন। ০ হলে এটি বন্ধ থাকে।',
   'memoryPage.settings.turns': 'পালা',
   'memoryPage.settings.preTurnTimeout': 'মেমোরির জন্য অপেক্ষা',
-  'memoryPage.settings.preTurnTimeoutHelp': 'মেমোরি ছাড়াই এগিয়ে যাওয়ার আগে একটি উত্তর মেমোরির জন্য কতক্ষণ অপেক্ষা করে।',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    'মেমোরি ছাড়াই এগিয়ে যাওয়ার আগে একটি উত্তর মেমোরির জন্য কতক্ষণ অপেক্ষা করে।',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': 'মেমোরি কোথায় সংরক্ষিত হয়',
-  'memoryPage.settings.identityDescription': 'প্রতিটি এজেন্টের শেয়ার করা রুট এবং যে এজেন্ট হিসেবে এই অ্যাপ চলে।',
+  'memoryPage.settings.identityDescription':
+    'প্রতিটি এজেন্টের শেয়ার করা রুট এবং যে এজেন্ট হিসেবে এই অ্যাপ চলে।',
   'memoryPage.settings.root': 'রুট',
   'memoryPage.settings.agentId': 'এজেন্ট',
-  'memoryPage.settings.hostBound': 'OpenHuman হোস্ট করা অ্যাপ এগুলো ঠিক করে, তাই এখানে বদলানো যায় না।',
+  'memoryPage.settings.hostBound':
+    'OpenHuman হোস্ট করা অ্যাপ এগুলো ঠিক করে, তাই এখানে বদলানো যায় না।',
   'memoryPage.import.title': 'আগের মেমোরি পাওয়া গেছে',
   'memoryPage.import.counts':
     'আগের মেমোরির {documents}টি ডকুমেন্ট, {conversations}টি কথোপকথন ও {learnings}টি শেখা বিষয় এই ডিভাইসে আছে।',

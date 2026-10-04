@@ -4916,14 +4916,16 @@ const messages: TranslationMap = {
   'memoryPage.tabs.background': 'الخلفية',
   'memoryPage.tabs.settings': 'الإعدادات',
   'memoryPage.header.brain': 'مستندات يشاركها كل وكيل، مصنّفة بحسب مصدرها.',
-  'memoryPage.header.background': 'عمليات بناء المعتقدات واستيراد المستندات التي تنفّذها الذاكرة في الخلفية.',
+  'memoryPage.header.background':
+    'عمليات بناء المعتقدات واستيراد المستندات التي تنفّذها الذاكرة في الخلفية.',
   'memoryPage.header.settings': 'ما تضيفه الذاكرة إلى كل دور، وبأي قدر.',
   'memoryPage.ask.viewLabel': 'وضع السؤال',
   'memoryPage.ask.viewAnswer': 'الإجابة',
   'memoryPage.ask.viewPack': 'معاينة الحزمة',
   'memoryPage.pack.queryLabel': 'الرسالة (اختياري)',
   'memoryPage.pack.queryPlaceholder': 'على ماذا نعمل اليوم؟',
-  'memoryPage.pack.queryHelp': 'مع الرسالة، تعرف الذاكرة التي سيحصل عليها الرد عليها. اتركها فارغة لترى ما تبدأ به المحادثة الجديدة.',
+  'memoryPage.pack.queryHelp':
+    'مع الرسالة، تعرف الذاكرة التي سيحصل عليها الرد عليها. اتركها فارغة لترى ما تبدأ به المحادثة الجديدة.',
   'memoryPage.pack.agentLabel': 'الوكيل',
   'memoryPage.pack.agentDefault': 'الوكيل الحالي',
   'memoryPage.pack.preview': 'معاينة',
@@ -4939,10 +4941,12 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': 'تم تخطيه',
   'memoryPage.learnings.builtBelief': 'المعتقد المبني',
   'memoryPage.conversations.logTitle': 'سجل المحادثات',
-  'memoryPage.conversations.logDescription': 'يُحفظ كل دور من كل محادثة في الذاكرة فور حدوثه، ليتمكن الوكلاء من تذكّره لاحقًا.',
+  'memoryPage.conversations.logDescription':
+    'يُحفظ كل دور من كل محادثة في الذاكرة فور حدوثه، ليتمكن الوكلاء من تذكّره لاحقًا.',
   'memoryPage.conversations.logTurns': 'سجّل كل دور',
   'memoryPage.conversations.agentsTitle': 'الوكلاء',
-  'memoryPage.conversations.agentsDescription': 'وكلاء لديهم محادثات محفوظة. افتح أحدهم لترى ما خزّنه.',
+  'memoryPage.conversations.agentsDescription':
+    'وكلاء لديهم محادثات محفوظة. افتح أحدهم لترى ما خزّنه.',
   'memoryPage.conversations.agentsEmpty': 'لا توجد محادثات محفوظة بعد.',
   'memoryPage.conversations.itemsEmpty': 'لا توجد محادثات مخزّنة لهذا الوكيل بعد.',
   'memoryPage.brain.sourcesTitle': 'الدماغ',
@@ -4982,7 +4986,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.ingestReplayed': 'هذا المستند موجود في الدماغ بالفعل.',
   'memoryPage.brain.syncedTitle': 'المصادر المتزامنة',
   'memoryPage.background.pendingTitle': 'في انتظار التشغيل',
-  'memoryPage.background.pendingDescription': 'تشغّل الذاكرة هذه المهام تلقائيًا. شغّلها الآن لتتجاوز الانتظار.',
+  'memoryPage.background.pendingDescription':
+    'تشغّل الذاكرة هذه المهام تلقائيًا. شغّلها الآن لتتجاوز الانتظار.',
   'memoryPage.background.pendingEmpty': 'لا شيء في الانتظار.',
   'memoryPage.background.refresh': 'تحديث',
   'memoryPage.background.runAll': 'شغّل الكل الآن',
@@ -5002,7 +5007,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': 'تم تخطيه',
   'memoryPage.background.outcome.failed': 'فشل',
   'memoryPage.settings.recallTitle': 'الذاكرة في كل دور',
-  'memoryPage.settings.recallDescription': 'قبل كل رد، تضيف الذاكرة ما تعرفه ويكون ذا صلة. تحدد هذه الحدود المقدار.',
+  'memoryPage.settings.recallDescription':
+    'قبل كل رد، تضيف الذاكرة ما تعرفه ويكون ذا صلة. تحدد هذه الحدود المقدار.',
   'memoryPage.settings.recallEnabled': 'أضف الذاكرة إلى كل دور',
   'memoryPage.settings.budget': 'حد الحجم',
   'memoryPage.settings.budgetHelp': 'أقصى ما يُضاف من الذاكرة إلى دور واحد.',
@@ -5013,16 +5019,20 @@ const messages: TranslationMap = {
   'memoryPage.settings.teamLimit': 'ذاكرة الفريق',
   'memoryPage.settings.limitHelp': 'أقصى عدد من العناصر من هذا النوع في كل دور. القيمة 0 تستبعدها.',
   'memoryPage.settings.buildBeliefsEvery': 'ابنِ المعتقدات كل',
-  'memoryPage.settings.buildBeliefsHelp': 'استخلص المعتقدات من المعلومات المكتسبة بعد هذا العدد من الأدوار. القيمة 0 توقف ذلك.',
+  'memoryPage.settings.buildBeliefsHelp':
+    'استخلص المعتقدات من المعلومات المكتسبة بعد هذا العدد من الأدوار. القيمة 0 توقف ذلك.',
   'memoryPage.settings.turns': 'دور',
   'memoryPage.settings.preTurnTimeout': 'انتظار الذاكرة',
-  'memoryPage.settings.preTurnTimeoutHelp': 'المدة التي ينتظر فيها الرد الذاكرة قبل أن يمضي من دونها.',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    'المدة التي ينتظر فيها الرد الذاكرة قبل أن يمضي من دونها.',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': 'أين تُحفظ الذاكرة',
-  'memoryPage.settings.identityDescription': 'الجذر الذي يشاركه كل وكيل، والوكيل الذي يعمل التطبيق بصفته.',
+  'memoryPage.settings.identityDescription':
+    'الجذر الذي يشاركه كل وكيل، والوكيل الذي يعمل التطبيق بصفته.',
   'memoryPage.settings.root': 'الجذر',
   'memoryPage.settings.agentId': 'الوكيل',
-  'memoryPage.settings.hostBound': 'التطبيق المستضيف لـ OpenHuman هو من يحدد هذه القيم، لذا لا يمكن تغييرها هنا.',
+  'memoryPage.settings.hostBound':
+    'التطبيق المستضيف لـ OpenHuman هو من يحدد هذه القيم، لذا لا يمكن تغييرها هنا.',
   'memoryPage.import.title': 'تم العثور على ذاكرة سابقة',
   'memoryPage.import.counts':
     'يوجد على هذا الجهاز {documents} مستندات و{conversations} محادثات و{learnings} معلومات مكتسبة من الذاكرة السابقة.',

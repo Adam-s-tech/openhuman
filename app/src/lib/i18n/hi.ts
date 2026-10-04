@@ -5011,15 +5011,18 @@ const messages: TranslationMap = {
   'memoryPage.tabs.brain': 'ब्रेन',
   'memoryPage.tabs.background': 'बैकग्राउंड',
   'memoryPage.tabs.settings': 'सेटिंग',
-  'memoryPage.header.brain': 'वे दस्तावेज़ जो हर एजेंट साझा करता है, उनके स्रोत के अनुसार सहेजे गए।',
-  'memoryPage.header.background': 'बैकग्राउंड में मेमोरी जो बिलीफ़ बनाती और दस्तावेज़ इम्पोर्ट करती है।',
+  'memoryPage.header.brain':
+    'वे दस्तावेज़ जो हर एजेंट साझा करता है, उनके स्रोत के अनुसार सहेजे गए।',
+  'memoryPage.header.background':
+    'बैकग्राउंड में मेमोरी जो बिलीफ़ बनाती और दस्तावेज़ इम्पोर्ट करती है।',
   'memoryPage.header.settings': 'मेमोरी हर बारी में क्या जोड़ती है, और कितना।',
   'memoryPage.ask.viewLabel': 'पूछने का मोड',
   'memoryPage.ask.viewAnswer': 'जवाब',
   'memoryPage.ask.viewPack': 'पैक का पूर्वावलोकन',
   'memoryPage.pack.queryLabel': 'संदेश (वैकल्पिक)',
   'memoryPage.pack.queryPlaceholder': 'आज हम किस पर काम करें?',
-  'memoryPage.pack.queryHelp': 'संदेश के साथ देखें कि उसके जवाब को कौन सी मेमोरी मिलेगी। खाली छोड़ें तो दिखेगा कि नई चैट किससे शुरू होती है।',
+  'memoryPage.pack.queryHelp':
+    'संदेश के साथ देखें कि उसके जवाब को कौन सी मेमोरी मिलेगी। खाली छोड़ें तो दिखेगा कि नई चैट किससे शुरू होती है।',
   'memoryPage.pack.agentLabel': 'एजेंट',
   'memoryPage.pack.agentDefault': 'मौजूदा एजेंट',
   'memoryPage.pack.preview': 'पूर्वावलोकन',
@@ -5035,10 +5038,12 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': 'छोड़ा गया',
   'memoryPage.learnings.builtBelief': 'बनाया गया बिलीफ़',
   'memoryPage.conversations.logTitle': 'बातचीत का लॉग',
-  'memoryPage.conversations.logDescription': 'हर चैट की हर बारी होते ही मेमोरी में सहेज ली जाती है, ताकि एजेंट उसे बाद में याद कर सकें।',
+  'memoryPage.conversations.logDescription':
+    'हर चैट की हर बारी होते ही मेमोरी में सहेज ली जाती है, ताकि एजेंट उसे बाद में याद कर सकें।',
   'memoryPage.conversations.logTurns': 'हर बारी लॉग करें',
   'memoryPage.conversations.agentsTitle': 'एजेंट',
-  'memoryPage.conversations.agentsDescription': 'जिन एजेंटों की बातचीत सहेजी गई है। किसी को खोलकर देखें कि उसने क्या सहेजा।',
+  'memoryPage.conversations.agentsDescription':
+    'जिन एजेंटों की बातचीत सहेजी गई है। किसी को खोलकर देखें कि उसने क्या सहेजा।',
   'memoryPage.conversations.agentsEmpty': 'अभी तक कोई बातचीत सहेजी नहीं गई।',
   'memoryPage.conversations.itemsEmpty': 'इस एजेंट की कोई बातचीत अभी तक सहेजी नहीं गई।',
   'memoryPage.brain.sourcesTitle': 'ब्रेन',
@@ -5049,7 +5054,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.unfiled': '{count} दस्तावेज़ों का कोई स्रोत प्रकार नहीं है।',
   'memoryPage.brain.forgetSource': 'स्रोत भुलाएँ',
   'memoryPage.brain.forgetTitle': 'यह स्रोत भुला दें?',
-  'memoryPage.brain.forgetBody': '{source} के सभी दस्तावेज़ ब्रेन से हटा दिए जाएँगे। इसे पूर्ववत नहीं किया जा सकता।',
+  'memoryPage.brain.forgetBody':
+    '{source} के सभी दस्तावेज़ ब्रेन से हटा दिए जाएँगे। इसे पूर्ववत नहीं किया जा सकता।',
   'memoryPage.brain.forgotten': '{source} के {count} दस्तावेज़ भुला दिए गए।',
   'memoryPage.brain.source.pdf': 'PDF',
   'memoryPage.brain.source.markdown': 'Markdown',
@@ -5078,7 +5084,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.ingestReplayed': 'वह दस्तावेज़ पहले से ब्रेन में है।',
   'memoryPage.brain.syncedTitle': 'सिंक किए गए स्रोत',
   'memoryPage.background.pendingTitle': 'चलने की प्रतीक्षा में',
-  'memoryPage.background.pendingDescription': 'मेमोरी ये जॉब अपने आप चलाती है। इंतज़ार छोड़ने के लिए इन्हें अभी चलाएँ।',
+  'memoryPage.background.pendingDescription':
+    'मेमोरी ये जॉब अपने आप चलाती है। इंतज़ार छोड़ने के लिए इन्हें अभी चलाएँ।',
   'memoryPage.background.pendingEmpty': 'कुछ भी प्रतीक्षा में नहीं है।',
   'memoryPage.background.refresh': 'रिफ़्रेश करें',
   'memoryPage.background.runAll': 'सब अभी चलाएँ',
@@ -5098,7 +5105,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': 'छोड़ा गया',
   'memoryPage.background.outcome.failed': 'विफल',
   'memoryPage.settings.recallTitle': 'हर बारी में मेमोरी',
-  'memoryPage.settings.recallDescription': 'हर जवाब से पहले मेमोरी वह जोड़ती है जो उसे पता है और प्रासंगिक है। ये सीमाएँ तय करती हैं कि कितना।',
+  'memoryPage.settings.recallDescription':
+    'हर जवाब से पहले मेमोरी वह जोड़ती है जो उसे पता है और प्रासंगिक है। ये सीमाएँ तय करती हैं कि कितना।',
   'memoryPage.settings.recallEnabled': 'हर बारी में मेमोरी जोड़ें',
   'memoryPage.settings.budget': 'आकार सीमा',
   'memoryPage.settings.budgetHelp': 'एक बारी में जोड़ी जाने वाली अधिकतम मेमोरी।',
@@ -5107,18 +5115,23 @@ const messages: TranslationMap = {
   'memoryPage.settings.brainLimit': 'ब्रेन के दस्तावेज़',
   'memoryPage.settings.historyLimit': 'पिछली बातचीत',
   'memoryPage.settings.teamLimit': 'टीम की मेमोरी',
-  'memoryPage.settings.limitHelp': 'हर बारी में इस प्रकार की अधिकतम चीज़ें। 0 होने पर इन्हें शामिल नहीं किया जाता।',
+  'memoryPage.settings.limitHelp':
+    'हर बारी में इस प्रकार की अधिकतम चीज़ें। 0 होने पर इन्हें शामिल नहीं किया जाता।',
   'memoryPage.settings.buildBeliefsEvery': 'बिलीफ़ बनाएँ हर',
-  'memoryPage.settings.buildBeliefsHelp': 'इतनी बारियों के बाद सीखी बातों से बिलीफ़ तैयार करें। 0 होने पर यह बंद रहता है।',
+  'memoryPage.settings.buildBeliefsHelp':
+    'इतनी बारियों के बाद सीखी बातों से बिलीफ़ तैयार करें। 0 होने पर यह बंद रहता है।',
   'memoryPage.settings.turns': 'बारी',
   'memoryPage.settings.preTurnTimeout': 'मेमोरी का इंतज़ार',
-  'memoryPage.settings.preTurnTimeoutHelp': 'जवाब मेमोरी के बिना आगे बढ़ने से पहले उसका कितना इंतज़ार करता है।',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    'जवाब मेमोरी के बिना आगे बढ़ने से पहले उसका कितना इंतज़ार करता है।',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': 'मेमोरी कहाँ सहेजी जाती है',
-  'memoryPage.settings.identityDescription': 'वह रूट जो हर एजेंट साझा करता है और वह एजेंट जिसके रूप में यह ऐप चलता है।',
+  'memoryPage.settings.identityDescription':
+    'वह रूट जो हर एजेंट साझा करता है और वह एजेंट जिसके रूप में यह ऐप चलता है।',
   'memoryPage.settings.root': 'रूट',
   'memoryPage.settings.agentId': 'एजेंट',
-  'memoryPage.settings.hostBound': 'OpenHuman को होस्ट करने वाला ऐप इन्हें तय करता है, इसलिए इन्हें यहाँ बदला नहीं जा सकता।',
+  'memoryPage.settings.hostBound':
+    'OpenHuman को होस्ट करने वाला ऐप इन्हें तय करता है, इसलिए इन्हें यहाँ बदला नहीं जा सकता।',
   'memoryPage.import.title': 'पिछली मेमोरी मिली',
   'memoryPage.import.counts':
     'पिछली मेमोरी के {documents} दस्तावेज़, {conversations} बातचीत और {learnings} सीखी बातें इस डिवाइस पर हैं।',

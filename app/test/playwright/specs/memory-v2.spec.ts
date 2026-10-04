@@ -206,7 +206,11 @@ async function installMemoryFake(page: Page, opts: FakeOptions): Promise<MemoryF
       case 'memory_brain_search':
         return { hits: [] };
       case 'memory_brain_ingest':
-        return { id: `doc-${nextId++}`, source: (params.source as string) ?? 'markdown', replayed: false };
+        return {
+          id: `doc-${nextId++}`,
+          source: (params.source as string) ?? 'markdown',
+          replayed: false,
+        };
       case 'memory_brain_forget': {
         const index = brain.findIndex(b => b.source === params.source);
         const forgotten = index >= 0 ? brain[index].documents : 0;
@@ -216,15 +220,17 @@ async function installMemoryFake(page: Page, opts: FakeOptions): Promise<MemoryF
       case 'memory_jobs_list':
         return { pending: [...pendingJobs], history: [...jobHistory] };
       case 'memory_jobs_run': {
-        const runs = pendingJobs.splice(0).map(job => ({
-          id: job.id,
-          job: job.job.job,
-          root: job.root,
-          ran_at: '2026-10-01T09:05:00Z',
-          outcome: 'done',
-          built: 2,
-          stored: 2,
-        }));
+        const runs = pendingJobs
+          .splice(0)
+          .map(job => ({
+            id: job.id,
+            job: job.job.job,
+            root: job.root,
+            ran_at: '2026-10-01T09:05:00Z',
+            outcome: 'done',
+            built: 2,
+            stored: 2,
+          }));
         jobHistory.unshift(...runs);
         return { runs };
       }

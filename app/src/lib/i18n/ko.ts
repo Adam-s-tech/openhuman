@@ -4965,14 +4965,16 @@ const messages: TranslationMap = {
   'memoryPage.tabs.background': '백그라운드',
   'memoryPage.tabs.settings': '설정',
   'memoryPage.header.brain': '모든 에이전트가 공유하는 문서를 출처별로 정리했습니다.',
-  'memoryPage.header.background': '메모리가 백그라운드에서 실행하는 신념 구축과 문서 가져오기입니다.',
+  'memoryPage.header.background':
+    '메모리가 백그라운드에서 실행하는 신념 구축과 문서 가져오기입니다.',
   'memoryPage.header.settings': '메모리가 매 대화 차례에 무엇을, 얼마나 추가할지 정합니다.',
   'memoryPage.ask.viewLabel': '질문 모드',
   'memoryPage.ask.viewAnswer': '답변',
   'memoryPage.ask.viewPack': '팩 미리보기',
   'memoryPage.pack.queryLabel': '메시지(선택)',
   'memoryPage.pack.queryPlaceholder': '오늘은 무엇을 해볼까요?',
-  'memoryPage.pack.queryHelp': '메시지를 입력하면 그 메시지에 대한 답장이 받을 메모리를 볼 수 있습니다. 비워 두면 새 채팅이 시작될 때 받는 메모리를 볼 수 있습니다.',
+  'memoryPage.pack.queryHelp':
+    '메시지를 입력하면 그 메시지에 대한 답장이 받을 메모리를 볼 수 있습니다. 비워 두면 새 채팅이 시작될 때 받는 메모리를 볼 수 있습니다.',
   'memoryPage.pack.agentLabel': '에이전트',
   'memoryPage.pack.agentDefault': '현재 에이전트',
   'memoryPage.pack.preview': '미리보기',
@@ -4988,10 +4990,12 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': '건너뜀',
   'memoryPage.learnings.builtBelief': '구축된 신념',
   'memoryPage.conversations.logTitle': '대화 기록',
-  'memoryPage.conversations.logDescription': '모든 채팅의 모든 대화 차례가 발생하는 즉시 메모리에 저장되어 에이전트가 나중에 떠올릴 수 있습니다.',
+  'memoryPage.conversations.logDescription':
+    '모든 채팅의 모든 대화 차례가 발생하는 즉시 메모리에 저장되어 에이전트가 나중에 떠올릴 수 있습니다.',
   'memoryPage.conversations.logTurns': '모든 대화 차례 기록',
   'memoryPage.conversations.agentsTitle': '에이전트',
-  'memoryPage.conversations.agentsDescription': '저장된 대화가 있는 에이전트입니다. 하나를 열어 저장된 내용을 확인하세요.',
+  'memoryPage.conversations.agentsDescription':
+    '저장된 대화가 있는 에이전트입니다. 하나를 열어 저장된 내용을 확인하세요.',
   'memoryPage.conversations.agentsEmpty': '아직 저장된 대화가 없습니다.',
   'memoryPage.conversations.itemsEmpty': '이 에이전트에 저장된 대화가 아직 없습니다.',
   'memoryPage.brain.sourcesTitle': '브레인',
@@ -5002,7 +5006,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.unfiled': '문서 {count}개에 출처 유형이 없습니다.',
   'memoryPage.brain.forgetSource': '출처 잊기',
   'memoryPage.brain.forgetTitle': '이 출처를 잊을까요?',
-  'memoryPage.brain.forgetBody': '{source} 문서가 모두 브레인에서 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+  'memoryPage.brain.forgetBody':
+    '{source} 문서가 모두 브레인에서 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
   'memoryPage.brain.forgotten': '{source} 문서 {count}개를 잊었습니다.',
   'memoryPage.brain.source.pdf': 'PDF',
   'memoryPage.brain.source.markdown': 'Markdown',
@@ -5031,7 +5036,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.ingestReplayed': '해당 문서는 이미 브레인에 있습니다.',
   'memoryPage.brain.syncedTitle': '동기화된 출처',
   'memoryPage.background.pendingTitle': '실행 대기 중',
-  'memoryPage.background.pendingDescription': '메모리가 이 작업을 알아서 실행합니다. 지금 실행하면 기다리지 않아도 됩니다.',
+  'memoryPage.background.pendingDescription':
+    '메모리가 이 작업을 알아서 실행합니다. 지금 실행하면 기다리지 않아도 됩니다.',
   'memoryPage.background.pendingEmpty': '대기 중인 작업이 없습니다.',
   'memoryPage.background.refresh': '새로고침',
   'memoryPage.background.runAll': '모두 지금 실행',
@@ -5051,7 +5057,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': '건너뜀',
   'memoryPage.background.outcome.failed': '실패',
   'memoryPage.settings.recallTitle': '매 대화 차례의 메모리',
-  'memoryPage.settings.recallDescription': '답장하기 전에 메모리가 아는 내용 중 관련된 것을 추가합니다. 이 한도가 추가량을 정합니다.',
+  'memoryPage.settings.recallDescription':
+    '답장하기 전에 메모리가 아는 내용 중 관련된 것을 추가합니다. 이 한도가 추가량을 정합니다.',
   'memoryPage.settings.recallEnabled': '매 대화 차례에 메모리 추가',
   'memoryPage.settings.budget': '크기 한도',
   'memoryPage.settings.budgetHelp': '한 대화 차례에 추가되는 메모리의 최대량입니다.',
@@ -5062,16 +5069,20 @@ const messages: TranslationMap = {
   'memoryPage.settings.teamLimit': '팀 메모리',
   'memoryPage.settings.limitHelp': '대화 차례당 이 종류의 최대 항목 수입니다. 0이면 제외합니다.',
   'memoryPage.settings.buildBeliefsEvery': '신념 구축 주기',
-  'memoryPage.settings.buildBeliefsHelp': '이 횟수만큼 대화 차례가 지나면 학습 내용을 신념으로 정리합니다. 0이면 끕니다.',
+  'memoryPage.settings.buildBeliefsHelp':
+    '이 횟수만큼 대화 차례가 지나면 학습 내용을 신념으로 정리합니다. 0이면 끕니다.',
   'memoryPage.settings.turns': '대화 차례',
   'memoryPage.settings.preTurnTimeout': '메모리 대기',
-  'memoryPage.settings.preTurnTimeoutHelp': '답장이 메모리를 기다리는 시간입니다. 이 시간이 지나면 메모리 없이 진행합니다.',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    '답장이 메모리를 기다리는 시간입니다. 이 시간이 지나면 메모리 없이 진행합니다.',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': '메모리가 정리되는 위치',
-  'memoryPage.settings.identityDescription': '모든 에이전트가 공유하는 루트와 이 앱이 실행되는 에이전트입니다.',
+  'memoryPage.settings.identityDescription':
+    '모든 에이전트가 공유하는 루트와 이 앱이 실행되는 에이전트입니다.',
   'memoryPage.settings.root': '루트',
   'memoryPage.settings.agentId': '에이전트',
-  'memoryPage.settings.hostBound': 'OpenHuman을 호스팅하는 앱이 이 값을 설정하므로 여기서 변경할 수 없습니다.',
+  'memoryPage.settings.hostBound':
+    'OpenHuman을 호스팅하는 앱이 이 값을 설정하므로 여기서 변경할 수 없습니다.',
   'memoryPage.import.title': '이전 메모리를 찾았습니다',
   'memoryPage.import.counts':
     '이전 메모리의 문서 {documents}개, 대화 {conversations}개, 학습 내용 {learnings}개가 이 기기에 있습니다.',

@@ -5063,14 +5063,16 @@ const messages: TranslationMap = {
   'memoryPage.tabs.background': 'Фон',
   'memoryPage.tabs.settings': 'Настройки',
   'memoryPage.header.brain': 'Документы, общие для всех агентов, разложенные по источникам.',
-  'memoryPage.header.background': 'Построение убеждений и импорт документов, которые память выполняет в фоне.',
+  'memoryPage.header.background':
+    'Построение убеждений и импорт документов, которые память выполняет в фоне.',
   'memoryPage.header.settings': 'Что память добавляет в каждую реплику и в каком объёме.',
   'memoryPage.ask.viewLabel': 'Режим вопроса',
   'memoryPage.ask.viewAnswer': 'Ответ',
   'memoryPage.ask.viewPack': 'Предпросмотр пакета',
   'memoryPage.pack.queryLabel': 'Сообщение (необязательно)',
   'memoryPage.pack.queryPlaceholder': 'Чем займёмся сегодня?',
-  'memoryPage.pack.queryHelp': 'Если ввести сообщение, вы увидите память, которую получит ответ на него. Оставьте поле пустым, чтобы увидеть, с чем начинается новый чат.',
+  'memoryPage.pack.queryHelp':
+    'Если ввести сообщение, вы увидите память, которую получит ответ на него. Оставьте поле пустым, чтобы увидеть, с чем начинается новый чат.',
   'memoryPage.pack.agentLabel': 'Агент',
   'memoryPage.pack.agentDefault': 'Текущий агент',
   'memoryPage.pack.preview': 'Предпросмотр',
@@ -5086,10 +5088,12 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': 'Пропущено',
   'memoryPage.learnings.builtBelief': 'Построенное убеждение',
   'memoryPage.conversations.logTitle': 'Журнал разговоров',
-  'memoryPage.conversations.logDescription': 'Каждая реплика каждого чата сохраняется в память по мере появления, чтобы агенты могли вспомнить её позже.',
+  'memoryPage.conversations.logDescription':
+    'Каждая реплика каждого чата сохраняется в память по мере появления, чтобы агенты могли вспомнить её позже.',
   'memoryPage.conversations.logTurns': 'Записывать каждую реплику',
   'memoryPage.conversations.agentsTitle': 'Агенты',
-  'memoryPage.conversations.agentsDescription': 'Агенты с сохранёнными разговорами. Откройте одного, чтобы увидеть, что он сохранил.',
+  'memoryPage.conversations.agentsDescription':
+    'Агенты с сохранёнными разговорами. Откройте одного, чтобы увидеть, что он сохранил.',
   'memoryPage.conversations.agentsEmpty': 'Сохранённых разговоров пока нет.',
   'memoryPage.conversations.itemsEmpty': 'Для этого агента пока нет сохранённых разговоров.',
   'memoryPage.brain.sourcesTitle': 'Мозг',
@@ -5100,7 +5104,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.unfiled': 'Документов без типа источника: {count}.',
   'memoryPage.brain.forgetSource': 'Забыть источник',
   'memoryPage.brain.forgetTitle': 'Забыть этот источник?',
-  'memoryPage.brain.forgetBody': 'Все документы {source} будут удалены из мозга. Это действие нельзя отменить.',
+  'memoryPage.brain.forgetBody':
+    'Все документы {source} будут удалены из мозга. Это действие нельзя отменить.',
   'memoryPage.brain.forgotten': 'Забыто документов {source}: {count}.',
   'memoryPage.brain.source.pdf': 'PDF',
   'memoryPage.brain.source.markdown': 'Markdown',
@@ -5129,7 +5134,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.ingestReplayed': 'Этот документ уже есть в мозге.',
   'memoryPage.brain.syncedTitle': 'Синхронизированные источники',
   'memoryPage.background.pendingTitle': 'Ожидают запуска',
-  'memoryPage.background.pendingDescription': 'Память запускает эти задачи сама. Запустите их сейчас, чтобы не ждать.',
+  'memoryPage.background.pendingDescription':
+    'Память запускает эти задачи сама. Запустите их сейчас, чтобы не ждать.',
   'memoryPage.background.pendingEmpty': 'Ничего не ожидает.',
   'memoryPage.background.refresh': 'Обновить',
   'memoryPage.background.runAll': 'Запустить все сейчас',
@@ -5149,7 +5155,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': 'Пропущено',
   'memoryPage.background.outcome.failed': 'Сбой',
   'memoryPage.settings.recallTitle': 'Память в каждой реплике',
-  'memoryPage.settings.recallDescription': 'Перед каждым ответом память добавляет то, что знает по теме. Эти ограничения определяют объём.',
+  'memoryPage.settings.recallDescription':
+    'Перед каждым ответом память добавляет то, что знает по теме. Эти ограничения определяют объём.',
   'memoryPage.settings.recallEnabled': 'Добавлять память в каждую реплику',
   'memoryPage.settings.budget': 'Ограничение размера',
   'memoryPage.settings.budgetHelp': 'Максимальный объём памяти, добавляемый в одну реплику.',
@@ -5160,16 +5167,20 @@ const messages: TranslationMap = {
   'memoryPage.settings.teamLimit': 'Память команды',
   'memoryPage.settings.limitHelp': 'Максимум элементов этого вида на реплику. 0 исключает их.',
   'memoryPage.settings.buildBeliefsEvery': 'Строить убеждения каждые',
-  'memoryPage.settings.buildBeliefsHelp': 'Преобразовывать знания в убеждения после стольких реплик. 0 отключает.',
+  'memoryPage.settings.buildBeliefsHelp':
+    'Преобразовывать знания в убеждения после стольких реплик. 0 отключает.',
   'memoryPage.settings.turns': 'реплик',
   'memoryPage.settings.preTurnTimeout': 'Ожидание памяти',
-  'memoryPage.settings.preTurnTimeoutHelp': 'Сколько ответ ждёт память, прежде чем продолжить без неё.',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    'Сколько ответ ждёт память, прежде чем продолжить без неё.',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': 'Где хранится память',
-  'memoryPage.settings.identityDescription': 'Корень, общий для всех агентов, и агент, от имени которого работает приложение.',
+  'memoryPage.settings.identityDescription':
+    'Корень, общий для всех агентов, и агент, от имени которого работает приложение.',
   'memoryPage.settings.root': 'Корень',
   'memoryPage.settings.agentId': 'Агент',
-  'memoryPage.settings.hostBound': 'Эти значения задаёт приложение, в котором работает OpenHuman, поэтому здесь их изменить нельзя.',
+  'memoryPage.settings.hostBound':
+    'Эти значения задаёт приложение, в котором работает OpenHuman, поэтому здесь их изменить нельзя.',
   'memoryPage.import.title': 'Найдена прежняя память',
   'memoryPage.import.counts':
     'На этом устройстве находятся документов: {documents}, диалогов: {conversations}, знаний: {learnings} из прежней памяти.',

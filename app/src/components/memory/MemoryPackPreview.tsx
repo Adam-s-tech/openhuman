@@ -98,7 +98,9 @@ export default function MemoryPackPreview() {
             placeholder={t('memoryPage.pack.queryPlaceholder')}
             onChange={e => setQuery(e.target.value)}
           />
-          <p className="text-[11px] leading-4 text-content-muted">{t('memoryPage.pack.queryHelp')}</p>
+          <p className="text-[11px] leading-4 text-content-muted">
+            {t('memoryPage.pack.queryHelp')}
+          </p>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <NativeSelect
               aria-label={t('memoryPage.pack.agentLabel')}
@@ -150,10 +152,7 @@ export default function MemoryPackPreview() {
               variant={budget !== null && pack.tokens > budget ? 'warning' : 'neutral'}
               data-testid="memory-pack-tokens">
               {budget !== null
-                ? fill(t('memoryPage.pack.tokensOfBudget'), {
-                    tokens: pack.tokens,
-                    budget,
-                  })
+                ? fill(t('memoryPage.pack.tokensOfBudget'), { tokens: pack.tokens, budget })
                 : fill(t('memoryPage.pack.tokens'), { tokens: pack.tokens })}
             </Badge>
           }

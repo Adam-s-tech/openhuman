@@ -5052,14 +5052,17 @@ const messages: TranslationMap = {
   'memoryPage.tabs.background': 'Latar belakang',
   'memoryPage.tabs.settings': 'Pengaturan',
   'memoryPage.header.brain': 'Dokumen yang dibagikan semua agen, diarsipkan menurut asalnya.',
-  'memoryPage.header.background': 'Pembuatan keyakinan dan impor dokumen yang dijalankan memori di latar belakang.',
-  'memoryPage.header.settings': 'Apa yang ditambahkan memori pada setiap giliran, dan seberapa banyak.',
+  'memoryPage.header.background':
+    'Pembuatan keyakinan dan impor dokumen yang dijalankan memori di latar belakang.',
+  'memoryPage.header.settings':
+    'Apa yang ditambahkan memori pada setiap giliran, dan seberapa banyak.',
   'memoryPage.ask.viewLabel': 'Mode tanya',
   'memoryPage.ask.viewAnswer': 'Jawaban',
   'memoryPage.ask.viewPack': 'Pratinjau paket',
   'memoryPage.pack.queryLabel': 'Pesan (opsional)',
   'memoryPage.pack.queryPlaceholder': 'Apa yang akan kita kerjakan hari ini?',
-  'memoryPage.pack.queryHelp': 'Dengan pesan, lihat memori yang akan diterima balasan untuknya. Biarkan kosong untuk melihat bekal awal obrolan baru.',
+  'memoryPage.pack.queryHelp':
+    'Dengan pesan, lihat memori yang akan diterima balasan untuknya. Biarkan kosong untuk melihat bekal awal obrolan baru.',
   'memoryPage.pack.agentLabel': 'Agen',
   'memoryPage.pack.agentDefault': 'Agen saat ini',
   'memoryPage.pack.preview': 'Pratinjau',
@@ -5075,21 +5078,25 @@ const messages: TranslationMap = {
   'memoryPage.pack.skipped': 'Dilewati',
   'memoryPage.learnings.builtBelief': 'Keyakinan yang dibuat',
   'memoryPage.conversations.logTitle': 'Log percakapan',
-  'memoryPage.conversations.logDescription': 'Setiap giliran dari setiap obrolan disimpan ke memori saat terjadi, sehingga agen dapat mengingatnya nanti.',
+  'memoryPage.conversations.logDescription':
+    'Setiap giliran dari setiap obrolan disimpan ke memori saat terjadi, sehingga agen dapat mengingatnya nanti.',
   'memoryPage.conversations.logTurns': 'Catat setiap giliran',
   'memoryPage.conversations.agentsTitle': 'Agen',
-  'memoryPage.conversations.agentsDescription': 'Agen yang memiliki percakapan tersimpan. Buka satu untuk melihat yang disimpannya.',
+  'memoryPage.conversations.agentsDescription':
+    'Agen yang memiliki percakapan tersimpan. Buka satu untuk melihat yang disimpannya.',
   'memoryPage.conversations.agentsEmpty': 'Belum ada percakapan yang disimpan.',
   'memoryPage.conversations.itemsEmpty': 'Belum ada percakapan tersimpan untuk agen ini.',
   'memoryPage.brain.sourcesTitle': 'Otak',
   'memoryPage.brain.sourcesDescription': 'Dokumen di otak bersama, dikelompokkan menurut asalnya.',
   'memoryPage.brain.addDocument': 'Tambah dokumen',
-  'memoryPage.brain.empty': 'Otak masih kosong. Tambahkan dokumen, atau sinkronkan sumber di bawah.',
+  'memoryPage.brain.empty':
+    'Otak masih kosong. Tambahkan dokumen, atau sinkronkan sumber di bawah.',
   'memoryPage.brain.documents': '{count} dokumen',
   'memoryPage.brain.unfiled': '{count} dokumen tidak punya jenis sumber.',
   'memoryPage.brain.forgetSource': 'Lupakan sumber',
   'memoryPage.brain.forgetTitle': 'Lupakan sumber ini?',
-  'memoryPage.brain.forgetBody': 'Semua dokumen {source} akan dihapus dari otak. Tindakan ini tidak dapat dibatalkan.',
+  'memoryPage.brain.forgetBody':
+    'Semua dokumen {source} akan dihapus dari otak. Tindakan ini tidak dapat dibatalkan.',
   'memoryPage.brain.forgotten': '{count} dokumen {source} dilupakan.',
   'memoryPage.brain.source.pdf': 'PDF',
   'memoryPage.brain.source.markdown': 'Markdown',
@@ -5118,7 +5125,8 @@ const messages: TranslationMap = {
   'memoryPage.brain.ingestReplayed': 'Dokumen itu sudah ada di otak.',
   'memoryPage.brain.syncedTitle': 'Sumber tersinkron',
   'memoryPage.background.pendingTitle': 'Menunggu dijalankan',
-  'memoryPage.background.pendingDescription': 'Memori menjalankan tugas ini sendiri. Jalankan sekarang agar tidak perlu menunggu.',
+  'memoryPage.background.pendingDescription':
+    'Memori menjalankan tugas ini sendiri. Jalankan sekarang agar tidak perlu menunggu.',
   'memoryPage.background.pendingEmpty': 'Tidak ada yang menunggu.',
   'memoryPage.background.refresh': 'Segarkan',
   'memoryPage.background.runAll': 'Jalankan semua sekarang',
@@ -5138,7 +5146,8 @@ const messages: TranslationMap = {
   'memoryPage.background.outcome.skipped': 'Dilewati',
   'memoryPage.background.outcome.failed': 'Gagal',
   'memoryPage.settings.recallTitle': 'Memori di setiap giliran',
-  'memoryPage.settings.recallDescription': 'Sebelum setiap balasan, memori menambahkan hal relevan yang diketahuinya. Batas ini menentukan jumlahnya.',
+  'memoryPage.settings.recallDescription':
+    'Sebelum setiap balasan, memori menambahkan hal relevan yang diketahuinya. Batas ini menentukan jumlahnya.',
   'memoryPage.settings.recallEnabled': 'Tambahkan memori ke setiap giliran',
   'memoryPage.settings.budget': 'Batas ukuran',
   'memoryPage.settings.budgetHelp': 'Memori terbanyak yang ditambahkan pada satu giliran.',
@@ -5147,18 +5156,23 @@ const messages: TranslationMap = {
   'memoryPage.settings.brainLimit': 'Dokumen otak',
   'memoryPage.settings.historyLimit': 'Percakapan sebelumnya',
   'memoryPage.settings.teamLimit': 'Memori tim',
-  'memoryPage.settings.limitHelp': 'Jumlah item maksimum jenis ini per giliran. 0 berarti dikecualikan.',
+  'memoryPage.settings.limitHelp':
+    'Jumlah item maksimum jenis ini per giliran. 0 berarti dikecualikan.',
   'memoryPage.settings.buildBeliefsEvery': 'Buat keyakinan setiap',
-  'memoryPage.settings.buildBeliefsHelp': 'Menyaring pembelajaran menjadi keyakinan setelah sekian giliran. 0 untuk mematikan.',
+  'memoryPage.settings.buildBeliefsHelp':
+    'Menyaring pembelajaran menjadi keyakinan setelah sekian giliran. 0 untuk mematikan.',
   'memoryPage.settings.turns': 'giliran',
   'memoryPage.settings.preTurnTimeout': 'Menunggu memori',
-  'memoryPage.settings.preTurnTimeoutHelp': 'Berapa lama balasan menunggu memori sebelum lanjut tanpanya.',
+  'memoryPage.settings.preTurnTimeoutHelp':
+    'Berapa lama balasan menunggu memori sebelum lanjut tanpanya.',
   'memoryPage.settings.ms': 'ms',
   'memoryPage.settings.identityTitle': 'Tempat memori diarsipkan',
-  'memoryPage.settings.identityDescription': 'Akar yang dibagikan semua agen dan agen yang menjalankan aplikasi ini.',
+  'memoryPage.settings.identityDescription':
+    'Akar yang dibagikan semua agen dan agen yang menjalankan aplikasi ini.',
   'memoryPage.settings.root': 'Akar',
   'memoryPage.settings.agentId': 'Agen',
-  'memoryPage.settings.hostBound': 'Aplikasi yang menghosting OpenHuman menetapkan nilai ini, sehingga tidak dapat diubah di sini.',
+  'memoryPage.settings.hostBound':
+    'Aplikasi yang menghosting OpenHuman menetapkan nilai ini, sehingga tidak dapat diubah di sini.',
   'memoryPage.import.title': 'Memori sebelumnya ditemukan',
   'memoryPage.import.counts':
     '{documents} dokumen, {conversations} percakapan, dan {learnings} pembelajaran dari memori sebelumnya ada di perangkat ini.',

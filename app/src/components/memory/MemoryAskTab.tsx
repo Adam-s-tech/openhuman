@@ -123,107 +123,107 @@ export default function MemoryAskTab({ fetchModes }: MemoryAskTabProps) {
         <MemoryPackPreview />
       ) : (
         <>
-      <Card padded divided={false}>
-        <form className="flex flex-col gap-3" onSubmit={e => void submit(e)}>
-          <Label htmlFor="memory-ask-question" className="text-xs text-content-secondary">
-            {raw ? t('memoryPage.ask.queryLabel') : t('memoryPage.ask.questionLabel')}
-          </Label>
-          <TextArea
-            id="memory-ask-question"
-            data-testid="memory-ask-input"
-            rows={3}
-            value={question}
-            placeholder={t('memoryPage.ask.placeholder')}
-            onChange={e => setQuestion(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit();
-            }}
-          />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              {raw && fetchModes.length > 0 && (
-                <NativeSelect
-                  aria-label={t('memoryPage.ask.modeLabel')}
-                  data-testid="memory-ask-mode"
-                  value={mode}
-                  onChange={e => setMode(e.target.value as FetchMode)}>
-                  {fetchModes.map(m => (
-                    <option key={m} value={m}>
-                      {modeLabel(m)}
-                    </option>
-                  ))}
-                </NativeSelect>
+          <Card padded divided={false}>
+            <form className="flex flex-col gap-3" onSubmit={e => void submit(e)}>
+              <Label htmlFor="memory-ask-question" className="text-xs text-content-secondary">
+                {raw ? t('memoryPage.ask.queryLabel') : t('memoryPage.ask.questionLabel')}
+              </Label>
+              <TextArea
+                id="memory-ask-question"
+                data-testid="memory-ask-input"
+                rows={3}
+                value={question}
+                placeholder={t('memoryPage.ask.placeholder')}
+                onChange={e => setQuestion(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit();
+                }}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  {raw && fetchModes.length > 0 && (
+                    <NativeSelect
+                      aria-label={t('memoryPage.ask.modeLabel')}
+                      data-testid="memory-ask-mode"
+                      value={mode}
+                      onChange={e => setMode(e.target.value as FetchMode)}>
+                      {fetchModes.map(m => (
+                        <option key={m} value={m}>
+                          {modeLabel(m)}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  data-testid="memory-ask-submit"
+                  disabled={busy || question.trim().length === 0}>
+                  {raw ? t('memoryPage.ask.search') : t('memoryPage.ask.ask')}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          {error !== null && (
+            <Alert variant="destructive" data-testid="memory-ask-error">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {busy && <CenteredLoadingState label={t('memoryPage.ask.thinking')} />}
+
+          {!busy && !raw && answer && (
+            <Card title={t('memoryPage.ask.answerTitle')} data-testid="memory-ask-answer">
+              <div className="px-4 py-3">
+                <BubbleMarkdown content={answer.answer || t('memoryPage.ask.noAnswer')} />
+              </div>
+              {answer.citations.length > 0 && (
+                <div>
+                  <h4 className="px-4 pt-3 text-[10px] font-semibold uppercase tracking-wide text-content-faint">
+                    {t('memoryPage.ask.citations')}
+                  </h4>
+                  <ul className="divide-y divide-line-subtle" data-testid="memory-ask-citations">
+                    {answer.citations.map(c => (
+                      <MemoryHitRow
+                        key={c.id}
+                        id={c.id}
+                        kind={c.kind}
+                        text={c.snippet}
+                        meta={c.meta}
+                        score={c.score}
+                        data-testid={`memory-citation-${c.id}`}
+                      />
+                    ))}
+                  </ul>
+                </div>
               )}
-            </div>
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              data-testid="memory-ask-submit"
-              disabled={busy || question.trim().length === 0}>
-              {raw ? t('memoryPage.ask.search') : t('memoryPage.ask.ask')}
-            </Button>
-          </div>
-        </form>
-      </Card>
-
-      {error !== null && (
-        <Alert variant="destructive" data-testid="memory-ask-error">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {busy && <CenteredLoadingState label={t('memoryPage.ask.thinking')} />}
-
-      {!busy && !raw && answer && (
-        <Card title={t('memoryPage.ask.answerTitle')} data-testid="memory-ask-answer">
-          <div className="px-4 py-3">
-            <BubbleMarkdown content={answer.answer || t('memoryPage.ask.noAnswer')} />
-          </div>
-          {answer.citations.length > 0 && (
-            <div>
-              <h4 className="px-4 pt-3 text-[10px] font-semibold uppercase tracking-wide text-content-faint">
-                {t('memoryPage.ask.citations')}
-              </h4>
-              <ul className="divide-y divide-line-subtle" data-testid="memory-ask-citations">
-                {answer.citations.map(c => (
-                  <MemoryHitRow
-                    key={c.id}
-                    id={c.id}
-                    kind={c.kind}
-                    text={c.snippet}
-                    meta={c.meta}
-                    score={c.score}
-                    data-testid={`memory-citation-${c.id}`}
-                  />
-                ))}
-              </ul>
-            </div>
+            </Card>
           )}
-        </Card>
-      )}
 
-      {!busy && raw && hits && (
-        <Card title={t('memoryPage.ask.rawTitle')} data-testid="memory-ask-hits">
-          {hits.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-content-muted">{t('memoryPage.ask.noHits')}</p>
-          ) : (
-            <ul className="divide-y divide-line-subtle">
-              {hits.map(h => (
-                <MemoryHitRow
-                  key={h.id}
-                  id={h.id}
-                  kind={h.kind}
-                  text={h.text}
-                  meta={h.meta}
-                  score={h.score}
-                  showScore
-                />
-              ))}
-            </ul>
+          {!busy && raw && hits && (
+            <Card title={t('memoryPage.ask.rawTitle')} data-testid="memory-ask-hits">
+              {hits.length === 0 ? (
+                <p className="px-4 py-3 text-sm text-content-muted">{t('memoryPage.ask.noHits')}</p>
+              ) : (
+                <ul className="divide-y divide-line-subtle">
+                  {hits.map(h => (
+                    <MemoryHitRow
+                      key={h.id}
+                      id={h.id}
+                      kind={h.kind}
+                      text={h.text}
+                      meta={h.meta}
+                      score={h.score}
+                      showScore
+                    />
+                  ))}
+                </ul>
+              )}
+            </Card>
           )}
-        </Card>
-      )}
         </>
       )}
     </div>
