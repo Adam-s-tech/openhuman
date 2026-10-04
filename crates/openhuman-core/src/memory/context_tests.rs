@@ -55,7 +55,7 @@ async fn refresh_writes_context_md_and_state() {
     assert_eq!(view.markdown, on_disk);
     assert!(view.generated_at.is_some());
     assert!(view.tokens > 0);
-    assert!(state_path(&config.workspace_dir).exists());
+    assert!(state_path(&config.workspace_dir, &Namespace::ROOT).exists());
 }
 
 #[test]
