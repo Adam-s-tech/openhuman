@@ -13,7 +13,8 @@ contract lives in TinyMemory: `vendor/tinymemory/docs/specs/memory-v2.md`.
 | Recall | Ask a question, get an answer with citations (engine-implemented). |
 | Fetch | Raw keyword/vector/hybrid search with metadata filters. |
 | Store | Documents (synced sources), Conversations (auto, after turns), Learnings (explicit). |
-| context.md | Periodically compiled brief, injected as the first user message of a new session. |
+| context.md | Periodically compiled brief, one per memory node, injected as the first user message of a new session. |
+| Namespace | The memory node an item lives at. The root is shared by every agent; every other agent has its own node. |
 
 With no usable engine (signed out and no CortexDB key), memory is **off**:
 - the tools are not registered;
@@ -39,7 +40,18 @@ idle_secs = 120      # …or after the thread is idle this long
 enabled = true
 interval_mins = 360
 budget_tokens = 2000
+
+[memory]
+root_agents = ["orchestrator"]   # agents that read and write the shared root node
+
+[memory.agents.researcher]       # optional, per agent
+namespace = "project:q4"         # pin the agent to a node (default agent:<id>)
+inherit = true                   # also read the nodes above (default true)
+context = true                   # its own context.md (default [memory.context] enabled)
 ```
+
+A `[[memory.sources]]` entry may set `namespace` to store its documents at a
+node other than the root.
 
 Old `[subsystems.memory]` and v1 `[memory]` keys are ignored.
 
@@ -49,17 +61,46 @@ to TinyAgents as `tinyagents_session::threads`, keeping the same on-disk format.
 The host's thread code moves from `memory::conversations` to
 `threads::store`, which wraps it, so that `memory/` holds only v2.
 
+## Agent namespaces
+
+Memory is a tree of nodes (`tinymemory::Namespace`; see the TinyMemory spec's
+*Namespaces*). On CortexDB each node keeps learnings, documents and
+conversations as separate scopes:
+`app:tinymemory/<node segments>/app:{learnings,documents,conversations}`; the
+root node keeps the original `app:tinymemory/app:*` scopes, so everything
+stored before namespaces is root memory.
+
+- **Who acts.** `memory::scope` scopes a `MemoryIdentity` (the agent, the
+  agents that spawned it, its team) around every turn: the session host and
+  channel dispatch for top-level agents, the sub-agent runner for children
+  (nested automatically), the team runtime for members. It needs no config;
+  memory resolves it against its own.
+- **Which node.** `root_agents` (the main chat agent by default) use the root
+  (or their team's node); any other agent `agent:<id>`, nested under the
+  agent that spawned it (`agent:researcher/agent:scout`); a team member
+  `team:<team>/agent:<id>`; `[memory.agents.<id>] namespace` pins one.
+- **What it reads.** Its node and, unless `inherit = false`, the nodes above
+  it, never a sibling's. The `memory` tool overwrites any `reach` in the
+  model's filter and confines `forget` to the reach.
+- **What it writes.** `learn` stores at the agent's node, or with
+  `share: true` at the nearest shared node above it (its team's, else the
+  root). Conversations are stored at the answering agent's node; a batch never
+  mixes two agents. Backfill and import write the root.
+
 ## Agent tool: `memory`
 
 There is one tool. Its `action` is `recall` | `fetch` | `learn` | `forget`:
 - `recall { question, filter? }` returns `{answer, citations[]}`.
 - `fetch { query, mode?, filter?, limit? }` returns `{hits[]}`. `mode` is limited to the engine's `fetch_modes`.
-- `learn { text, kind?, confidence? }` returns `{id}`. The host fills `meta` with:
+- `learn { text, kind?, confidence?, share? }` returns `{id}`. The host fills `meta` with:
+  - `namespace` (the agent's node, or its shared node with `share: true`);
   - `workspace` (the agent's `action_dir`);
   - `thread_id` and `agent_id`;
   - `tool_call` (this call's name and id);
   - `source.kind = "agent"`.
-- `forget { ids }` returns `{forgotten}`.
+- `forget { ids }` returns `{forgotten}`, counting only items in the agent's reach.
+
+`recall` and `fetch` read only the agent's reach.
 
 ## Automatic ingestion
 
@@ -68,8 +109,9 @@ There is one tool. Its `action` is `recall` | `fetch` | `learn` | `forget`:
 
 ## context.md
 
-- The cron job `memory_context_refresh` runs every `interval_mins`, plus on demand. It writes `<workspace>/memory/context.md`.
-- On a **new** session the session host prepends it, wrapped in `<memory-context>…</memory-context>`, as the first user message, next to the workflows context.
+- Every memory node can have its own: the root's is `<workspace>/memory/context.md`, any other node's `<workspace>/memory/context/<kind>-<id>/…/context.md` (`context/agent-researcher/context.md`). Each is compiled from that node's reach.
+- The cron job `memory_context_refresh` runs every `interval_mins` and refreshes the root, every node with a document and every `[memory.agents.<id>]` agent. `memory_context_refresh { namespace? }` refreshes one node on demand.
+- On a **new** session the session host prepends the acting agent's document, wrapped in `<memory-context>…</memory-context>`, as the first user message, next to the workflows context. A node with no document yet gets its nearest ancestor's and has its own compiled in the background.
 - Resumed sessions keep their frozen transcript.
 
 ## RPC (`openhuman.memory_*`)
