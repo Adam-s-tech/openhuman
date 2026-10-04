@@ -1,4 +1,4 @@
-//! Request-scoped delivery of [`RepeatedToolFailureMiddleware`] nudges.
+//! Request-scoped delivery of `RepeatedToolFailureMiddleware` nudges.
 //!
 //! Split from `repeated_failure.rs` to stay under the Rust layout line limit.
 
@@ -11,9 +11,7 @@ use tinyagents_harness::error::Result as TaResult;
 use tinyagents_harness::middleware::{push_ephemeral_instruction, Middleware};
 use tinyinference_llm::model::ModelRequest;
 
-use super::repeated_failure::RepeatedToolFailureMiddleware;
-
-/// Appends queued [`RepeatedToolFailureMiddleware`] nudges to the next model
+/// Appends queued `RepeatedToolFailureMiddleware` nudges to the next model
 /// request, then forgets them. The request is built from a copy of the working
 /// transcript, so nothing it adds is ever committed.
 /// [`push_ephemeral_instruction`] places them: a tail system message, except on
