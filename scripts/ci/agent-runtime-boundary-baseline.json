@@ -421,29 +421,29 @@
   },
   {
     "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/session_host/builder/helpers.rs",
-    "line": 195,
+    "path": "crates/openhuman-core/src/agent/session_host/builder/factory.rs",
+    "line": 994,
     "text": "let root = crate::agent::turn_workspace::current()?;",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 266,
-    "text": "if self.auto_save && crate::agent::turn_origin::current_is_user_authored() {",
+    "line": 257,
+    "text": "crate::agent::turn_origin::current_is_user_authored().then(|| request.input.text());",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 791,
+    "line": 695,
     "text": "workspace_descriptor: crate::agent::harness::current_parent()",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 1261,
+    "line": 989,
     "text": "request_id: crate::agent::turn_origin::current_request_id(),",
     "occurrence": 1
   },
