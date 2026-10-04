@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use tinymemory_api::{ItemKind, MetaFilter};
 
-use crate::memory::conversations;
 use crate::memory::error::{INVALID_REQUEST, MEMORY_OFF};
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use crate::threads::store::CreateConversationThread;
@@ -71,7 +70,7 @@ fn messages_become_turns_like_the_chat_shows_them() {
         message("4", "user", "   ", "2026-09-01T10:03:00Z"),
         message("5", "user", "Bali in October", "not a time"),
     ];
-    let turns = turns_of("t", &messages);
+    let turns = turns_of(&messages);
     assert_eq!(turns.len(), 3);
     assert_eq!(turns[0].user, "");
     assert_eq!(turns[0].assistant, "Welcome!");
@@ -83,39 +82,34 @@ fn messages_become_turns_like_the_chat_shows_them() {
 }
 
 #[test]
-fn the_range_leaves_live_turns_and_stored_turns_alone() {
-    assert_eq!(pending_range(10, 0, 0), 0..10);
-    assert_eq!(pending_range(10, 3, 0), 0..7, "the 3 newest are live's");
-    assert_eq!(pending_range(10, 3, 4), 4..7);
-    assert_eq!(pending_range(10, 3, 9), 7..7, "nothing left");
-    assert_eq!(pending_range(2, 5, 0), 0..0, "live took more than exist");
+fn the_range_stops_where_live_logging_began() {
+    assert_eq!(pending_range(10, None, 0), 0..10);
+    assert_eq!(pending_range(10, Some(7), 0), 0..7, "turns 7.. are live's");
+    assert_eq!(pending_range(10, Some(7), 4), 4..7);
+    assert_eq!(pending_range(10, Some(7), 9), 7..7, "nothing left");
+    assert_eq!(pending_range(2, Some(5), 0), 0..2);
 }
 
 #[test]
-fn batches_cut_the_range_by_batch_turns() {
-    let turns = turns_of(
-        "t",
-        &(0..5)
-            .map(|i| {
-                message(
-                    &i.to_string(),
-                    "user",
-                    &format!("q{i}"),
-                    "2026-09-01T10:00:00Z",
-                )
-            })
-            .collect::<Vec<_>>(),
-    );
-    let cut = batches("t", &turns, 1..5, 3);
-    assert_eq!(cut.len(), 2);
-    assert_eq!((cut[0].first, cut[0].last()), (1, 3));
-    assert_eq!((cut[1].first, cut[1].last()), (4, 4));
-    assert!(batches("t", &turns, 2..2, 3).is_empty());
-    assert_eq!(
-        batches("t", &turns, 0..5, 0).len(),
-        5,
-        "zero means one per item"
-    );
+fn a_turn_is_one_item_per_message_at_the_agents_node() {
+    let config = Config::default();
+    let identity = MemoryIdentity::agent(MAIN_AGENT).resolve(&config);
+    let turn = PastTurn {
+        user: "q".into(),
+        assistant: "a".into(),
+        at: Utc::now(),
+    };
+    let items = turn_items(&identity, "t", 3, &turn);
+    assert_eq!(items.len(), 2);
+    let meta = items[1].meta();
+    assert_eq!(meta.turns.map(|range| range.first), Some(7));
+    assert_eq!(meta.namespace.to_string(), "agent:orchestrator");
+    assert!(meta.tags.iter().any(|tag| tag == BACKFILL_TAG));
+    let reply_only = PastTurn {
+        user: String::new(),
+        ..turn
+    };
+    assert_eq!(turn_items(&identity, "t", 0, &reply_only).len(), 1);
 }
 
 #[tokio::test]
@@ -133,10 +127,9 @@ async fn refuses_without_consent_and_with_memory_off() {
 }
 
 #[tokio::test]
-async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
+async fn stores_past_chats_once_and_skips_what_live_logging_took() {
     let tmp = tempfile::tempdir().unwrap();
-    let mut config = config_in(&tmp);
-    config.memory.conversations.batch_turns = 2;
+    let config = config_in(&tmp);
     let engine = bind_reference(&config);
     let workspace = config.workspace_dir.clone();
 
@@ -148,8 +141,6 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
             ("agent", "Values have one owner."),
             ("user", "And borrowing?"),
             ("agent", "References without ownership."),
-            ("user", "Thanks"),
-            ("agent", "Any time."),
         ],
     )
     .await;
@@ -157,33 +148,32 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
         &workspace,
         "live-thread",
         &[
-            ("user", "Before ingestion"),
+            ("user", "Before logging"),
             ("agent", "An old answer."),
-            ("user", "After ingestion"),
+            ("user", "After logging"),
             ("agent", "A live answer."),
         ],
     )
     .await;
-    // Live ingestion took live-thread's last turn.
-    conversations::record_turn(
+    // The lifecycle logged live-thread's second turn (user index 2).
+    let identity = MemoryIdentity::agent(MAIN_AGENT).resolve(&config);
+    crate::memory::lifecycle::hooks::pre_turn(
         &config,
-        conversations::buffer::CommittedTurn {
+        &identity,
+        crate::memory::lifecycle::hooks::PreTurnInput {
             thread_id: "live-thread".into(),
-            agent_id: None,
-            namespace: tinymemory_api::Namespace::ROOT,
-            workspace: None,
-            channel: None,
-            user: "After ingestion".into(),
-            assistant: "A live answer.".into(),
-            tool_calls: Vec::new(),
+            turn_index: 2,
+            user_text: "After logging".into(),
+            in_prompt_from: 0,
             at: Utc::now(),
+            resumed_after_compaction: false,
         },
     )
     .await;
 
     let before = status(&config).await.unwrap();
     assert_eq!(before.state.phase, ImportPhase::Idle);
-    assert_eq!((before.pending_threads, before.pending_turns), (2, 4));
+    assert_eq!((before.pending_threads, before.pending_turns), (2, 3));
 
     let started = start(&config, BackfillStartParams { consent: true })
         .await
@@ -191,11 +181,8 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
     assert_eq!(started.state.threads_total, 2);
     let done = wait_done(&config).await;
     assert_eq!(done.state.phase, ImportPhase::Done, "{:?}", done.state);
-    assert_eq!(done.state.turns_stored, 4);
-    assert_eq!(
-        done.state.items_stored, 3,
-        "old-thread in two batches, live-thread in one"
-    );
+    assert_eq!(done.state.turns_stored, 3);
+    assert_eq!(done.state.items_stored, 6);
     assert!(done.state.finished_at.is_some());
     assert_eq!((done.pending_threads, done.pending_turns), (0, 0));
 
@@ -205,15 +192,9 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
         ..MetaFilter::default()
     };
     let items = stored(&engine, filter.clone()).await;
-    assert_eq!(items.len(), 3);
-    let live: Vec<_> = items
-        .iter()
-        .filter(|hit| hit.meta.thread_id.as_deref() == Some("live-thread"))
-        .collect();
-    assert_eq!(live.len(), 1);
-    assert!(live[0].text.contains("Before ingestion"));
+    assert_eq!(items.len(), 6);
     assert!(
-        !live[0].text.contains("After ingestion"),
+        !items.iter().any(|hit| hit.text.contains("After logging")),
         "live's turn is not re-stored"
     );
 
@@ -223,5 +204,5 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
         .unwrap();
     let again = wait_done(&config).await;
     assert_eq!(again.state.items_stored, 0);
-    assert_eq!(stored(&engine, filter).await.len(), 3);
+    assert_eq!(stored(&engine, filter).await.len(), 6);
 }
