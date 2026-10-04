@@ -267,14 +267,11 @@ async fn forget_items_with_memory_off_is_not_an_error() {
 fn a_source_can_store_at_an_agent_node() {
     let mut config = Config::default();
     let mut params = add_params("link", "https://example.com/a");
-    params.namespace = Some("agent:researcher".into());
+    params.namespace = Some("team:acme".into());
     let added = apply_add(&mut config, &params).unwrap();
-    assert_eq!(added.namespace.as_deref(), Some("agent:researcher"));
-    assert_eq!(
-        namespace_of(&config, &added.id),
-        tinymemory_api::Namespace::agent("researcher")
-    );
-    assert!(namespace_of(&config, "unknown").is_root());
+    assert_eq!(added.namespace.as_deref(), Some("team:acme"));
+    assert_eq!(layout_of(&config, &added.id).root().to_string(), "team:acme");
+    assert!(layout_of(&config, "unknown").root().is_root());
 
     let mut bad = add_params("link", "https://example.com/b");
     bad.namespace = Some("nope".into());
@@ -285,5 +282,5 @@ fn a_source_can_store_at_an_agent_node() {
 
     let mut hand_edited = source("x", None);
     hand_edited.namespace = Some("not a node".into());
-    assert!(namespace_of_source(&hand_edited).is_root());
+    assert!(layout_of_source(&config, &hand_edited).root().is_root());
 }
