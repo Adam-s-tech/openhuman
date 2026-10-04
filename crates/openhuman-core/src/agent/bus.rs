@@ -295,7 +295,8 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
         .unwrap_or_default();
     let memory_agent = target_agent_id
         .clone()
-        .unwrap_or_else(|| crate::config::schema::memory::DEFAULT_ROOT_AGENTS[0].to_string());
+        .or_else(|| memory_config.memory.root_agents.first().cloned())
+        .unwrap_or_default();
     let outcome = turn_origin::with_origin(
         origin,
         crate::memory::scope::within_agent(&memory_config, &memory_agent, with_file_state_agent_id(
