@@ -163,7 +163,7 @@ async fn bad_requests_are_invalid_and_memory_off_is_reported() {
         items_get(
             &config,
             ItemsGetParams {
-                ids: vec!["x".into()]
+                ids: vec!["x".into()],
                 reach: None,
             }
         )
