@@ -147,7 +147,6 @@ export default function MemoryContextTab() {
       {nodes.length > 1 && (
         <Card
           title={t('memoryPage.context.node')}
-          description={t('memoryPage.context.nodeHint')}
           headerRight={
             <NativeSelect
               aria-label={t('memoryPage.context.node')}
@@ -160,8 +159,9 @@ export default function MemoryContextTab() {
                 </option>
               ))}
             </NativeSelect>
-          }
-        />
+          }>
+          <p className="px-4 py-3 text-xs text-content-muted">{t('memoryPage.context.nodeHint')}</p>
+        </Card>
       )}
 
       <Card
