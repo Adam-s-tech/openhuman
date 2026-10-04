@@ -547,7 +547,6 @@ impl OpenHumanTurnPrelude {
         original_user_message: &str,
         overrides: &super::types::TurnOverrides,
         run_context: &mut OpenHumanRunContext,
-        new_session: bool,
     ) -> String {
         let mut context = String::new();
 
@@ -1159,7 +1158,6 @@ impl OpenHumanSessionHost {
                                 &original_user_message,
                                 &overrides,
                                 &mut options.run_context.data,
-                                new_session,
                             ),
                             prelude.memory_pre_turn(
                                 view.history,
