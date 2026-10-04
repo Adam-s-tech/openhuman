@@ -22,7 +22,7 @@ fn parses_a_full_section() {
         r#"
 engine = "cortexdb"
 agent_id = "employee-7"
-root = "company:acme"
+root = "project:acme"
 
 [engines.cortexdb]
 endpoint = "https://cortex.example"
@@ -53,7 +53,7 @@ schedule_mins = 15
         Some("https://cortex.example")
     );
     assert_eq!(config.agent_id.as_deref(), Some("employee-7"));
-    assert_eq!(config.root.as_deref(), Some("company:acme"));
+    assert_eq!(config.root.as_deref(), Some("project:acme"));
     assert!(!config.conversations.enabled);
     assert_eq!(config.recall.budget_tokens, 500);
     assert_eq!(config.recall.team_limit, 0);
