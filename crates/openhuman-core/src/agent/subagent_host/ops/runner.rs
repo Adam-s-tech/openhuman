@@ -362,7 +362,7 @@ pub(crate) async fn run_subagent_direct(
             );
         }
         let run_result = Box::pin(with_spawn_depth(attempted_depth, async {
-            crate::memory::scope::within_agent_in(loaded_config.as_deref().ok(), &definition.id, with_file_state_agent_id(task_id.clone(), async {
+            crate::memory::scope::within_agent(&definition.id, with_file_state_agent_id(task_id.clone(), async {
                 with_current_sandbox_mode(definition.sandbox_mode, async {
                     Box::pin(run_typed_mode(
                         definition,

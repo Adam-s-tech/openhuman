@@ -288,19 +288,12 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
         channel_name,
         target_agent_id.as_deref().unwrap_or("root")
     );
-    // Memory acts as the target agent (the root's main agent when none is
-    // named) for the whole channel turn.
-    let memory_config = crate::config::rpc::load_config_with_timeout()
-        .await
-        .unwrap_or_default();
-    let memory_agent = target_agent_id
-        .clone()
-        .or_else(|| memory_config.memory.root_agents.first().cloned())
-        .unwrap_or_default();
+    // Memory acts as the target agent (the root when none is named) for
+    // the whole channel turn.
+    let memory_agent = target_agent_id.clone().unwrap_or_default();
     let outcome = turn_origin::with_origin(
         origin,
         crate::memory::scope::within_agent(
-            &memory_config,
             &memory_agent,
             with_file_state_agent_id(
                 file_state_id,

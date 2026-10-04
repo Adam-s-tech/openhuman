@@ -970,10 +970,7 @@ impl OpenHumanSessionHost {
                 }
             }
         }
-        let (agent_id, config) = (
-            self.agent_definition_id.clone(),
-            self.runtime_config.clone(),
-        );
+        let agent_id = self.agent_definition_id.clone();
         let turn = self
             .runtime_session
             .as_mut()
@@ -983,7 +980,7 @@ impl OpenHumanSessionHost {
                 options,
             );
         let outcome =
-            crate::memory::scope::within_agent_in(config.as_deref(), &agent_id, Box::pin(turn))
+            crate::memory::scope::within_agent(&agent_id, Box::pin(turn))
                 .await
                 .map_err(|error| anyhow::anyhow!(error.to_string()))?;
         Ok(outcome.output.unwrap_or_default())

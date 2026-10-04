@@ -222,7 +222,7 @@ async fn run_member_loop(
     // The member acts on memory as itself within the team: its node is
     // `team:<team>/agent:<agent>`, so members share the team's node and
     // never read each other's.
-    let identity = crate::memory::scope::MemoryIdentity::team_member(config, team_id, agent_id);
+    let identity = crate::memory::scope::MemoryIdentity::team_member(team_id, agent_id);
     let member_turn = with_root_parent(config, "agent_team_runtime", "team", "teamrun", async {
         drive_member(
             config,

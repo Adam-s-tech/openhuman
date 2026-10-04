@@ -318,7 +318,8 @@ pub fn injection_block(config: &Config) -> Option<String> {
         tracing::debug!("[memory:context] memory off; no context injected");
         return None;
     }
-    let own = &identity.namespace;
+    let own = &identity.namespace(config);
+    let inherit = identity.inherit(config);
     if !own.is_root() && !context_path_for(&config.workspace_dir, own).is_file() {
         compile_in_background(config, own);
     }
@@ -328,7 +329,7 @@ pub fn injection_block(config: &Config) -> Option<String> {
             break String::new();
         };
         let markdown = read_markdown(&config.workspace_dir, &current);
-        if !markdown.trim().is_empty() || !identity.inherit {
+        if !markdown.trim().is_empty() || !inherit {
             break markdown;
         }
         node = current.parent();
