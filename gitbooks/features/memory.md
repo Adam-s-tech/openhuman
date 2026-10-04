@@ -61,9 +61,20 @@ Chats from before automatic saving was turned on are not in memory until you syn
 
 ## Exploring what memory holds
 
-The **Explorer** tab shows everything your memory holds, grouped by one property at a time: type, source, workspace, folder, file, language, repository, link, thread, agent, tool or tag. Each value shows how many items carry it. Click one to narrow to those items, then group again by another property; the breadcrumb at the top takes you back up. The items at each step are listed below, and **Open** shows one in full with all its details and a **Forget** button.
+The **Explorer** tab shows everything your memory holds, grouped by one property at a time: type, memory node, source, workspace, folder, file, language, repository, link, thread, agent, tool or tag. Each value shows how many items carry it. Click one to narrow to those items, then group again by another property; the breadcrumb at the top takes you back up. The items at each step are listed below, and **Open** shows one in full with all its details and a **Forget** button.
 
 On a very large memory the counts may cover only the items scanned so far; the tab says so when that happens.
+
+## Each agent's own memory
+
+Memory is shared where it should be and private where it should be:
+
+- **Shared (root).** What the main assistant learns, your synced documents, and your imported and past conversations. Every agent can read it.
+- **One node per agent.** Every other agent (a specialist, a team member, an agent you run through OpenHuman as a library) keeps its own learnings, documents and conversations in its own node. A sub-agent's node sits under the agent that started it, and a team member's under its team, so teammates share the team's node.
+
+An agent reads its own memory and everything shared above it, never another agent's. When an agent learns something everyone should know, it stores it as shared (`learn` with `share: true`). Each agent also gets its own `context.md`, built from what it can read.
+
+In `config.toml`, `[memory] root_agents` lists the agents that use the shared node (the main assistant by default), and `[memory.agents.<id>]` can pin an agent to a particular node (`namespace = "project:q4"`), stop it reading shared memory (`inherit = false`) or switch its `context.md` off (`context = false`). A document source can be stored at an agent's node with its `namespace`. In the **Explorer**, group by **Memory node** to see what each agent holds.
 
 ## The agent's memory tool
 
@@ -71,7 +82,7 @@ The agent has one tool, `memory`, with four actions: `recall`, `fetch`, `learn` 
 
 ## context.md
 
-Every six hours (and on demand from the **Context** tab) OpenHuman asks the engine for a short brief about you: who you are, active work, preferences and standing instructions, recent important events, plus your learnings. It is saved as `<workspace>/memory/context.md`, trimmed to a token budget (default 2000), and placed at the start of **new** chats only. A chat you resume keeps the prompt it started with, so it does not see a newer brief. Interval, budget and an on/off switch are on the **Context** tab.
+Every six hours (and on demand from the **Context** tab) OpenHuman asks the engine for a short brief about you: who you are, active work, preferences and standing instructions, recent important events, plus your learnings. It is saved as `<workspace>/memory/context.md`, trimmed to a token budget (default 2000), and placed at the start of **new** chats only. Every other agent gets its own brief from its own memory plus what is shared with it (`<workspace>/memory/context/agent-<id>/context.md`); pick the agent's memory node on the **Context** tab to read or regenerate it. A chat you resume keeps the prompt it started with, so it does not see a newer brief. Interval, budget and an on/off switch are on the **Context** tab.
 
 ## Importing your previous memory
 
