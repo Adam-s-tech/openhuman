@@ -41,7 +41,7 @@ pub fn view(source: &MemorySourceConfig, state: Option<&state::SourceState>) -> 
         status: state.status,
         error: state.error,
         items: state.items,
-        namespace: namespace_of_source(source).to_string(),
+        namespace: source.namespace.clone().unwrap_or_default(),
     }
 }
 
@@ -204,30 +204,36 @@ pub fn is_due(
     }
 }
 
-/// The memory node `source` stores at: its configured `namespace`, else the
-/// root. An invalid one (hand-edited config) is logged and stored at the
-/// root.
+/// The layout source `source` files into: its own `namespace` (a layout
+/// root such as `team:acme`) when set, else the configured root.
 #[must_use]
-pub fn namespace_of_source(source: &MemorySourceConfig) -> tinymemory_api::Namespace {
-    let Some(raw) = source.namespace.as_deref() else {
-        return tinymemory_api::Namespace::ROOT;
+pub fn layout_of_source(config: &Config, source: &MemorySourceConfig) -> tinymemory_tools::MemoryLayout {
+    let default = || crate::memory::scope::MemoryIdentity::root().resolve(config).layout;
+    let Some(raw) = source.namespace.as_deref().filter(|raw| !raw.trim().is_empty()) else {
+        return default();
     };
-    raw.parse().unwrap_or_else(|error| {
-        tracing::warn!(id = %source.id, %error, "[memory:sources] invalid namespace; storing at the root");
-        tinymemory_api::Namespace::ROOT
-    })
+    raw.parse::<tinymemory_api::Namespace>()
+        .map_err(|error| error.to_string())
+        .and_then(|root| tinymemory_tools::MemoryLayout::new(root).map_err(|error| error.to_string()))
+        .unwrap_or_else(|error| {
+            tracing::warn!(id = %source.id, %error, "[memory:sources] invalid root; using the configured one");
+            default()
+        })
 }
 
-/// The memory node the configured source `source_id` stores at; the root
-/// for an unknown id.
+/// The layout the configured source `source_id` files into; the configured
+/// root for an unknown id.
 #[must_use]
-pub fn namespace_of(config: &Config, source_id: &str) -> tinymemory_api::Namespace {
+pub fn layout_of(config: &Config, source_id: &str) -> tinymemory_tools::MemoryLayout {
     config
         .memory
         .sources
         .iter()
         .find(|source| source.id == source_id)
-        .map_or(tinymemory_api::Namespace::ROOT, namespace_of_source)
+        .map_or_else(
+            || crate::memory::scope::MemoryIdentity::root().resolve(config).layout,
+            |source| layout_of_source(config, source),
+        )
 }
 
 #[cfg(test)]

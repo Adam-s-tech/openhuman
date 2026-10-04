@@ -67,21 +67,29 @@ pub fn record_item(
     })
 }
 
-/// Stores every non-empty record at `namespace`. Returns how many were
-/// stored.
+/// Files every non-empty record into `layout`'s brain, under the toolkit's
+/// brain source. Returns how many were stored.
 pub async fn store_records(
+    config: &Config,
     bound: &BoundEngine,
     toolkit: &str,
     connection_id: &str,
     source_id: &str,
-    namespace: &tinymemory_api::Namespace,
+    layout: &tinymemory_tools::MemoryLayout,
     records: &[ConnectorRecord],
 ) -> MemoryResult<u64> {
     let items: Vec<StoreItem> = records
         .iter()
         .filter_map(|record| record_item(toolkit, connection_id, source_id, record))
         .collect();
-    super::sync::store_all(bound, items, source_id, namespace).await
+    super::sync::store_all(
+        config,
+        bound,
+        items,
+        (crate::config::schema::MemorySourceKind::Composio, toolkit, source_id),
+        layout,
+    )
+    .await
 }
 
 /// Syncs every active connection of the source's toolkit.

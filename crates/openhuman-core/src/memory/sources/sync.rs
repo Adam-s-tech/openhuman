@@ -94,27 +94,36 @@ pub async fn sync_one(config: &Config, source: &MemorySourceConfig) -> MemoryRes
         );
     }
     store_all(
+        config,
         &bound,
         collected.items,
-        &source.id,
-        &super::namespace_of_source(source),
+        (source.kind, &source.target, &source.id),
+        &super::layout_of_source(config, source),
     )
     .await
 }
 
-/// Stores `items` at `namespace`, the source's memory node.
-pub(super) async fn store_all(
+/// Files `items` into `layout`'s brain, each under the brain source it
+/// belongs to (`memory::brain::brain_source`), and queues one belief build
+/// per source it touched. Returns how many were stored.
+pub(crate) async fn store_all(
+    config: &Config,
     bound: &BoundEngine,
     items: Vec<tinymemory_api::StoreItem>,
-    source_id: &str,
-    namespace: &tinymemory_api::Namespace,
+    (kind, target, source_id): (crate::config::schema::MemorySourceKind, &str, &str),
+    layout: &tinymemory_tools::MemoryLayout,
 ) -> MemoryResult<u64> {
     let mut stored = 0u64;
     let mut last_error = None;
-    for mut item in items {
-        item.meta_mut().namespace = namespace.clone();
+    let mut touched = std::collections::BTreeSet::new();
+    for item in items {
+        let brain_source = crate::memory::brain::brain_source(kind, target, &item);
+        let item = crate::memory::brain::file_into(layout, &brain_source, item)?;
         match store_on(bound, item).await {
-            Ok(_) => stored += 1,
+            Ok(_) => {
+                stored += 1;
+                touched.insert(brain_source);
+            }
             Err(error @ (MemoryError::Unauthorized(_) | MemoryError::Off(_))) => return Err(error),
             Err(error) => {
                 tracing::debug!(id = %source_id, code = error.code(), "[memory:sources] item store failed");
@@ -122,6 +131,15 @@ pub(super) async fn store_all(
             }
         }
     }
+    let jobs = touched
+        .iter()
+        .filter_map(|source| layout.brain(source).ok())
+        .map(|node| tinymemory_tools::BackgroundJob::BuildBeliefs {
+            request: tinymemory_api::ConsolidateRequest::new(tinymemory_api::Reach::exact(node))
+                .kinds([tinymemory_api::ItemKind::Document]),
+        })
+        .collect();
+    crate::memory::lifecycle::jobs::enqueue(config, layout.root(), jobs).await;
     match (stored, last_error) {
         (0, Some(error)) => Err(error),
         _ => Ok(stored),
