@@ -40,7 +40,7 @@ pub(super) fn refresh_prefix(
     if messages == prefix.messages() {
         None
     } else {
-        Some(PrefixSnapshot::new(messages))
+        Some(PrefixSnapshot::new(messages).refreshing())
     }
 }
 
