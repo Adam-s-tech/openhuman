@@ -100,3 +100,11 @@ async fn within_agent_scopes_a_child_in_the_same_team() {
     let alone = within_agent("solo", async { current().unwrap() }).await;
     assert_eq!(alone, MemoryIdentity::agent("solo"));
 }
+
+#[test]
+fn validate_root_accepts_nodes_and_refuses_junk() {
+    assert!(validate_root("team:acme").is_ok());
+    assert!(validate_root("project:q4/team:ops").is_ok());
+    assert!(validate_root("not a namespace").is_err());
+    assert!(validate_root("company:acme").is_err());
+}

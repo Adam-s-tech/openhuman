@@ -149,6 +149,17 @@ fn team_root(team: &str) -> Namespace {
         .unwrap_or(Namespace::ROOT)
 }
 
+/// Checks that `root` names a usable layout root (`team:acme`,
+/// `project:q4/team:ops`), as a host binding is set.
+///
+/// # Errors
+///
+/// Why it is not one.
+pub fn validate_root(root: &str) -> Result<(), String> {
+    let root: Namespace = root.trim().parse().map_err(|error: tinymemory_api::Error| error.to_string())?;
+    MemoryLayout::new(root).map(|_| ()).map_err(|error| error.to_string())
+}
+
 /// A configured root; an invalid one is logged and ignored.
 fn parse_root(raw: Option<&str>) -> Option<Namespace> {
     let raw = raw?.trim();
