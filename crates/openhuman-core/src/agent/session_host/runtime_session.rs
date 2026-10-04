@@ -5,10 +5,10 @@
 //! prefix reconciliation, tool snapshots, resume and persistence remain inside
 //! the runtime session.
 
-mod memory_ingest;
-mod permanent;
 #[path = "runtime_session_attachment_input.rs"]
 mod attachment_input;
+mod memory_ingest;
+mod permanent;
 #[path = "runtime_session_turn.rs"]
 mod turn;
 

@@ -184,10 +184,8 @@ impl Tool for OriginObservingTool {
 async fn canonical_adapter_scopes_tool_execution_to_the_run_origin() {
     use tinyagents_harness::context::RunConfig;
 
-    let context = crate::core::runtime::CoreContext::for_test(
-        crate::core::runtime::DomainSet::full(),
-        None,
-    );
+    let context =
+        crate::core::runtime::CoreContext::for_test(crate::core::runtime::DomainSet::full(), None);
     let observed = Arc::new(AtomicBool::new(false));
     let tools: Vec<Arc<Vec<Box<dyn Tool>>>> = vec![Arc::new(vec![Box::new(OriginObservingTool(
         observed.clone(),
