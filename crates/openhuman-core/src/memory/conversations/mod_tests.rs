@@ -7,6 +7,7 @@ fn turn(thread: &str, text: &str, at: DateTime<Utc>) -> CommittedTurn {
     CommittedTurn {
         thread_id: thread.to_string(),
         agent_id: Some("orchestrator".into()),
+        namespace: tinymemory::Namespace::ROOT,
         workspace: Some("/work".into()),
         channel: Some("web".into()),
         user: text.to_string(),
