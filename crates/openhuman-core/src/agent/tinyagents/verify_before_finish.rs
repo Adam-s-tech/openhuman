@@ -70,7 +70,7 @@ pub(super) fn install<C: Send + Sync + 'static>(
     harness: &mut AgentHarness<(), C>,
     is_subagent: bool,
     agent_definition_id: Option<&str>,
-    wrap_up: Option<&Arc<FinalCallWrapUpMiddleware>>,
+    wrap_up: &Option<Arc<FinalCallWrapUpMiddleware>>,
 ) {
     if !applies(is_subagent, agent_definition_id) {
         tracing::debug!(
@@ -85,7 +85,7 @@ pub(super) fn install<C: Send + Sync + 'static>(
     if let Some(ms) = super::agent_turn_wall_clock_ms() {
         middleware = middleware.with_wall_clock_limit(Duration::from_millis(ms));
     }
-    if let Some(wrap_up) = wrap_up {
+    if let Some(wrap_up) = wrap_up.as_ref() {
         middleware = middleware.with_wrap_up(Arc::clone(wrap_up));
     }
     tracing::debug!(

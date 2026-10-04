@@ -85,10 +85,10 @@ async fn drive_with(
     if let Some(mw) = &wrap_up_mw {
         harness.push_middleware(mw.clone());
     }
-    let linked = matches!(wrap_up, WrapUp::Linked)
-        .then(|| wrap_up_mw.as_ref())
-        .flatten();
-    install(&mut harness, subagent, agent, linked);
+    let linked = wrap_up_mw
+        .clone()
+        .filter(|_| matches!(wrap_up, WrapUp::Linked));
+    install(&mut harness, subagent, agent, &linked);
     let run = harness
         .invoke_default(&(), vec![Message::user("do the task")])
         .await
