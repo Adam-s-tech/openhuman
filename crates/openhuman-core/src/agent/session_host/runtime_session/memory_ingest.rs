@@ -198,7 +198,7 @@ fn committed_tool_calls(history: &[Message]) -> Vec<ToolCallSummary> {
     let result_of = |id: &str| {
         exchange.iter().find_map(|message| match message {
             Message::Tool(tool) if !id.is_empty() && tool.tool_call_id == id => {
-                Some(tool.content.text())
+                Some(message.text())
             }
             _ => None,
         })
