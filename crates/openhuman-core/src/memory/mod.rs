@@ -9,6 +9,7 @@
 //! | [`sources`] | The `[[memory.sources]]` registry and sync (folder, file, link, github, rss, composio) |
 //! | [`context`] | `context.md`: compile, read, and the new-session injection block |
 //! | [`import`] | Consent-gated, resumable import of a v1 store |
+//! | [`scope`] | Agent namespaces: the acting agent's memory node and reach |
 //! | [`tools`] | The single `memory` agent tool |
 //! | [`bus`] | Ingest + cron subscribers and the idle flusher |
 //! | [`schemas`] | The `openhuman.memory_*` controllers |
@@ -25,6 +26,7 @@ pub mod explore;
 pub mod import;
 pub mod ops;
 pub mod schemas;
+pub mod scope;
 pub mod sources;
 pub mod status;
 pub mod tools;
