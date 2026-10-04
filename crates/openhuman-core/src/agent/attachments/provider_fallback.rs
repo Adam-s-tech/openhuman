@@ -121,7 +121,9 @@ impl AttachmentModel {
                                                 }
                                                 Err(error) => {
                                                     cacheable = false;
-                                                    text.push_str(&format!("\nPage {page} readout unavailable: {error}"));
+                                                    text.push_str(&format!(
+                                                        "\nPage {page} readout unavailable: {error}"
+                                                    ));
                                                 }
                                             }
                                         }

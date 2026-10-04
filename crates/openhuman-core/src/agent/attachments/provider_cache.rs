@@ -1,5 +1,6 @@
 //! Bounded plain-text derivatives beside durable originals. Originals and
 //! transcript references remain unchanged; cache misses never reject uploads.
+use super::AttachmentAccessScope;
 use super::*;
 use sha2::{Digest, Sha256};
 const MAX_CACHE_BYTES: u64 = 1024 * 1024;
@@ -51,9 +52,15 @@ impl AttachmentModel {
         hash.update(bytes);
         format!("{:x}", hash.finalize())
     }
-    async fn cache_path(&self, path: &str) -> Option<std::path::PathBuf> {
-        let original = super::super::resolve_path(&self.config, path).await.ok()?;
-        let root = tokio::fs::canonicalize(super::super::action_root(&self.config))
+    async fn cache_path(
+        &self,
+        path: &str,
+        scope: &AttachmentAccessScope,
+    ) -> Option<std::path::PathBuf> {
+        let original = super::super::resolve_path(&self.config, path, scope)
+            .await
+            .ok()?;
+        let root = tokio::fs::canonicalize(super::super::action_root(&self.config, scope))
             .await
             .ok()?;
         if !original.starts_with(root.join("uploads")) {
@@ -73,8 +80,13 @@ impl AttachmentModel {
         }
         Some(cache)
     }
-    pub(super) async fn cached_fallback(&self, path: &str, key: &str) -> Option<String> {
-        let cache = self.cache_path(path).await?;
+    pub(super) async fn cached_fallback(
+        &self,
+        path: &str,
+        key: &str,
+        scope: &AttachmentAccessScope,
+    ) -> Option<String> {
+        let cache = self.cache_path(path, scope).await?;
         let parent = tokio::fs::symlink_metadata(cache.parent()?).await.ok()?;
         if !parent.is_dir() || parent.file_type().is_symlink() {
             return None;
@@ -100,15 +112,21 @@ impl AttachmentModel {
         let (stored_key, text) = content.split_once('\n')?;
         (stored_key == key).then(|| text.to_owned())
     }
-    pub(super) async fn save_fallback(&self, path: &str, key: &str, text: &str) {
+    pub(super) async fn save_fallback(
+        &self,
+        path: &str,
+        key: &str,
+        text: &str,
+        scope: &AttachmentAccessScope,
+    ) {
         if (text.len() + key.len() + 1) as u64 > MAX_CACHE_BYTES {
             return;
         }
-        let Some(cache) = self.cache_path(path).await else {
+        let Some(cache) = self.cache_path(path, scope).await else {
             return;
         };
         let parent = cache.parent().expect("derivative parent");
-        let root = super::super::action_root(&self.config);
+        let root = super::super::action_root(&self.config, scope);
         let policy = crate::security::SecurityPolicy::from_config(
             &self.config.autonomy,
             &self.config.workspace_dir,

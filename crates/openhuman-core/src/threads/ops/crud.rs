@@ -151,15 +151,17 @@ pub async fn transcript_search(
 pub async fn message_append(
     request: AppendConversationMessageRequest,
 ) -> Result<Outcome<ApiEnvelope<ConversationMessageRecord>>, ThreadsError> {
+    let origin = crate::core::runtime::CoreContext::current_turn_origin();
     let config = crate::config::Config::load_or_init()
         .await
         .map_err(|error| ThreadsError::Message(format!("load config: {error}")))?;
-    message_append_with_config(request, &config).await
+    message_append_with_config(request, &config, origin.as_ref()).await
 }
 
 async fn message_append_with_config(
     mut request: AppendConversationMessageRequest,
     config: &crate::config::Config,
+    origin: Option<&crate::agent::turn_origin::AgentTurnOrigin>,
 ) -> Result<Outcome<ApiEnvelope<ConversationMessageRecord>>, ThreadsError> {
     if request.message.sender == "user" {
         let raw_upload = request.message.content.contains("[IMAGE:")
@@ -184,7 +186,7 @@ async fn message_append_with_config(
                 || durable_files.len() - image_count + raw_files.len() > max_files
                 || (image_count > 0 && config.multimodal.max_images == 0)
                 || matches!(
-                    crate::agent::turn_origin::current(),
+                    origin,
                     Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
                 )
             {
@@ -193,7 +195,14 @@ async fn message_append_with_config(
                 ));
             }
             for file in &durable_files {
-                let path = crate::agent::attachments::resolve_path(config, &file.path)
+                let scope = crate::agent::attachments::AttachmentAccessScope {
+                    external_channel: matches!(
+                        origin,
+                        Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
+                    ),
+                    workspace: Some(config.action_dir.clone()),
+                };
+                let path = crate::agent::attachments::resolve_path(config, &file.path, &scope)
                     .await
                     .map_err(|error| {
                         ThreadsError::Message(format!("validate user attachment: {error}"))
@@ -240,6 +249,7 @@ async fn message_append_with_config(
             Some(config),
             None,
             Some(&request.thread_id),
+            origin,
         )
         .await
         .map_err(|error| ThreadsError::Message(format!("stage user attachments: {error}")))?;

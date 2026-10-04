@@ -62,6 +62,7 @@ async fn channel_turn_runs_through_the_graph() {
         MultimodalConfig::default(),
         MultimodalFileConfig::default(),
         None,
+        None,
     )
     .await
     .expect("channel graph turn runs");
@@ -121,6 +122,7 @@ async fn channel_turn_pauses_on_ask_user_clarification() {
         10,
         MultimodalConfig::default(),
         MultimodalFileConfig::default(),
+        None,
         None,
     )
     .await

@@ -5,11 +5,13 @@ use super::*;
 pub(crate) async fn migrate_path(
     config: &Config,
     reference: &str,
+    scope: &AttachmentAccessScope,
 ) -> anyhow::Result<Option<String>> {
     migrate_from(
         config,
         reference,
         &crate::agent::multimodal::attachments_dir(),
+        scope,
     )
     .await
 }
@@ -18,6 +20,7 @@ pub(super) async fn migrate_from(
     config: &Config,
     reference: &str,
     stash: &Path,
+    scope: &AttachmentAccessScope,
 ) -> anyhow::Result<Option<String>> {
     let source = Path::new(reference);
     // Rehydration emits direct absolute children from the host's stash index.
@@ -28,10 +31,7 @@ pub(super) async fn migrate_from(
     if config.multimodal_files.max_files == 0 || config.multimodal.max_images == 0 {
         anyhow::bail!("legacy attachments are disabled");
     }
-    if matches!(
-        crate::agent::turn_origin::current(),
-        Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
-    ) {
+    if scope.external_channel {
         anyhow::bail!("legacy attachment reads are disabled for external channel input");
     }
     let stem = source
@@ -88,7 +88,9 @@ pub(super) async fn migrate_from(
         .file_name()
         .and_then(|s| s.to_str())
         .unwrap_or("image");
-    Ok(Some(store_original(config, name, mime, &bytes).await?))
+    Ok(Some(
+        store_original(config, name, mime, &bytes, scope).await?,
+    ))
 }
 
 async fn store_original(
@@ -96,6 +98,7 @@ async fn store_original(
     name: &str,
     mime: &str,
     bytes: &[u8],
+    scope: &AttachmentAccessScope,
 ) -> anyhow::Result<String> {
     use sha2::{Digest, Sha256};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -107,7 +110,7 @@ async fn store_original(
         .join("legacy-sidecars")
         .join(format!("{:x}", hash.finalize()))
         .join(filename(name));
-    let root = action_root(config);
+    let root = action_root(config, scope);
     policy(config, &root)
         .validate_parent_path(&root.join(&relative).to_string_lossy())
         .await
@@ -162,7 +165,7 @@ async fn store_original(
             {
                 anyhow::bail!("legacy original is not the expected regular file");
             }
-            let checked = resolve_path(config, &path.to_string_lossy()).await?;
+            let checked = resolve_path(config, &path.to_string_lossy(), scope).await?;
             let file = tokio::fs::File::open(checked).await?;
             let mut existing = Vec::new();
             file.take((bytes.len() + 1) as u64)

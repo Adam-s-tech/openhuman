@@ -1,4 +1,5 @@
 //! Ephemeral provider request preparation for durable workspace attachments.
+use super::AttachmentAccessScope;
 use crate::config::Config;
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -106,16 +107,14 @@ impl AttachmentModel {
         &self,
         path: &str,
         modality: InputModality,
+        scope: &AttachmentAccessScope,
     ) -> tinyinference_llm::Result<Vec<u8>> {
-        if matches!(
-            crate::agent::turn_origin::current(),
-            Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
-        ) {
+        if scope.external_channel {
             return Err(tinyinference_llm::Error::Model(
                 "local attachment reads are disabled for external channel input".into(),
             ));
         }
-        let path = super::resolve_path(&self.config, path)
+        let path = super::resolve_path(&self.config, path, scope)
             .await
             .map_err(|e| tinyinference_llm::Error::Model(e.to_string()))?;
         let (_, file_mb, _) = self.config.multimodal_files.effective_limits();
@@ -155,6 +154,7 @@ impl AttachmentModel {
         Ok(bytes)
     }
     async fn prepare(&self, mut request: ModelRequest) -> tinyinference_llm::Result<ModelRequest> {
+        let scope = super::take_request_scope(&mut request.metadata);
         if let Some(Message::User(user)) = request
             .messages
             .iter()
@@ -194,7 +194,7 @@ impl AttachmentModel {
             let mut out = Vec::new();
             for block in std::mem::take(&mut user.content) {
                 let Some((modality, path, mut mime, bytes, recovered)) =
-                    self.resolve_block(&block).await?
+                    self.resolve_block(&block, &scope).await?
                 else {
                     out.push(block);
                     continue;
@@ -256,7 +256,7 @@ impl AttachmentModel {
                         .cloned();
                     let cached = match cached {
                         Some(text) => Some(text),
-                        None => self.cached_fallback(&path, &key).await,
+                        None => self.cached_fallback(&path, &key, &scope).await,
                     };
                     let text = match cached {
                         Some(text) => text,
@@ -264,7 +264,7 @@ impl AttachmentModel {
                             let (text, cacheable) =
                                 self.fallback(modality, &path, &mime, &bytes).await?;
                             if cacheable {
-                                self.save_fallback(&path, &key, &text).await;
+                                self.save_fallback(&path, &key, &text, &scope).await;
                             }
                             let mut cache = self.fallback_cache.lock().expect("fallback cache");
                             if cache.len() < 16 {

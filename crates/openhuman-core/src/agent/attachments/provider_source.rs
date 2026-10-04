@@ -1,4 +1,5 @@
 //! Resolve every admitted media source on a disposable provider request.
+use super::AttachmentAccessScope;
 use super::*;
 use sha2::{Digest, Sha256};
 use tinyagents_harness::multimodal::{
@@ -9,6 +10,7 @@ impl AttachmentModel {
     pub(super) async fn resolve_block(
         &self,
         block: &ContentBlock,
+        scope: &AttachmentAccessScope,
     ) -> tinyinference_llm::Result<Option<(InputModality, String, String, Vec<u8>, bool)>> {
         let (modality, source, mime, is_local) = match block {
             ContentBlock::Image(image) => (
@@ -29,10 +31,7 @@ impl AttachmentModel {
                 "attachments are disabled for this origin".into(),
             ));
         }
-        if matches!(
-            crate::agent::turn_origin::current(),
-            Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
-        ) {
+        if scope.external_channel {
             return Err(tinyinference_llm::Error::Model(
                 "attachment resolution is disabled for external channel input".into(),
             ));
@@ -41,12 +40,12 @@ impl AttachmentModel {
             // Old transcripts can point into the private host image stash.
             // Publish only its validated managed originals into the acting
             // workspace, and retain that stable path for metadata and caches.
-            let migrated = super::super::legacy::migrate_path(&self.config, &source)
+            let migrated = super::super::legacy::migrate_path(&self.config, &source, scope)
                 .await
                 .map_err(|e| tinyinference_llm::Error::Model(e.to_string()))?;
             let recovered = migrated.is_some();
             let source = migrated.unwrap_or(source);
-            let bytes = self.read(&source, modality).await?;
+            let bytes = self.read(&source, modality, scope).await?;
             return Ok(Some((
                 modality,
                 source,
@@ -112,7 +111,7 @@ impl AttachmentModel {
             resolved.mime
         };
         let path = self
-            .materialize_legacy(&resolved.name, &mime, &resolved.bytes, modality)
+            .materialize_legacy(&resolved.name, &mime, &resolved.bytes, modality, scope)
             .await?;
         Ok(Some((modality, path, mime, resolved.bytes, true)))
     }
@@ -158,6 +157,7 @@ impl AttachmentModel {
         mime: &str,
         bytes: &[u8],
         modality: InputModality,
+        scope: &AttachmentAccessScope,
     ) -> tinyinference_llm::Result<String> {
         let mut hash = Sha256::new();
         hash.update((mime.len() as u64).to_le_bytes());
@@ -168,7 +168,7 @@ impl AttachmentModel {
             .join("legacy-media")
             .join(id)
             .join(super::super::filename(name));
-        let root = super::super::action_root(&self.config);
+        let root = super::super::action_root(&self.config, scope);
         let preliminary = crate::security::SecurityPolicy::from_config(
             &self.config.autonomy,
             &self.config.workspace_dir,
@@ -236,7 +236,9 @@ impl AttachmentModel {
         match linked {
             Ok(()) => (),
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                let saved = self.read(&relative.to_string_lossy(), modality).await?;
+                let saved = self
+                    .read(&relative.to_string_lossy(), modality, scope)
+                    .await?;
                 if saved != bytes {
                     return Err(tinyinference_llm::Error::Model(
                         "legacy upload original has changed".into(),
@@ -246,7 +248,7 @@ impl AttachmentModel {
             Err(_) => {
                 // Some user filesystems cannot hard-link. Preserve bytes using
                 // the normal collision-free upload store rather than overwrite.
-                return super::super::save(&self.config, "legacy-media", name, mime, bytes)
+                return super::super::save(&self.config, "legacy-media", name, mime, bytes, scope)
                     .await
                     .map(|a| a.path)
                     .map_err(|e| tinyinference_llm::Error::Model(e.to_string()));

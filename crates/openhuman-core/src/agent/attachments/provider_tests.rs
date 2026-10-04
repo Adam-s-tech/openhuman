@@ -142,7 +142,7 @@ async fn too_many_typed_images_reject_before_read_or_inference() {
 
 #[tokio::test]
 async fn external_channel_cannot_rehydrate_a_local_image() {
-    use crate::agent::turn_origin::{with_origin, AgentTurnOrigin};
+    use crate::agent::turn_origin::AgentTurnOrigin;
     let probe = Arc::new(Probe::default());
     let wrapper = wrap(
         probe.clone(),
@@ -150,7 +150,7 @@ async fn external_channel_cannot_rehydrate_a_local_image() {
         "gpt-4o",
         "openai",
     );
-    let request = ModelRequest::new(vec![Message::User(
+    let mut request = ModelRequest::new(vec![Message::User(
         tinyinference_llm::message::UserMessage {
             content: vec![ContentBlock::Image(ImageRef {
                 url: "missing.png".into(),
@@ -164,9 +164,10 @@ async fn external_channel_cannot_rehydrate_a_local_image() {
         reply_target: "chat".into(),
         message_id: "message".into(),
     };
-    let error = with_origin(origin, wrapper.invoke(&(), request))
-        .await
-        .unwrap_err();
+    let mut context = crate::agent::tinyagents::host::OpenHumanRunContext::new();
+    context.origin = Some(origin);
+    super::super::attach_request_scope(&mut request, &context);
+    let error = wrapper.invoke(&(), request).await.unwrap_err();
     assert!(error.to_string().contains("external channel"));
     assert!(probe.requests.lock().unwrap().is_empty());
 }
@@ -217,21 +218,27 @@ async fn derivative_cache_survives_model_recreation_and_invalidates_changed_cont
         fallback_cache: Mutex::new(Default::default()),
     };
     let first = make();
+    let scope = super::super::AttachmentAccessScope::default();
     let key = first.fallback_key("uploads/thread/id/original.txt", "text/plain", b"original");
     first
-        .save_fallback("uploads/thread/id/original.txt", &key, "derived readout")
+        .save_fallback(
+            "uploads/thread/id/original.txt",
+            &key,
+            "derived readout",
+            &scope,
+        )
         .await;
     let resumed = make();
     assert_eq!(
         resumed
-            .cached_fallback("uploads/thread/id/original.txt", &key)
+            .cached_fallback("uploads/thread/id/original.txt", &key, &scope)
             .await
             .as_deref(),
         Some("derived readout")
     );
     let changed = first.fallback_key("uploads/thread/id/original.txt", "text/plain", b"modified");
     assert!(resumed
-        .cached_fallback("uploads/thread/id/original.txt", &changed)
+        .cached_fallback("uploads/thread/id/original.txt", &changed, &scope)
         .await
         .is_none());
     assert_eq!(tokio::fs::read(original).await.unwrap(), b"original");
@@ -258,7 +265,14 @@ async fn cache_is_not_written_beside_unmanaged_local_files() {
         profile: ModelProfile::default(),
         fallback_cache: Mutex::new(Default::default()),
     };
-    model.save_fallback("original.txt", "key", "derived").await;
+    model
+        .save_fallback(
+            "original.txt",
+            "key",
+            "derived",
+            &super::super::AttachmentAccessScope::default(),
+        )
+        .await;
     assert!(!temp.path().join(".openhuman-intake.txt").exists());
 }
 
@@ -402,9 +416,14 @@ async fn derivative_cache_cannot_overwrite_original_named_like_cache() {
         "data:text/plain;name=.openhuman-intake.txt;base64,{}",
         STANDARD.encode(b"original")
     );
-    let staged = super::super::stage(&format!("[FILE:{source}]"), "thread", &config)
-        .await
-        .unwrap();
+    let staged = super::super::stage(
+        &format!("[FILE:{source}]"),
+        "thread",
+        &config,
+        &super::super::AttachmentAccessScope::default(),
+    )
+    .await
+    .unwrap();
     let (_, files) = super::super::parse(&staged);
     assert_eq!(files.len(), 1);
     assert_eq!(files[0].name, ".openhuman-intake.txt");
@@ -590,6 +609,7 @@ async fn configured_injected_builder_stages_and_resolves_in_explicit_acting_work
         Some(&bound),
         None,
         Some("builder-test"),
+        None,
     )
     .await
     .unwrap();

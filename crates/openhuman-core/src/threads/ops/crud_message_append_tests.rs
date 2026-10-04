@@ -49,6 +49,7 @@ async fn user_append_stages_original_strips_upload_bytes_and_reuses_returned_con
             "user",
         ),
         &config,
+        None,
     )
     .await
     .unwrap()
@@ -73,7 +74,7 @@ async fn user_append_stages_original_strips_upload_bytes_and_reuses_returned_con
     );
     assert_eq!(first.extra_metadata["attachmentKinds"], json!(["image"]));
     assert_eq!(first.extra_metadata["other"], "kept");
-    let second = message_append_with_config(request("two", &first.content, "user"), &config)
+    let second = message_append_with_config(request("two", &first.content, "user"), &config, None)
         .await
         .unwrap()
         .value
@@ -85,6 +86,7 @@ async fn user_append_stages_original_strips_upload_bytes_and_reuses_returned_con
         Some(&config),
         None,
         Some("uploads"),
+        None,
     )
     .await
     .unwrap();
@@ -109,19 +111,21 @@ async fn rejected_upload_never_appends_a_message() {
             "[IMAGE:data:image/png;base64,iVBORw0KGgo=]",
             "user"
         ),
-        &config
+        &config,
+        None,
     )
     .await
     .is_err());
     config.multimodal_files.max_files = 3;
     assert!(message_append_with_config(
         request("bad", "[FILE:data:application/zip;base64,!]", "user"),
-        &config
+        &config,
+        None,
     )
     .await
     .is_err());
     assert!(
-        message_append_with_config(request("missing", "image.png", "user"), &config)
+        message_append_with_config(request("missing", "image.png", "user"), &config, None)
             .await
             .is_err()
     );
@@ -134,11 +138,44 @@ async fn rejected_upload_never_appends_a_message() {
 }
 
 #[tokio::test]
+async fn external_origin_cannot_reuse_an_existing_attachment_marker() {
+    let (_temp, config) = setup().await;
+    let staged = crate::agent::attachments::stage_turn(
+        "[IMAGE:data:image/png;base64,iVBORw0KGgo=]",
+        Some(&config),
+        None,
+        Some("uploads"),
+        None,
+    )
+    .await
+    .unwrap();
+    let origin = crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel {
+        channel: "test".into(),
+        sender: None,
+        reply_target: "room".into(),
+        message_id: "message".into(),
+    };
+    assert!(message_append_with_config(
+        request("external", &staged, "user"),
+        &config,
+        Some(&origin)
+    )
+    .await
+    .is_err());
+    assert!(
+        conversations::blocking::get_messages(config.workspace_dir, "uploads".into())
+            .await
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[tokio::test]
 async fn ordinary_user_text_and_agent_images_are_preserved() {
     let (_temp, config) = setup().await;
     let mut user = request("text", "ordinary text", "user");
     user.message.extra_metadata = json!({"other":"kept"});
-    let stored = message_append_with_config(user, &config)
+    let stored = message_append_with_config(user, &config, None)
         .await
         .unwrap()
         .value
@@ -152,7 +189,7 @@ async fn ordinary_user_text_and_agent_images_are_preserved() {
         "assistant",
     );
     let expected = serde_json::to_value(&assistant.message).unwrap();
-    let stored = message_append_with_config(assistant, &config)
+    let stored = message_append_with_config(assistant, &config, None)
         .await
         .unwrap()
         .value
@@ -169,7 +206,9 @@ async fn poster_only_user_metadata_is_rejected_before_persistence() {
         "attachmentNames": ["video.mp4"],
         "attachmentPosters": ["data:image/png;base64,iVBORw0KGgo="]
     });
-    assert!(message_append_with_config(upload, &config).await.is_err());
+    assert!(message_append_with_config(upload, &config, None)
+        .await
+        .is_err());
     assert!(
         conversations::blocking::get_messages(config.workspace_dir.clone(), "uploads".into())
             .await

@@ -56,6 +56,7 @@ pub(crate) async fn run_channel_turn_via_graph(
     multimodal: MultimodalConfig,
     multimodal_files: MultimodalFileConfig,
     on_progress: Option<Sender<AgentProgress>>,
+    origin: Option<crate::agent::turn_origin::AgentTurnOrigin>,
 ) -> Result<crate::agent::tinyagents::TinyagentsTurnOutcome> {
     let extra_arc = Arc::new(extra_tools);
 
@@ -90,6 +91,7 @@ pub(crate) async fn run_channel_turn_via_graph(
 
     // Keep originals and durable references in every entry path. Resolution
     // into provider bytes belongs to the model decorator, after snapshots.
+    let mut attachment_workspace = None;
     for row in history.iter_mut().filter(|row| row.role == "user") {
         if row.content.contains("[FILE:") || row.content.contains("[IMAGE:") {
             if multimodal_files.max_files == 0 {
@@ -100,8 +102,17 @@ pub(crate) async fn run_channel_turn_via_graph(
                 .map_err(anyhow::Error::msg)?;
             config.multimodal = multimodal.clone();
             config.multimodal_files = multimodal_files.clone();
+            let workspace = Some(config.action_dir.clone());
+            attachment_workspace = workspace.clone();
+            let scope = crate::agent::attachments::AttachmentAccessScope {
+                external_channel: matches!(
+                    origin.as_ref(),
+                    Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
+                ),
+                workspace: workspace.clone(),
+            };
             row.content =
-                crate::agent::attachments::stage(&row.content, "channel", &config).await?;
+                crate::agent::attachments::stage(&row.content, "channel", &config, &scope).await?;
             row.parts = None;
         }
     }
@@ -118,7 +129,10 @@ pub(crate) async fn run_channel_turn_via_graph(
         context_window,
         "[channel:graph] routing channel turn through tinyagents harness"
     );
+    let turn_origin = origin.clone();
     let mut run_context = crate::agent::tinyagents::host::OpenHumanRunContext::new();
+    run_context.origin = origin;
+    run_context.workspace = attachment_workspace.map(tinytools::WorkspaceDescriptor::new);
     seed_channel_attachments(&mut run_context, &prepared);
     // The channel dispatcher owns this explicit sink. It wins over an embedder
     // scope exactly as it did before this carrier was introduced.
@@ -160,8 +174,18 @@ pub(crate) async fn run_channel_turn_via_graph(
         // NOT emit `TurnCompleted` itself, so let the seam emit the single
         // terminal event (legacy-engine parity).
         false,
-    )
-    .await?;
+    );
+    let outcome = match (turn_origin, crate::core::runtime::CoreContext::current()) {
+        (Some(origin), Some(context)) => {
+            crate::core::runtime::CoreContext::scope_with_turn_origin(
+                context,
+                Some(origin),
+                outcome,
+            )
+            .await?
+        }
+        _ => outcome.await?,
+    };
     // Append only this turn's typed suffix (assistant tool-calls + tool results +
     // final assistant), serialized with the matching dispatcher so a native tool
     // round persists as the `{content, tool_calls}` / `{tool_call_id, content}`

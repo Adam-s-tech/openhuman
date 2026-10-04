@@ -104,6 +104,8 @@ pub struct CoreContext {
     /// Inherited unchanged by every context derived through
     /// [`CoreContext::derive_with`].
     backend_transport: Option<Arc<dyn crate::backend::transport::BackendTransport>>,
+    /// Explicit authority on this derived turn context.
+    turn_origin: Option<crate::agent::turn_origin::AgentTurnOrigin>,
 }
 
 /// Per-agent overrides layered onto a booted context by
@@ -357,6 +359,7 @@ impl CoreContext {
             embedder_config,
             user_skill_roots: true,
             backend_transport,
+            turn_origin: None,
         });
 
         // Register the process default context (first build wins). Dispatch
@@ -472,6 +475,7 @@ impl CoreContext {
             embedder_config: Some(overlay.config),
             user_skill_roots: overlay.user_skill_roots,
             backend_transport: self.backend_transport.clone(),
+            turn_origin: self.turn_origin.clone(),
         })
     }
 
@@ -619,19 +623,6 @@ impl CoreContext {
     /// The read path for `config::ops::load_config_with_timeout`.
     pub fn current_embedder_config() -> Option<crate::config::Config> {
         Self::current().and_then(|ctx| ctx.embedder_config.clone())
-    }
-
-    pub fn current() -> Option<Arc<CoreContext>> {
-        CURRENT_CONTEXT
-            .try_with(|ctx| ctx.clone())
-            .ok()
-            .or_else(|| DEFAULT_CONTEXT.get().cloned())
-    }
-
-    /// The process default context (first built), independent of any active
-    /// scope. Used by the dispatch chokepoint to establish the ambient scope.
-    pub fn default_context() -> Option<Arc<CoreContext>> {
-        DEFAULT_CONTEXT.get().cloned()
     }
 
     /// Rebind the process default context to the current active user's
@@ -783,6 +774,7 @@ impl CoreContext {
             embedder_config: None,
             user_skill_roots: true,
             backend_transport: None,
+            turn_origin: None,
         })
     }
 
@@ -812,6 +804,7 @@ impl CoreContext {
             embedder_config: Some(config),
             user_skill_roots: true,
             backend_transport: None,
+            turn_origin: None,
         })
     }
 }
@@ -1018,6 +1011,9 @@ pub async fn init_stores(cfg: &crate::config::Config, domains: crate::core::runt
         }
     }
 }
+
+#[path = "context_turn_origin.rs"]
+mod turn_origin_scope;
 
 #[cfg(test)]
 #[path = "context_tests.rs"]

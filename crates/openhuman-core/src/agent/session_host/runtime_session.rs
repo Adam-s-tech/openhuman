@@ -5,21 +5,25 @@
 //! prefix reconciliation, tool snapshots, resume and persistence remain inside
 //! the runtime session.
 
+#[path = "runtime_session_attachment_input.rs"]
+mod attachment_input;
 mod permanent;
 mod prompt;
+#[path = "runtime_session_turn.rs"]
+mod turn;
 
 use std::sync::Arc;
 
 use anyhow::Result;
 use tinyagents_runtime::{
     CommitReceipt, ResumeMode, ResumePreparation, SessionBuilder, SessionTerminal,
-    SessionTurnRequest, ToolSnapshot, TranscriptTarget, TurnOptions, TurnPreparation,
+    SessionTurnRequest, ToolSnapshot, TranscriptTarget, TurnPreparation,
 };
 use tinyagents_session::transcript::TranscriptMeta;
 use tinyinference_llm::message::Message;
 
 use crate::agent::{
-    message_convert::{user_message_from_text, user_text_with_markers},
+    message_convert::user_text_with_markers,
     session_host::{
         driver::OpenHumanSessionDriver, OpenHumanSessionHooks, OpenHumanTranscriptCodec,
     },
@@ -877,7 +881,9 @@ impl OpenHumanTurnPrelude {
             )
             .await
         {
-            log::warn!("[agent_autosave] durable message autosave failed kind={kind} key={key} err={error}");
+            log::warn!(
+                "[agent_autosave] durable message autosave failed kind={kind} key={key} err={error}"
+            );
             false
         } else {
             true
@@ -1209,73 +1215,7 @@ impl OpenHumanSessionHost {
 
     /// Dispatch one public OpenHuman turn through the neutral runtime.
     pub async fn turn(&mut self, user_message: &str) -> Result<String> {
-        self.ensure_runtime_session()?;
-        let staged = crate::agent::attachments::stage_turn(
-            user_message,
-            self.runtime_config.as_deref(),
-            self.workspace_descriptor.as_ref(),
-            self.thread_id.as_deref(),
-        )
-        .await?;
-        let user_message = staged.as_str();
-
-        let mut context = OpenHumanRunContext::new();
-        context.progress = self.on_progress.clone();
-        context.thread_id = self.thread_id.clone();
-        context.workspace = self.workspace_descriptor.clone();
-        let cancellation = context.cancellation.clone();
-        let root_config = context.root_run_config("openhuman-session");
-        let options = TurnOptions {
-            request_id: crate::agent::turn_origin::current_request_id(),
-            thread_id: self.thread_id.clone(),
-            stream: self.on_progress.is_some(),
-            session: self.session.clone(),
-            resume: self.turn_resume_mode(),
-            cancellation,
-            run_context: context.into_tinyagents(root_config),
-        };
-        // `tinyagents_runtime::Session` owns the restored declaration
-        // snapshot. Load a bound, otherwise empty session before its normal
-        // lifecycle runs so the host prelude can rebuild only its permitted
-        // recorded integration executors for this turn.
-        if matches!(options.resume, ResumeMode::Session)
-            && self
-                .runtime_session
-                .as_ref()
-                .is_some_and(|session| session.history().is_empty())
-        {
-            let runtime = self
-                .runtime_session
-                .as_mut()
-                .expect("runtime session initialized");
-            let resumed = runtime
-                .resume(&options)
-                .await
-                .map_err(|error| anyhow::anyhow!(error.to_string()))?;
-            if resumed.loaded {
-                let recorded_tools = runtime.recorded_tools().cloned();
-                if let Some(prelude) = self
-                    .runtime_state
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner())
-                    .prelude
-                    .clone()
-                {
-                    prelude.adopt_recorded_tools(recorded_tools.as_ref());
-                }
-            }
-        }
-        let outcome = self
-            .runtime_session
-            .as_mut()
-            .expect("runtime session initialized")
-            .turn(
-                SessionTurnRequest::new(user_message_from_text(user_message)),
-                options,
-            )
-            .await
-            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
-        Ok(outcome.output.unwrap_or_default())
+        self.turn_with_origin(user_message, None).await
     }
 
     pub(in crate::agent::session_host) fn ensure_runtime_session(&mut self) -> Result<()> {

@@ -442,13 +442,6 @@
   },
   {
     "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/session_host/runtime_session.rs",
-    "line": 1272,
-    "text": "request_id: crate::agent::turn_origin::current_request_id(),",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/session_host/turn/graph.rs",
     "line": 31,
     "text": "use crate::agent::harness::{with_current_sandbox_mode, SandboxMode};",

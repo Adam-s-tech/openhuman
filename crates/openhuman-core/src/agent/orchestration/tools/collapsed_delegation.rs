@@ -369,6 +369,7 @@ pub(crate) async fn execute_collapsed_delegation_with_live_parent(
         tool_context
             .and_then(|ctx| ctx.workspace())
             .or(run_context.workspace.as_ref()),
+        run_context.origin.as_ref(),
     )
     .await
     {
@@ -376,7 +377,7 @@ pub(crate) async fn execute_collapsed_delegation_with_live_parent(
         Err(error) => {
             return Ok(ToolResult::error(format!(
                 "image forwarding failed: {error}"
-            )))
+            )));
         }
     };
 

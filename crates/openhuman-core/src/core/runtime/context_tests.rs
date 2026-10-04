@@ -13,6 +13,7 @@ fn ctx(dir: &str) -> Arc<CoreContext> {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     })
 }
 
@@ -43,6 +44,7 @@ fn ctx_with_config(config: crate::config::Config) -> Arc<CoreContext> {
         embedder_config: Some(config),
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     })
 }
 
@@ -355,6 +357,7 @@ fn degraded_context_rejects_workspace_bound_stores() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     };
 
     // `workspace_dir()` is the gate every workspace-bound store goes
@@ -406,6 +409,7 @@ fn memory_binding_is_isolated_per_context_workspace() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     });
     let b = Arc::new(CoreContext {
         host_kind: HostKind::Cli,
@@ -418,6 +422,7 @@ fn memory_binding_is_isolated_per_context_workspace() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     });
 
     let bind_a = a.memory_binding().expect("bind workspace A");
@@ -446,6 +451,7 @@ fn rebind_workspace_updates_context_memory_binding() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     };
 
     let bind_a = ctx.memory_binding().expect("bind workspace A");
@@ -475,6 +481,7 @@ fn rebind_workspace_refreshes_memory_subsystem_config() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     };
 
     let bind_a = ctx.memory_binding().expect("bind workspace A");
@@ -517,6 +524,7 @@ fn failed_bind_never_returns_previous_workspace_binding() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     };
     let b = CoreContext {
         host_kind: HostKind::Cli,
@@ -529,6 +537,7 @@ fn failed_bind_never_returns_previous_workspace_binding() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     };
 
     let bind_a = a.memory_binding().expect("bind workspace A");
@@ -561,6 +570,7 @@ fn memory_capabilities_defaults_open_without_a_workspace() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     };
     assert!(ctx.memory_binding().is_err(), "no workspace ⇒ no binding");
     assert_eq!(
@@ -718,3 +728,7 @@ fn a_parent_workspace_rebind_does_not_move_a_derived_context() {
         "tinycortex"
     );
 }
+
+#[cfg(test)]
+#[path = "context_turn_origin_tests.rs"]
+mod turn_origin_tests;

@@ -163,9 +163,17 @@ pub async fn start_chat(
             .map_err(|error| {
                 StartChatError::Other(format!("upload configuration unavailable: {error}"))
             })?;
-        crate::agent::attachments::stage(&message, &thread_id, &config)
-            .await
-            .map_err(|error| StartChatError::Other(format!("upload could not be saved: {error}")))?
+        crate::agent::attachments::stage(
+            &message,
+            &thread_id,
+            &config,
+            &crate::agent::attachments::AttachmentAccessScope {
+                external_channel: false,
+                workspace: Some(config.action_dir.clone()),
+            },
+        )
+        .await
+        .map_err(|error| StartChatError::Other(format!("upload could not be saved: {error}")))?
     } else {
         message
     };
@@ -459,7 +467,7 @@ pub async fn start_chat(
             // user-facing `chat_error`, so we just unwind quietly here.
             let result = run_turn_under_cancel_and_deadline(
                 task_cancel_token,
-                origin,
+                origin.clone(),
                 approval_ctx,
                 run_chat_task(
                     &client_id_task,
@@ -471,6 +479,7 @@ pub async fn start_chat(
                     locale,
                     turn_run_queue_task,
                     metadata,
+                    origin.clone(),
                     /* fork */ false,
                 ),
             )

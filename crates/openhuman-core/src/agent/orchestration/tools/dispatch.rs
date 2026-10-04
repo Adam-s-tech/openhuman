@@ -248,6 +248,7 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
         match crate::agent::attachments::has_resolvable_image(
             prompt,
             parent_workspace_descriptor.as_ref(),
+            run_context.origin.as_ref(),
         )
         .await
         {
@@ -255,12 +256,12 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
             Ok(false) => {
                 return Ok(ToolResult::error(
                     "vision_agent requires a resolvable image attachment or image_paths.",
-                ))
+                ));
             }
             Err(error) => {
                 return Ok(ToolResult::error(format!(
                     "vision image unavailable: {error}"
-                )))
+                )));
             }
         }
     }

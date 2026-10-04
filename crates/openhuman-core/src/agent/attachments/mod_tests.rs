@@ -13,24 +13,27 @@ async fn legacy_sidecar_rehydrates_into_an_authorized_acting_original() {
     let source = stash.join("legacy.png");
     let bytes = b"\x89PNG\r\n\x1a\noriginal";
     tokio::fs::write(&source, bytes).await.unwrap();
-    assert!(resolve_path(&cfg, source.to_str().unwrap()).await.is_err());
+    let scope = AttachmentAccessScope::default();
+    assert!(resolve_path(&cfg, source.to_str().unwrap(), &scope)
+        .await
+        .is_err());
     let index = std::collections::HashMap::from([("legacy".into(), source.clone())]);
     let prompt = markers::rehydrate_placeholders_in_text("[Image: old #att:legacy]", &index);
     let paths = markers::parse_image_markers(&prompt).1;
     assert_eq!(paths, vec![source.to_string_lossy().into_owned()]);
-    let migrated = legacy::migrate_from(&cfg, &paths[0], &stash)
+    let migrated = legacy::migrate_from(&cfg, &paths[0], &stash, &scope)
         .await
         .unwrap()
         .unwrap();
     assert!(migrated.starts_with("uploads/legacy-sidecars/"));
     assert_eq!(
-        legacy::migrate_from(&cfg, &paths[0], &stash)
+        legacy::migrate_from(&cfg, &paths[0], &stash, &scope)
             .await
             .unwrap()
             .unwrap(),
         migrated
     );
-    let acting = resolve_path(&cfg, &migrated).await.unwrap();
+    let acting = resolve_path(&cfg, &migrated, &scope).await.unwrap();
     assert_eq!(tokio::fs::read(acting).await.unwrap(), bytes);
     assert_eq!(tokio::fs::read(&source).await.unwrap(), bytes);
     let message =
@@ -45,47 +48,51 @@ async fn legacy_sidecar_rehydrates_into_an_authorized_acting_original() {
 async fn legacy_migration_does_not_grant_private_file_or_disabled_image_access() {
     let temp = tempfile::tempdir().unwrap();
     let mut cfg = config(temp.path());
+    let scope = AttachmentAccessScope::default();
     let stash = cfg.workspace_dir.join("attachments");
     tokio::fs::create_dir_all(&stash).await.unwrap();
     let source = stash.join("legacy.png");
     tokio::fs::write(&source, b"\x89PNG\r\n\x1a\noriginal")
         .await
         .unwrap();
-    let origin = crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel {
-        channel: "test".into(),
-        sender: None,
-        reply_target: "test".into(),
-        message_id: "test".into(),
+    let external_scope = AttachmentAccessScope {
+        external_channel: true,
+        workspace: None,
     };
-    assert!(crate::agent::turn_origin::with_origin(
-        origin,
-        legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash)
-    )
-    .await
-    .is_err());
+    assert!(
+        legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash, &external_scope)
+            .await
+            .is_err()
+    );
     let unrelated = cfg.workspace_dir.join("private.png");
     assert!(
-        legacy::migrate_from(&cfg, unrelated.to_str().unwrap(), &stash)
+        legacy::migrate_from(&cfg, unrelated.to_str().unwrap(), &stash, &scope)
             .await
             .unwrap()
             .is_none()
     );
     cfg.multimodal_files.max_files = 0;
-    assert!(legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash)
-        .await
-        .is_err());
+    assert!(
+        legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash, &scope)
+            .await
+            .is_err()
+    );
     cfg.multimodal_files.max_files = 4;
     cfg.multimodal.max_images = 0;
-    assert!(legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash)
-        .await
-        .is_err());
+    assert!(
+        legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash, &scope)
+            .await
+            .is_err()
+    );
     cfg.multimodal.max_images = 4;
     tokio::fs::write(&source, b"private text masquerading as a sidecar")
         .await
         .unwrap();
-    assert!(legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash)
-        .await
-        .is_err());
+    assert!(
+        legacy::migrate_from(&cfg, source.to_str().unwrap(), &stash, &scope)
+            .await
+            .is_err()
+    );
     let forbidden = temp.path().join(".ssh").join("attachments");
     tokio::fs::create_dir_all(&forbidden).await.unwrap();
     let credential = forbidden.join("legacy.png");
@@ -93,7 +100,7 @@ async fn legacy_migration_does_not_grant_private_file_or_disabled_image_access()
         .await
         .unwrap();
     assert!(
-        legacy::migrate_from(&cfg, credential.to_str().unwrap(), &forbidden)
+        legacy::migrate_from(&cfg, credential.to_str().unwrap(), &forbidden, &scope)
             .await
             .is_err()
     );
@@ -104,6 +111,7 @@ async fn legacy_migration_does_not_grant_private_file_or_disabled_image_access()
 async fn legacy_migration_rejects_symlink_sidecars() {
     let temp = tempfile::tempdir().unwrap();
     let cfg = config(temp.path());
+    let scope = AttachmentAccessScope::default();
     let stash = cfg.workspace_dir.join("attachments");
     tokio::fs::create_dir_all(&stash).await.unwrap();
     let outside = temp.path().join("outside.png");
@@ -112,9 +120,11 @@ async fn legacy_migration_rejects_symlink_sidecars() {
         .unwrap();
     let link = stash.join("legacy.png");
     std::os::unix::fs::symlink(&outside, &link).unwrap();
-    assert!(legacy::migrate_from(&cfg, link.to_str().unwrap(), &stash)
-        .await
-        .is_err());
+    assert!(
+        legacy::migrate_from(&cfg, link.to_str().unwrap(), &stash, &scope)
+            .await
+            .is_err()
+    );
 }
 
 #[test]
@@ -158,9 +168,16 @@ async fn forbidden_acting_root_is_rejected_before_directory_creation() {
     let temp = tempfile::tempdir().unwrap();
     let mut config = config(temp.path());
     config.action_dir = temp.path().join(".ssh").join("new-workspace");
-    assert!(save(&config, "thread", "file", "text/plain", b"data")
-        .await
-        .is_err());
+    assert!(save(
+        &config,
+        "thread",
+        "file",
+        "text/plain",
+        b"data",
+        &AttachmentAccessScope::default()
+    )
+    .await
+    .is_err());
     assert!(!temp.path().join(".ssh").exists());
 }
 
@@ -181,7 +198,14 @@ async fn arbitrary_original_is_durable_and_reference_contains_no_payload() {
     let input = format!(
         "Inspect [FILE:data:application/octet-stream;name=Report%20%CE%B1.zip;base64,{encoded}]"
     );
-    let staged = stage(&input, "../../unsafe/thread", &config).await.unwrap();
+    let staged = stage(
+        &input,
+        "../../unsafe/thread",
+        &config,
+        &AttachmentAccessScope::default(),
+    )
+    .await
+    .unwrap();
     assert!(!staged.contains(&encoded));
     let (text, files) = parse(&staged);
     assert_eq!(text.trim(), "Inspect");
@@ -195,7 +219,17 @@ async fn arbitrary_original_is_durable_and_reference_contains_no_payload() {
             .unwrap(),
         bytes
     );
-    assert_eq!(stage(&staged, "thread", &config).await.unwrap(), staged);
+    assert_eq!(
+        stage(
+            &staged,
+            "thread",
+            &config,
+            &AttachmentAccessScope::default()
+        )
+        .await
+        .unwrap(),
+        staged
+    );
     assert_eq!(parse(&files[0].marker()).1, files);
 }
 
@@ -209,6 +243,7 @@ async fn repeated_names_do_not_overwrite_and_escape_names_are_sanitized() {
         "../../same.zip",
         "application/zip",
         b"first",
+        &AttachmentAccessScope::default(),
     )
     .await
     .unwrap();
@@ -218,6 +253,7 @@ async fn repeated_names_do_not_overwrite_and_escape_names_are_sanitized() {
         "../../same.zip",
         "application/zip",
         b"second",
+        &AttachmentAccessScope::default(),
     )
     .await
     .unwrap();
@@ -238,7 +274,9 @@ async fn staging_preserves_interleaved_captions_and_media_order() {
     let temp = tempfile::tempdir().unwrap();
     let config = config(temp.path());
     let source = "first [FILE:data:text/plain;name=one.txt;base64,YQ==] second [IMAGE:data:image/png;name=two.png;base64,iVBORw0KGgo=] third";
-    let staged = stage(source, "thread", &config).await.unwrap();
+    let staged = stage(source, "thread", &config, &AttachmentAccessScope::default())
+        .await
+        .unwrap();
     let parts = segments(&staged);
     assert!(matches!(&parts[0], Segment::Text(text) if text == "first "));
     assert!(matches!(&parts[1], Segment::Attachment(file) if file.name == "one.txt"));
@@ -252,8 +290,22 @@ async fn hard_zero_and_count_gate_precede_reads() {
     let temp = tempfile::tempdir().unwrap();
     let mut config = config(temp.path());
     config.multimodal_files.max_files = 0;
-    assert!(stage("[FILE:/missing]", "thread", &config).await.is_err());
-    assert!(stage("[IMAGE:/missing]", "thread", &config).await.is_err());
+    assert!(stage(
+        "[FILE:/missing]",
+        "thread",
+        &config,
+        &AttachmentAccessScope::default()
+    )
+    .await
+    .is_err());
+    assert!(stage(
+        "[IMAGE:/missing]",
+        "thread",
+        &config,
+        &AttachmentAccessScope::default()
+    )
+    .await
+    .is_err());
     assert!(!config.action_dir.exists());
     assert!(!safe_relative_path("../escape"));
     assert!(!safe_relative_path("/absolute"));
@@ -264,15 +316,19 @@ async fn hard_zero_and_count_gate_precede_reads() {
 async fn vision_without_explicit_references_fails_before_configuration_or_inference() {
     assert!(!has_resolvable_image(
         "Describe a filename mentioned only in prose: picture.png",
+        None,
         None
     )
     .await
     .unwrap());
-    assert!(
-        delegation_prompt("task", &serde_json::json!({ "image_paths": [42] }), None)
-            .await
-            .is_err()
-    );
+    assert!(delegation_prompt(
+        "task",
+        &serde_json::json!({ "image_paths": [42] }),
+        None,
+        None
+    )
+    .await
+    .is_err());
 }
 
 #[cfg(unix)]
@@ -289,7 +345,8 @@ async fn upload_symlink_is_rejected_without_writing_outside() {
         "thread",
         "file",
         "application/octet-stream",
-        b"original"
+        b"original",
+        &AttachmentAccessScope::default()
     )
     .await
     .is_err());
@@ -297,16 +354,17 @@ async fn upload_symlink_is_rejected_without_writing_outside() {
 }
 
 #[tokio::test]
-async fn scoped_workspace_wins_over_ambient_config() {
+async fn explicit_workspace_wins_over_config_action_dir() {
     let temp = tempfile::tempdir().unwrap();
     let config = config(temp.path());
     let scoped = temp.path().join("scoped");
-    let attachment = crate::agent::turn_workspace::with_workspace(
-        scoped.clone(),
-        save(&config, "thread", "file", "text/plain", b"original"),
-    )
-    .await
-    .unwrap();
+    let scope = AttachmentAccessScope {
+        external_channel: false,
+        workspace: Some(scoped.clone()),
+    };
+    let attachment = save(&config, "thread", "file", "text/plain", b"original", &scope)
+        .await
+        .unwrap();
     assert!(scoped.join(attachment.path).exists());
     assert!(!config.action_dir.exists());
 }

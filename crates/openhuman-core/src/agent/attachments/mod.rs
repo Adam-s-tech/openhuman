@@ -15,6 +15,53 @@ pub(crate) mod codec;
 pub(crate) mod legacy;
 pub(crate) mod provider;
 
+/// Per-model-call attachment authority copied from the live agent context.
+/// The provider wrapper removes its request carrier before forwarding it.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct AttachmentAccessScope {
+    pub(crate) external_channel: bool,
+    pub(crate) workspace: Option<PathBuf>,
+}
+
+const REQUEST_SCOPE_KEY: &str = "__openhuman_attachment_access_scope";
+
+pub(crate) fn attach_request_scope(
+    request: &mut tinyinference_llm::model::ModelRequest,
+    context: &crate::agent::tinyagents::host::OpenHumanRunContext,
+) {
+    let external_channel = matches!(
+        context.origin,
+        Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
+    );
+    let workspace = context
+        .workspace
+        .as_ref()
+        .map(|workspace| workspace.root.clone());
+    request.metadata[REQUEST_SCOPE_KEY] = serde_json::json!({
+        "external_channel": external_channel,
+        "workspace": workspace,
+    });
+}
+
+pub(crate) fn take_request_scope(metadata: &mut serde_json::Value) -> AttachmentAccessScope {
+    let value = metadata
+        .as_object_mut()
+        .and_then(|metadata| metadata.remove(REQUEST_SCOPE_KEY));
+    let Some(value) = value else {
+        return AttachmentAccessScope::default();
+    };
+    AttachmentAccessScope {
+        external_channel: value
+            .get("external_channel")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true),
+        workspace: value
+            .get("workspace")
+            .and_then(serde_json::Value::as_str)
+            .map(PathBuf::from),
+    }
+}
+
 const PREFIX: &str = "[ATTACHMENT:";
 
 /// Metadata carried by a compact transcript reference. Paths are relative to
@@ -101,8 +148,11 @@ fn safe_relative_path(path: &str) -> bool {
             .all(|c| matches!(c, Component::Normal(_)))
 }
 
-pub(crate) fn action_root(config: &Config) -> PathBuf {
-    crate::agent::turn_workspace::current().unwrap_or_else(|| config.action_dir.clone())
+pub(crate) fn action_root(config: &Config, scope: &AttachmentAccessScope) -> PathBuf {
+    scope
+        .workspace
+        .clone()
+        .unwrap_or_else(|| config.action_dir.clone())
 }
 
 fn policy(config: &Config, root: &Path) -> SecurityPolicy {
@@ -111,8 +161,12 @@ fn policy(config: &Config, root: &Path) -> SecurityPolicy {
 
 /// Resolve a local attachment under the same filesystem policy as acting
 /// tools, including symlink checks and the always-forbidden credential floor.
-pub(crate) async fn resolve_path(config: &Config, reference: &str) -> anyhow::Result<PathBuf> {
-    let root = action_root(config);
+pub(crate) async fn resolve_path(
+    config: &Config,
+    reference: &str,
+    scope: &AttachmentAccessScope,
+) -> anyhow::Result<PathBuf> {
+    let root = action_root(config, scope);
     let policy = policy(config, &root);
     if !policy.is_path_string_allowed(reference) {
         anyhow::bail!("attachment path is not permitted");
@@ -154,8 +208,9 @@ async fn save(
     name: &str,
     mime: &str,
     bytes: &[u8],
+    scope: &AttachmentAccessScope,
 ) -> anyhow::Result<Attachment> {
-    let root = action_root(config);
+    let root = action_root(config, scope);
     // Validate the complete prospective destination before creating even the
     // workspace root. This checks existing symlink ancestors as well as the
     // credential/internal-state floor.
@@ -234,9 +289,17 @@ async fn save(
 
 /// Stage every original before scanning or persistence. Failure rejects the
 /// turn rather than silently discarding an accepted upload.
-pub(crate) async fn stage(message: &str, thread: &str, config: &Config) -> anyhow::Result<String> {
+pub(crate) async fn stage(
+    message: &str,
+    thread: &str,
+    config: &Config,
+    scope: &AttachmentAccessScope,
+) -> anyhow::Result<String> {
     let (text, images) = markers::parse_image_markers(message);
     let (_, files) = markers::parse_file_markers(&text);
+    if scope.external_channel && (!images.is_empty() || !files.is_empty()) {
+        anyhow::bail!("local attachment reads are disabled for external channel input");
+    }
     let (max_images, image_mb) = config.multimodal.effective_limits();
     let (max_files, file_mb, max_text) = config.multimodal_files.effective_limits();
     if images.len() > max_images
@@ -283,10 +346,10 @@ pub(crate) async fn stage(message: &str, thread: &str, config: &Config) -> anyho
             && !source.starts_with("http://")
             && !source.starts_with("https://")
         {
-            let local = legacy::migrate_path(config, source)
+            let local = legacy::migrate_path(config, source, scope)
                 .await?
                 .unwrap_or_else(|| source.into());
-            resolve_path(config, &local)
+            resolve_path(config, &local, scope)
                 .await?
                 .to_string_lossy()
                 .into_owned()
@@ -310,6 +373,7 @@ pub(crate) async fn stage(message: &str, thread: &str, config: &Config) -> anyho
             &resolved.name,
             &resolved.mime,
             &resolved.bytes,
+            scope,
         )
         .await?;
         out.push_str(&attachment.marker());
@@ -325,6 +389,7 @@ pub(crate) async fn delegation_prompt(
     prompt: &str,
     args: &serde_json::Value,
     workspace: Option<&tinytools::WorkspaceDescriptor>,
+    origin: Option<&crate::agent::turn_origin::AgentTurnOrigin>,
 ) -> anyhow::Result<String> {
     let mut prompt = prompt.to_string();
     if let Some(value) = args.get("image_paths") {
@@ -343,7 +408,7 @@ pub(crate) async fn delegation_prompt(
         return Ok(prompt);
     }
     if matches!(
-        crate::agent::turn_origin::current(),
+        origin,
         Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
     ) {
         anyhow::bail!("local attachment reads are disabled for external channel input");
@@ -354,13 +419,18 @@ pub(crate) async fn delegation_prompt(
     if let Some(workspace) = workspace {
         config.action_dir = workspace.root.clone();
     }
-    stage(&prompt, "delegation", &config).await
+    let scope = AttachmentAccessScope {
+        external_channel: false,
+        workspace: workspace.map(|workspace| workspace.root.clone()),
+    };
+    stage(&prompt, "delegation", &config, &scope).await
 }
 
 /// Validate a vision task's explicit references before constructing inference.
 pub(crate) async fn has_resolvable_image(
     prompt: &str,
     workspace: Option<&tinytools::WorkspaceDescriptor>,
+    origin: Option<&crate::agent::turn_origin::AgentTurnOrigin>,
 ) -> anyhow::Result<bool> {
     let rehydrated = crate::agent::multimodal::rehydrate_image_placeholders(&[
         tinyagents_session::transcript::TranscriptMessage::user(prompt),
@@ -378,12 +448,24 @@ pub(crate) async fn has_resolvable_image(
     let mut config = crate::config::rpc::load_config_with_timeout()
         .await
         .map_err(anyhow::Error::msg)?;
+    if matches!(
+        origin,
+        Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
+    ) {
+        anyhow::bail!("local attachment reads are disabled for external channel input");
+    }
     if let Some(workspace) = workspace {
         config.action_dir = workspace.root.clone();
     }
+    let scope = AttachmentAccessScope {
+        external_channel: false,
+        workspace: workspace.map(|workspace| workspace.root.clone()),
+    };
     for path in paths {
-        let path = legacy::migrate_path(&config, &path).await?.unwrap_or(path);
-        let path = resolve_path(&config, &path).await?;
+        let path = legacy::migrate_path(&config, &path, &scope)
+            .await?
+            .unwrap_or(path);
+        let path = resolve_path(&config, &path, &scope).await?;
         let metadata = tokio::fs::metadata(path).await?;
         if metadata.is_file() && metadata.len() > 0 {
             return Ok(true);
@@ -451,6 +533,7 @@ pub(crate) async fn stage_turn(
     config: Option<&Config>,
     workspace: Option<&tinytools::WorkspaceDescriptor>,
     thread: Option<&str>,
+    origin: Option<&crate::agent::turn_origin::AgentTurnOrigin>,
 ) -> anyhow::Result<String> {
     if !message.contains("[IMAGE:") && !message.contains("[FILE:") {
         return Ok(message.into());
@@ -459,7 +542,7 @@ pub(crate) async fn stage_turn(
         .cloned()
         .ok_or_else(|| anyhow::anyhow!("attachment intake requires runtime configuration"))?;
     if matches!(
-        crate::agent::turn_origin::current(),
+        origin,
         Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
     ) {
         config.multimodal_files =
@@ -468,7 +551,14 @@ pub(crate) async fn stage_turn(
     if let Some(workspace) = workspace {
         config.action_dir = workspace.root.clone();
     }
-    stage(message, thread.unwrap_or("direct"), &config).await
+    let scope = AttachmentAccessScope {
+        external_channel: matches!(
+            origin,
+            Some(crate::agent::turn_origin::AgentTurnOrigin::ExternalChannel { .. })
+        ),
+        workspace: workspace.map(|workspace| workspace.root.clone()),
+    };
+    stage(message, thread.unwrap_or("direct"), &config, &scope).await
 }
 
 /// The session prelude's typed enrichment hook. Both image forwarding and
