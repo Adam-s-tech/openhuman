@@ -135,13 +135,21 @@ pub fn apply_add(
         .map(str::trim)
         .filter(|label| !label.is_empty())
         .map_or_else(|| target.clone(), str::to_string);
+    let namespace = match params.namespace.as_deref().map(str::trim) {
+        None | Some("") => None,
+        Some(raw) => Some(
+            raw.parse::<tinymemory::Namespace>()
+                .map_err(|error| MemoryError::invalid(error.to_string()))?
+                .to_string(),
+        ),
+    };
     let source = MemorySourceConfig {
         id: format!("src-{}", uuid::Uuid::new_v4().simple()),
         kind,
         target,
         label,
         schedule_mins: params.schedule_mins,
-    namespace: None,
+        namespace,
     };
     sync::reader_entry(&source)?;
     config.memory.sources.push(source.clone());
@@ -193,6 +201,32 @@ pub fn is_due(
         }),
         None => true,
     }
+}
+
+/// The memory node `source` stores at: its configured `namespace`, else the
+/// root. An invalid one (hand-edited config) is logged and stored at the
+/// root.
+#[must_use]
+pub fn namespace_of_source(source: &MemorySourceConfig) -> tinymemory::Namespace {
+    let Some(raw) = source.namespace.as_deref() else {
+        return tinymemory::Namespace::ROOT;
+    };
+    raw.parse().unwrap_or_else(|error| {
+        tracing::warn!(id = %source.id, %error, "[memory:sources] invalid namespace; storing at the root");
+        tinymemory::Namespace::ROOT
+    })
+}
+
+/// The memory node the configured source `source_id` stores at; the root
+/// for an unknown id.
+#[must_use]
+pub fn namespace_of(config: &Config, source_id: &str) -> tinymemory::Namespace {
+    config
+        .memory
+        .sources
+        .iter()
+        .find(|source| source.id == source_id)
+        .map_or(tinymemory::Namespace::ROOT, namespace_of_source)
 }
 
 #[cfg(test)]

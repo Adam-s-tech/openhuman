@@ -303,6 +303,10 @@ pub struct SourcesAddParams {
     /// Minutes between scheduled syncs.
     #[serde(default)]
     pub schedule_mins: Option<u32>,
+    /// The memory node to store the source's documents at
+    /// (`agent:researcher`); unset stores them at the root.
+    #[serde(default)]
+    pub namespace: Option<String>,
 }
 
 /// `memory_sources_add` result.
