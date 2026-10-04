@@ -87,6 +87,21 @@ impl TurnPack {
     }
 }
 
+/// One turn's memory, carried on its run context: what the compaction hook
+/// needs to recall for this thread under this identity, and the pack the
+/// turn was given.
+#[derive(Debug, Clone)]
+pub struct MemoryTurn {
+    /// The config the session runs under.
+    pub config: std::sync::Arc<Config>,
+    /// Who the turn runs as.
+    pub identity: ResolvedIdentity,
+    /// The conversation thread.
+    pub thread_id: String,
+    /// The pack the turn was given, if any.
+    pub pack: Option<TurnPack>,
+}
+
 /// What the agent loop knows before the model runs.
 #[derive(Debug, Clone)]
 pub struct PreTurnInput {

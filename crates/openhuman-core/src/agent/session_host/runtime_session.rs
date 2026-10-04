@@ -1153,7 +1153,7 @@ impl OpenHumanSessionHost {
                                 .active_turn_overrides,
                         );
                         let current_input = view.history.last().filter(|last| **last == request.input);
-                        let (enriched, memory_pack) = futures::join!(
+                        let (enriched, memory_turn) = futures::join!(
                             prelude.enrich_request(
                                 &original_user_message,
                                 &overrides,
@@ -1165,7 +1165,7 @@ impl OpenHumanSessionHost {
                                 current_input,
                             ),
                         );
-                        options.run_context.data.memory_pack = memory_pack;
+                        options.run_context.data.memory_turn = memory_turn;
                         request.input = user_message_from_text(&enriched);
                         let mut preparation =
                             prelude.prepare(new_session).await.map_err(|error| {

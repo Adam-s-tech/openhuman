@@ -22,7 +22,7 @@ use tinyinference_llm::message::Message;
 use super::OpenHumanTurnPrelude;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::memory::lifecycle::hooks::{
-    self, PostTurnInput, PreTurnInput, ToolCallSummary, TurnPack,
+    self, MemoryTurn, PostTurnInput, PreTurnInput, ToolCallSummary,
 };
 use crate::memory::scope::ResolvedIdentity;
 
@@ -72,13 +72,14 @@ impl OpenHumanTurnPrelude {
     }
 
     /// Logs a user-authored turn and recalls its pack. Remembers the turn so
-    /// the reply is logged under the same identity and index.
+    /// the reply is logged under the same identity and index, and returns
+    /// the turn's memory for the run context.
     pub(super) async fn memory_pre_turn(
         &self,
         history: &[Message],
         committed_turns: usize,
         current: Option<&Message>,
-    ) -> Option<Arc<TurnPack>> {
+    ) -> Option<Arc<MemoryTurn>> {
         let user_text = self
             .mutable
             .lock()
@@ -112,14 +113,21 @@ impl OpenHumanTurnPrelude {
                 resumed_after_compaction: compacted && committed_turns > 0,
             },
         )
-        .await?;
-        crate::core::bus::BUS.publish(crate::core::events::DomainEvent::MemoryPackInjected {
+        .await;
+        if let Some(pack) = &pack {
+            crate::core::bus::BUS.publish(crate::core::events::DomainEvent::MemoryPackInjected {
+                thread_id: thread_id.clone(),
+                agent_id: identity.agent_id.clone(),
+                tokens: pack.tokens,
+                refs: pack.refs.len(),
+            });
+        }
+        Some(Arc::new(MemoryTurn {
+            config,
+            identity,
             thread_id,
-            agent_id: identity.agent_id.clone(),
-            tokens: pack.tokens,
-            refs: pack.refs.len(),
-        });
-        Some(Arc::new(pack))
+            pack,
+        }))
     }
 
     /// Logs the committed reply (spawned; never delays the commit) and

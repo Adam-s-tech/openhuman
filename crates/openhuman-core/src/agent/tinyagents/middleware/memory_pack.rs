@@ -2,7 +2,7 @@
 //!
 //! The session host recalls one pack per turn before the model runs
 //! (`memory::lifecycle::hooks::pre_turn`) and parks it on the run context
-//! (`OpenHumanRunContext::memory_pack`). This middleware adds it to every model
+//! (`OpenHumanRunContext::memory_turn`). This middleware adds it to every model
 //! request of that turn with [`push_ephemeral_instruction`]: a tail system
 //! message, or on a model that hoists system turns (DeepSeek, native
 //! Anthropic) a note on the tail user or tool message. The request is built
@@ -38,15 +38,21 @@ impl Middleware<(), OpenHumanRunContext> for MemoryPackMiddleware {
         _state: &(),
         request: &mut ModelRequest,
     ) -> TaResult<()> {
-        let Some(pack) = ctx.data.memory_pack.clone() else {
+        let Some(pack) = ctx
+            .data
+            .memory_turn
+            .as_ref()
+            .and_then(|turn| turn.pack.as_ref())
+        else {
             return Ok(());
         };
+        let injection = pack.injection();
         tracing::trace!(
             tokens = pack.tokens,
             refs = pack.refs.len(),
             "[tinyagents::mw] memory pack added to the model request"
         );
-        push_ephemeral_instruction(request, pack.injection(), ctx.model_profile.as_ref());
+        push_ephemeral_instruction(request, injection, ctx.model_profile.as_ref());
         Ok(())
     }
 }

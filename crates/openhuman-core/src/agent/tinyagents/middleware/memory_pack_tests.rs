@@ -5,11 +5,18 @@ use std::sync::Arc;
 use tinyagents_harness::context::RunConfig;
 use tinyinference_llm::message::Message;
 
-use crate::memory::lifecycle::hooks::{TurnPack, OPEN_TAG};
+use crate::memory::lifecycle::hooks::{MemoryTurn, TurnPack, OPEN_TAG};
+use crate::memory::scope::MemoryIdentity;
 
 fn context(pack: Option<TurnPack>) -> RunContext<OpenHumanRunContext> {
+    let config = crate::config::Config::default();
     let mut data = OpenHumanRunContext::new();
-    data.memory_pack = pack.map(Arc::new);
+    data.memory_turn = Some(Arc::new(MemoryTurn {
+        identity: MemoryIdentity::agent("a").resolve(&config),
+        config: Arc::new(config),
+        thread_id: "t".into(),
+        pack,
+    }));
     RunContext::new(RunConfig::new("memory-pack-test"), data)
 }
 
@@ -50,5 +57,5 @@ async fn a_turn_without_a_pack_is_left_alone() {
         .await
         .unwrap();
     assert_eq!(request.messages.len(), 1);
-    assert!(ctx.data.child().memory_pack.is_none());
+    assert!(ctx.data.child().memory_turn.is_none());
 }
