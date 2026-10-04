@@ -64,7 +64,7 @@ OpenHuman は、ほとんどのアシスタントが持っていない 3 つの�
 ### 🧠 脳
 
 - **[Memory](../gitbooks/features/memory.md)**: 差し替え可能なエンジン(TinyHumans ホスト版、または自前の CortexDB)上の Recall・Fetch・Store。ドキュメント、会話、学びを保存し、引用付きで回答し、毎ターンの前に関連するメモリパックを呼び出します。
-- **[100+ の OAuth 統合、5,000+ の MCP サーバー、90,000+ の Skills](https://tinyhumans.gitbook.io/openhuman/features/integrations)**: Gmail、Notion、GitHub、Slack などのスタックにワンクリックで接続。[自動取得](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki/auto-fetch)が 20 分ごとに脳に栄養を与えるので、今朝の時点で明日のコンテキストを持っています。
+- **[100+ の OAuth 統合、5,000+ の MCP サーバー、90,000+ の Skills](https://tinyhumans.gitbook.io/openhuman/features/integrations)**: Gmail、Notion、GitHub、Slack などのスタックにワンクリックで接続。[自動取得](https://tinyhumans.gitbook.io/openhuman/features/memory)が 20 分ごとに脳に栄養を与えるので、今朝の時点で明日のコンテキストを持っています。
 - **[Goals & Todos](https://tinyhumans.gitbook.io/openhuman/features/goals-and-todos)**: スレッドごとの永続ゴールと、チャットに表示されるエージェントのToDoリスト。
 - **[TokenJuice](https://tinyhumans.gitbook.io/openhuman/features/token-compression)**: ツール出力はモデルに届く前に圧縮され、同じ情報を最大 80% 少ないトークンで扱えます。これがなければ、これほど大きな脳は維持できません。
 
