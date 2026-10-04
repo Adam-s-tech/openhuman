@@ -32,6 +32,7 @@ use crate::agent::tinyagents::tools::EarlyExitHook;
 use crate::agent::tinyagents::turn_models::TurnModels;
 use crate::agent::tinyagents::turn_outcome::{HaltSummarySlot, ToolOutcomeSink};
 use crate::agent::tinyagents::turn_policy::{run_policy_for, REPEATED_TOOL_FAILURE_THRESHOLD};
+use crate::agent::tinyagents::verify_before_finish;
 use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 
 use super::ToolPolicyEnforcement;
@@ -357,6 +358,8 @@ pub(super) fn assemble_turn_harness(
             .with_cleared_placeholder(crate::agent::context::CLEARED_PLACEHOLDER),
         )
     });
+    // Time awareness (#6953); before the repeat guard so its notes land last.
+    let shell_turn_budget = middleware::install_time_notes(&mut harness);
     if let Some(mw) = &repeat_progress {
         harness.push_middleware(mw.clone());
     }
@@ -580,6 +583,12 @@ pub(super) fn assemble_turn_harness(
         pause_at_cap && subagent_scope.is_none(),
         &tool_outcome_sink,
     );
+    verify_before_finish::install(
+        &mut harness,
+        subagent_scope.is_some(),
+        tool_policy.as_ref().map(|p| p.agent_definition_id.as_str()),
+        &wrap_up_fired,
+    );
 
     // Direct web lookup is bounded. Once enough search/fetch results have
     // returned, the web tools leave the request so the run works with what it
@@ -660,6 +669,9 @@ pub(super) fn assemble_turn_harness(
     // `InvalidArgsPolicy::ReturnToolError` admission path reports the original
     // validation error. It never reaches approval/policy wrappers or the tool.
     harness.push_middleware(Arc::new(ArgRecoveryMiddleware::new(tool_sets.clone())));
+
+    // Clamp shell `timeout_secs` to the turn remainder (#6953), on recovered args.
+    harness.push_middleware(Arc::new(shell_turn_budget.clamp()));
 
     // Bare packed-tool routing (`before_tool`, #6276): a call that names a
     // withheld packed tool directly becomes the `use_skill` call that reaches

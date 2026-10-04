@@ -144,6 +144,53 @@ async fn repeated_tool_failure_pauses_only_after_the_threshold() {
 }
 
 #[tokio::test]
+async fn ordinary_web_fetch_status_ignores_timeout_words_in_body_excerpt() {
+    let handle = SteeringHandle::allow_all();
+    let slot = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let mw = RepeatedToolFailureMiddleware::new(handle.clone(), 3, slot.clone());
+    let error = "HTTP 404 Not Found from example.com; the page could not be fetched.\nResponse excerpt: request timed out while rendering";
+
+    for index in 0..2 {
+        let mut result = failing_result("web_fetch", error);
+        mw.after_tool(
+            &mut ctx(),
+            &(),
+            &invocation(format!("fetch-{index}"), "web_fetch"),
+            &mut result,
+        )
+        .await
+        .unwrap();
+    }
+    assert_eq!(
+        drain_pause_count(&handle),
+        0,
+        "the ordinary site failure should remain below the exact-repeat halt threshold"
+    );
+
+    let mut result = failing_result("web_fetch", error);
+    mw.after_tool(
+        &mut ctx(),
+        &(),
+        &invocation("fetch-2", "web_fetch"),
+        &mut result,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(
+        drain_pause_count(&handle),
+        1,
+        "the body excerpt must not divert an ordinary site error into transient-failure handling"
+    );
+    let summary = slot
+        .lock()
+        .unwrap()
+        .clone()
+        .expect("exact-repeat halt summary");
+    assert!(summary.contains("404") && summary.contains("timed out"));
+}
+
+#[tokio::test]
 async fn repeated_tool_failure_resets_on_a_success() {
     let handle = SteeringHandle::allow_all();
     let mw = RepeatedToolFailureMiddleware::new(

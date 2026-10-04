@@ -41,6 +41,7 @@ is mounted as a submodule of `load/dirs.rs` via `#[path]`.
 | `[[model_routes]]`, `[[embedding_routes]]` | `routes.rs` | `ModelRouteConfig`, `EmbeddingRouteConfig` |
 | `[runtime]` (+ `[runtime.docker]`), `[shell]`, `[reliability]`, `[scheduler]` | `runtime.rs` | `RuntimeConfig`, `DockerRuntimeConfig`, `ShellConfig`, `ReliabilityConfig`, `SchedulerConfig` |
 | `[runtime_pool]` | `runtime_pool.rs` | `RuntimePoolConfig`, `RuntimePoolLangConfig` |
+| `[runtime.local_jail]` | `runtime_local_jail.rs` | `LocalJailConfig` — filesystem grants for the local OS jail |
 | `[runtime_python]` | `runtime_python.rs` | `RuntimePythonConfig` |
 | `[scheduler_gate]` | `scheduler_gate.rs` | `SchedulerGateConfig`, `SchedulerGateMode` |
 | `[memory]` (engine, `engines.<id>`, `conversations`, `context`, `sources`, embedding settings) | `memory.rs` | `MemoryConfig`, `MemoryEngineSettings`, `MemoryConversationsConfig`, `MemoryContextConfig`, `MemorySourceConfig` (see `docs/specs/memory-v2.md`) |

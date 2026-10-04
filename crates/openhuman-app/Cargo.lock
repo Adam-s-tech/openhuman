@@ -4354,12 +4354,14 @@ name = "openhuman-embed"
 version = "0.64.10"
 dependencies = [
  "anyhow",
+ "async-trait",
  "log",
  "openhuman",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.20",
+ "tinymcp-bus",
  "tokio",
  "url",
  "uuid",
@@ -7618,7 +7620,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7644,7 +7646,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice-bus"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "serde",
  "serde_json",

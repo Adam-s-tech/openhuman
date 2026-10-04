@@ -62,6 +62,7 @@ mod privacy;
 mod proxy;
 mod routes;
 mod runtime;
+mod runtime_local_jail;
 mod runtime_pool;
 mod runtime_python;
 mod scheduler_gate;
@@ -107,6 +108,7 @@ pub use routes::{EmbeddingRouteConfig, ModelRouteConfig};
 pub use runtime::{
     DockerRuntimeConfig, ReliabilityConfig, RuntimeConfig, SchedulerConfig, ShellConfig,
 };
+pub use runtime_local_jail::LocalJailConfig;
 pub use runtime_pool::{RuntimePoolConfig, RuntimePoolLangConfig};
 pub use runtime_python::RuntimePythonConfig;
 pub use scheduler_gate::{PauseReason, Policy, SchedulerGateConfig, SchedulerGateMode};
