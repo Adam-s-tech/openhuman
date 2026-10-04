@@ -92,6 +92,42 @@ pub struct MemoryConfig {
     /// Outbound embedding requests per minute for cloud providers; `0`
     /// disables throttling. Env override: `OPENHUMAN_MEMORY_EMBED_RATE_LIMIT`.
     pub embedding_rate_limit_per_min: u32,
+    /// Agents that read and write the root memory node, the memory every
+    /// agent shares. Every other agent gets its own node (`agent:<id>`).
+    pub root_agents: Vec<String>,
+    /// Per-agent memory settings, keyed by agent definition id.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub agents: BTreeMap<String, MemoryAgentConfig>,
+}
+
+/// Default `root_agents`: the main chat agent.
+pub const DEFAULT_ROOT_AGENTS: [&str; 1] = ["orchestrator"];
+
+/// `[memory.agents.<id>]`: one agent's memory.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct MemoryAgentConfig {
+    /// The agent's memory node (`team:acme/agent:writer`, `root`); unset
+    /// derives it from the agent id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+    /// Whether the agent also reads the nodes above its own (its team's and
+    /// the root's). Off isolates the agent entirely.
+    pub inherit: bool,
+    /// Whether the agent gets its own compiled `context.md`; unset follows
+    /// `[memory.context] enabled`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<bool>,
+}
+
+impl Default for MemoryAgentConfig {
+    fn default() -> Self {
+        Self {
+            namespace: None,
+            inherit: true,
+            context: None,
+        }
+    }
 }
 
 /// Default `embedding_provider`: the OpenHuman backend (Voyage-backed).
@@ -117,6 +153,8 @@ impl Default for MemoryConfig {
             embedding_model: DEFAULT_EMBEDDING_MODEL.to_string(),
             embedding_dimensions: DEFAULT_EMBEDDING_DIMENSIONS,
             embedding_rate_limit_per_min: DEFAULT_EMBEDDING_RATE_LIMIT_PER_MIN,
+            root_agents: DEFAULT_ROOT_AGENTS.map(str::to_string).to_vec(),
+            agents: BTreeMap::new(),
         }
     }
 }
@@ -255,6 +293,11 @@ pub struct MemorySourceConfig {
     /// Minutes between scheduled syncs; unset means on demand only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schedule_mins: Option<u32>,
+    /// The memory node the source's documents are stored at
+    /// (`agent:researcher`); unset stores them at the root, shared by every
+    /// agent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
 }
 
 /// Decodes `[[memory.sources]]` one entry at a time, dropping (and logging)
@@ -330,6 +373,7 @@ pub fn migrate_legacy_source(value: &serde_json::Value) -> Option<MemorySourceCo
         target,
         label,
         schedule_mins: None,
+        namespace: None,
     })
 }
 
