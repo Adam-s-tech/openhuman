@@ -26,6 +26,7 @@ mod embeddings;
 mod harness_assembly;
 mod harness_context_ladder;
 pub(crate) mod harness_tool_registration;
+mod memory_summarizer;
 pub mod host;
 pub(crate) mod hosted_error;
 pub(crate) mod journal;
