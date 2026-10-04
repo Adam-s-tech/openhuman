@@ -1262,6 +1262,13 @@ async fn a_chat_turn_carries_its_pack_and_is_logged() {
     let f = Fixture::new(true).await;
     f.learn("The user prefers launch events in Lisbon").await;
 
+    let direct = f
+        .call(
+            "openhuman.inference_agent_chat",
+            json!({ "message": "Where should the launch event be held?", "thread_id": "probe-thread" }),
+        )
+        .await;
+    eprintln!("DIRECT: {direct}");
     let accepted = f
         .ok(
             "openhuman.channel_web_chat",
