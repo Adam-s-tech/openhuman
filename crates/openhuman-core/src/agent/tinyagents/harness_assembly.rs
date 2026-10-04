@@ -704,6 +704,10 @@ pub(super) fn assemble_turn_harness(
     if let Some(mw) = &repeated_failure {
         harness.push_middleware(Arc::new(mw.nudge_injector()));
     }
+    // The turn's memory pack rides every request of the turn, after every
+    // reduction step and after the transcript snapshot, so it is never
+    // compacted, trimmed or persisted (`memory::lifecycle::hooks::pre_turn`).
+    harness.push_middleware(Arc::new(middleware::MemoryPackMiddleware));
 
     AssembledTurnHarness {
         harness,
