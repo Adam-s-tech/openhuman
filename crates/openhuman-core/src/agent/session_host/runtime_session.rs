@@ -1159,11 +1159,14 @@ impl OpenHumanSessionHost {
                                 &overrides,
                                 &mut options.run_context.data,
                             ),
-                            prelude.memory_pre_turn(
+                            // Boxed: the hook's future (config load, engine
+                            // calls) would otherwise be inlined into this
+                            // already-large hook future.
+                            Box::pin(prelude.memory_pre_turn(
                                 view.history,
                                 view.committed_turns,
                                 current_input,
-                            ),
+                            )),
                         );
                         options.run_context.data.memory_turn = memory_turn;
                         request.input = user_message_from_text(&enriched);
