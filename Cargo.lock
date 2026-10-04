@@ -7078,7 +7078,7 @@ dependencies = [
 
 [[package]]
 name = "tinymemory-api"
-version = "1.23.0"
+version = "1.23.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -7090,7 +7090,7 @@ dependencies = [
 
 [[package]]
 name = "tinymemory-integrations"
-version = "1.23.0"
+version = "1.23.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -7113,7 +7113,7 @@ dependencies = [
 
 [[package]]
 name = "tinymemory-tools"
-version = "1.23.0"
+version = "1.23.1"
 dependencies = [
  "chrono",
  "futures",
