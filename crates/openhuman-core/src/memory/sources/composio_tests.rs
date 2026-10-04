@@ -124,6 +124,7 @@ fn source_id_for_toolkit_prefers_the_configured_source() {
             target: "gmail".into(),
             label: "Gmail".into(),
             schedule_mins: None,
+        namespace: None,
         });
     config
         .memory
@@ -134,6 +135,7 @@ fn source_id_for_toolkit_prefers_the_configured_source() {
             target: "notion".into(),
             label: "Folder named like a toolkit".into(),
             schedule_mins: None,
+        namespace: None,
         });
     assert_eq!(source_id_for_toolkit(&config, "GMAIL"), "src-gmail");
     assert_eq!(source_id_for_toolkit(&config, "notion"), "composio:notion");
@@ -188,6 +190,7 @@ async fn sync_toolkit_without_a_connector_is_an_error_not_a_panic() {
         target: "gmail".into(),
         label: "Gmail".into(),
         schedule_mins: None,
+    namespace: None,
     };
     assert!(sync_toolkit(&config, &bound, &source).await.is_err());
 }

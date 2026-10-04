@@ -20,6 +20,7 @@ fn source(id: &str, mins: Option<u32>) -> MemorySourceConfig {
         target: "/tmp/x".to_string(),
         label: id.to_string(),
         schedule_mins: mins,
+    namespace: None,
     }
 }
 

@@ -141,6 +141,7 @@ pub fn apply_add(
         target,
         label,
         schedule_mins: params.schedule_mins,
+    namespace: None,
     };
     sync::reader_entry(&source)?;
     config.memory.sources.push(source.clone());

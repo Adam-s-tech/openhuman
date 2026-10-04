@@ -11,6 +11,7 @@ fn folder_source(id: &str, dir: &std::path::Path, mins: Option<u32>) -> MemorySo
         target: dir.display().to_string(),
         label: id.to_string(),
         schedule_mins: mins,
+    namespace: None,
     }
 }
 
@@ -48,6 +49,7 @@ fn reader_entry_maps_every_kind() {
         target: target.into(),
         label: "L".into(),
         schedule_mins: None,
+    namespace: None,
     };
     let folder = reader_entry(&mk(MemorySourceKind::Folder, "/p"))
         .unwrap()
