@@ -203,6 +203,7 @@ fn blank_outcome(truncated: bool) -> TinyagentsTurnOutcome {
         wrap_up_injected: false,
         breaker_halt: None,
         truncated,
+        compaction: None,
         tool_outcomes: Vec::new(),
     }
 }
