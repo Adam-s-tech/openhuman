@@ -330,19 +330,19 @@ impl OpenHumanTurnPrelude {
     /// semantics, but keeps the mutable authority in hook state rather than a
     /// second turn loop. A revoked delegate is removed from the executable
     /// source, schema, and policy together before this request is prepared.
-    fn refresh_delegation_tool_surface(&self) {
+    fn refresh_delegation_tool_surface(&self) -> anyhow::Result<()> {
         use crate::agent::harness::definition::AgentDefinitionRegistry;
         use crate::tools::agent_policy::ToolPolicyEngine;
         use crate::tools::orchestrator_tools::collect_orchestrator_tools;
 
         let Some(registry) = AgentDefinitionRegistry::global() else {
-            return;
+            return Ok(());
         };
         let Some(definition) = registry.get(&self.agent_definition_id).cloned() else {
-            return;
+            return Ok(());
         };
         if definition.subagents.is_empty() {
-            return;
+            return Ok(());
         }
         let (integrations, integrations_are_authoritative) = {
             let mutable = self
@@ -371,6 +371,10 @@ impl OpenHumanTurnPrelude {
             integrations_are_authoritative,
         );
         collected.extend(rebuilt);
+        super::managed_tools::reject_synthesized_collisions(
+            &surface.permanent_tool_names,
+            &collected,
+        )?;
         let synthesized =
             super::builder::drop_synthesized_name_collisions(&surface.tools, collected);
         let synthesized_names = synthesized
@@ -460,6 +464,7 @@ impl OpenHumanTurnPrelude {
         surface.synthesized_tools = synthesized_tools;
         surface.visible_tool_specs = Arc::new(visible);
         surface.tool_policy_session = policy;
+        Ok(())
     }
 
     fn drain_host_events(&self) -> bool {
