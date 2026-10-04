@@ -476,6 +476,16 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
             false if body_level_failure => content.clone(),
             false => String::new(),
         };
+        // For an ordinary fetched-site status (404, 410, etc.), the response
+        // body is untrusted excerpt text. It must not turn the site failure
+        // into a terminal inference or transient tool failure. Keep the full
+        // text below for the exact-repeat tracker and its user-facing summary.
+        let heuristic_failure_text = if fetched_site_policy(tool_name, &failure_text) == Some(None)
+        {
+            failure_text.lines().next().unwrap_or(&failure_text)
+        } else {
+            &failure_text
+        };
 
         if !result.is_error && !body_level_failure {
             // Only a successful observation against this operation and scope
@@ -559,7 +569,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         // a provider error (a script calling an API) without the agent's own
         // inference having failed.
         if result.is_error && !is_command_exit_report(&failure_text) {
-            if let Some(kind) = terminal_inference_failure_kind(&failure_text) {
+            if let Some(kind) = terminal_inference_failure_kind(heuristic_failure_text) {
                 tracing::warn!(
                     tool = tool_name,
                     kind = ?kind,
@@ -605,9 +615,9 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         let recoverable = result.is_error
             && !hard_reject
             && !is_command_exit_report(&failure_text)
-            && (is_recoverable_tool_failure(&failure_text)
+            && (is_recoverable_tool_failure(heuristic_failure_text)
                 || matches!(
-                    crate::tools::status::classify(&failure_text, false).class,
+                    crate::tools::status::classify(heuristic_failure_text, false).class,
                     crate::tools::status::ToolFailureClass::Timeout
                         | crate::tools::status::ToolFailureClass::ServiceUnavailable
                         | crate::tools::status::ToolFailureClass::ModelConnection
