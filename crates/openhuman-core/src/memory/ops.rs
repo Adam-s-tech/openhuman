@@ -360,7 +360,6 @@ pub async fn items_list(config: &Config, params: ItemsListParams) -> MemoryResul
         filter: super::explore::narrowed(params.filter, &params.path)?,
         limit: clamp_limit(params.limit),
         cursor: params.cursor,
-        beliefs: 0,
     };
     request.validate()?;
     let page = bound.engine.list(request).await?;
