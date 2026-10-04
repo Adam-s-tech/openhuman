@@ -1,8 +1,13 @@
 /**
- * Memory → Ask: put a question to memory and read the engine's answer with its
- * citations (`memory_recall`). The "Raw results" switch runs the same text as
- * a plain search instead (`memory_fetch`), with a mode picker limited to the
- * engine's `fetch_modes`, and lists every hit with its score.
+ * Memory → Ask, in three modes:
+ *
+ * - Answer: put a question to memory and read the engine's answer with its
+ *   citations (`memory_recall`).
+ * - Raw results: run the same text as a plain search (`memory_fetch`), with a
+ *   mode picker limited to the engine's `fetch_modes`, listing every hit with
+ *   its score.
+ * - Pack preview: the memory pack a turn (or a new session) would be given
+ *   ({@link MemoryPackPreview}).
  *
  * debug logging: DEBUG=openhuman:memory:ask
  */
@@ -26,11 +31,15 @@ import {
   Card,
   Label,
   NativeSelect,
-  Switch,
   TextArea,
+  ToggleGroupItem,
+  ToggleGroupRoot,
 } from '../ui';
 import { CenteredLoadingState } from '../ui/LoadingState';
 import MemoryHitRow from './MemoryHitRow';
+import MemoryPackPreview from './MemoryPackPreview';
+
+type AskMode = 'answer' | 'raw' | 'pack';
 
 const log = debug('openhuman:memory:ask');
 
@@ -44,7 +53,8 @@ interface MemoryAskTabProps {
 export default function MemoryAskTab({ fetchModes }: MemoryAskTabProps) {
   const { t } = useT();
   const [question, setQuestion] = useState('');
-  const [raw, setRaw] = useState(false);
+  const [askMode, setAskMode] = useState<AskMode>('answer');
+  const raw = askMode === 'raw';
   const [mode, setMode] = useState<FetchMode | ''>(fetchModes[0] ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +100,29 @@ export default function MemoryAskTab({ fetchModes }: MemoryAskTabProps) {
 
   return (
     <div className="space-y-4 animate-fade-up" data-testid="memory-ask-tab">
+      <ToggleGroupRoot
+        type="single"
+        size="sm"
+        value={askMode}
+        onValueChange={next => {
+          if (next) setAskMode(next as AskMode);
+        }}
+        aria-label={t('memoryPage.ask.viewLabel')}>
+        <ToggleGroupItem value="answer" data-testid="memory-ask-mode-answer">
+          {t('memoryPage.ask.viewAnswer')}
+        </ToggleGroupItem>
+        <ToggleGroupItem value="raw" data-testid="memory-ask-mode-raw">
+          {t('memoryPage.ask.rawToggle')}
+        </ToggleGroupItem>
+        <ToggleGroupItem value="pack" data-testid="memory-ask-mode-pack">
+          {t('memoryPage.ask.viewPack')}
+        </ToggleGroupItem>
+      </ToggleGroupRoot>
+
+      {askMode === 'pack' ? (
+        <MemoryPackPreview />
+      ) : (
+        <>
       <Card padded divided={false}>
         <form className="flex flex-col gap-3" onSubmit={e => void submit(e)}>
           <Label htmlFor="memory-ask-question" className="text-xs text-content-secondary">
@@ -108,18 +141,6 @@ export default function MemoryAskTab({ fetchModes }: MemoryAskTabProps) {
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="memory-ask-raw"
-                  data-testid="memory-ask-raw-toggle"
-                  checked={raw}
-                  onCheckedChange={setRaw}
-                  aria-label={t('memoryPage.ask.rawToggle')}
-                />
-                <Label htmlFor="memory-ask-raw" className="text-xs text-content-secondary">
-                  {t('memoryPage.ask.rawToggle')}
-                </Label>
-              </div>
               {raw && fetchModes.length > 0 && (
                 <NativeSelect
                   aria-label={t('memoryPage.ask.modeLabel')}
@@ -202,6 +223,8 @@ export default function MemoryAskTab({ fetchModes }: MemoryAskTabProps) {
             </ul>
           )}
         </Card>
+      )}
+        </>
       )}
     </div>
   );
