@@ -36,6 +36,8 @@ export function facetLabel(facet: Facet, t: Translate): string {
       return t('memoryPage.explorer.facet.toolCall');
     case 'tag':
       return t('memoryPage.explorer.facet.tag');
+    case 'namespace':
+      return t('memoryPage.explorer.facet.namespace');
     default:
       return String(facet);
   }
@@ -58,7 +60,13 @@ function sourceLabel(kind: SourceKind, t: Translate): string {
 export function facetValueLabel(facet: Facet, value: string, t: Translate): string {
   if (facet === 'kind') return kindLabel(value as ItemKind, t);
   if (facet === 'source') return sourceLabel(value as SourceKind, t);
+  if (facet === 'namespace') return namespaceLabel(value, t);
   return value;
+}
+
+/** A memory node as a reader sees it: the shared root named, agents verbatim. */
+export function namespaceLabel(value: string, t: Translate): string {
+  return value === 'root' ? t('memoryPage.explorer.namespace.root') : value;
 }
 
 /** Whether values of `facet` are identifiers or paths, shown in a monospace face. */

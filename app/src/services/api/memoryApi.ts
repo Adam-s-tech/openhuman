@@ -223,10 +223,12 @@ export type Facet =
   | 'thread'
   | 'agent'
   | 'tool_call'
-  | 'tag';
+  | 'tag'
+  | 'namespace';
 
 export const FACETS: readonly Facet[] = [
   'kind',
+  'namespace',
   'source',
   'source_id',
   'workspace',
@@ -320,6 +322,8 @@ export interface SourceAddRequest {
 }
 
 export interface MemoryContext {
+  /** The memory node the brief is about; `root` is the one every agent shares. */
+  namespace: string;
   markdown: string;
   tokens: number;
   generated_at: string | null;
@@ -548,12 +552,16 @@ export function memorySourcesSync(id?: string): Promise<{ started: string[] }> {
 
 // ─── context.md ──────────────────────────────────────────────────────────────
 
-export function memoryContextGet(): Promise<MemoryContext> {
-  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextGet);
+/** The memory node every agent shares. */
+export const ROOT_NAMESPACE = 'root';
+
+/** The brief of one memory node (`root` when omitted). */
+export function memoryContextGet(namespace?: string): Promise<MemoryContext> {
+  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextGet, { namespace });
 }
 
-export function memoryContextRefresh(): Promise<MemoryContext> {
-  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextRefresh);
+export function memoryContextRefresh(namespace?: string): Promise<MemoryContext> {
+  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextRefresh, { namespace });
 }
 
 export function memoryContextSet(update: ContextUpdate): Promise<MemoryContext> {
