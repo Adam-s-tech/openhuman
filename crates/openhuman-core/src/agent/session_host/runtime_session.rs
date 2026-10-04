@@ -1229,7 +1229,12 @@ impl OpenHumanSessionHost {
                             )
                         })?;
                         let new_session = !view.resumed && view.history.is_empty();
-                        prelude.refresh_turn_boundary(new_session).await;
+                        prelude
+                            .refresh_turn_boundary(new_session)
+                            .await
+                            .map_err(|error| {
+                                tinyagents_runtime::RuntimeError::Driver(error.to_string())
+                            })?;
                         let context_window = prelude
                             .turn_model_source
                             .effective_context_window(&prelude.model_name)
