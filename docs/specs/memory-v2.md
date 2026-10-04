@@ -79,8 +79,7 @@ taken from model arguments.
 - `omit_memory_context` on an agent definition turns its pack off; its turns
   are still logged.
 - The pack's cited items are recorded as the turn's memory citations, so the
-  chat shows what memory the answer drew on. `DomainEvent::MemoryPackInjected`
-  (counts only) reports each injection.
+  chat shows what memory the answer drew on.
 
 ## Background jobs (`memory::lifecycle::jobs`)
 
