@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Source } from '../../services/api/memoryApi';
 import { renderWithProviders } from '../../test/test-utils';
-import MemoryDocumentsTab from './MemoryDocumentsTab';
+import MemorySyncedSources from './MemorySyncedSources';
 
 const hoisted = vi.hoisted(() => ({ list: vi.fn(), add: vi.fn(), remove: vi.fn(), sync: vi.fn() }));
 
@@ -42,9 +42,9 @@ beforeEach(() => {
   hoisted.sync.mockReset();
 });
 
-describe('MemoryDocumentsTab', () => {
+describe('MemorySyncedSources', () => {
   it('lists sources with status, items, schedule and errors', async () => {
-    renderWithProviders(<MemoryDocumentsTab />);
+    renderWithProviders(<MemorySyncedSources />);
     const notes = await screen.findByTestId('memory-source-s1');
     expect(notes).toHaveTextContent('Notes');
     expect(notes).toHaveTextContent('Folder');
@@ -58,7 +58,7 @@ describe('MemoryDocumentsTab', () => {
 
   it('shows the empty state', async () => {
     hoisted.list.mockResolvedValue({ sources: [] });
-    renderWithProviders(<MemoryDocumentsTab />);
+    renderWithProviders(<MemorySyncedSources />);
     expect(await screen.findByTestId('memory-sources-empty')).toBeInTheDocument();
     expect(screen.getByTestId('memory-sources-sync-all')).toBeDisabled();
   });
@@ -66,7 +66,7 @@ describe('MemoryDocumentsTab', () => {
   it('adds a folder source', async () => {
     const added: Source = { ...NOTES, id: 's3', label: 'Docs', target: '/docs', items: 0 };
     hoisted.add.mockResolvedValue({ source: added });
-    renderWithProviders(<MemoryDocumentsTab />);
+    renderWithProviders(<MemorySyncedSources />);
     fireEvent.click(await screen.findByTestId('memory-sources-add'));
 
     fireEvent.change(screen.getByTestId('memory-add-source-target'), {
@@ -90,7 +90,7 @@ describe('MemoryDocumentsTab', () => {
 
   it('adds a GitHub source and keeps the dialog open on failure', async () => {
     hoisted.add.mockRejectedValue(new Error('INVALID_REQUEST: repo not found'));
-    renderWithProviders(<MemoryDocumentsTab />);
+    renderWithProviders(<MemorySyncedSources />);
     fireEvent.click(await screen.findByTestId('memory-sources-add'));
     fireEvent.change(screen.getByTestId('memory-add-source-kind'), { target: { value: 'github' } });
     expect(screen.getByTestId('memory-add-source-target')).toHaveAttribute(
@@ -109,7 +109,7 @@ describe('MemoryDocumentsTab', () => {
 
   it('syncs one source and marks it syncing', async () => {
     hoisted.sync.mockResolvedValue({ started: ['s1'] });
-    renderWithProviders(<MemoryDocumentsTab />);
+    renderWithProviders(<MemorySyncedSources />);
     fireEvent.click(await screen.findByTestId('memory-source-s1-sync'));
     await waitFor(() => expect(hoisted.sync).toHaveBeenCalledWith('s1'));
     expect(await screen.findByTestId('memory-source-s1-status')).toHaveTextContent('Syncing');
@@ -117,14 +117,14 @@ describe('MemoryDocumentsTab', () => {
 
   it('syncs every source', async () => {
     hoisted.sync.mockResolvedValue({ started: ['s1', 's2'] });
-    renderWithProviders(<MemoryDocumentsTab />);
+    renderWithProviders(<MemorySyncedSources />);
     fireEvent.click(await screen.findByTestId('memory-sources-sync-all'));
     await waitFor(() => expect(hoisted.sync).toHaveBeenCalledWith(undefined));
   });
 
   it('removes a source and optionally forgets its items', async () => {
     hoisted.remove.mockResolvedValue({ removed: true });
-    renderWithProviders(<MemoryDocumentsTab />);
+    renderWithProviders(<MemorySyncedSources />);
     fireEvent.click(await screen.findByTestId('memory-source-s1-remove'));
     fireEvent.click(screen.getByTestId('memory-remove-source-forget'));
     fireEvent.click(screen.getByTestId('memory-remove-source-confirm'));
@@ -134,7 +134,7 @@ describe('MemoryDocumentsTab', () => {
 
   it('shows a load error', async () => {
     hoisted.list.mockRejectedValue(new Error('ENGINE: down'));
-    renderWithProviders(<MemoryDocumentsTab />);
-    expect(await screen.findByTestId('memory-documents-error')).toHaveTextContent('down');
+    renderWithProviders(<MemorySyncedSources />);
+    expect(await screen.findByTestId('memory-synced-sources-error')).toHaveTextContent('down');
   });
 });

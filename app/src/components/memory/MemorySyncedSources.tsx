@@ -1,5 +1,5 @@
 /**
- * Memory → Documents: the registry of synced sources (folders, files, links,
+ * Memory → Brain → Synced sources: the registry of synced sources (folders, files, links,
  * GitHub repos, RSS feeds, Composio toolkits). Lists them with status, item
  * count, last sync and any error; adds, syncs one or all, and removes (with an
  * opt-in to forget the items the source stored).
@@ -26,11 +26,11 @@ import MemoryAddSourceDialog from './MemoryAddSourceDialog';
 import { fill, formatTimestamp } from './memoryFormat';
 import { SOURCE_STATUS_VARIANT, sourceKindLabel, sourceStatusLabel } from './memorySourceLabels';
 
-const log = debug('openhuman:memory:documents');
+const log = debug('openhuman:memory:synced-sources');
 
 const SYNC_POLL_MS = 5_000;
 
-export default function MemoryDocumentsTab() {
+export default function MemorySyncedSources() {
   const { t } = useT();
   const [sources, setSources] = useState<Source[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -146,15 +146,15 @@ export default function MemoryDocumentsTab() {
   if (sources === null) return <CenteredLoadingState label={t('memoryPage.loading')} />;
 
   return (
-    <div className="space-y-4 animate-fade-up" data-testid="memory-documents-tab">
+    <div className="space-y-4" data-testid="memory-synced-sources">
       {error !== null && (
-        <Alert variant="destructive" data-testid="memory-documents-error">
+        <Alert variant="destructive" data-testid="memory-synced-sources-error">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <Card
-        title={t('memoryPage.documents.listTitle')}
+        title={t('memoryPage.brain.syncedTitle')}
         description={t('memoryPage.documents.listDescription')}
         headerRight={
           <div className="flex items-center gap-2">
