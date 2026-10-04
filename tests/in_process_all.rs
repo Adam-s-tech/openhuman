@@ -27,8 +27,6 @@
 
 #[path = "support/env_guard.rs"]
 pub mod env_guard;
-#[path = "support/memory_rpc.rs"]
-pub mod memory_rpc;
 #[path = "support/rpc_auth.rs"]
 pub mod rpc_auth;
 #[path = "support/rpc_harness.rs"]
