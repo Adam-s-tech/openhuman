@@ -91,8 +91,7 @@ pub(crate) fn clamp_shell_timeout(
         .saturating_sub(SHELL_TIMEOUT_RESERVE)
         .max(remaining / 2)
         .as_secs()
-        .max(1)
-        .min(crate::tools::timeout::MAX_TIMEOUT_SECS);
+        .clamp(1, crate::tools::timeout::MAX_TIMEOUT_SECS);
     if requested.is_some_and(|secs| secs <= cap) {
         return None;
     }
