@@ -50,17 +50,13 @@ const LEGACY_LIMIT_ENTRIES = [
   ["crates/openhuman-core/src/web_chat/progress_bridge.rs", 1304],
   // These established external test modules grew with upstream coverage. Pin
   // their current sizes while follow-up work separates their test concerns.
-  ["crates/openhuman-core/src/agent/prompts/mod_tests_builder_sections_tests.rs", 779],
   // `core/` was pruned from the line limit by name until these pins; its
   // oversized files are pinned at the size they had when enforcement began.
-  ["crates/openhuman-core/src/core/all.rs", 1840],
-  ["crates/openhuman-core/src/core/all_tests.rs", 2501],
-  ["crates/openhuman-core/src/core/cli.rs", 803],
-  ["crates/openhuman-core/src/core/events.rs", 2005],
-  ["crates/openhuman-core/src/core/events_tests.rs", 1062],
-  ["crates/openhuman-core/src/core/observability.rs", 3631],
-  ["crates/openhuman-core/src/core/runtime/builder.rs", 825],
-  ["crates/openhuman-core/src/core/runtime/context.rs", 1024],
+  ["crates/openhuman-core/src/core/all.rs", 1494],
+  ["crates/openhuman-core/src/core/all_tests.rs", 1635],
+  ["crates/openhuman-core/src/core/events.rs", 1808],
+  ["crates/openhuman-core/src/core/events_tests.rs", 1003],
+  ["crates/openhuman-core/src/core/observability.rs", 3502],
 ];
 const LEGACY_LIMITS = new Map(LEGACY_LIMIT_ENTRIES);
 
