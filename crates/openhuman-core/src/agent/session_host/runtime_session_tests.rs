@@ -391,7 +391,6 @@ fn text_dialect_host(
         .chat_model(model)
         .tools(tools)
         .action_dir(action_dir.path().to_path_buf())
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
         .build()
         .expect("session build");
@@ -411,9 +410,7 @@ async fn prompt_and_declared_tools(
         .prelude
         .clone()
         .expect("prelude");
-    let tiered = prelude
-        .build_system_prompt_tiered(crate::agent::prompts::LearnedContextData::default())
-        .expect("system prompt");
+    let tiered = prelude.build_system_prompt_tiered().expect("system prompt");
     let snapshot = prelude
         .prepare(true)
         .await
@@ -510,7 +507,6 @@ async fn newly_connected_action_cannot_shadow_a_permanent_source() {
         .tools(vec![Box::new(AttachedAction)])
         .permanent_tool_names(std::collections::HashSet::from(["GMAIL_SEND_EMAIL".into()]))
         .action_dir(action_dir.path().to_path_buf())
-        .memory(crate::memory::test_support::noop_memory())
         .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
         .agent_definition_name("orchestrator")
         .build()
