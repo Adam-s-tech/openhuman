@@ -420,7 +420,7 @@ fn message_body(m: &chatdb::Message) -> String {
 }
 
 #[cfg(target_os = "macos")]
-async fn ingest_group(account_id: &str, key: &str, transcript: String) -> anyhow::Result<()> {
+async fn ingest_group(_account_id: &str, key: &str, transcript: String) -> anyhow::Result<()> {
     let (chat_id, day) = key.split_once(':').unwrap_or((key, ""));
     let url = crate::core_rpc::core_rpc_url_value();
 
