@@ -4,7 +4,7 @@
 //! composio / threads slice and drives the real HTTP JSON-RPC router against
 //! an isolated workspace. It avoids live network calls.
 
-use crate::env_guard::{env_lock, env_lock_async};
+use crate::env_guard::env_lock_async;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::ensure_rpc_auth;
 use crate::rpc_harness::{ok, rpc};
@@ -726,7 +726,7 @@ async fn threads_remaining_controller_paths_round_trip() {
 
 #[tokio::test]
 async fn memory_v2_controller_surface_is_reachable() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let methods = [
