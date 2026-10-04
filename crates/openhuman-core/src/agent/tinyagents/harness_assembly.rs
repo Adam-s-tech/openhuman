@@ -596,11 +596,11 @@ pub(super) fn assemble_turn_harness(
         &tool_outcome_sink,
     );
     // Issue #6952: one spec check before a root orchestrator turn's first answer.
-    let vbf_agent = tool_policy.as_ref().map(|p| p.agent_definition_id.as_str());
+    let vf_agent = tool_policy.as_ref().map(|p| p.agent_definition_id.as_str());
     verify_before_finish::install(
         &mut harness,
         subagent_scope.is_some(),
-        vbf_agent,
+        vf_agent,
         &wrap_up_fired,
     );
 
