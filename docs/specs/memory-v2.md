@@ -126,20 +126,20 @@ All methods take and return JSON objects. Errors use the standard structured err
 | `memory_recall` | `{question, filter?, limit?}` | `{answer, citations: Citation[], model?}` |
 | `memory_fetch` | `{query, mode?, filter?, limit?, cursor?}` | `{hits: Hit[], next_cursor?}` |
 | `memory_learn` | `{text, kind?, confidence?, meta?}` | `{id}` |
-| `memory_forget` | `{ids}` | `{forgotten: number}` |
+| `memory_forget` | `{ids, reach?}` | `{forgotten: number}`; with `reach`, only items in it |
 | `memory_items_list` | `{filter?, limit?, cursor?, path?}` | `{items: Hit[], next_cursor?}` |
 | `memory_conversations_backfill_status` | `{}` | `{state: {phase, threads_total, threads_done, turns_stored, items_stored, error?, finished_at?}, pending_threads, pending_turns}` |
 | `memory_conversations_backfill_start` | `{consent: true}` | same as status; runs in the background |
 | `memory_explore` | `{facet, path?, filter?, limit? (1–500, default 50), scan_limit?}` | `{facet, buckets: {value, count}[], total, missing, more_buckets, truncated}` |
-| `memory_items_get` | `{ids}` (1–200) | `{items: Hit[]}` in the order asked; unknown ids left out |
+| `memory_items_get` | `{ids, reach?}` (1–200) | `{items: Hit[]}` in the order asked; unknown ids (and ids beyond `reach`) left out |
 | `memory_conversations_get` | `{}` | `{enabled, batch_turns, idle_secs, recent: {thread_id, turns, stored_at}[]}` |
 | `memory_conversations_set` | `{enabled?, batch_turns?, idle_secs?}` | same as `conversations_get` |
 | `memory_sources_list` | `{}` | `{sources: Source[]}` |
-| `memory_sources_add` | `{kind, target, label?, schedule_mins?}` | `{source: Source}` |
+| `memory_sources_add` | `{kind, target, label?, schedule_mins?, namespace?}` | `{source: Source}` |
 | `memory_sources_remove` | `{id, forget_items?}` | `{removed: boolean}` |
 | `memory_sources_sync` | `{id?}` (all if omitted) | `{started: string[]}` |
-| `memory_context_get` | `{}` | `{markdown, tokens, generated_at\|null, interval_mins, budget_tokens, enabled}` |
-| `memory_context_refresh` | `{}` | same as `context_get` |
+| `memory_context_get` | `{namespace?}` (root when omitted) | `{namespace, markdown, tokens, generated_at\|null, interval_mins, budget_tokens, enabled}` |
+| `memory_context_refresh` | `{namespace?}` | same as `context_get` |
 | `memory_context_set` | `{enabled?, interval_mins?, budget_tokens?}` | same as `context_get` |
 | `memory_import_scan` | `{}` | `{found: boolean, counts?: {documents, conversations, learnings}}` |
 | `memory_import_start` | `{consent: true}` | `{state: ImportState}` |
@@ -167,6 +167,6 @@ The Memory page lives under Connections at `/connections?tab=brain&brain=<chip>`
 
 **Past conversations.** Live ingestion only sees turns committed while it is on. `memory_conversations_backfill_start` walks the thread store and stores every earlier turn in the same `batch_turns` items and metadata live ingestion uses, tagged `backfill`. Each user message opens a turn and the replies after it are its answer. It stops short of the turns live ingestion has counted for a thread (its most recent ones), records how far each thread was stored in `<workspace>/memory/conversations_backfill.json` (resumable, and a later run sends only what is new), and needs `consent: true` because it uploads chat history. The legacy import and the backfill both write through `MemoryEngine::store_many` in batches of 25.
 
-**Explorer.** `memory_explore` groups stored items by one of TinyMemory's standard facets (`kind`, `source`, `source_id`, `workspace`, `folder`, `file_path`, `language`, `repo`, `url`, `thread`, `agent`, `tool_call`, `tag`) and counts each value. The explorer path is a list of `{facet, value}` steps that the core turns into a filter with `Facet::narrow`, so `memory_explore` and `memory_items_list` take the same `path` and the UI never rebuilds filters itself. Opening an item reads it whole with `memory_items_get`. Facets belong to the TinyMemory contract (`MemoryEngine::explore`/`get`, with listing-based defaults), not to an engine's storage layout.
+**Explorer.** `memory_explore` groups stored items by one of TinyMemory's standard facets (`kind`, `namespace`, `source`, `source_id`, `workspace`, `folder`, `file_path`, `language`, `repo`, `url`, `thread`, `agent`, `tool_call`, `tag`) and counts each value. The explorer path is a list of `{facet, value}` steps that the core turns into a filter with `Facet::narrow`, so `memory_explore` and `memory_items_list` take the same `path` and the UI never rebuilds filters itself. Opening an item reads it whole with `memory_items_get`. Facets belong to the TinyMemory contract (`MemoryEngine::explore`/`get`, with listing-based defaults), not to an engine's storage layout.
 
 Legacy `?brain=graph|goals|sync|sources` values map to `ask`, `ask`, `documents` and `documents`. `/settings/memory-engine` redirects to the `engine` chip.
