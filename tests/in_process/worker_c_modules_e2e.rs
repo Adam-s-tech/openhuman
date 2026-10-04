@@ -726,7 +726,7 @@ async fn threads_remaining_controller_paths_round_trip() {
 
 #[tokio::test]
 async fn memory_v2_controller_surface_is_reachable() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let methods = [

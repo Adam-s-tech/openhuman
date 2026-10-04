@@ -703,7 +703,7 @@ async fn agent_registry_snapshot_counts_agree_with_the_component_inventory() {
 /// `openhuman.memory_engines_list` agrees: nothing is active.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn memory_engine_status_explains_why_memory_is_off_when_signed_out() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let harness = setup().await;
 
     let response = rpc(

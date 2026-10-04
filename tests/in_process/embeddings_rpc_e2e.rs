@@ -334,7 +334,7 @@ async fn embeddings_update_settings_switches_provider() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_dimension_change_applies_without_a_wipe() {
-    let _lock = env_lock();
+    let _lock = env_lock_async().await;
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // First set provider to voyage (a provider that supports multiple dims)
