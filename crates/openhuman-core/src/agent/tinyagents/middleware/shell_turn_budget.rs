@@ -91,7 +91,8 @@ pub(crate) fn clamp_shell_timeout(
         .saturating_sub(SHELL_TIMEOUT_RESERVE)
         .max(remaining / 2)
         .as_secs()
-        .max(1);
+        .max(1)
+        .min(crate::tools::timeout::MAX_TIMEOUT_SECS);
     if requested.is_some_and(|secs| secs <= cap) {
         return None;
     }
@@ -160,7 +161,17 @@ impl<C: Send + Sync> Middleware<(), C> for ShellTimeoutClampMiddleware {
         let Some(arguments) = call.arguments.as_object_mut() else {
             return Ok(());
         };
-        let requested = arguments.get("timeout_secs").and_then(|v| v.as_u64());
+        let requested = match arguments.get("timeout_secs") {
+            Some(value) => {
+                let Some(requested) = value.as_u64() else {
+                    // A malformed explicit value belongs to shell's existing
+                    // schema/argument validation path; do not silently fix it.
+                    return Ok(());
+                };
+                Some(requested)
+            }
+            None => None,
+        };
         let Some(clamp) = clamp_shell_timeout(requested, clock.remaining()) else {
             return Ok(());
         };

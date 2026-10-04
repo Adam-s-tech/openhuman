@@ -36,6 +36,12 @@ fn an_unbounded_command_gets_the_turn_remainder_as_its_deadline() {
 }
 
 #[test]
+fn injected_timeout_never_exceeds_the_shell_schema_maximum() {
+    let clamp = clamp_shell_timeout(None, SECS(7_200)).expect("unbounded is clamped");
+    assert_eq!(clamp.clamped_secs, crate::tools::timeout::MAX_TIMEOUT_SECS);
+}
+
+#[test]
 fn near_the_deadline_the_command_gets_half_of_what_is_left() {
     // Less than twice the reserve left: the reserve would eat everything, so
     // the command and the answer split what remains.
@@ -149,6 +155,19 @@ async fn a_turn_without_a_deadline_is_untouched() {
     let mut call = shell_call(json!({"command": "make"}));
     before(&budget, &mut ctx, &mut call).await;
     assert_eq!(call.arguments, json!({"command": "make"}));
+}
+
+#[tokio::test]
+async fn malformed_explicit_timeout_is_left_for_argument_validation() {
+    let budget = ShellTurnBudget::new(None);
+    let mut ctx = spent_context();
+
+    for value in [json!("5"), json!(-1), json!(null)] {
+        let mut call = shell_call(json!({"command": "make", "timeout_secs": value}));
+        let original = call.arguments.clone();
+        before(&budget, &mut ctx, &mut call).await;
+        assert_eq!(call.arguments, original);
+    }
 }
 
 #[test]
