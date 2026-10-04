@@ -367,7 +367,7 @@ Spec: `docs/specs/memory-v2.md` (host) and `vendor/tinymemory/docs/specs/memory-
 | 8.2.7 | Pack preview (Ask tab) and brain views | RU+RI+WD | `crates/openhuman-core/src/memory/lifecycle/views_tests.rs`, `crates/openhuman-core/src/memory/brain_tests.rs`, `tests/memory_v2_e2e.rs`, `app/test/playwright/specs/memory-v2.spec.ts` | ✅ | No `context.md`; pack never persisted in the transcript |
 | 8.2.8 | One-time import of previous (v1) memory  | RU+RI+WD | `crates/openhuman-core/src/memory/import_tests.rs`, `tests/memory_v2_e2e.rs`, `app/test/playwright/specs/memory-v2.spec.ts` (`importing previous memory needs explicit consent`) | ✅ | Refused without consent |
 | 8.2.9 | MCP memory tools                         | RU | `crates/openhuman-core/src/mcp/server/tools/` | ✅ | `memory.recall`, `memory.fetch`, `memory.list`, `memory.learn`, `memory.forget` |
-| 8.2.10 | Memory UI chips and legacy redirects    | VU+WD | `app/src/components/memory/*.test.tsx`, `app/test/playwright/specs/memory-v2.spec.ts` | ✅ | Engine, Ask, Learnings, Conversations, Documents, Context; `/brain` and `/settings/memory-engine` redirect |
+| 8.2.10 | Memory UI chips and legacy redirects    | VU+WD | `app/src/components/memory/*.test.tsx`, `app/test/playwright/specs/memory-v2.spec.ts` | ✅ | Engine, Ask, Explorer, Learnings, Conversations, Brain, Background, Settings; `/brain` and `/settings/memory-engine` redirect |
 
 ### 8.3 TinyMemory Engine Contract
 
