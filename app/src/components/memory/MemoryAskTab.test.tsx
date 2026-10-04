@@ -204,7 +204,7 @@ describe('MemoryAskTab', () => {
     fireEvent.click(await screen.findByTestId('memory-pack-submit'));
 
     await waitFor(() => expect(hoisted.preview).toHaveBeenCalledWith({}));
-    expect(await screen.findByTestId('memory-pack-result')).toHaveTextContent('New session');
+    expect(await screen.findByTestId('memory-pack-result')).toHaveTextContent('Memory for a new session');
     expect(screen.getByTestId('memory-pack-tokens')).toHaveTextContent('0 tokens');
     expect(screen.getByTestId('memory-pack-markdown')).toHaveTextContent(
       'Nothing in memory made it into this pack.'
