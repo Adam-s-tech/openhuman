@@ -125,8 +125,8 @@ export default function MemoryConversationsTab() {
 
       {policy !== null && (
         <Card
-          title={t('memoryPage.conversations.settingsTitle')}
-          description={t('memoryPage.conversations.settingsDescription')}>
+          title={t('memoryPage.conversations.logTitle')}
+          description={t('memoryPage.conversations.logDescription')}>
           <div className="flex items-center justify-between gap-4 px-4 py-3">
             <label htmlFor="memory-conversations-log" className="text-sm text-content">
               {t('memoryPage.conversations.logTurns')}
