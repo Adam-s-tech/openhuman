@@ -1243,7 +1243,16 @@ async fn wait_for_request(f: &Fixture, what: &str, found: impl Fn(&str, &str) ->
         {
             return;
         }
-        assert!(Instant::now() < deadline, "never saw {what}");
+        if Instant::now() >= deadline {
+            let log: Vec<String> = f
+                .mock
+                .request_bodies()
+                .await
+                .into_iter()
+                .map(|(url, body)| format!("{url} {}", body.chars().take(600).collect::<String>()))
+                .collect();
+            panic!("never saw {what}; mock log:\n{}", log.join("\n"));
+        }
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
 }
