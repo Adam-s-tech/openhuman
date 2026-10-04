@@ -30,10 +30,9 @@ use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::MutexGuard;
 use std::time::{Duration, Instant};
 
-use env_guard::{env_lock_with_file_keyring, EnvVarGuard};
+use env_guard::{env_lock_with_file_keyring_async, EnvVarGuard};
 use rpc_harness::{rpc, serve_rpc};
 use serde_json::{json, Value};
 
@@ -144,13 +143,13 @@ struct Fixture {
     home: tempfile::TempDir,
     join: tokio::task::JoinHandle<Result<(), std::io::Error>>,
     _guards: Vec<EnvVarGuard>,
-    _lock: MutexGuard<'static, ()>,
+    _lock: tokio::sync::MutexGuard<'static, ()>,
 }
 
 impl Fixture {
     /// Boots the stack; `signed_in` stores the mock session first.
     async fn new(signed_in: bool) -> Self {
-        let lock = env_lock_with_file_keyring();
+        let lock = env_lock_with_file_keyring_async().await;
         tinyhumans_boot::boot();
         let mock = MockBackend::start().await;
         let home = tempfile::tempdir().expect("tempdir");
