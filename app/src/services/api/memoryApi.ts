@@ -62,6 +62,17 @@ export const LEARNING_KINDS: readonly LearningKind[] = [
   'other',
 ];
 
+/**
+ * The tag TinyMemory's belief builder stamps on the learnings it derives
+ * (`tinymemory_api::consolidate::BELIEF_TAG`).
+ */
+export const BELIEF_TAG = 'belief';
+
+/** True when a stored item is a belief the background builder derived. */
+export function isBuiltBelief(meta: { tags?: string[] | null } | null | undefined): boolean {
+  return Boolean(meta?.tags?.includes(BELIEF_TAG));
+}
+
 /** Engine health as `memory_engine_get` reports it. `off` = no usable engine. */
 export type EngineStatus = 'ok' | 'degraded' | 'down' | 'off';
 
