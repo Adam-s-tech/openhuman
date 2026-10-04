@@ -361,7 +361,7 @@ async fn learnings_are_shared_under_a_root_and_a_team_root_is_kept_apart() {
     };
     learn(facts(), "the main agent knows the deploy day").await;
     learn(facts_of("researcher"), "the researcher prefers arxiv").await;
-    learn(member(), "acme drafts in british english").await;
+    learn(member(), "the acme team drafts in british english").await;
 
     let all = stored(&engine, MetaFilter::kinds([ItemKind::Learning])).await;
     let at = |text: &str| {

@@ -66,7 +66,7 @@ fn a_definition_pin_beats_the_team_and_the_default() {
 fn a_host_binding_beats_everything() {
     let mut config = Config::default();
     config.memory.agent_id = Some("employee-7".into());
-    config.memory.root = Some("company:acme".into());
+    config.memory.root = Some("project:acme".into());
     config.memory.agents.insert(
         "researcher".into(),
         MemoryAgentConfig {
@@ -82,7 +82,7 @@ fn a_host_binding_beats_everything() {
     ] {
         let resolved = identity.resolve(&config);
         assert_eq!(resolved.agent_id, "employee-7");
-        assert_eq!(resolved.root(), &ns("company:acme"));
+        assert_eq!(resolved.root(), &ns("project:acme"));
     }
 }
 
