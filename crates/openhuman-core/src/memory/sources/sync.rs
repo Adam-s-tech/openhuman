@@ -13,7 +13,7 @@ use std::sync::{LazyLock, Mutex};
 use chrono::{DateTime, Utc};
 use tinymemory_integrations::documents::NativeConverter;
 use tinymemory_integrations::sources::readers::reader_for_request;
-use tinymemory_integrations::sources::{apply_kind_defaults, collect_items, MemorySourceEntry, SourceKind};
+use tinymemory_integrations::sources::{collect_items, MemorySourceEntry, SourceKind};
 
 use crate::config::schema::{MemorySourceConfig, MemorySourceKind};
 use crate::config::Config;
@@ -52,6 +52,23 @@ pub(super) fn reader_entry(source: &MemorySourceConfig) -> MemoryResult<Option<M
         .validate()
         .map_err(|error| MemoryError::invalid(error.to_string()))?;
     Ok(Some(entry))
+}
+
+/// Fills the per-kind read caps the user did not set: a GitHub repo reads at
+/// most 10 PRs, 10 issues and 50 commits, a feed at most 20 items. How much a
+/// sync pulls is host policy, so it lives here rather than in the readers.
+fn apply_kind_defaults(entry: &mut MemorySourceEntry) {
+    match entry.kind {
+        SourceKind::GithubRepo => {
+            entry.max_prs.get_or_insert(10);
+            entry.max_issues.get_or_insert(10);
+            entry.max_commits.get_or_insert(50);
+        }
+        SourceKind::RssFeed => {
+            entry.max_items.get_or_insert(20);
+        }
+        _ => {}
+    }
 }
 
 /// Reads `source` and stores what it yields. Returns the number stored.
