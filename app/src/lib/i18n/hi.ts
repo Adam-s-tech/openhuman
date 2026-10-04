@@ -4852,6 +4852,10 @@ const messages: TranslationMap = {
   'memoryPage.header.context': 'हर नई चैट की शुरुआत का सार, जो आपकी मेमोरी से तैयार किया जाता है।',
   'memoryPage.loading': 'मेमोरी लोड हो रही है…',
   'memoryPage.loadMore': 'और लोड करें',
+  'memoryPage.explorer.facet.namespace': "मेमोरी नोड",
+  'memoryPage.explorer.namespace.root': "साझा (रूट)",
+  'memoryPage.context.node': "मेमोरी नोड",
+  'memoryPage.context.nodeHint': "हर एजेंट का अपना सार होता है, जो उसकी अपनी मेमोरी और उसके साथ साझा की गई जानकारी से बनता है।",
   'memoryPage.backfill.title': 'पिछली बातचीत',
   'memoryPage.backfill.description':
     'स्वचालित सहेजना चालू होने से पहले की चैट तब तक मेमोरी में नहीं होतीं जब तक आप उन्हें सिंक न करें।',

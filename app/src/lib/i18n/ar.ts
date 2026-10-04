@@ -4758,6 +4758,10 @@ const messages: TranslationMap = {
   'memoryPage.header.context': 'الموجز الذي تبدأ به كل محادثة جديدة، مُعدّ من ذاكرتك.',
   'memoryPage.loading': 'جارٍ تحميل الذاكرة…',
   'memoryPage.loadMore': 'تحميل المزيد',
+  'memoryPage.explorer.facet.namespace': "عقدة الذاكرة",
+  'memoryPage.explorer.namespace.root': "مشتركة (الجذر)",
+  'memoryPage.context.node': "عقدة الذاكرة",
+  'memoryPage.context.nodeHint': "لكل وكيل ملخصه الخاص، المبني من ذاكرته الخاصة ومما يُشارَك معه.",
   'memoryPage.backfill.title': 'المحادثات السابقة',
   'memoryPage.backfill.description':
     'لا تُحفظ المحادثات السابقة لتفعيل الحفظ التلقائي في الذاكرة حتى تزامنها.',

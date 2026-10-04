@@ -4851,6 +4851,10 @@ const messages: TranslationMap = {
   'memoryPage.header.context': 'প্রতিটি নতুন চ্যাটের শুরুর সারসংক্ষেপ, যা আপনার মেমোরি থেকে তৈরি।',
   'memoryPage.loading': 'মেমোরি লোড হচ্ছে…',
   'memoryPage.loadMore': 'আরও লোড করুন',
+  'memoryPage.explorer.facet.namespace': "মেমোরি নোড",
+  'memoryPage.explorer.namespace.root': "শেয়ার করা (রুট)",
+  'memoryPage.context.node': "মেমোরি নোড",
+  'memoryPage.context.nodeHint': "প্রতিটি এজেন্টের নিজস্ব সারাংশ আছে, যা তার নিজের মেমোরি এবং তার সঙ্গে শেয়ার করা তথ্য থেকে তৈরি।",
   'memoryPage.backfill.title': 'আগের কথোপকথন',
   'memoryPage.backfill.description':
     'স্বয়ংক্রিয় সংরক্ষণ চালুর আগের চ্যাটগুলো সিঙ্ক না করা পর্যন্ত মেমোরিতে থাকে না।',

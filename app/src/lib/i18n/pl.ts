@@ -4919,6 +4919,10 @@ const messages: TranslationMap = {
     'Podsumowanie, od którego zaczyna się każdy nowy czat, zebrane z Twojej pamięci.',
   'memoryPage.loading': 'Wczytywanie pamięci…',
   'memoryPage.loadMore': 'Wczytaj więcej',
+  'memoryPage.explorer.facet.namespace': "Węzeł pamięci",
+  'memoryPage.explorer.namespace.root': "Wspólny (korzeń)",
+  'memoryPage.context.node': "Węzeł pamięci",
+  'memoryPage.context.nodeHint': "Każdy agent ma własne podsumowanie, zbudowane z jego własnej pamięci i tego, co jest mu udostępnione.",
   'memoryPage.backfill.title': 'Wcześniejsze rozmowy',
   'memoryPage.backfill.description':
     'Czaty sprzed włączenia automatycznego zapisu trafią do pamięci dopiero po synchronizacji.',

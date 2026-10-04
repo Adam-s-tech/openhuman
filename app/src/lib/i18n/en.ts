@@ -5130,6 +5130,10 @@ const en: TranslationMap = {
   'memoryPage.header.context': 'The brief every new chat starts with, compiled from your memory.',
   'memoryPage.loading': 'Loading memory…',
   'memoryPage.loadMore': 'Load more',
+  'memoryPage.explorer.facet.namespace': "Memory node",
+  'memoryPage.explorer.namespace.root': "Shared (root)",
+  'memoryPage.context.node': "Memory node",
+  'memoryPage.context.nodeHint': "Each agent has its own brief, built from its own memory and what is shared with it.",
   'memoryPage.backfill.title': 'Past conversations',
   'memoryPage.backfill.description':
     'Chats from before automatic saving was turned on are not in memory until you sync them.',

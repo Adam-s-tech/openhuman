@@ -4806,6 +4806,10 @@ const messages: TranslationMap = {
     '메모리를 바탕으로 만들어져 모든 새 채팅의 시작에 쓰이는 요약입니다.',
   'memoryPage.loading': '메모리 불러오는 중…',
   'memoryPage.loadMore': '더 보기',
+  'memoryPage.explorer.facet.namespace': "메모리 노드",
+  'memoryPage.explorer.namespace.root': "공유(루트)",
+  'memoryPage.context.node': "메모리 노드",
+  'memoryPage.context.nodeHint': "에이전트마다 자기 메모리와 공유된 내용으로 만든 자체 요약이 있습니다.",
   'memoryPage.backfill.title': '이전 대화',
   'memoryPage.backfill.description':
     '자동 저장을 켜기 전의 채팅은 동기화하기 전까지 메모리에 없습니다.',

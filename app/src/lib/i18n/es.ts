@@ -4945,6 +4945,10 @@ const messages: TranslationMap = {
     'El resumen con el que empieza cada chat nuevo, compilado a partir de tu memoria.',
   'memoryPage.loading': 'Cargando memoria…',
   'memoryPage.loadMore': 'Cargar más',
+  'memoryPage.explorer.facet.namespace': "Nodo de memoria",
+  'memoryPage.explorer.namespace.root': "Compartido (raíz)",
+  'memoryPage.context.node': "Nodo de memoria",
+  'memoryPage.context.nodeHint': "Cada agente tiene su propio resumen, creado a partir de su propia memoria y de lo que se comparte con él.",
   'memoryPage.backfill.title': 'Conversaciones anteriores',
   'memoryPage.backfill.description':
     'Los chats de antes de activar el guardado automático no están en la memoria hasta que los sincronices.',

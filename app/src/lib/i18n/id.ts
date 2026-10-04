@@ -4892,6 +4892,10 @@ const messages: TranslationMap = {
     'Ringkasan yang mengawali setiap obrolan baru, disusun dari memori Anda.',
   'memoryPage.loading': 'Memuat memori…',
   'memoryPage.loadMore': 'Muat lebih banyak',
+  'memoryPage.explorer.facet.namespace': "Simpul memori",
+  'memoryPage.explorer.namespace.root': "Bersama (akar)",
+  'memoryPage.context.node': "Simpul memori",
+  'memoryPage.context.nodeHint': "Setiap agen punya ringkasannya sendiri, dibuat dari memorinya sendiri dan apa yang dibagikan kepadanya.",
   'memoryPage.backfill.title': 'Percakapan sebelumnya',
   'memoryPage.backfill.description':
     'Obrolan dari sebelum penyimpanan otomatis aktif belum ada di memori sampai Anda menyinkronkannya.',

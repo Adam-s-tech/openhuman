@@ -4931,6 +4931,10 @@ const messages: TranslationMap = {
     'Il riepilogo con cui inizia ogni nuova chat, compilato dalla tua memoria.',
   'memoryPage.loading': 'Caricamento della memoria…',
   'memoryPage.loadMore': 'Carica altro',
+  'memoryPage.explorer.facet.namespace': "Nodo di memoria",
+  'memoryPage.explorer.namespace.root': "Condiviso (radice)",
+  'memoryPage.context.node': "Nodo di memoria",
+  'memoryPage.context.nodeHint': "Ogni agente ha il proprio riepilogo, costruito dalla propria memoria e da ciò che viene condiviso con lui.",
   'memoryPage.backfill.title': 'Conversazioni passate',
   'memoryPage.backfill.description':
     'Le chat precedenti all’attivazione del salvataggio automatico non sono in memoria finché non le sincronizzi.',

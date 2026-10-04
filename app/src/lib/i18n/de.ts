@@ -4987,6 +4987,10 @@ const messages: TranslationMap = {
     'Die Kurzfassung, mit der jeder neue Chat beginnt, erstellt aus deinem Gedächtnis.',
   'memoryPage.loading': 'Gedächtnis wird geladen…',
   'memoryPage.loadMore': 'Mehr laden',
+  'memoryPage.explorer.facet.namespace': "Gedächtnisknoten",
+  'memoryPage.explorer.namespace.root': "Geteilt (Wurzel)",
+  'memoryPage.context.node': "Gedächtnisknoten",
+  'memoryPage.context.nodeHint': "Jeder Agent hat eine eigene Zusammenfassung aus seinem eigenen Gedächtnis und dem, was mit ihm geteilt wird.",
   'memoryPage.backfill.title': 'Frühere Unterhaltungen',
   'memoryPage.backfill.description':
     'Chats von vor dem Einschalten der automatischen Speicherung sind erst im Gedächtnis, wenn Sie sie synchronisieren.',

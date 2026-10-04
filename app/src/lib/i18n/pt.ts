@@ -4920,6 +4920,10 @@ const messages: TranslationMap = {
     'O resumo com que cada novo chat começa, compilado a partir da sua memória.',
   'memoryPage.loading': 'Carregando memória…',
   'memoryPage.loadMore': 'Carregar mais',
+  'memoryPage.explorer.facet.namespace': "Nó de memória",
+  'memoryPage.explorer.namespace.root': "Compartilhado (raiz)",
+  'memoryPage.context.node': "Nó de memória",
+  'memoryPage.context.nodeHint': "Cada agente tem seu próprio resumo, criado a partir da própria memória e do que é compartilhado com ele.",
   'memoryPage.backfill.title': 'Conversas anteriores',
   'memoryPage.backfill.description':
     'Conversas de antes de ativar o salvamento automático não estão na memória até você sincronizá-las.',
