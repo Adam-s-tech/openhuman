@@ -208,7 +208,7 @@ impl Memory {
     }
 
     /// Answers `question` from the root's memory, or from one agent's node
-    /// and the learnings and brain above it.
+    /// plus the shared learnings at the root above it.
     pub async fn recall(
         &self,
         question: impl Into<String>,
@@ -361,7 +361,7 @@ impl Memory {
     }
 
     /// What a recall reads: the whole root, or one agent's node with the
-    /// learnings and brain it inherits — never a sibling agent's turns.
+    /// root's shared learnings it inherits — never a sibling agent's turns.
     fn reading(&self, agent_id: Option<&str>) -> MemoryResult<MetaFilter> {
         match agent_id.map(str::trim).filter(|agent| !agent.is_empty()) {
             Some(agent) => Ok(MetaFilter {
