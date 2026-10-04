@@ -288,9 +288,17 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
         channel_name,
         target_agent_id.as_deref().unwrap_or("root")
     );
+    // Memory acts as the target agent (the root's main agent when none is
+    // named) for the whole channel turn.
+    let memory_config = crate::config::rpc::load_config_with_timeout()
+        .await
+        .unwrap_or_default();
+    let memory_agent = target_agent_id
+        .clone()
+        .unwrap_or_else(|| crate::config::schema::memory::DEFAULT_ROOT_AGENTS[0].to_string());
     let outcome = turn_origin::with_origin(
         origin,
-        with_file_state_agent_id(
+        crate::memory::scope::within_agent(&memory_config, &memory_agent, with_file_state_agent_id(
             file_state_id,
             with_current_sandbox_mode(sandbox_mode, async {
                 // Channel/CLI turns run through the tinyagents harness
@@ -316,7 +324,7 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
                 )
                 .await
             }),
-        ),
+        )),
     )
     .await
     .map_err(|e| e.to_string())?;
