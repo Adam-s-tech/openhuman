@@ -125,9 +125,78 @@ fn check_is_a_harness_instruction_that_names_the_spec_rules() {
     let check = check_message();
     assert!(check.starts_with("<harness_instruction>"));
     assert!(check.contains(CHECK_MARKER));
-    for needle in ["original request", "literal rule", "derived from the spec"] {
+    for needle in [
+        "original request",
+        "literal rule",
+        "derived from the spec",
+        "individual requirements",
+        "negative constraint",
+        "case in parentheses",
+        "exact syntax, input or API call",
+        "rejection errors as well as rejection itself",
+        "whole return value as well as its fields",
+        "exercise both readings",
+        "every code path",
+        "callbacks, events and state changes",
+        "re-run the affected checks",
+    ] {
         assert!(check.contains(needle), "check must mention `{needle}`");
     }
+}
+
+/// #6990: the installed policy sends the requirements check with the original
+/// coding request, permits corrective tool calls, then accepts the new answer
+/// without injecting a second check.
+#[tokio::test]
+async fn coding_requirements_check_allows_a_fix_and_fires_once() {
+    let task =
+        "Reject variadic defaults with the exact error 'invalid default argument declaration'.";
+    let mut responses: Vec<_> = (0..MIN_TOOL_ROUNDS)
+        .map(|i| tool_round(&format!("c{i}"), "lookup"))
+        .collect();
+    responses.extend([
+        ModelResponse::assistant("draft: my checks passed".to_string()),
+        tool_round("fix", "lookup"),
+        ModelResponse::assistant("fixed and checked against the requirements".to_string()),
+        ModelResponse::assistant("must not be reached".to_string()),
+    ]);
+    let model = Arc::new(ScriptedModel::new(responses));
+    let mut harness: AgentHarness<()> = AgentHarness::new();
+    harness.register_model("mock", model.clone());
+    harness.register_tool(Arc::new(FakeTool::returning("lookup", "ok")));
+    harness.with_policy(RunPolicy {
+        limits: RunLimits::default().with_max_model_calls(50),
+        ..RunPolicy::default()
+    });
+    install(&mut harness, false, Some("orchestrator"), &None);
+
+    let run = harness
+        .invoke_default(&(), vec![Message::user(task)])
+        .await
+        .expect("coding run succeeds");
+    assert_eq!(
+        run.text().as_deref(),
+        Some("fixed and checked against the requirements")
+    );
+    assert_eq!(run.model_calls, MIN_TOOL_ROUNDS + 3);
+    let requests = model.requests();
+    let verification = &requests[MIN_TOOL_ROUNDS + 1];
+    assert_eq!(
+        verification.messages.first().map(Message::text).as_deref(),
+        Some(task)
+    );
+    assert_eq!(
+        verification.messages.last().map(Message::text),
+        Some(check_message())
+    );
+    assert_eq!(
+        run.messages
+            .iter()
+            .filter(|message| message.text() == check_message())
+            .count(),
+        1,
+        "corrective tool calls must not reset the check"
+    );
 }
 
 #[tokio::test]
