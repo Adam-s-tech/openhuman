@@ -17,11 +17,13 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     let project = tmp.path().join("project");
     std::fs::create_dir_all(&workspace).unwrap();
     std::fs::create_dir_all(&project).unwrap();
+    // `detached` adds its own `tool-results` namespace; give it the artifacts
+    // directory so the final path matches the policy-granted root.
     let store = new_tool_result_store(workspace.join("artifacts"), "session/one");
     let raw = format!(
         "{} {}",
         "x".repeat(4096),
-        "ghp_abcdefghijklmnopqrstuvwxyz123456"
+        "Bearer credential-marker-redact-me-123456"
     );
 
     let (out, outcome) = apply_per_result_persistence(
@@ -43,7 +45,7 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     );
     assert!(out.contains("original_bytes:"));
     assert!(out.contains("[preview]"));
-    assert!(!out.contains("ghp_abcdefghijklmnopqrstuvwxyz123456"));
+    assert!(!out.contains("Bearer credential-marker-redact-me-123456"));
     assert!(expected.is_file());
     assert_eq!(
         std::fs::read_dir(&project).unwrap().count(),
@@ -63,7 +65,7 @@ async fn threshold_persists_outside_the_project_and_reads_back() {
     assert!(read.output().contains("xxxx"));
     assert!(!read
         .output()
-        .contains("ghp_abcdefghijklmnopqrstuvwxyz123456"));
+        .contains("Bearer credential-marker-redact-me-123456"));
 }
 
 /// The legacy store still reads the layout older builds wrote, so its sweep
@@ -122,7 +124,9 @@ fn a_page_names_file_read_as_the_continuation() {
     };
     let page = page_artifact_read("y".repeat(5_000), &read, 1_000);
     assert!(
-        page.contains("Continue with file_read {\"path\":\"artifacts/tool-results/s/shell/c.txt\",\"offset\":"),
+        page.contains(
+            "Continue with file_read {\"path\":\"artifacts/tool-results/s/shell/c.txt\",\"offset\":"
+        ),
         "{page}"
     );
 }

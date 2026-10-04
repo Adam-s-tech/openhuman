@@ -275,10 +275,18 @@ impl OpenHumanSessionHost {
     /// transcript, and it inherits its parent's thread id only for
     /// correlation.
     pub fn set_thread_id(&mut self, thread_id: Option<impl AsRef<str>>) {
-        self.thread_id = thread_id.and_then(|thread_id| {
+        let thread_id = thread_id.and_then(|thread_id| {
             let thread_id = thread_id.as_ref().trim();
             (!thread_id.is_empty()).then(|| thread_id.to_owned())
         });
+        // The runtime session caches its prompt and declaration snapshot from
+        // the first turn. Changing identity after that would desynchronize
+        // thread-scoped tools from the cached session state.
+        if self.runtime_session.is_some() && thread_id != self.thread_id {
+            tracing::warn!("cannot change thread id after runtime session initialization");
+            return;
+        }
+        self.thread_id = thread_id;
         self.session = match (&self.thread_id, self.session_parent_prefix.is_some()) {
             (Some(thread_id), false) => Some(tinyagents_session::transcript::SessionRef::scoped(
                 thread_id.clone(),
@@ -430,15 +438,18 @@ impl OpenHumanSessionHost {
     /// wherever either set changes; a no-op for a belt that never opted into
     /// discovery.
     pub(in crate::agent::session_host) fn recompute_deferred_tool_names(&mut self) {
+        self.visible_tool_names
+            .extend(self.permanent_tool_names.iter().cloned());
         if !self.discovery_enabled {
             self.deferred_tool_names.clear();
             return;
         }
-        let deferred = crate::tools::implementations::meta::deferred_set(
+        let mut deferred = crate::tools::implementations::meta::deferred_set(
             self.tools.as_slice(),
             self.synthesized_tools.as_slice(),
             &self.requested_deferred_tools,
         );
+        deferred.retain(|name| !self.permanent_tool_names.contains(name));
         self.visible_tool_names
             .retain(|name| !deferred.contains(name));
         self.deferred_tool_names = deferred;
