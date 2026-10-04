@@ -168,8 +168,22 @@ export async function signInViaBypassUser(
     // Some fresh profiles create an initial thread asynchronously; others
     // leave the valid `/chat` landing route without one. Route-only tests need
     // a settled thread route before setting another hash, so select the chat
-    // surface's New Conversation action when no thread is selected yet.
-    if (!(await page.evaluate(() => /^#\/chat\/thread-[^/?]+/.test(window.location.hash)))) {
+    // Select the current row explicitly: Redux can restore a selected ID while
+    // the URL remains at `/chat`, and clicking New Conversation in that gap can
+    // race with the pending route update.
+    const selectedThreadId = await page.evaluate(() => {
+      const store = (
+        window as unknown as {
+          __OPENHUMAN_STORE__?: {
+            getState?: () => { thread?: { selectedThreadId?: string | null } };
+          };
+        }
+      ).__OPENHUMAN_STORE__;
+      return store?.getState?.().thread?.selectedThreadId ?? null;
+    });
+    if (selectedThreadId) {
+      await page.getByTestId(`thread-row-${selectedThreadId}`).click();
+    } else {
       await page.getByTestId('new-thread-button').click({ force: true });
     }
     await expect

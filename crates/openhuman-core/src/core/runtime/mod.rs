@@ -31,8 +31,9 @@ pub const AGENT_WORKER_STACK_BYTES: usize = 20 * 1024 * 1024;
 ///
 /// Tokio defaults `max_blocking_threads` to **512**. That is doubly wasteful on
 /// these runtimes: `thread_stack_size` sizes *blocking* threads too, not just
-/// workers, so an idle pool that grew to the cap could pin up to
-/// `512 × 16 MiB` of stack — the opposite of the embedded RAM budget in #5046.
+/// workers, so a pool that grew to the cap could reserve up to
+/// `MAX_BLOCKING_THREADS × AGENT_WORKER_STACK_BYTES` of virtual stack space.
+/// Physical pages are committed as each stack grows, not when the thread starts.
 /// `spawn_blocking` on these paths backs SQLite, filesystem grep/glob, document
 /// parsing, and URL guarding: bounded, bursty concurrency. 64 leaves generous
 /// headroom over any realistic concurrent-blocking count while capping the idle

@@ -65,7 +65,18 @@ async function openChat(page: Page, userId: string): Promise<void> {
 }
 
 async function startFreshConversation(page: Page): Promise<void> {
-  await page.getByTestId('new-thread-button').click({ force: true });
+  const previousId = await selectedThreadId(page);
+  const previousHasMessages =
+    (await page.locator('[data-role="user"], [data-testid="agent-message"]').count()) > 0;
+  // Chat-as-home may already have selected a blank thread, which the product
+  // intentionally reuses. Advance only from a populated conversation or when
+  // no selection exists; populated prior conversations must advance its ID.
+  if (!previousId || previousHasMessages) {
+    await page.getByTestId('new-thread-button').click({ force: true });
+  }
+  if (previousId && previousHasMessages) {
+    await expect.poll(() => selectedThreadId(page)).not.toBe(previousId);
+  }
   await expect.poll(() => selectedThreadId(page)).not.toBeNull();
   await expect(page.locator('[data-role="user"], [data-testid="agent-message"]')).toHaveCount(0);
 }
@@ -108,6 +119,8 @@ test.describe('Chat management functional coverage', () => {
     });
     await expect(page.getByTestId('chat-message-input')).toBeEnabled();
 
+    // `[DOCUMENT:<location>]` is the transcript marker defined by TinyAgents
+    // for extracted document attachments (vendor/tinyagents/docs/modules/session/README.md).
     await expect
       .poll(
         async () => {
