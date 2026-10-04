@@ -123,7 +123,7 @@ fn ensure_memory_seams(workspace: &Path) {
                     ..openhuman_core::config::Config::default()
                 });
                 #[cfg(feature = "modules")]
-                openhuman_core::modules::memory::set_modules_policy(config);
+                drop(config);
                 #[cfg(not(feature = "modules"))]
                 drop(config);
             })
