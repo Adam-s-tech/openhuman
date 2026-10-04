@@ -166,16 +166,16 @@ async fn post_turn_logs_the_reply_and_queues_belief_builds() {
 async fn compaction_recalls_from_the_dropped_turns() {
     let tmp = tempfile::tempdir().unwrap();
     let config = config_in(&tmp);
-    let engine = bind_reference(&config);
+    bind_reference(&config);
     let identity = MemoryIdentity::agent("a").resolve(&config);
-    for (index, text) in [(0, "the project codename is Heron"), (1, "noted")] {
-        let role = if index == 0 { Role::User } else { Role::Assistant };
-        let _ = role;
-        let _ = pre_turn(&config, &identity, input("t", index * 2, text)).await;
-    }
-    let dropped = vec![Turn::new(Role::User, "the project codename is Heron")];
+    let _ = pre_turn(&config, &identity, input("t", 0, "the project codename is Heron")).await;
+    post_turn(&config, &identity, reply("t", 1, "Noted: Heron.")).await;
+
+    let dropped = vec![
+        Turn::new(Role::User, "the project codename is Heron"),
+        Turn::new(Role::Assistant, "Noted: Heron."),
+    ];
     let pack = compaction(&config, &identity, "t", dropped).await;
     assert!(pack.expect("a pack").markdown.contains("Heron"));
     assert!(compaction(&config, &identity, "t", Vec::new()).await.is_none());
-    let _ = engine;
 }
