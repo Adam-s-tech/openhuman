@@ -179,6 +179,21 @@ test.describe('Chat composer attachment gate', () => {
     await expect(page.getByText('picker-notes.txt')).toBeVisible();
   });
 
+  test('the picker accepts archive, audio, unknown and original video files', async ({ page }) => {
+    await openChat(page);
+    for (const [name, mimeType] of [
+      ['archive.zip', 'application/zip'],
+      ['voice.mp3', 'audio/mpeg'],
+      ['opaque.bin', ''],
+      ['undecodable.mp4', 'video/mp4'],
+    ]) {
+      await fileInput(page)
+        .first()
+        .setInputFiles({ name, mimeType, buffer: Buffer.from([0, 255, 128]) });
+      await expect(page.getByText(name)).toBeVisible();
+    }
+  });
+
   test('an attached file can be removed again', async ({ page }) => {
     await openChat(page);
     await attach(page, 'removable.txt');
