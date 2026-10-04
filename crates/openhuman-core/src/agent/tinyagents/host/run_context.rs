@@ -307,6 +307,11 @@ pub struct OpenHumanRunContext {
     /// the registry that recovers positional / code-style calls; `Auto`
     /// (the default) leaves the harness to choose from the model profile.
     pub(crate) tool_dialect: tinyagents_harness::config::ToolDispatcher,
+    /// The memory pack recalled for this turn (`memory::lifecycle::hooks::
+    /// pre_turn`). `MemoryPackMiddleware` adds it to every model request of
+    /// the turn, ephemerally: it is never part of the committed transcript.
+    /// A child run recalls its own and does not inherit it.
+    pub(crate) memory_pack: Option<Arc<crate::memory::lifecycle::hooks::TurnPack>>,
 }
 
 /// Minimal immutable authority view exposed to shared tools through the
@@ -355,6 +360,7 @@ impl OpenHumanRunContext {
             session_sidecar: Arc::new(Mutex::new(SessionTurnSidecar::default())),
             required_output: None,
             tool_dialect: tinyagents_harness::config::ToolDispatcher::Auto,
+            memory_pack: None,
         }
     }
 
@@ -445,6 +451,7 @@ impl OpenHumanRunContext {
         child.parent_subagent_usage = Some(self.subagent_usage.clone());
         child.subagent_usage = Arc::new(Mutex::new(Vec::new()));
         child.resolved_route = Arc::new(Mutex::new(None));
+        child.memory_pack = None;
         child
     }
 
