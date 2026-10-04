@@ -120,9 +120,7 @@ impl CallFacts {
             // parent context's agent, else the root.
             crate::agent::harness::fork_context::current_parent().map_or_else(
                 super::scope::MemoryIdentity::root,
-                |parent| {
-                    super::scope::MemoryIdentity::for_agent(config, &parent.agent_definition_id)
-                },
+                |parent| super::scope::MemoryIdentity::agent(&parent.agent_definition_id),
             )
         });
         Self {
@@ -130,22 +128,21 @@ impl CallFacts {
             thread_id: context
                 .and_then(ToolRunContext::thread_id)
                 .map(str::to_string),
-            agent_id: identity.agent_id.clone(),
             tool_call_id: crate::tools::host_extensions::tool_call_id(context),
-            shared_namespace: identity.shared_namespace(),
-            reach: identity.reach(),
-            namespace: identity.namespace,
+            ..Self::of(config, &identity)
         }
     }
 
-    /// The facts of a call made by `identity`, with no run context.
+    /// The facts of a call made by `identity` under `config`, with no run
+    /// context.
     #[must_use]
-    pub fn of(identity: &super::scope::MemoryIdentity) -> Self {
+    pub fn of(config: &Config, identity: &super::scope::MemoryIdentity) -> Self {
+        let namespace = identity.namespace(config);
         Self {
             agent_id: identity.agent_id.clone(),
-            namespace: identity.namespace.clone(),
-            shared_namespace: identity.shared_namespace(),
-            reach: identity.reach(),
+            shared_namespace: namespace.shared_ancestor(),
+            reach: identity.reach(config),
+            namespace,
             ..Self::default()
         }
     }
