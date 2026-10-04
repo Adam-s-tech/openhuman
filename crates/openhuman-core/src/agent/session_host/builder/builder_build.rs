@@ -285,6 +285,7 @@ impl SessionHostBuilder {
         // routing started sending the same tool list to Anthropic.
         let visible_tool_specs: Vec<Arc<ToolSpec>> =
             dedup_visible_tool_specs(visible_tool_specs_unfiltered);
+        eprintln!("FINAL_VISIBLE_SPECS={:?}", visible_tool_specs.iter().map(|spec| &spec.name).collect::<Vec<_>>());
 
         let visible_names_list: Vec<&str> =
             visible_tool_specs.iter().map(|s| s.name.as_str()).collect();
