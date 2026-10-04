@@ -31,7 +31,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::time::{Duration, Instant};
-use tokio::sync::MutexGuard;
 
 use env_guard::{env_lock_with_file_keyring_async, EnvVarGuard};
 use rpc_harness::{rpc, serve_rpc};
@@ -1604,7 +1603,7 @@ async fn import_scan_finds_nothing_and_start_needs_consent() {
 
     let scan = f.ok("openhuman.memory_import_scan", json!({})).await;
     assert_eq!(scan["found"], json!(false));
-    assert!(scan.get("counts").map_or(true, Value::is_null), "{scan}");
+    assert!(scan.get("counts").is_none_or(Value::is_null), "{scan}");
 
     let status = f.ok("openhuman.memory_import_status", json!({})).await;
     assert_eq!(status["state"]["phase"], json!("idle"));
