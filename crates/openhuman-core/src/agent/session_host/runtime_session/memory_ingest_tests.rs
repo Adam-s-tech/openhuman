@@ -1,17 +1,14 @@
 use super::*;
 
-use tinyagents_harness::summarization::checkpoint_message;
-use tinyinference_llm::message::ToolCall;
+use tinyagents_harness::summarization::{checkpoint_message, SummaryPlacement};
+use tinyinference_llm::ToolCall;
 
 fn assistant_with_call(id: &str, name: &str) -> Message {
     let mut message = Message::assistant("");
     if let Message::Assistant(assistant) = &mut message {
-        assistant.tool_calls.push(ToolCall {
-            id: id.to_string(),
-            name: name.to_string(),
-            arguments: serde_json::json!({}),
-            ..ToolCall::default()
-        });
+        assistant
+            .tool_calls
+            .push(ToolCall::new(id, name, serde_json::json!({})));
     }
     message
 }
@@ -31,7 +28,7 @@ fn after_a_checkpoint_the_window_starts_at_the_first_kept_turn() {
     let current = Message::user("five");
     let history = vec![
         Message::system("prompt"),
-        checkpoint_message("earlier turns"),
+        checkpoint_message(SummaryPlacement::User, "earlier turns"),
         Message::user("three"),
         Message::assistant("c"),
         Message::user("four"),
