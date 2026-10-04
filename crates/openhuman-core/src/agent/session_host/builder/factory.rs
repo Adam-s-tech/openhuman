@@ -777,8 +777,13 @@ impl OpenHumanSessionHost {
         }
         // Host-first, so a host tool wins a name collision -- see
         // `HostTurnTools::merge_into`, which owns that rule and why.
-        let merged_host_tools =
-            super::host_tools::merge_for_turn(host, agent_id, session_id, &mut tools, &mut visible)?;
+        let merged_host_tools = super::host_tools::merge_for_turn(
+            host,
+            agent_id,
+            session_id,
+            &mut tools,
+            &mut visible,
+        )?;
         let host_policy = merged_host_tools.policy;
         let withheld_tool_names = merged_host_tools.withheld;
         let mut builder = OpenHumanSessionHost::builder()
