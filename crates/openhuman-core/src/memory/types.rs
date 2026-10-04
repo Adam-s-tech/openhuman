@@ -397,6 +397,26 @@ pub struct TurnCitation {
     pub snippet: String,
 }
 
+impl From<&Hit> for TurnCitation {
+    fn from(hit: &Hit) -> Self {
+        Self {
+            id: hit.id.0.clone(),
+            key: hit.kind.as_str().to_string(),
+            namespace: Some(hit.meta.source.kind.as_str().to_string()),
+            score: Some(f64::from(hit.score)).filter(|score| *score > 0.0),
+            timestamp: hit
+                .meta
+                .observed_at
+                .map(|at| at.to_rfc3339())
+                .unwrap_or_default(),
+            snippet: hit.text.chars().take(TURN_CITATION_SNIPPET_CHARS).collect(),
+        }
+    }
+}
+
+/// Longest snippet a turn citation carries, in characters.
+pub const TURN_CITATION_SNIPPET_CHARS: usize = 280;
+
 impl From<&Citation> for TurnCitation {
     fn from(citation: &Citation) -> Self {
         Self {

@@ -59,8 +59,29 @@ fn record_turn_citations(thread_id: &str, citations: &[tinymemory_api::Citation]
     }
 }
 
-/// Drains the citations `recall` produced for `thread_id` since the last
-/// drain.
+/// Records `citations` for `thread_id`'s in-flight turn: what the turn's
+/// memory pack cited (`lifecycle::hooks::pre_turn`), beside what `recall`
+/// cites.
+pub fn record_pack_citations(thread_id: &str, citations: Vec<TurnCitation>) {
+    if citations.is_empty() {
+        return;
+    }
+    let mut all = TURN_CITATIONS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let entry = all.entry(thread_id.to_string()).or_default();
+    for citation in citations {
+        if entry.len() >= MAX_TURN_CITATIONS {
+            break;
+        }
+        if !entry.iter().any(|existing| existing.id == citation.id) {
+            entry.push(citation);
+        }
+    }
+}
+
+/// Drains the citations `recall` and the turn's pack produced for
+/// `thread_id` since the last drain.
 #[must_use]
 pub fn take_turn_citations(thread_id: &str) -> Vec<TurnCitation> {
     TURN_CITATIONS

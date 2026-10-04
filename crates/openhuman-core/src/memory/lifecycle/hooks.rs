@@ -49,12 +49,22 @@ pub struct TurnPack {
     pub refs: Vec<String>,
     /// The engine that answered.
     pub engine: String,
+    /// The cited items, for the chat's memory chips.
+    #[serde(skip)]
+    pub citations: Vec<crate::memory::types::TurnCitation>,
 }
 
 impl TurnPack {
     fn from_packs(packs: impl IntoIterator<Item = ContextPack>) -> Option<Self> {
         let mut pack: Option<Self> = None;
         for next in packs.into_iter().filter(|pack| !pack.is_empty()) {
+            let cited: Vec<crate::memory::types::TurnCitation> = next
+                .sections
+                .iter()
+                .flat_map(|section| section.hits.iter())
+                .filter(|hit| next.refs.contains(&hit.id))
+                .map(crate::memory::types::TurnCitation::from)
+                .collect();
             let refs = next.refs.iter().map(ToString::to_string);
             match &mut pack {
                 Some(pack) => {
@@ -66,6 +76,11 @@ impl TurnPack {
                             pack.refs.push(id);
                         }
                     }
+                    for citation in cited {
+                        if !pack.citations.iter().any(|known| known.id == citation.id) {
+                            pack.citations.push(citation);
+                        }
+                    }
                 }
                 None => {
                     pack = Some(Self {
@@ -73,6 +88,7 @@ impl TurnPack {
                         tokens: next.tokens,
                         refs: refs.collect(),
                         engine: next.engine,
+                        citations: cited,
                     });
                 }
             }
@@ -230,6 +246,9 @@ pub async fn pre_turn(
             None
         }
     };
+    if let Some(pack) = &pack {
+        crate::memory::tools::record_pack_citations(&thread_id, pack.citations.clone());
+    }
     tracing::debug!(
         thread_id = %thread_id,
         agent_id = %agent_id,
