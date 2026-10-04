@@ -4909,7 +4909,7 @@ const messages: TranslationMap = {
   'memoryPage.backfill.title': 'Прошлые разговоры',
   'memoryPage.backfill.description':
     'Чаты, созданные до включения автосохранения, попадут в память только после синхронизации.',
-  'memoryPage.backfill.pending': 'Ещё не в памяти: чатов — {threads}, реплик — {turns}.',
+  'memoryPage.backfill.pending': 'Ещё не в памяти: чатов: {threads}, реплик: {turns}.',
   'memoryPage.backfill.upToDate': 'Все прошлые разговоры уже в памяти.',
   'memoryPage.backfill.action': 'Синхронизировать прошлые разговоры',
   'memoryPage.backfill.resume': 'Продолжить синхронизацию',
