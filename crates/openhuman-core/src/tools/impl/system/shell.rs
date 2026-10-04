@@ -470,6 +470,7 @@ impl ShellTool {
         let policy = sandbox::resolve_sandbox_policy(
             crate::agent::harness::definition::SandboxMode::Sandboxed,
             action_dir,
+            &self.security.workspace_dir,
             &config,
             false,
         );

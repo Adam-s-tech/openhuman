@@ -5,6 +5,9 @@
 //! prefix reconciliation, tool snapshots, resume and persistence remain inside
 //! the runtime session.
 
+mod permanent;
+mod prompt;
+
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -122,6 +125,7 @@ struct OpenHumanTurnToolSurface {
     /// as the final allowlist, and classified `Allow` by the policy, so a
     /// found tool is callable. See `OpenHumanSessionHost::deferred_tool_names`.
     deferred_tool_names: std::collections::HashSet<String>,
+    permanent_tool_names: std::collections::HashSet<String>,
     /// Whether this belt reaches deferred tools at all; fixed at build.
     discovery_enabled: bool,
     /// The definition's own `deferred_tools`; see `meta::deferred_set`.
@@ -234,6 +238,12 @@ impl OpenHumanTurnPrelude {
                             .iter()
                             .filter(|spec| surface.deferred_tool_names.contains(&spec.name)),
                     )
+                    .filter(|spec| {
+                        self.thread_id.is_some()
+                            || !crate::agent::tinyagents::harness_tool_registration::is_thread_goal_tool(
+                                &spec.name,
+                            )
+                    })
                     .map(|spec| spec.as_ref().clone())
                     .collect(),
             )
@@ -352,71 +362,6 @@ impl OpenHumanTurnPrelude {
         }
     }
 
-    fn build_system_prompt_tiered(
-        &self,
-        learned: crate::agent::prompts::LearnedContextData,
-    ) -> Result<crate::agent::prompts::TieredPrompt> {
-        use crate::agent::prompts::{tool_call_format_from_dialect, PromptContext, PromptTool};
-        let surface = self
-            .tool_surface
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let specs = surface
-            .visible_tool_specs
-            .iter()
-            .map(|spec| spec.as_ref().clone())
-            .collect::<Vec<_>>();
-        let instructions = self.tool_dispatcher.prompt_instructions(&specs);
-        let tool_refs = surface
-            .tools
-            .iter()
-            .chain(surface.synthesized_tools.iter())
-            .map(|tool| tool.as_ref())
-            .collect::<Vec<_>>();
-        let mut prompt_tools = PromptTool::from_tool_refs(tool_refs.iter().copied());
-        let mut visible_tool_names = surface.tool_policy_session.visible_tool_names_for_prompt();
-        crate::agent::prompts::swap_deferred_for_discovery_bridge(
-            &mut prompt_tools,
-            &mut visible_tool_names,
-            &surface.deferred_tool_names,
-        );
-        let agents_md = if self.config.agents_md_enabled {
-            crate::agent::prompts::load_agents_md_layers(&self.workspace_dir, &self.action_dir)
-        } else {
-            Default::default()
-        };
-        let mutable = self
-            .mutable
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let context = PromptContext {
-            workspace_dir: &self.workspace_dir,
-            model_name: &self.model_name,
-            agent_id: &self.agent_definition_name,
-            tools: &prompt_tools,
-            workflows: &mutable.workflows,
-            dispatcher_instructions: &instructions,
-            learned,
-            visible_tool_names: &visible_tool_names,
-            tool_call_format: tool_call_format_from_dialect(
-                self.tool_dispatcher.tool_call_format(),
-            ),
-            connected_integrations: &mutable.connected_integrations,
-            connected_identities_md: crate::agent::prompts::render_connected_identities(),
-            include_profile: !self.omit_profile,
-            include_memory_md: !self.omit_memory_md,
-            curated_snapshot: None,
-            user_identity: crate::security::credentials::identity::peek_credential_user_identity(),
-            personality_roster: vec![],
-            agents_md_global: agents_md.global,
-            agents_md_local: agents_md.local,
-        };
-        self.context
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .build_system_prompt_tiered(&context)
-    }
-
     #[cfg(test)]
     fn synthesized_tool_names_for_test(&self) -> std::collections::HashSet<String> {
         self.tool_surface
@@ -431,19 +376,19 @@ impl OpenHumanTurnPrelude {
     /// semantics, but keeps the mutable authority in hook state rather than a
     /// second turn loop. A revoked delegate is removed from the executable
     /// source, schema, and policy together before this request is prepared.
-    fn refresh_delegation_tool_surface(&self) {
+    fn refresh_delegation_tool_surface(&self) -> Result<()> {
         use crate::agent::harness::definition::AgentDefinitionRegistry;
         use crate::tools::agent_policy::ToolPolicyEngine;
         use crate::tools::orchestrator_tools::collect_orchestrator_tools;
 
         let Some(registry) = AgentDefinitionRegistry::global() else {
-            return;
+            return Ok(());
         };
         let Some(definition) = registry.get(&self.agent_definition_id).cloned() else {
-            return;
+            return Ok(());
         };
         if definition.subagents.is_empty() {
-            return;
+            return Ok(());
         }
         let (integrations, integrations_are_authoritative) = {
             let mutable = self
@@ -472,6 +417,10 @@ impl OpenHumanTurnPrelude {
             integrations_are_authoritative,
         );
         collected.extend(rebuilt);
+        super::managed_tools::reject_synthesized_collisions(
+            &surface.permanent_tool_names,
+            &collected,
+        )?;
         let synthesized =
             super::builder::drop_synthesized_name_collisions(&surface.tools, collected);
         let synthesized_names = synthesized
@@ -483,31 +432,13 @@ impl OpenHumanTurnPrelude {
             synthesized_names.clone(),
         );
         let auto_include_new_synthesized_tools = surface.auto_include_new_synthesized_tools;
-        let agent_definition_name = surface.agent_definition_name.clone();
         reconcile_synthesized_visibility(
             &mut surface.visible_tool_names,
             &previous_synthesized,
             &synthesized_names,
             auto_include_new_synthesized_tools,
         );
-        crate::tools::toolpacks::strip_packed_from_visible(
-            &mut surface.visible_tool_names,
-            &agent_definition_name,
-        );
-        // Same split as the session host's `recompute_deferred_tool_names`:
-        // a `Deferred` synthesised tool leaves the wire and joins the
-        // searchable set, on a belt that opted into discovery.
-        if surface.discovery_enabled {
-            let deferred = crate::tools::implementations::meta::deferred_set(
-                surface.tools.as_slice(),
-                synthesized.as_slice(),
-                &surface.requested_deferred_tools,
-            );
-            surface
-                .visible_tool_names
-                .retain(|name| !deferred.contains(name));
-            surface.deferred_tool_names = deferred;
-        }
+        permanent::refresh_visibility(&mut surface, &synthesized);
 
         let specs = surface
             .durable_tool_specs
@@ -561,6 +492,7 @@ impl OpenHumanTurnPrelude {
         surface.synthesized_tools = synthesized_tools;
         surface.visible_tool_specs = Arc::new(visible);
         surface.tool_policy_session = policy;
+        Ok(())
     }
 
     fn drain_host_events(&self) -> bool {
@@ -1387,6 +1319,7 @@ impl OpenHumanSessionHost {
             tokenjuice_compaction_enabled,
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction,
         ) = {
             let context = self
                 .context
@@ -1397,6 +1330,7 @@ impl OpenHumanSessionHost {
                 context.compaction_enabled(),
                 context.microcompact_keep_recent(),
                 context.autocompact_enabled(),
+                context.compaction(),
             )
         };
         let artifact_store = super::artifact_wiring::build_artifact_store(
@@ -1416,6 +1350,7 @@ impl OpenHumanSessionHost {
             runtime_config: self.runtime_config.clone(),
             microcompact_keep_recent,
             autocompact_enabled,
+            compaction,
             transcript_snapshot: None,
         };
         let driver = Arc::new(OpenHumanSessionDriver::new(
@@ -1514,6 +1449,7 @@ impl OpenHumanSessionHost {
                     visible_tool_specs: self.visible_tool_specs.clone(),
                     visible_tool_names: self.visible_tool_names.clone(),
                     deferred_tool_names: self.deferred_tool_names.clone(),
+                    permanent_tool_names: self.permanent_tool_names.clone(),
                     discovery_enabled: self.discovery_enabled,
                     requested_deferred_tools: self.requested_deferred_tools.clone(),
                     auto_include_new_synthesized_tools: true,
@@ -1593,7 +1529,10 @@ impl OpenHumanSessionHost {
                         })?;
                         prelude
                             .refresh_turn_boundary(!view.resumed && view.history.is_empty())
-                            .await;
+                            .await
+                            .map_err(|error| {
+                                tinyagents_runtime::RuntimeError::Driver(error.to_string())
+                            })?;
                         let context_window = prelude
                             .turn_model_source
                             .effective_context_window(&prelude.model_name)
@@ -1633,6 +1572,7 @@ impl OpenHumanSessionHost {
                             .map_err(|error| {
                                 tinyagents_runtime::RuntimeError::Driver(error.to_string())
                             })?;
+                        prelude.refresh_permanent_prefix(&mut preparation, view.prefix);
                         if overrides.suppress_tools {
                             // One-off tool-less turn: must not become the
                             // thread's recorded tool list.
@@ -1720,14 +1660,11 @@ impl OpenHumanSessionHost {
                             .count()
                             .max(1) as u32;
                         let output = receipt.outcome.output.clone().unwrap_or_default();
-                        let input = receipt
-                            .outcome
-                            .history
-                            .iter()
-                            .rev()
-                            .find(|message| matches!(message, Message::User(_)))
-                            .map(user_text_with_markers)
-                            .unwrap_or_default();
+                        // Skips compaction checkpoints (user-role, not the user's words).
+                        let input =
+                            crate::agent::tinyagents::last_user_message(&receipt.outcome.history)
+                                .map(user_text_with_markers)
+                                .unwrap_or_default();
                         let sidecar = receipt
                             .options
                             .context
@@ -1887,6 +1824,7 @@ impl OpenHumanSessionHost {
             visible_tool_specs: self.visible_tool_specs.clone(),
             visible_tool_names: self.visible_tool_names.clone(),
             deferred_tool_names: self.deferred_tool_names.clone(),
+            permanent_tool_names: self.permanent_tool_names.clone(),
             discovery_enabled: self.discovery_enabled,
             requested_deferred_tools: self.requested_deferred_tools.clone(),
             auto_include_new_synthesized_tools: auto_include_new_synthesized_tools

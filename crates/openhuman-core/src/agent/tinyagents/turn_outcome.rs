@@ -78,6 +78,10 @@ pub(crate) struct TinyagentsTurnOutcome {
     /// only place the caller can recover whether each call actually failed — used
     /// to build honest `ToolCallRecord`s for post-turn hooks + the cap checkpoint.
     pub tool_outcomes: Vec<ToolCallOutcome>,
+    /// The run's context compaction, when it compacted: re-applied by the
+    /// session driver to the history it persists, so the next turn starts
+    /// from the checkpoint. `None` when the run did not compact.
+    pub compaction: Option<super::CompactionCarry>,
 }
 
 /// Whether a run's final response is a reply that ran out of output tokens

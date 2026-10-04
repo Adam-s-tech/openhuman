@@ -283,6 +283,21 @@ pub(super) async fn finalize_turn_outcome(
         "[tinyagents] turn prompt summary"
     );
 
+    // The run's compaction (`AgentRun::compacted_history`), carried to the
+    // session driver so the persisted history starts from the checkpoint.
+    let compaction = run
+        .compacted_history
+        .as_deref()
+        .and_then(crate::agent::tinyagents::CompactionCarry::from_compacted_history);
+    if let Some(carry) = &compaction {
+        tracing::info!(
+            model,
+            kept_tail = carry.kept_tail,
+            transcript_len = run.messages.len(),
+            "[tinyagents] turn compacted; the persisted history will start from the checkpoint"
+        );
+    }
+
     TinyagentsTurnOutcome {
         text,
         resolved_route,
@@ -300,5 +315,6 @@ pub(super) async fn finalize_turn_outcome(
         breaker_halt,
         truncated,
         tool_outcomes,
+        compaction,
     }
 }

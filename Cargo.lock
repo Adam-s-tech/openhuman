@@ -4183,6 +4183,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.20",
+ "tinymcp-bus",
  "tokio",
  "tracing-subscriber",
  "url",
@@ -6517,6 +6518,7 @@ dependencies = [
  "tinytools-agent",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -6969,7 +6971,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6995,7 +6997,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice-bus"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "serde",
  "serde_json",

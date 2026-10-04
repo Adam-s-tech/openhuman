@@ -37,6 +37,7 @@ fn sandbox_policy_serializes_roundtrip() {
     let policy = SandboxPolicy {
         backend: SandboxBackendKind::Docker,
         workspace_root: PathBuf::from("/workspace"),
+        state_dir: PathBuf::from("/tmp/state"),
         read_only_mounts: vec![PathBuf::from("/usr/lib")],
         allow_network: false,
         env_passthrough: vec!["PATH".into()],
