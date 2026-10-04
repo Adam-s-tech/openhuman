@@ -13,6 +13,7 @@ impl SessionHostBuilder {
     pub fn new() -> Self {
         Self {
             turn_model_source: None,
+            runtime_config: None,
             tools: None,
             synthesized_tools: None,
             visible_tool_names: None,
@@ -54,9 +55,27 @@ impl SessionHostBuilder {
 
     /// Sets an already-constructed TinyAgents chat model. This is the native
     /// injection seam for tests and embedders; no legacy `Provider` adapter is
-    /// constructed.
+    /// constructed. This method does not load operator config. Use
+    /// [`Self::chat_model_with_config`] when the session accepts attachments.
     pub fn chat_model(mut self, model: Arc<dyn tinyinference_llm::model::ChatModel<()>>) -> Self {
         self.turn_model_source = Some(crate::agent::tinyagents::TurnModelSource::from_model(model));
+        self
+    }
+
+    /// Set an injected model with explicit host attachment and runtime config.
+    ///
+    /// The supplied config governs staging and ephemeral provider resolution;
+    /// explicit builder workspace/action directories override its defaults.
+    pub fn chat_model_with_config(
+        mut self,
+        model: Arc<dyn tinyinference_llm::model::ChatModel<()>>,
+        config: Arc<crate::config::Config>,
+    ) -> Self {
+        self.turn_model_source = Some(
+            crate::agent::tinyagents::TurnModelSource::from_model(model)
+                .with_attachment_config(config.clone()),
+        );
+        self.runtime_config = Some(config);
         self
     }
 

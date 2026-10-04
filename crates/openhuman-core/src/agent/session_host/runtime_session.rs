@@ -29,6 +29,8 @@ use super::announcement_notes::{
 };
 use super::types::OpenHumanSessionHost;
 
+#[path = "runtime_session_events.rs"]
+mod events;
 #[path = "runtime_session_progress.rs"]
 mod progress;
 
@@ -561,48 +563,6 @@ impl OpenHumanTurnPrelude {
         surface.synthesized_tools = synthesized_tools;
         surface.visible_tool_specs = Arc::new(visible);
         surface.tool_policy_session = policy;
-    }
-
-    fn drain_host_events(&self) -> bool {
-        let mut mutable = self
-            .mutable
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if mutable.composio_events.is_none() {
-            mutable.composio_events = crate::core::bus::BUS.get().map(|bus| bus.receiver());
-        }
-        if mutable.skill_events.is_none() {
-            mutable.skill_events = crate::core::bus::BUS.get().map(|bus| bus.receiver());
-        }
-        let drain = |receiver: &mut Option<
-            tinybus::events::EventReceiver<crate::core::events::DomainEvent>,
-        >| {
-            let Some(receiver) = receiver.as_mut() else {
-                return false;
-            };
-            let mut skills_changed = false;
-            loop {
-                use tinybus::TryRecvError;
-                match receiver.try_recv() {
-                    Ok(crate::core::events::DomainEvent::WorkflowsChanged { .. }) => {
-                        skills_changed = true
-                    }
-                    Ok(crate::core::events::DomainEvent::ComposioIntegrationsChanged {
-                        ..
-                    })
-                    | Ok(_) => {}
-                    Err(TryRecvError::Empty) => break,
-                    Err(TryRecvError::Lagged(_)) => {
-                        skills_changed = true;
-                        break;
-                    }
-                    Err(TryRecvError::Closed) => break,
-                }
-            }
-            skills_changed
-        };
-        let composio_skills_changed = drain(&mut mutable.composio_events);
-        composio_skills_changed | drain(&mut mutable.skill_events)
     }
 
     /// Assemble every dynamic, host-owned user-turn addition after the runtime
@@ -1318,6 +1278,14 @@ impl OpenHumanSessionHost {
     /// Dispatch one public OpenHuman turn through the neutral runtime.
     pub async fn turn(&mut self, user_message: &str) -> Result<String> {
         self.ensure_runtime_session()?;
+        let staged = crate::agent::attachments::stage_turn(
+            user_message,
+            self.runtime_config.as_deref(),
+            self.workspace_descriptor.as_ref(),
+            self.thread_id.as_deref(),
+        )
+        .await?;
+        let user_message = staged.as_str();
 
         let mut context = OpenHumanRunContext::new();
         context.progress = self.on_progress.clone();
@@ -1609,7 +1577,7 @@ impl OpenHumanSessionHost {
                             .lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
                             .context_window = context_window;
-                        let original_user_message = user_text_with_markers(&request.input);
+                        let original_user_message = request.input.text();
                         prelude.begin_user_effects(
                             &mut state
                                 .lock()
@@ -1629,7 +1597,12 @@ impl OpenHumanSessionHost {
                                 &mut options.run_context.data,
                             )
                             .await;
-                        request.input = user_message_from_text(&enriched);
+                        crate::agent::attachments::enrich_request_input(
+                            &mut request.input,
+                            &mut options.run_context.data,
+                            &original_user_message,
+                            &enriched,
+                        );
                         let mut preparation = prelude
                             .prepare(!view.resumed && view.history.is_empty())
                             .await

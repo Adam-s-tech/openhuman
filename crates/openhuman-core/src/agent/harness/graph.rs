@@ -88,25 +88,28 @@ pub(crate) async fn run_channel_turn_via_graph(
     let native_tools = turn_models.native_tools();
     let provider_id = turn_models.provider_id().to_string();
 
-    // Multimodal prep (parity with the chat route's
-    // `run_turn_via_tinyagents_session`, issue #4249): rehydrate image
-    // placeholders for vision-capable models, then expand `[IMAGE:…]` /
-    // `[FILE:…]` markers into provider-ready content before dispatch. The
-    // expanded copy is provider-only — it is sent to the model but never
-    // persisted back into the channel `history` (see the reconstruction below).
-    let mut prepared = history.clone();
-    if turn_models.supports_vision() && crate::agent::multimodal::has_image_placeholders(&prepared)
-    {
-        prepared = crate::agent::multimodal::rehydrate_image_placeholders(&prepared);
+    // Keep originals and durable references in every entry path. Resolution
+    // into provider bytes belongs to the model decorator, after snapshots.
+    for row in history.iter_mut().filter(|row| row.role == "user") {
+        if row.content.contains("[FILE:") || row.content.contains("[IMAGE:") {
+            if multimodal_files.max_files == 0 {
+                anyhow::bail!("attachments are disabled for this channel input");
+            }
+            let mut config = crate::config::rpc::load_config_with_timeout()
+                .await
+                .map_err(anyhow::Error::msg)?;
+            config.multimodal = multimodal.clone();
+            config.multimodal_files = multimodal_files.clone();
+            row.content =
+                crate::agent::attachments::stage(&row.content, "channel", &config).await?;
+            row.parts = None;
+        }
     }
-    let prepared = crate::agent::multimodal::prepare_messages_for_provider(
-        &prepared,
-        &multimodal,
-        &multimodal_files,
-    )
-    .await
-    .map(|prepared| prepared.messages)
-    .unwrap_or(prepared);
+    let prepared = if crate::agent::multimodal::has_image_placeholders(history) {
+        crate::agent::multimodal::rehydrate_image_placeholders(history)
+    } else {
+        history.clone()
+    };
 
     tracing::info!(
         model,
@@ -116,6 +119,7 @@ pub(crate) async fn run_channel_turn_via_graph(
         "[channel:graph] routing channel turn through tinyagents harness"
     );
     let mut run_context = crate::agent::tinyagents::host::OpenHumanRunContext::new();
+    seed_channel_attachments(&mut run_context, &prepared);
     // The channel dispatcher owns this explicit sink. It wins over an embedder
     // scope exactly as it did before this carrier was introduced.
     run_context.progress = on_progress.clone().or(run_context.progress);
@@ -189,6 +193,22 @@ pub(crate) async fn run_channel_turn_via_graph(
         history.push(TranscriptMessage::assistant(outcome.text.clone()));
     }
     Ok(outcome)
+}
+
+/// Carry the current user images into named vision delegation on CLI/channel turns.
+fn seed_channel_attachments(
+    context: &mut crate::agent::tinyagents::host::OpenHumanRunContext,
+    history: &[TranscriptMessage],
+) {
+    if let Some(input) = history
+        .iter()
+        .rev()
+        .find(|row| row.role == "user")
+        .map(crate::agent::message_convert::chat_message_to_message)
+    {
+        context.attachment_placeholders =
+            Arc::new(crate::agent::attachments::image_references(&input, &[]));
+    }
 }
 
 #[cfg(test)]

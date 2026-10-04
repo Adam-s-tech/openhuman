@@ -6,7 +6,7 @@
 //! covered where they can be honest — `tinydocs`' own loader E2E, which drives a
 //! real module over a real broker.
 
-use super::{classify, sha256_hex, DocumentCallError};
+use super::*;
 use crate::config::Config;
 use crate::tools::implementations::document::format::spec::{DocumentSpec, WirePresentationSpec};
 
@@ -142,7 +142,7 @@ fn the_registry_entry_matches_the_interface_this_client_calls() {
 
 #[test]
 fn every_member_this_client_calls_is_one_the_contract_declares() {
-    // The five calls in this module are written as `tinydocs_bus` constants, so
+    // The calls in this module are written as `tinydocs_bus` constants, so
     // a rename upstream is a compile error here rather than a `MemberNotFound`
     // at runtime. This pins the other direction: that the constants are the
     // contract's whole surface, so a member added upstream shows up as an
@@ -152,6 +152,8 @@ fn every_member_this_client_calls_is_one_the_contract_declares() {
         methods::GENERATE_DOCX,
         methods::GENERATE_PPTX,
         methods::EXTRACT_TEXT,
+        methods::EXTRACT_DOCUMENT,
+        methods::RENDER_PDF,
         methods::READ_OUTPUT,
         methods::RELEASE_OUTPUT,
     ];
@@ -161,4 +163,12 @@ fn every_member_this_client_calls_is_one_the_contract_declares() {
             "the contract declares `{member}`, which this client never calls"
         );
     }
+}
+
+#[test]
+fn pinned_release_reports_intake_unavailable_without_loading() {
+    assert_eq!(registry::find(MODULE_ID).unwrap().version, "0.1.20");
+    assert!(
+        matches!(intake_available(),Err(DocumentCallError::Unavailable(message)) if message.contains("pinned TinyDocs release"))
+    );
 }
