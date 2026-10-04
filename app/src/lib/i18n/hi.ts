@@ -5073,7 +5073,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': 'फ़ाइल का पाथ',
   'memoryPage.brain.titleLabel': 'शीर्षक (वैकल्पिक)',
   'memoryPage.brain.sourceLabel': 'स्रोत प्रकार (वैकल्पिक)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': 'उदाहरण: pdf, markdown, notion',
   'memoryPage.brain.ingestDone': '{source} के अंतर्गत ब्रेन में जोड़ा गया।',
   'memoryPage.brain.ingestReplayed': 'वह दस्तावेज़ पहले से ब्रेन में है।',
   'memoryPage.brain.syncedTitle': 'सिंक किए गए स्रोत',

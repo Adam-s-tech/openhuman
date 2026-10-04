@@ -4797,7 +4797,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': '文件路径',
   'memoryPage.brain.titleLabel': '标题（可选）',
   'memoryPage.brain.sourceLabel': '来源类型（可选）',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': '例如 pdf、markdown、notion',
   'memoryPage.brain.ingestDone': '已添加到大脑，来源为 {source}。',
   'memoryPage.brain.ingestReplayed': '该文档已在大脑中。',
   'memoryPage.brain.syncedTitle': '已同步的来源',

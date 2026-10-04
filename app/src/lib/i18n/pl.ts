@@ -5140,7 +5140,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': 'Ścieżka pliku',
   'memoryPage.brain.titleLabel': 'Tytuł (opcjonalnie)',
   'memoryPage.brain.sourceLabel': 'Typ źródła (opcjonalnie)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': 'np. pdf, markdown, notion',
   'memoryPage.brain.ingestDone': 'Dodano do mózgu jako: {source}.',
   'memoryPage.brain.ingestReplayed': 'Ten dokument jest już w mózgu.',
   'memoryPage.brain.syncedTitle': 'Zsynchronizowane źródła',

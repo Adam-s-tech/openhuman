@@ -5113,7 +5113,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': 'Jalur file',
   'memoryPage.brain.titleLabel': 'Judul (opsional)',
   'memoryPage.brain.sourceLabel': 'Jenis sumber (opsional)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': 'mis. pdf, markdown, notion',
   'memoryPage.brain.ingestDone': 'Ditambahkan ke otak sebagai {source}.',
   'memoryPage.brain.ingestReplayed': 'Dokumen itu sudah ada di otak.',
   'memoryPage.brain.syncedTitle': 'Sumber tersinkron',

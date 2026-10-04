@@ -5212,7 +5212,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': 'Dateipfad',
   'memoryPage.brain.titleLabel': 'Titel (optional)',
   'memoryPage.brain.sourceLabel': 'Quellentyp (optional)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': 'z. B. pdf, markdown, notion',
   'memoryPage.brain.ingestDone': 'Unter {source} zum Gehirn hinzugefügt.',
   'memoryPage.brain.ingestReplayed': 'Dieses Dokument ist bereits im Gehirn.',
   'memoryPage.brain.syncedTitle': 'Synchronisierte Quellen',

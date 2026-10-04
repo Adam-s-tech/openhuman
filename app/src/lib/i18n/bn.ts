@@ -5073,7 +5073,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': 'ফাইলের পাথ',
   'memoryPage.brain.titleLabel': 'শিরোনাম (ঐচ্ছিক)',
   'memoryPage.brain.sourceLabel': 'উৎসের ধরন (ঐচ্ছিক)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': 'যেমন: pdf, markdown, notion',
   'memoryPage.brain.ingestDone': '{source}-এর অধীনে ব্রেনে যোগ করা হয়েছে।',
   'memoryPage.brain.ingestReplayed': 'সেই ডকুমেন্ট আগে থেকেই ব্রেনে আছে।',
   'memoryPage.brain.syncedTitle': 'সিঙ্ক করা উৎস',

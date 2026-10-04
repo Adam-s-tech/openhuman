@@ -5026,7 +5026,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': '파일 경로',
   'memoryPage.brain.titleLabel': '제목(선택)',
   'memoryPage.brain.sourceLabel': '출처 유형(선택)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': '예: pdf, markdown, notion',
   'memoryPage.brain.ingestDone': '{source} 출처로 브레인에 추가했습니다.',
   'memoryPage.brain.ingestReplayed': '해당 문서는 이미 브레인에 있습니다.',
   'memoryPage.brain.syncedTitle': '동기화된 출처',

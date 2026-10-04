@@ -5350,7 +5350,7 @@ const en: TranslationMap = {
   'memoryPage.brain.pathLabel': 'File path',
   'memoryPage.brain.titleLabel': 'Title (optional)',
   'memoryPage.brain.sourceLabel': 'Source type (optional)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': 'e.g. pdf, markdown, notion',
   'memoryPage.brain.ingestDone': 'Added to the brain under {source}.',
   'memoryPage.brain.ingestReplayed': 'That document is already in the brain.',
   'memoryPage.brain.syncedTitle': 'Synced sources',

@@ -4977,7 +4977,7 @@ const messages: TranslationMap = {
   'memoryPage.brain.pathLabel': 'مسار الملف',
   'memoryPage.brain.titleLabel': 'العنوان (اختياري)',
   'memoryPage.brain.sourceLabel': 'نوع المصدر (اختياري)',
-  'memoryPage.brain.sourcePlaceholder': 'pdf, markdown, notion…',
+  'memoryPage.brain.sourcePlaceholder': 'مثال: pdf، markdown، notion',
   'memoryPage.brain.ingestDone': 'تمت الإضافة إلى الدماغ ضمن {source}.',
   'memoryPage.brain.ingestReplayed': 'هذا المستند موجود في الدماغ بالفعل.',
   'memoryPage.brain.syncedTitle': 'المصادر المتزامنة',
