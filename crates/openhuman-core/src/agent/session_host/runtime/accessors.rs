@@ -126,11 +126,11 @@ impl OpenHumanSessionHost {
     }
 
     /// The full host [`Config`](crate::config::Config) this session
-    /// was built with, when it was built through the factory.
+    /// was built with, through the factory or an explicitly configured model.
     ///
     /// `None` on the bare-builder path (`SessionHostBuilder` without
-    /// `AgentFactory`), which is used by tests and by callers assembling a
-    /// session by hand. Every capability adapter that needs host config treats
+    /// `AgentFactory` or `SessionHostBuilder::chat_model_with_config`), used by
+    /// tests and callers assembling a session by hand. Adapters needing config treat
     /// `None` as "not available" rather than loading one itself — see
     /// [`Self::host_capabilities_available`].
     pub fn runtime_config(&self) -> Option<Arc<crate::config::Config>> {

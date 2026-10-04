@@ -291,6 +291,7 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
     // Memory acts as the target agent (the root when none is named) for
     // the whole channel turn.
     let memory_agent = target_agent_id.clone().unwrap_or_default();
+    let graph_origin = origin.clone();
     let outcome = turn_origin::with_origin(
         origin,
         crate::memory::scope::within_agent(
@@ -318,6 +319,7 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
                         multimodal.clone(),
                         multimodal_files.clone(),
                         on_progress,
+                        Some(graph_origin),
                     )
                     .await
                 }),

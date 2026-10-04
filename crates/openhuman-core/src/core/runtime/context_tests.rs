@@ -12,6 +12,7 @@ fn ctx(dir: &str) -> Arc<CoreContext> {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     })
 }
 
@@ -41,6 +42,7 @@ fn ctx_with_config(config: crate::config::Config) -> Arc<CoreContext> {
         embedder_config: Some(config),
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     })
 }
 
@@ -339,6 +341,7 @@ fn degraded_context_rejects_workspace_bound_stores() {
         embedder_config: None,
         user_skill_roots: true,
         backend_transport: None,
+        turn_origin: None,
     };
 
     // `workspace_dir()` is the gate every workspace-bound store goes

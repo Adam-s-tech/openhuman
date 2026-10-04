@@ -127,6 +127,21 @@ fn attached_tools_survive_clones_and_session_resume() {
                 .send()
                 .await
                 .unwrap();
+            let generation_zero = std::fs::read_dir(agent.transcripts_dir())
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .find(|path| {
+                    let has_generation_suffix = path
+                        .file_stem()
+                        .and_then(|stem| stem.to_str())
+                        .and_then(|stem| stem.rsplit_once(".g"))
+                        .is_some_and(|(_, generation)| generation.parse::<u32>().is_ok());
+                    path.extension()
+                        .is_some_and(|extension| extension == "jsonl")
+                        && !has_generation_suffix
+                })
+                .expect("the first committed prefix has generation zero transcript");
+            let frozen_generation_zero = std::fs::read(&generation_zero).unwrap();
             agent
                 .attach_tools(
                     "second",
@@ -135,15 +150,18 @@ fn attached_tools_survive_clones_and_session_resume() {
                     }),
                 )
                 .unwrap();
+            // A resumed session restores the exact tool prefix it committed.
+            // The newly attached tool is available to sessions started after
+            // this point, while `continuing` keeps the catalogue it began with.
             clone
                 .turn("third user")
-                .session("continuing")
+                .session("after-attach")
                 .send()
                 .await
                 .unwrap();
             clone
                 .turn("fourth user")
-                .session("continuing")
+                .session("after-attach")
                 .send()
                 .await
                 .unwrap();
@@ -152,26 +170,46 @@ fn attached_tools_survive_clones_and_session_resume() {
                 .unwrap()
                 .map(|entry| entry.unwrap().path())
                 .collect::<Vec<_>>();
-            assert!(paths
-                .iter()
-                .any(|path| path.to_string_lossy().contains(".g1.jsonl")));
             assert!(
-                !paths
-                    .iter()
-                    .any(|path| path.to_string_lossy().contains(".g2.jsonl")),
-                "identical catalogue must not create another generation"
+                paths.contains(&generation_zero),
+                "the continuing session transcript must remain durable"
+            );
+            assert_eq!(
+                std::fs::read(&generation_zero).unwrap(),
+                frozen_generation_zero,
+                "the continuing session must leave its transcript byte-for-byte intact"
             );
             let successor = paths
                 .iter()
-                .find(|path| path.to_string_lossy().contains(".g1.jsonl"))
+                .find(|path| {
+                    std::fs::read_to_string(path).is_ok_and(|text| text.contains("hivemind_list"))
+                })
                 .unwrap();
             let durable = std::fs::read_to_string(successor).unwrap();
             assert!(
                 durable
                     .lines()
                     .any(|line| line.contains("openhuman-permanent-tools")
+                        && line.contains("hivemind_message")
                         && line.contains("hivemind_list")),
-                "updated catalogue must be durable"
+                "successor generation must persist the updated permanent-tool catalogue"
+            );
+            let sealed = String::from_utf8(frozen_generation_zero).unwrap();
+            assert!(
+                sealed.contains("FROZEN_HOST_PROMPT"),
+                "sealed prefix: {sealed}"
+            );
+            assert!(
+                sealed.contains("hivemind_message"),
+                "sealed catalogue: {sealed}"
+            );
+            assert!(
+                !sealed.contains("hivemind_list"),
+                "the original generation cannot contain the later attachment: {sealed}"
+            );
+            assert!(
+                durable.contains("FROZEN_HOST_PROMPT"),
+                "successor prefix: {durable}"
             );
             let requests = chat_requests(&provider).await;
             assert_eq!(requests.len(), 4);
@@ -205,9 +243,28 @@ fn attached_tools_survive_clones_and_session_resume() {
                         1
                     );
                 }
-                if index > 0 {
+                if index == 1 {
                     assert!(messages.iter().any(|m| m["role"] == "user"
                         && m["content"].as_str().unwrap_or("").contains("first user")));
+                }
+                if index == 3 {
+                    assert!(messages.iter().any(|m| m["role"] == "user"
+                        && m["content"].as_str().unwrap_or("").contains("third user")));
+                    assert!(
+                        !messages.iter().any(|m| {
+                            let content = m["content"].as_str().unwrap_or("");
+                            content.contains("first user") || content.contains("second user")
+                        }),
+                        "a new session must not inherit the continuing session's history"
+                    );
+                }
+                if index == 2 {
+                    assert!(
+                        !messages.iter().any(|m| {
+                            m["content"].as_str().unwrap_or("").contains("first user")
+                        }),
+                        "a new session must start without the continuing session's history"
+                    );
                 }
             }
         })

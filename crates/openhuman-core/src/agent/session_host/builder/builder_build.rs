@@ -297,7 +297,7 @@ impl SessionHostBuilder {
 
         // Pull the model source out of the builder once; the OpenHumanSessionHost holds it and
         // builds a fresh tiered crate `ChatModel` set from it per turn.
-        let turn_model_source = self
+        let mut turn_model_source = self
             .turn_model_source
             .ok_or_else(|| anyhow::anyhow!("provider is required"))?;
 
@@ -321,10 +321,27 @@ impl SessionHostBuilder {
         // here.
         let context = ContextManager::new(&context_config, prompt_builder);
 
-        let workspace_dir = self
-            .workspace_dir
-            .unwrap_or_else(|| std::path::PathBuf::from("."));
-        let action_dir = self.action_dir.unwrap_or_else(|| workspace_dir.clone());
+        let workspace_dir = self.workspace_dir.unwrap_or_else(|| {
+            self.runtime_config
+                .as_ref()
+                .map(|config| config.workspace_dir.clone())
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+        });
+        let action_dir = self.action_dir.unwrap_or_else(|| {
+            self.runtime_config
+                .as_ref()
+                .map(|config| config.action_dir.clone())
+                .unwrap_or_else(|| workspace_dir.clone())
+        });
+        let runtime_config = self.runtime_config.map(|config| {
+            let mut config = (*config).clone();
+            config.workspace_dir = workspace_dir.clone();
+            config.action_dir = action_dir.clone();
+            Arc::new(config)
+        });
+        if let Some(config) = &runtime_config {
+            turn_model_source = turn_model_source.with_attachment_config(config.clone());
+        }
 
         // Direct builder callers (notably unit fixtures) do not pass through
         // `build_session_agent_inner`, which normally creates the durable host
@@ -333,7 +350,7 @@ impl SessionHostBuilder {
         // the built-in test definitions when the process registry is absent.
         // Production callers keep the explicit hosted-authority error: a
         // builtins-only fallback there could hide a missing workspace load.
-        let mut hosted_config = crate::config::Config::default();
+        let mut hosted_config = runtime_config.as_deref().cloned().unwrap_or_default();
         hosted_config.workspace_dir = workspace_dir.clone();
         hosted_config.action_dir = action_dir.clone();
         let hosted_config = Arc::new(hosted_config);
@@ -456,7 +473,7 @@ impl SessionHostBuilder {
             run_queue: None,
             connected_integrations: Vec::new(),
             connected_integrations_initialized: false,
-            runtime_config: None,
+            runtime_config,
             hosted_base,
             definition: None,
             omit_memory_context: self.omit_memory_context.unwrap_or(false),

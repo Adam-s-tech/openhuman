@@ -47,19 +47,14 @@ pub(super) struct AssembledTurnHarness {
     /// Shared 1-based model-call cursor (event bridge advances, model adapter
     /// reads for out-of-band thinking attribution).
     pub(super) cursor: IterationCursor,
-    /// Shared `call_id → tool_name` map: the model adapter's `ThinkingForwarder`
-    /// writes it on tool-call start; the event bridge reads it to label the
-    /// tool-argument fragments it now projects off the crate stream.
+    /// Shared `call_id → tool_name` map used by the event bridge to label
+    /// tool-argument fragments projected off the crate stream.
     pub(super) tool_names: ToolNameMap,
-    /// Shared `call_id → (success, failure, elapsed_ms, output_chars)`
-    /// side-channel: the tool-outcome capture middleware classifies each outcome
-    /// + records its duration/output size; the event bridge reads it to project
-    ///
-    /// Real success + a user-facing failure + timing onto `ToolCallCompleted`.
+    /// Shared `call_id → (success, failure, elapsed_ms, output_chars)` side-channel:
+    /// middleware records each outcome for the event bridge's `ToolCallCompleted`.
     pub(super) failure_map: ToolFailureMap,
-    /// Shared FIFO carry of per-call provider `BilledUsage` (charged USD + context
-    /// window): the model adapter pushes, the event bridge pops when recording
-    /// usage — restores charged-USD precedence on the tinyagents path (#4467).
+    /// Shared FIFO carry of per-call provider `BilledUsage`; the event bridge
+    /// reads it when recording usage to preserve charged-USD precedence (#4467).
     pub(super) provider_usage_carry: ProviderUsageCarry,
     /// Recovers the original (downcastable) provider error on run failure.
     pub(super) error_slot: crate::agent::tinyagents::model::ModelErrorSlot,
@@ -91,10 +86,10 @@ pub(super) struct AssembledTurnHarness {
     pub(super) registry_diagnostics: Vec<RegistryDiagnostic>,
     /// TinyAgents store index for OpenHuman action-dir tool-result artifacts.
     pub(super) tool_result_artifact_index: Option<Arc<ToolResultArtifactIndexStore>>,
-    /// Concrete handle to the installed [`ContextCompressionMiddleware`], when the
-    /// summarization step is active. Drained after the run to surface each
-    /// compaction's [`CompressionProvenance`][tinyagents_harness::summarization::CompressionProvenance]
-    /// (source ids + before/after token estimates) via the observability path.
+    /// Concrete handle to the installed [`ContextCompressionMiddleware`], when
+    /// summarization is active. Drained after the run to surface each compaction's
+    /// [`CompressionProvenance`][tinyagents_harness::summarization::CompressionProvenance]
+    /// via the observability path.
     pub(super) compression_mw: Option<Arc<ContextCompressionMiddleware>>,
     /// Crate prompt-cache guard (issue #4249, 03.2). Records a `CacheLayoutEvent`
     /// whenever the cacheable prompt prefix (system prompt + tool set) changes
@@ -312,9 +307,6 @@ pub(super) fn assemble_turn_harness(
     // recover policy from a task-local while the harness is driving.
     let stop_hooks_installed = stop_hooks;
 
-    // A single steering handle drives mid-flight steering (run queue), the
-    // early-exit pause, the model-call-cap pause, and stop-hook pauses, so they
-    // all reach the same loop. Created when any of them is active.
     // A steering handle is always created now: besides run-queue steering, the
     // early-exit / cap / stop-hook pauses, the repeated-tool-failure breaker
     // (below) also pauses through it, and it wants to fire on every path
@@ -335,13 +327,11 @@ pub(super) fn assemble_turn_harness(
     // Shared by the two breakers below: whichever halts writes the root cause here.
     let halt_summary: HaltSummarySlot = std::sync::Arc::new(std::sync::Mutex::new(None));
 
-    // Repeat-progress breaker (issue #4463, restoring #4088 / #4095): the failure
-    // breaker below resets on every success, so a model looping on a *successful*
-    // no-op tool or re-emitting an identical narration+call never trips it. This
-    // guard halts on identical successful `(tool, args)` batches / identical
-    // outputs, and on one call returning the identical result again with other
-    // calls in between (#6275), sharing the same halt-summary slot + steering
-    // handle. Polling tools (`wait_subagent`) stay exempt.
+    // Repeat-progress breaker (#4463, restoring #4088/#4095): the failure
+    // breaker resets on success, so it misses successful no-op loops and repeated
+    // narration+call batches. This guard catches identical successful calls or
+    // outputs, including repeats with other calls between them (#6275). Polling
+    // tools (`wait_subagent`) stay exempt.
     //
     // Pushed first / outermost: `after_tool` runs in reverse registration order,
     // so this guard fingerprints a result only after every other middleware
