@@ -419,6 +419,12 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         "repeated_tool_failure"
     }
 
+    // Failure accounting and corrective nudges must observe tool outcomes even
+    // when an earlier middleware has already requested a control action.
+    fn is_observer(&self) -> bool {
+        true
+    }
+
     async fn before_tool(
         &self,
         _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
