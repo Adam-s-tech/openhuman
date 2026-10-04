@@ -67,3 +67,16 @@ pub(super) fn fetch_host_scope(tool: &str, field: &str, value: &str) -> Option<S
     let url = url::Url::parse(value).ok()?;
     Some(format!(":host={}", url.host_str()?))
 }
+
+/// The text the keyword heuristics may read for a failed `tool` result. For an
+/// ordinary fetched-site status (404, 410, ...) the response body is untrusted
+/// excerpt text, so only the status line is read; it must not turn a site
+/// failure into a terminal inference or transient tool failure. Everything else
+/// is read whole.
+pub(super) fn heuristic_text<'a>(tool: &str, failure_text: &'a str) -> &'a str {
+    if fetched_site_policy(tool, failure_text) == Some(None) {
+        failure_text.lines().next().unwrap_or(failure_text)
+    } else {
+        failure_text
+    }
+}

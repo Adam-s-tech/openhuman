@@ -90,12 +90,18 @@ fn toolchain_homes_are_granted_when_they_exist() {
     let g = resolve_local_jail_grants(Some(home.path()), &LocalJailConfig::default());
     let h = canon(home.path());
     let cargo = h.join(".cargo");
-    assert!(!has(&g.read_write, &cargo), "Cargo home must never be writable");
+    assert!(
+        !has(&g.read_write, &cargo),
+        "Cargo home must never be writable"
+    );
     assert!(has(&g.read_only, &cargo.join("bin")));
     assert!(has(&g.read_write, &cargo.join("registry")));
     assert!(has(&g.read_write, &cargo.join("git")));
     for file in ["config.toml", "config", "env"] {
-        assert!(has(&g.read_only, &cargo.join(file)), "{file} should be read-only");
+        assert!(
+            has(&g.read_only, &cargo.join(file)),
+            "{file} should be read-only"
+        );
     }
     for ro in [".rustup", ".nvm", ".npm"] {
         assert!(has(&g.read_only, &h.join(ro)), "{ro} should be read-only");

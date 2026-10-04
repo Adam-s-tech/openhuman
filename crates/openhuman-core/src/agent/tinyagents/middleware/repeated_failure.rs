@@ -19,7 +19,7 @@ use tinyinference_llm::model::ModelRequest;
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;
 
-use super::fetched_site::{fetch_host_scope, fetched_site_policy};
+use super::fetched_site::{fetch_host_scope, fetched_site_policy, heuristic_text};
 use super::loop_guards::{
     is_repeat_call_exempt, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
     RECOVERABLE_REPEAT_FAILURE_THRESHOLD,
@@ -311,7 +311,6 @@ fn classified_recovery_policy(
     {
         return Some(("unavailable", 1));
     }
-    // A site's refusal is not our credential failure (see `fetched_site`).
     if let Some(policy) = fetched_site_policy(tool, error) {
         return policy;
     }
@@ -476,16 +475,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
             false if body_level_failure => content.clone(),
             false => String::new(),
         };
-        // For an ordinary fetched-site status (404, 410, etc.), the response
-        // body is untrusted excerpt text. It must not turn the site failure
-        // into a terminal inference or transient tool failure. Keep the full
-        // text below for the exact-repeat tracker and its user-facing summary.
-        let heuristic_failure_text = if fetched_site_policy(tool_name, &failure_text) == Some(None)
-        {
-            failure_text.lines().next().unwrap_or(&failure_text)
-        } else {
-            &failure_text
-        };
+        let heuristic_failure_text = heuristic_text(tool_name, &failure_text);
 
         if !result.is_error && !body_level_failure {
             // Only a successful observation against this operation and scope
