@@ -5,6 +5,8 @@
 //! prefix reconciliation, tool snapshots, resume and persistence remain inside
 //! the runtime session.
 
+mod permanent;
+
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -113,6 +115,7 @@ struct OpenHumanTurnToolSurface {
     /// as the final allowlist, and classified `Allow` by the policy, so a
     /// found tool is callable. See `OpenHumanSessionHost::deferred_tool_names`.
     deferred_tool_names: std::collections::HashSet<String>,
+    permanent_tool_names: std::collections::HashSet<String>,
     /// Whether this belt reaches deferred tools at all; fixed at build.
     discovery_enabled: bool,
     /// The definition's own `deferred_tools`; see `meta::deferred_set`.
@@ -1147,6 +1150,7 @@ impl OpenHumanSessionHost {
                     visible_tool_specs: self.visible_tool_specs.clone(),
                     visible_tool_names: self.visible_tool_names.clone(),
                     deferred_tool_names: self.deferred_tool_names.clone(),
+                    permanent_tool_names: self.permanent_tool_names.clone(),
                     discovery_enabled: self.discovery_enabled,
                     requested_deferred_tools: self.requested_deferred_tools.clone(),
                     auto_include_new_synthesized_tools: true,
@@ -1259,6 +1263,7 @@ impl OpenHumanSessionHost {
                             prelude.prepare(new_session).await.map_err(|error| {
                                 tinyagents_runtime::RuntimeError::Driver(error.to_string())
                             })?;
+                        permanent::refresh_permanent_prefix(&prelude, &mut preparation, view.prefix);
                         if overrides.suppress_tools {
                             // One-off tool-less turn: must not become the
                             // thread's recorded tool list.
@@ -1496,6 +1501,7 @@ impl OpenHumanSessionHost {
             visible_tool_specs: self.visible_tool_specs.clone(),
             visible_tool_names: self.visible_tool_names.clone(),
             deferred_tool_names: self.deferred_tool_names.clone(),
+            permanent_tool_names: self.permanent_tool_names.clone(),
             discovery_enabled: self.discovery_enabled,
             requested_deferred_tools: self.requested_deferred_tools.clone(),
             auto_include_new_synthesized_tools: auto_include_new_synthesized_tools
