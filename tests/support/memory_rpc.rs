@@ -7,9 +7,9 @@
 
 #![allow(dead_code)]
 
-use std::path::Path;
 use openhuman_rpc::server::build_core_http_router;
 use serde_json::Value;
+use std::path::Path;
 
 use crate::rpc_auth::ensure_rpc_auth;
 

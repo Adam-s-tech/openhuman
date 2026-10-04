@@ -89,10 +89,7 @@ fn call(id: &str, name: &str) -> ChatResponse {
 }
 
 fn nudge_count(messages: &[Message]) -> usize {
-    messages
-        .iter()
-        .filter(|m| m.text().contains(NUDGE))
-        .count()
+    messages.iter().filter(|m| m.text().contains(NUDGE)).count()
 }
 
 async fn run_turn(
