@@ -1338,6 +1338,91 @@ async fn explore_drills_down_and_items_get_reads_whole() {
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
+async fn agent_namespaces_keep_memory_apart_over_rpc() {
+    let f = Fixture::new(true).await;
+    let learn_at = |text: &'static str, namespace: &'static str| {
+        let f = &f;
+        async move {
+            f.ok(
+                "openhuman.memory_learn",
+                json!({ "text": text, "kind": "fact", "meta": { "namespace": namespace } }),
+            )
+            .await["id"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        }
+    };
+    let shared = f.learn("The user is called Sam").await;
+    let researcher = learn_at("Prefer arxiv for papers", "agent:researcher").await;
+    let writer = learn_at("Draft in British English", "agent:writer").await;
+
+    // The namespace facet counts each node.
+    let nodes = f
+        .ok("openhuman.memory_explore", json!({ "facet": "namespace" }))
+        .await;
+    let values: Vec<&str> = nodes["buckets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| b["value"].as_str().unwrap())
+        .collect();
+    for node in ["root", "agent:researcher", "agent:writer"] {
+        assert!(values.contains(&node), "{nodes}");
+    }
+
+    // A researcher's reach: its node and the root, never the writer's.
+    let listed = f
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "reach": { "at": "agent:researcher" } }, "limit": 50 }),
+        )
+        .await;
+    let ids = ids_of(&listed, "items");
+    assert!(ids.contains(&shared) && ids.contains(&researcher), "{listed}");
+    assert!(!ids.contains(&writer), "a sibling is out of reach: {listed}");
+
+    // `get` and `forget` within a reach leave the sibling's item alone.
+    let got = f
+        .ok(
+            "openhuman.memory_items_get",
+            json!({ "ids": [writer], "reach": { "at": "agent:researcher" } }),
+        )
+        .await;
+    assert_eq!(got["items"], json!([]));
+    let forgot = f
+        .ok(
+            "openhuman.memory_forget",
+            json!({ "ids": [writer], "reach": { "at": "agent:researcher" } }),
+        )
+        .await;
+    assert_eq!(forgot["forgotten"], json!(0));
+
+    // A malformed node is refused.
+    let refused = f
+        .call(
+            "openhuman.memory_context_get",
+            json!({ "namespace": "not a node" }),
+        )
+        .await;
+    assert!(refused.get("error").is_some(), "{refused}");
+
+    // Each node compiles its own context.md.
+    let brief = f
+        .ok(
+            "openhuman.memory_context_refresh",
+            json!({ "namespace": "agent:researcher" }),
+        )
+        .await;
+    assert_eq!(brief["namespace"], json!("agent:researcher"));
+    let text = brief["markdown"].as_str().unwrap();
+    assert!(text.contains("arxiv") && text.contains("Sam"), "{brief}");
+    assert!(!text.contains("British"), "{brief}");
+    let root = f.ok("openhuman.memory_context_get", json!({})).await;
+    assert_eq!(root["namespace"], json!("root"));
+}
+
+#[tokio::test]
 async fn import_scan_finds_nothing_and_start_needs_consent() {
     let f = Fixture::new(true).await;
 
