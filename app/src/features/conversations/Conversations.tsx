@@ -50,6 +50,7 @@ import {
   type Attachment,
   ATTACHMENT_MAX_FILES,
   ATTACHMENT_MAX_IMAGES,
+  attachmentMetadata,
   buildMessageWithAttachments,
   imageMarkerCost,
   parseMessageImages,
@@ -1152,34 +1153,22 @@ const Conversations = ({
     addPendingSendingThread(sendingThreadId);
     const pendingAttachments = attachments.slice();
     const modelOverride = composerModelOverride ?? CHAT_MODEL_HINT;
-    const messageText = buildMessageWithAttachments(trimmed, pendingAttachments);
+    let messageText = buildMessageWithAttachments(trimmed, pendingAttachments);
     const userMessage: ThreadMessage = {
       id: `msg_${globalThis.crypto.randomUUID()}`,
-      content: trimmed,
+      content: messageText,
       type: 'text',
-      extraMetadata:
-        pendingAttachments.length > 0
-          ? {
-              attachmentCount: pendingAttachments.length,
-              attachmentNames: pendingAttachments.map(a => a.file.name),
-              attachmentKinds: pendingAttachments.map(a => a.kind),
-              attachmentDataUris: pendingAttachments
-                .filter(a => a.kind === 'image')
-                .map(a => a.previewUri ?? a.dataUri),
-              // Poster (first frame) per attachment, index-aligned with
-              // attachmentKinds — only video entries carry one; others null.
-              attachmentPosters: pendingAttachments.map(a =>
-                a.kind === 'video' ? (a.previewUri ?? null) : null
-              ),
-              attachmentCompressed: pendingAttachments.map(a => a.compressed),
-            }
-          : {},
+      extraMetadata: attachmentMetadata(pendingAttachments),
       sender: 'user',
       createdAt: new Date().toISOString(),
     };
 
     try {
-      await dispatch(addMessageLocal({ threadId: sendingThreadId, message: userMessage })).unwrap();
+      const persisted = await dispatch(
+        addMessageLocal({ threadId: sendingThreadId, message: userMessage })
+      ).unwrap();
+      // The core saved the originals before returning this durable reference.
+      messageText = persisted.message.content;
     } catch (error) {
       // RTK's unwrap() re-throws the rejectWithValue payload directly (a plain
       // string, not an Error). Check for the stale-thread sentinel before
@@ -1294,25 +1283,9 @@ const Conversations = ({
     }`;
     const followupMessage: ThreadMessage = {
       id: messageId,
-      content: normalized,
+      content: messageText,
       type: 'text',
-      extraMetadata:
-        pendingAttachments.length > 0
-          ? {
-              attachmentCount: pendingAttachments.length,
-              attachmentNames: pendingAttachments.map(a => a.file.name),
-              attachmentKinds: pendingAttachments.map(a => a.kind),
-              attachmentDataUris: pendingAttachments
-                .filter(a => a.kind === 'image')
-                .map(a => a.previewUri ?? a.dataUri),
-              // Poster (first frame) per attachment, index-aligned with
-              // attachmentKinds — only video entries carry one; others null.
-              attachmentPosters: pendingAttachments.map(a =>
-                a.kind === 'video' ? (a.previewUri ?? null) : null
-              ),
-              attachmentCompressed: pendingAttachments.map(a => a.compressed),
-            }
-          : {},
+      extraMetadata: attachmentMetadata(pendingAttachments),
       sender: 'user',
       createdAt: new Date().toISOString(),
     };

@@ -199,9 +199,8 @@ function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
 /**
  * Sample `count` still frames from a video file as JPEG data URIs by decoding it
  * in a detached `<video>` element and painting each seek point onto a `<canvas>`.
- * The full clip is never uploaded — only these frames ride the `[IMAGE:]` vision
- * path. Throws if the browser can't decode the file (the caller maps that to a
- * `read_failed` error). Requires a real codec-capable runtime (CEF/Chromium);
+ * This optional preview helper does not affect original upload acceptance.
+ * Throws if the browser cannot decode the file. Requires a codec-capable browser;
  * jsdom can't decode video, so unit tests stub {@link videoFrameExtractor}.
  */
 async function extractVideoFramesImpl(
@@ -321,6 +320,69 @@ export function buildMessageWithAttachments(text: string, attachments: Attachmen
   return text.trim() ? `${text.trim()} ${markers}` : markers;
 }
 
+/** Workspace references returned by the core after it has saved originals. */
+export interface AttachmentReference {
+  path: string;
+  name: string;
+  mime: string;
+  size_bytes: number;
+}
+
+/** Decode durable references without exposing raw JSON in message bubbles. */
+export function parseAttachmentReferences(content: string): {
+  text: string;
+  attachments: AttachmentReference[];
+} {
+  const attachments: AttachmentReference[] = [];
+  const text = content
+    .replace(/\[ATTACHMENT:([^\]]+)\]/g, (marker, encoded: string) => {
+      try {
+        const decoded = new URLSearchParams(`value=${encoded}`).get('value');
+        const value: unknown = JSON.parse(decoded ?? '');
+        if (!value || typeof value !== 'object') return marker;
+        const file = value as Partial<AttachmentReference>;
+        if (
+          typeof file.path !== 'string' ||
+          typeof file.name !== 'string' ||
+          typeof file.mime !== 'string' ||
+          typeof file.size_bytes !== 'number' ||
+          !Number.isSafeInteger(file.size_bytes) ||
+          file.size_bytes < 0
+        )
+          return marker;
+        // These are workspace references, never URLs or absolute browser targets.
+        const components = file.path.split('/');
+        if (
+          !file.path ||
+          file.path.includes('\\') ||
+          file.path.includes(':') ||
+          file.path.includes('\0') ||
+          components.some(part => part === '' || part === '.' || part === '..')
+        )
+          return marker;
+        attachments.push(file as AttachmentReference);
+        return '';
+      } catch {
+        return marker;
+      }
+    })
+    .replace(/ {2,}/g, ' ')
+    .trim();
+  return { text, attachments };
+}
+
+/** Display metadata excludes payload bytes; originals travel only in upload markers. */
+export function attachmentMetadata(attachments: Attachment[]): Record<string, unknown> {
+  return attachments.length === 0
+    ? {}
+    : {
+        attachmentCount: attachments.length,
+        attachmentNames: attachments.map(file => file.file.name),
+        attachmentKinds: attachments.map(file => file.kind),
+        attachmentCompressed: attachments.map(file => file.compressed),
+      };
+}
+
 /**
  * Parse `[IMAGE:<data-uri>]` and `[FILE:<data-uri>]` markers out of a stored message string.
  * Returns the clean text (markers removed) and the list of image data URIs found.
@@ -328,8 +390,8 @@ export function buildMessageWithAttachments(text: string, attachments: Attachmen
  */
 export function parseMessageImages(content: string): { text: string; dataUris: string[] } {
   const dataUris: string[] = [];
-  const text = content
-    .replace(/\[IMAGE:([^\]]+)\]/g, (_match, uri: string) => {
+  const text = parseAttachmentReferences(content)
+    .text.replace(/\[IMAGE:([^\]]+)\]/g, (_match, uri: string) => {
       dataUris.push(uri);
       return '';
     })
