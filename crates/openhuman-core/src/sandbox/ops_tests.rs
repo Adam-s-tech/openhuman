@@ -121,7 +121,9 @@ async fn create_sandbox_backend_local() {
         .backend_id
         .as_deref()
         .expect("the local backend must name itself so a caller can tell which jail is in force");
-    if backend_id == cwd_jail::NOOP_BACKEND_NAME {
+    if backend_id == cwd_jail::NOOP_BACKEND_NAME
+        || backend_id == cwd_jail::detect::UNSUPPORTED_BACKEND_NAME
+    {
         assert_eq!(
             handle.status,
             SandboxStatus::Inactive,

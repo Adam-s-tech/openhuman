@@ -81,6 +81,8 @@
 # five additional crate names in the flows profile. The measured graph has 321
 # packages / 304 names and still 2 native builds; the kernel-floor history
 # records the upstream update and its measured increase.
+# 304 -> 307 on 2026-10-04: TinyBox v0.1.15 adds the required TinyBus runtime
+# integration to the always-on flows graph; native builds remain unchanged.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
@@ -88,6 +90,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-EXPECTED_NAMES=304
+EXPECTED_NAMES=307
 
 exec python3 scripts/dep-sim.py --cut-nothing --expect-names "${EXPECTED_NAMES}"
