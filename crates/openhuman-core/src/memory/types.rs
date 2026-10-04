@@ -167,6 +167,11 @@ pub struct LearnView {
 pub struct ForgetParams {
     /// Item ids.
     pub ids: Vec<String>,
+    /// Only ids of items in this reach are forgotten; an id outside it is
+    /// left alone as if it named nothing. The `memory` tool always sets the
+    /// calling agent's reach.
+    #[serde(default)]
+    pub reach: Option<tinymemory::Reach>,
 }
 
 /// `memory_forget` result.

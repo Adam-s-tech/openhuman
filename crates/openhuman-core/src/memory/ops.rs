@@ -249,6 +249,9 @@ fn merge_meta(meta: &mut MemoryMeta, host: MemoryMeta) {
         observed_at
     );
     meta.source = host.source;
+    // The host's node is authoritative: a caller cannot write into another
+    // agent's memory.
+    meta.namespace = host.namespace;
     for tag in host.tags {
         if !meta.tags.contains(&tag) {
             meta.tags.push(tag);
@@ -329,11 +332,40 @@ pub async fn forget(config: &Config, params: ForgetParams) -> MemoryResult<Forge
         return Err(MemoryError::invalid("forget needs at least one id"));
     }
     let bound = bound(config)?;
+    let ids = match params.reach {
+        Some(reach) => within_reach(&bound, ids, reach).await?,
+        None => ids,
+    };
+    if ids.is_empty() {
+        tracing::debug!(engine = %bound.id, "[memory:ops] forget: nothing in reach");
+        return Ok(ForgetView { forgotten: 0 });
+    }
     let report = bound.engine.forget(ForgetTarget::Ids(ids)).await?;
     tracing::debug!(engine = %bound.id, forgotten = report.forgotten, "[memory:ops] forget");
     Ok(ForgetView {
         forgotten: report.forgotten,
     })
+}
+
+/// The ids among `ids` naming an item in `reach`, read through `get` in
+/// chunks of its id limit.
+async fn within_reach(
+    bound: &BoundEngine,
+    ids: Vec<ItemId>,
+    reach: tinymemory::Reach,
+) -> MemoryResult<Vec<ItemId>> {
+    let mut kept = Vec::new();
+    for chunk in ids.chunks(tinymemory::explore::MAX_GET_IDS) {
+        let found = bound
+            .engine
+            .get(tinymemory::GetRequest {
+                ids: chunk.to_vec(),
+                reach: Some(reach.clone()),
+            })
+            .await?;
+        kept.extend(found.into_iter().map(|hit| hit.id));
+    }
+    Ok(kept)
 }
 
 /// `memory_items_list`.

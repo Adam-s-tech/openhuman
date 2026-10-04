@@ -59,6 +59,9 @@ pub struct ExploreParams {
 pub struct ItemsGetParams {
     /// Item ids.
     pub ids: Vec<String>,
+    /// Only items in this reach are returned; unset reads every namespace.
+    #[serde(default)]
+    pub reach: Option<tinymemory::Reach>,
 }
 
 /// `memory_items_get` result.
@@ -114,6 +117,7 @@ pub async fn items_get(config: &Config, params: ItemsGetParams) -> MemoryResult<
     let bound = engine::resolve(config).engine()?;
     let request = GetRequest {
         ids: params.ids.into_iter().map(ItemId::new).collect(),
+        reach: params.reach,
     };
     request.validate()?;
     let asked = request.ids.len();
