@@ -41,6 +41,7 @@ pub fn view(source: &MemorySourceConfig, state: Option<&state::SourceState>) -> 
         status: state.status,
         error: state.error,
         items: state.items,
+        namespace: namespace_of_source(source).to_string(),
     }
 }
 

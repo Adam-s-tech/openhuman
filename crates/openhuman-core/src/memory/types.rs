@@ -281,6 +281,8 @@ pub struct SourceView {
     pub error: Option<String>,
     /// Items stored by the last sync.
     pub items: u64,
+    /// The memory node the source stores at (`root` for the shared one).
+    pub namespace: String,
 }
 
 /// `memory_sources_list` result.
