@@ -170,6 +170,7 @@ async fn stores_past_chats_once_and_skips_what_live_ingestion_took() {
         conversations::buffer::CommittedTurn {
             thread_id: "live-thread".into(),
             agent_id: None,
+            namespace: tinymemory::Namespace::ROOT,
             workspace: None,
             channel: None,
             user: "After ingestion".into(),

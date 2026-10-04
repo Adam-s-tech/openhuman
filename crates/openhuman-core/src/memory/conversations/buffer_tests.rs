@@ -9,6 +9,7 @@ fn turn(thread: &str, user: &str, assistant: &str, secs: i64) -> CommittedTurn {
     CommittedTurn {
         thread_id: thread.to_string(),
         agent_id: None,
+        namespace: Namespace::ROOT,
         workspace: None,
         channel: None,
         user: user.to_string(),
@@ -21,10 +22,13 @@ fn turn(thread: &str, user: &str, assistant: &str, secs: i64) -> CommittedTurn {
 #[test]
 fn push_flushes_exactly_when_the_batch_is_full() {
     let mut buffer = ConversationBuffer::default();
-    assert!(buffer.push(turn("t", "a", "b", 0), 4, 3).is_none());
-    assert!(buffer.push(turn("t", "c", "d", 1), 5, 3).is_none());
+    assert!(buffer.push(turn("t", "a", "b", 0), 4, 3).is_empty());
+    assert!(buffer.push(turn("t", "c", "d", 1), 5, 3).is_empty());
     assert_eq!(buffer.pending("t"), 2);
-    let batch = buffer.push(turn("t", "e", "f", 2), 6, 3).expect("full");
+    let batch = buffer
+        .push(turn("t", "e", "f", 2), 6, 3)
+        .pop()
+        .expect("full");
     assert_eq!(batch.thread_id, "t");
     assert_eq!(batch.first, 4);
     assert_eq!(batch.last(), 6);
@@ -32,7 +36,7 @@ fn push_flushes_exactly_when_the_batch_is_full() {
     assert_eq!(buffer.pending("t"), 0);
 
     // The next batch starts at the index it is handed.
-    assert!(buffer.push(turn("t", "g", "h", 3), 7, 3).is_none());
+    assert!(buffer.push(turn("t", "g", "h", 3), 7, 3).is_empty());
     let rest = buffer.take_all();
     assert_eq!(rest.len(), 1);
     assert_eq!(rest[0].first, 7);
@@ -41,10 +45,11 @@ fn push_flushes_exactly_when_the_batch_is_full() {
 #[test]
 fn threads_are_batched_independently() {
     let mut buffer = ConversationBuffer::default();
-    assert!(buffer.push(turn("a", "1", "1", 0), 0, 2).is_none());
-    assert!(buffer.push(turn("b", "1", "1", 0), 0, 2).is_none());
+    assert!(buffer.push(turn("a", "1", "1", 0), 0, 2).is_empty());
+    assert!(buffer.push(turn("b", "1", "1", 0), 0, 2).is_empty());
     let full = buffer
         .push(turn("a", "2", "2", 1), 1, 2)
+        .pop()
         .expect("a is full");
     assert_eq!(full.thread_id, "a");
     assert_eq!(buffer.pending("a"), 0);
@@ -54,7 +59,7 @@ fn threads_are_batched_independently() {
 #[test]
 fn a_zero_batch_size_still_flushes_every_turn() {
     let mut buffer = ConversationBuffer::default();
-    assert!(buffer.push(turn("t", "a", "b", 0), 0, 0).is_some());
+    assert_eq!(buffer.push(turn("t", "a", "b", 0), 0, 0).len(), 1);
 }
 
 #[test]
@@ -185,4 +190,26 @@ fn last_of_a_single_turn_batch_is_its_first() {
         turns: vec![turn("t", "a", "b", 0)],
     };
     assert_eq!(batch.last(), 5);
+}
+
+#[test]
+fn a_batch_never_mixes_two_agents() {
+    let mut buffer = ConversationBuffer::default();
+    let by = |agent: &str, secs| CommittedTurn {
+        agent_id: Some(agent.to_string()),
+        namespace: Namespace::agent(agent),
+        ..turn("t", "q", "a", secs)
+    };
+    assert!(buffer.push(by("researcher", 0), 0, 10).is_empty());
+    assert!(buffer.push(by("researcher", 1), 1, 10).is_empty());
+    let flushed = buffer.push(by("writer", 2), 2, 10);
+    assert_eq!(flushed.len(), 1, "the researcher's turns are stored on their own");
+    assert_eq!(flushed[0].turns.len(), 2);
+    let item = flushed[0].clone().into_item();
+    assert_eq!(item.meta().namespace, Namespace::agent("researcher"));
+    assert_eq!(item.meta().agent_id.as_deref(), Some("researcher"));
+    assert_eq!(buffer.pending("t"), 1);
+    let rest = buffer.take_all();
+    assert_eq!(rest[0].first, 2);
+    assert_eq!(rest[0].clone().into_item().meta().namespace, Namespace::agent("writer"));
 }
