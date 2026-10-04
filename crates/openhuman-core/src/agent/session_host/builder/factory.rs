@@ -773,6 +773,7 @@ impl OpenHumanSessionHost {
         effective_agent_config.max_tool_iterations = effective_cap;
         // Host-first, so a host tool wins a name collision -- see
         // `HostTurnTools::merge_into`, which owns that rule and why.
+        let visible_before_host_tools = visible.clone();
         let merged_host_tools = super::host_tools::merge_for_turn(
             host,
             agent_id,
@@ -780,6 +781,25 @@ impl OpenHumanSessionHost {
             &mut tools,
             &mut visible,
         )?;
+        // Named definitions enforce their provider-visible allowlist through
+        // the hosted definition adapter as well as the session's visible set.
+        // Carry host-added names into that same definition, or the adapter
+        // drops an attached tool from the model schema while its prompt marker
+        // still advertises it. Wildcard definitions already include every
+        // registered host tool.
+        let host_scope_additions: Vec<String> = visible
+            .difference(&visible_before_host_tools)
+            .filter(|name| !merged_host_tools.withheld.contains(*name))
+            .cloned()
+            .collect();
+        let mut session_definition = target_def.cloned();
+        if let Some(definition) = session_definition.as_mut() {
+            if matches!(definition.tools, ToolScope::Named(_)) {
+                definition.extra_tools.extend(host_scope_additions);
+                definition.extra_tools.sort();
+                definition.extra_tools.dedup();
+            }
+        }
         let host_policy = merged_host_tools.policy;
         let withheld_tool_names = merged_host_tools.withheld;
         let mut builder = OpenHumanSessionHost::builder()
@@ -841,7 +861,7 @@ impl OpenHumanSessionHost {
                 // names no registry holds; without handing the definition over
                 // here the lookup misses and the turn is rejected as a policy
                 // failure before any provider call (#6404/#6392/#6393).
-                session_definition: target_def.cloned().map(Arc::new),
+                session_definition: session_definition.clone().map(Arc::new),
             })
         });
         if agent.hosted_base.is_none() {
@@ -849,7 +869,7 @@ impl OpenHumanSessionHost {
                 "[tinyagents] hosted invocation base unavailable: agent definition registry was not initialized"
             );
         }
-        agent.definition = target_def.cloned().map(Arc::new);
+        agent.definition = session_definition.map(Arc::new);
         agent.last_seen_integrations_hash =
             crate::integrations::composio::connected_set_hash(&agent.connected_integrations);
         Ok(agent)
