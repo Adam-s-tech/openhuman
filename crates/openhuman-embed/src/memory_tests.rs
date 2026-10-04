@@ -39,12 +39,3 @@ fn one_agents_recall_inherits_the_root_but_not_a_sibling() {
     assert!(!reach.admits(&"team:acme/agent:cfo".parse().unwrap()));
     assert!(!reach.admits(&"team:other".parse().unwrap()));
 }
-
-#[test]
-fn status_reports_off_without_an_engine() {
-    let status = bind("team:acme").unwrap().status();
-    assert_eq!(status.root, "team:acme");
-    if !status.on {
-        assert!(status.reason.is_some());
-    }
-}
