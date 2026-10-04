@@ -182,7 +182,9 @@ export async function signInViaBypassUser(
       return store?.getState?.().thread?.selectedThreadId ?? null;
     });
     if (selectedThreadId) {
-      await page.getByTestId(`thread-row-${selectedThreadId}`).click();
+      const selectedRow = page.getByTestId(`thread-row-${selectedThreadId}`);
+      await expect(selectedRow).toBeVisible();
+      await selectedRow.click();
     } else {
       await page.getByTestId('new-thread-button').click({ force: true });
     }

@@ -66,6 +66,36 @@ async function openChat(page: Page, userId: string): Promise<void> {
 
 async function startFreshConversation(page: Page): Promise<void> {
   const previousId = await selectedThreadId(page);
+  if (previousId) {
+    const previousRow = page.getByTestId(`thread-row-${previousId}`);
+    await expect(previousRow).toBeVisible();
+    await previousRow.click();
+    await expect
+      .poll(() =>
+        page.evaluate(threadId => {
+          const store = (
+            window as unknown as {
+              __OPENHUMAN_STORE__?: {
+                getState?: () => {
+                  thread?: {
+                    selectedThreadId?: string | null;
+                    isLoadingMessages?: boolean;
+                    messagesByThreadId?: Record<string, unknown[]>;
+                  };
+                };
+              };
+            }
+          ).__OPENHUMAN_STORE__;
+          const thread = store?.getState?.().thread;
+          return (
+            thread?.selectedThreadId === threadId &&
+            thread.isLoadingMessages === false &&
+            Object.hasOwn(thread.messagesByThreadId ?? {}, threadId)
+          );
+        }, previousId)
+      )
+      .toBe(true);
+  }
   const previousHasMessages =
     (await page.locator('[data-role="user"], [data-testid="agent-message"]').count()) > 0;
   // Chat-as-home may already have selected a blank thread, which the product
