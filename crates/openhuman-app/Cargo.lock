@@ -7253,7 +7253,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-core"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "async-trait",
  "serde",
@@ -7262,7 +7262,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-docker"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "async-trait",
  "tinybox-core",
@@ -7271,7 +7271,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-host"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "async-trait",
  "tinybox-core",
@@ -7280,7 +7280,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-jail"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "landlock",
  "log",
@@ -7292,7 +7292,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-ssh"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "async-trait",
  "tinybox-core",
