@@ -361,8 +361,14 @@ pub(crate) async fn run_subagent_direct(
                 "[subagent_host] worktree-isolated worker: descriptor will route acting-tool CWD"
             );
         }
+        // The child acts on memory as itself, nested under the agent that
+        // spawned it: its learnings land on its own node and its recall
+        // reaches that node and the ones above, never a sibling's.
+        let memory_config = loaded_config
+            .as_ref()
+            .map_or_else(|_| std::sync::Arc::new(crate::config::Config::default()), Clone::clone);
         let run_result = Box::pin(with_spawn_depth(attempted_depth, async {
-            with_file_state_agent_id(task_id.clone(), async {
+            crate::memory::scope::within_agent(&memory_config, &definition.id, with_file_state_agent_id(task_id.clone(), async {
                 with_current_sandbox_mode(definition.sandbox_mode, async {
                     Box::pin(run_typed_mode(
                         definition,
@@ -375,7 +381,7 @@ pub(crate) async fn run_subagent_direct(
                     .await
                 })
                 .await
-            })
+            }))
             .await
         }))
         .await;
