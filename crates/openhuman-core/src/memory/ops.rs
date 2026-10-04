@@ -183,6 +183,7 @@ pub async fn fetch(config: &Config, params: FetchParams) -> MemoryResult<FetchVi
         filter: params.filter.unwrap_or_default(),
         limit: clamp_limit(params.limit),
         cursor: params.cursor,
+        beliefs: 0,
     };
     request.validate()?;
     let page = bound.engine.fetch(request).await?;
@@ -359,6 +360,7 @@ pub async fn items_list(config: &Config, params: ItemsListParams) -> MemoryResul
         filter: super::explore::narrowed(params.filter, &params.path)?,
         limit: clamp_limit(params.limit),
         cursor: params.cursor,
+        beliefs: 0,
     };
     request.validate()?;
     let page = bound.engine.list(request).await?;
