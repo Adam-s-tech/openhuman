@@ -371,7 +371,6 @@ pub struct ContextView {
 
 /// `memory_context_get` / `memory_context_refresh` params.
 #[derive(Debug, Clone, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct ContextNodeParams {
     /// The memory node; the root when omitted.
     #[serde(default)]
