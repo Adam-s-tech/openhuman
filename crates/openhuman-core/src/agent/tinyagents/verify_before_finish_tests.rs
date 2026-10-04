@@ -59,7 +59,7 @@ async fn drive_with(
     subagent: bool,
     agent: Option<&str>,
     wrap_up: WrapUp,
-    max_model_calls: u64,
+    max_model_calls: usize,
 ) -> (usize, String) {
     let mut responses: Vec<ModelResponse> = (0..rounds)
         .map(|i| tool_round(&format!("c{i}"), tool))
