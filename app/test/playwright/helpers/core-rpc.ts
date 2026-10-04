@@ -149,7 +149,11 @@ export async function signInViaCallbackToken(page: Page, token: string): Promise
   await waitForAppReady(page);
 }
 
-export async function signInViaBypassUser(page: Page, userId: string): Promise<void> {
+export async function signInViaBypassUser(
+  page: Page,
+  userId: string,
+  options: { waitForInitialThread?: boolean } = {}
+): Promise<void> {
   await resetCoreForWebUser(userId);
   await applyBrowserCoreModeInPage(page);
   await page.goto('/#/home');
@@ -160,6 +164,20 @@ export async function signInViaBypassUser(page: Page, userId: string): Promise<v
     })
     .toMatch(/^#\/chat/);
   await waitForAppReady(page);
+  if (options.waitForInitialThread) {
+    // Some fresh profiles create an initial thread asynchronously; others
+    // leave the valid `/chat` landing route without one. Route-only tests need
+    // a settled thread route before setting another hash, so select the chat
+    // surface's New Conversation action when no thread is selected yet.
+    if (!(await page.evaluate(() => /^#\/chat\/thread-[^/?]+/.test(window.location.hash)))) {
+      await page.getByTestId('new-thread-button').click({ force: true });
+    }
+    await expect
+      .poll(async () => page.evaluate(() => window.location.hash), {
+        timeout: AUTH_CALLBACK_HOME_TIMEOUT_MS,
+      })
+      .toMatch(/^#\/chat\/thread-[^/?]+/);
+  }
 }
 
 export async function bootAuthenticatedPage(

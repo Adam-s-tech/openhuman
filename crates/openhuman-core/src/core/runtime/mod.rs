@@ -23,7 +23,7 @@
 //! `cli.rs`, …) shares the same exposure. Centralising the value keeps them
 //! in sync; downstream call sites should set `.thread_stack_size(AGENT_WORKER_STACK_BYTES)`
 //! on every multi-thread runtime that may host an agent turn.
-pub const AGENT_WORKER_STACK_BYTES: usize = 16 * 1024 * 1024;
+pub const AGENT_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 
 /// Upper bound on tokio's blocking-thread pool for the long-lived multi-thread
 /// runtimes tuned with [`AGENT_WORKER_STACK_BYTES`] (the desktop Tauri host and

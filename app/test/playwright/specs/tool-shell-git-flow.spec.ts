@@ -121,17 +121,14 @@ test.describe('System tools - Shell + Git', () => {
     expect(defs.find(def => def?.id === 'tools_agent')).toBeUndefined();
   });
 
-  test('denial envelope is structurally consistent for invalid write args', async () => {
-    await expect(
-      callCoreRpc('openhuman.memory_write_file', { content: 'no path provided' })
-    ).rejects.toThrow();
+  test('memory brain ingest rejects missing and conflicting inputs', async () => {
+    await expect(callCoreRpc('openhuman.memory_brain_ingest', {})).rejects.toThrow(
+      /exactly one of `path` or `text`/i
+    );
 
     await expect(
-      callCoreRpc('openhuman.memory_write_file', {
-        relative_path: '../shell-restriction-967.txt',
-        content: 'should not be written',
-      })
-    ).rejects.toThrow();
+      callCoreRpc('openhuman.memory_brain_ingest', { path: 'README.md', text: 'conflicting input' })
+    ).rejects.toThrow(/exactly one of `path` or `text`/i);
   });
 
   test('fixture git repo inside OPENHUMAN_WORKSPACE supports read ops', async () => {

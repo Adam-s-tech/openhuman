@@ -751,30 +751,26 @@ impl OpenHumanSessionHost {
         // `agent_harness_e2e` mock now serves SSE for streaming, so the crate-native
         // streaming path is exercised end-to-end.
         //
-        // Issue #4868 — resolve the per-agent iteration cap. When a named
-        // definition is present, its `effective_max_iterations()` (which honors
-        // `iteration_policy = "extended"` -> 50, and the declared `max_iterations`
-        // for strict agents) takes priority over the global
-        // `config.agent.max_tool_iterations` (default 10). This is the single
-        // shared resolution point that closes #4868 for every direct-invocation
-        // path: flows_build, flows_discover, agent-node runtime, cron, MCP
-        // server, etc. Falls back to the global default when there is no
-        // definition for this agent_id.
+        // Resolve the per-turn iteration cap in one place so an explicit
+        // operator override takes precedence over the selected definition,
+        // while definitions still take precedence over the global default.
         let mut effective_agent_config = config.agent.clone();
+        let effective_cap =
+            super::iteration_cap::resolve_max_tool_iterations(&config.agent, target_def);
         if let Some(def) = target_def {
-            let def_cap = def.effective_max_iterations();
             log::info!(
-                "[agent::builder] applying definition iteration cap for agent_id={}: \
+                "[agent::builder] resolved iteration cap for agent_id={}: \
                  definition.max_iterations={} iteration_policy={:?} -> effective={} \
-                 (was global default {})",
+                 (global default {}, explicit override {:?})",
                 agent_id,
                 def.max_iterations,
                 def.iteration_policy,
-                def_cap,
+                effective_cap,
                 config.agent.max_tool_iterations,
+                config.agent.max_tool_iterations_override,
             );
-            effective_agent_config.max_tool_iterations = def_cap;
         }
+        effective_agent_config.max_tool_iterations = effective_cap;
         // Host-first, so a host tool wins a name collision -- see
         // `HostTurnTools::merge_into`, which owns that rule and why.
         let merged_host_tools = super::host_tools::merge_for_turn(

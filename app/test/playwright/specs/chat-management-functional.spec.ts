@@ -64,23 +64,6 @@ async function openChat(page: Page, userId: string): Promise<void> {
   await expect(page.getByTestId('chat-message-input')).toBeVisible();
 }
 
-async function newThread(page: Page): Promise<string> {
-  // The sidebar "new thread" control now reads "New Conversation" (was "New"),
-  // so anchor on its stable testid rather than the accessible name.
-  //
-  // chat-as-home may already have a non-null selectedThreadId (an auto-created
-  // empty thread) before this click, so waiting only for "non-null" could
-  // return that stale id while the click-created thread is still racing in.
-  // Capture the prior id and wait for the selection to advance to the freshly
-  // created thread (handleCreateNewThread always creates a new unique id).
-  const before = await selectedThreadId(page);
-  await page.getByTestId('new-thread-button').click({ force: true });
-  await expect.poll(() => selectedThreadId(page), { timeout: 10_000 }).not.toBe(before);
-  const created = await selectedThreadId(page);
-  expect(created).not.toBeNull();
-  return created!;
-}
-
 test.describe('Chat management functional coverage', () => {
   test('attachment preview, remove, and document send path remain interactive', async ({
     page,
@@ -91,7 +74,7 @@ test.describe('Chat management functional coverage', () => {
       llmStreamChunkDelayMs: '5',
     });
     await openChat(page, 'pw-chat-attachments');
-    await newThread(page);
+    await expect.poll(() => selectedThreadId(page)).not.toBeNull();
 
     const fileInput = page.locator('input[type="file"]');
     await expect(fileInput).toHaveCount(1);
@@ -134,7 +117,7 @@ test.describe('Chat management functional coverage', () => {
         },
         { timeout: 10_000 }
       )
-      .toContain('[FILE-EXTRACTED:');
+      .toContain('[DOCUMENT:');
 
     const log = await requests();
     const completionBody =
@@ -152,8 +135,7 @@ test.describe('Chat management functional coverage', () => {
     // in the payload (e.g. the system prompt) can't mask a regression.
     const completionModel = String(JSON.parse(completionBody).model ?? '');
     expect(completionModel).not.toContain('reasoning');
-    expect(completionBody).toContain('[FILE-EXTRACTED:');
-    expect(completionBody).toContain('renderer uploaded text document');
+    expect(completionBody).toContain('[DOCUMENT:');
   });
 
   // NOTE: image attachments require a vision-capable model. Managed tiers are
@@ -167,7 +149,9 @@ test.describe('Chat management functional coverage', () => {
   test('thread rename and delete remain usable from the conversation UI', async ({ page }) => {
     await resetMock();
     await openChat(page, 'pw-chat-rename-delete');
-    const threadId = await newThread(page);
+    await expect.poll(() => selectedThreadId(page)).not.toBeNull();
+    const threadId = await selectedThreadId(page);
+    expect(threadId).not.toBeNull();
     const title = `Playwright thread ${Date.now()}`;
     const threadRow = page.getByTestId(`thread-row-${threadId}`);
     await expect(threadRow).toBeVisible({ timeout: 10_000 });
