@@ -451,7 +451,6 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
     ) -> TaResult<()> {
         let tool_name = invocation.tool_name();
         let content = crate::agent::tinyagents::middleware::tool_result_text(result);
-        eprintln!("REPEATED_FAILURE tool={tool_name} error={} text={content}", result.is_error);
         let arg_fp = self
             .arg_sigs
             .lock()
