@@ -283,17 +283,6 @@ pub enum DomainEvent {
     },
     /// A memory recall query completed.
     MemoryRecalled { query: String, hit_count: usize },
-    /// A turn was given a memory pack before the model ran
-    /// (`memory::lifecycle::hooks::pre_turn`). Counts only, never content.
-    MemoryPackInjected {
-        thread_id: String,
-        /// The memory agent id the turn ran as.
-        agent_id: String,
-        /// The pack's estimated tokens.
-        tokens: usize,
-        /// How many items it cites.
-        refs: usize,
-    },
 
     // ── Channels ────────────────────────────────────────────────────────
     /// An inbound channel message from the transport layer, ready for processing.
@@ -1384,8 +1373,7 @@ impl DomainEvent {
 
             Self::EmbeddingModelUnhealthy { .. }
             | Self::MemoryStored { .. }
-            | Self::MemoryRecalled { .. }
-            | Self::MemoryPackInjected { .. } => "memory",
+            | Self::MemoryRecalled { .. } => "memory",
 
             Self::ChannelInboundMessage { .. }
             | Self::ChannelMessageReceived { .. }
@@ -1523,7 +1511,6 @@ impl DomainEvent {
             Self::MonitorLine { .. } => "MonitorLine",
             Self::MemoryStored { .. } => "MemoryStored",
             Self::MemoryRecalled { .. } => "MemoryRecalled",
-            Self::MemoryPackInjected { .. } => "MemoryPackInjected",
             Self::ChannelInboundMessage { .. } => "ChannelInboundMessage",
             Self::ChannelMessageReceived { .. } => "ChannelMessageReceived",
             Self::ChannelMessageProcessed { .. } => "ChannelMessageProcessed",

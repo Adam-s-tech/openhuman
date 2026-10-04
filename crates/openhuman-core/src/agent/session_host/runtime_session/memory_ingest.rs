@@ -117,14 +117,6 @@ impl OpenHumanTurnPrelude {
             },
         )
         .await;
-        if let Some(pack) = &pack {
-            crate::core::bus::BUS.publish(crate::core::events::DomainEvent::MemoryPackInjected {
-                thread_id: thread_id.clone(),
-                agent_id: identity.agent_id.clone(),
-                tokens: pack.tokens,
-                refs: pack.refs.len(),
-            });
-        }
         Some(Arc::new(MemoryTurn {
             config,
             identity,
