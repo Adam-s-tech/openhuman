@@ -353,6 +353,8 @@ pub struct SourcesSyncView {
 /// `memory_context_*` result.
 #[derive(Debug, Clone, Serialize)]
 pub struct ContextView {
+    /// The memory node the document is about (`root` for the shared one).
+    pub namespace: String,
     /// The compiled document (empty when none).
     pub markdown: String,
     /// Its estimated tokens.

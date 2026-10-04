@@ -132,9 +132,8 @@ pub async fn run_system_job(config: &crate::config::Config, job: &str) {
                 tracing::debug!("[memory:bus] context disabled; refresh skipped");
                 return;
             }
-            if let Err(error) = super::context::refresh(config).await {
-                tracing::debug!(code = error.code(), "[memory:bus] context refresh skipped");
-            }
+            let compiled = super::context::refresh_all(config).await;
+            tracing::debug!(compiled, "[memory:bus] context documents refreshed");
         }
         SOURCES_SYNC_JOB => {
             let started = super::sources::sync_due(config, Utc::now());
