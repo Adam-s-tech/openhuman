@@ -181,8 +181,11 @@ fn resolve_tinyhumans(config: &Config) -> Binding {
             "sign in to use TinyHumans memory",
         );
     }
+    // The backend expects the host's attribution (`x-sdk-name`, …) on every
+    // request, as every other backend caller sends it; the transport owns it.
+    let headers = attribution_headers();
     let fingerprint = format!(
-        "{TINYHUMANS_ENGINE}|{endpoint}|{}",
+        "{TINYHUMANS_ENGINE}|{endpoint}|{}|{headers:?}",
         config.config_path.display()
     );
     let source: Arc<dyn BearerSource> = Arc::new(HostBearer {
@@ -190,10 +193,28 @@ fn resolve_tinyhumans(config: &Config) -> Binding {
     });
     build_cached(
         TINYHUMANS_ENGINE,
-        &endpoint,
+        EngineSettings {
+            endpoint: Some(endpoint),
+            headers,
+        },
         fingerprint,
         EngineCredential::Dynamic(source),
     )
+}
+
+/// The installed transport's attribution headers, as engine settings carry
+/// them. A value that is not text is left out (and logged by name only).
+fn attribution_headers() -> std::collections::BTreeMap<String, String> {
+    crate::backend::attribution_headers()
+        .iter()
+        .filter_map(|(name, value)| match value.to_str() {
+            Ok(value) => Some((name.as_str().to_string(), value.to_string())),
+            Err(_) => {
+                tracing::debug!(header = %name, "[memory:engine] skipping a non-text attribution header");
+                None
+            }
+        })
+        .collect()
 }
 
 fn resolve_cortexdb(config: &Config) -> Binding {
@@ -220,9 +241,13 @@ fn resolve_cortexdb(config: &Config) -> Binding {
         }
     };
     let fingerprint = format!("{CORTEXDB_ENGINE}|{endpoint}|{}", key_digest(&key));
+    // A third-party endpoint: no TinyHumans attribution headers.
     build_cached(
         CORTEXDB_ENGINE,
-        &endpoint,
+        EngineSettings {
+            endpoint: Some(endpoint),
+            ..EngineSettings::default()
+        },
         fingerprint,
         EngineCredential::Static(key),
     )
@@ -230,10 +255,11 @@ fn resolve_cortexdb(config: &Config) -> Binding {
 
 fn build_cached(
     id: &str,
-    endpoint: &str,
+    settings: EngineSettings,
     fingerprint: String,
     credential: EngineCredential,
 ) -> Binding {
+    let endpoint = settings.endpoint.clone().unwrap_or_default();
     if let Some(bound) = CACHE
         .read()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -242,9 +268,6 @@ fn build_cached(
     {
         return Binding::On(bound);
     }
-    let settings = EngineSettings {
-        endpoint: Some(endpoint.to_string()),
-    };
     match tinymemory_integrations::build_engine(id, &settings, credential) {
         Ok(engine) => {
             tracing::info!(engine = %id, "[memory:engine] engine bound");
