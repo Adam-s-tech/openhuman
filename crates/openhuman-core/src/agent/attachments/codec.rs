@@ -35,3 +35,7 @@ pub(crate) fn part_from_media(media: &MediaRef, kind: &str) -> Option<Transcript
         _ => TranscriptPart::Document { source, mime_type },
     })
 }
+
+#[cfg(test)]
+#[path = "codec_tests.rs"]
+mod tests;
