@@ -4656,14 +4656,24 @@ fn todo_list_ticks_off_five_items_across_turns() {
 async fn todo_list_ticks_off_five_items_across_turns_inner() {
     let _lock = env_lock();
     // Turn 1 writes the plan (item 1 in progress). Turns 2-6 each complete
-    // one more item; the final write has every item completed.
+    // one more item; the final write has every item completed. Every todo write
+    // also triggers verify-before-finish, so reserve a separate scripted answer
+    // for its extra model request on each turn.
     let mut script = vec![
         todo_write(&FIVE_STEPS, 0),
         text_completion("Plan written; starting on the first step."),
+        // A todo write triggers the orchestrator's verify-before-finish
+        // middleware, which makes one more model request before the turn ends.
+        // Keep that completion separate so each following turn advances one
+        // item instead of consuming the next step during verification.
+        text_completion("The plan matches the request; ready to start."),
     ];
     for completed in 1..=FIVE_STEPS.len() {
         script.push(todo_write(&FIVE_STEPS, completed));
         script.push(text_completion(&format!("Step {completed} done.")));
+        script.push(text_completion(
+            "The completed work matches the requested step.",
+        ));
     }
     reset_script(script);
     let stack = boot_stack().await;
@@ -4695,6 +4705,14 @@ async fn todo_list_ticks_off_five_items_across_turns_inner() {
         "turn 1: {terminal}"
     );
     let first = tool_result_payload(&results, "todo");
+    assert_eq!(
+        results
+            .iter()
+            .filter(|result| result.get("tool_name").and_then(Value::as_str) == Some("todo"))
+            .count(),
+        1,
+        "turn 1 should write its plan once; verify-before-finish must not advance a step"
+    );
     assert_eq!(
         todo_statuses(&first),
         vec!["in_progress", "pending", "pending", "pending", "pending"],
@@ -4741,6 +4759,15 @@ async fn todo_list_ticks_off_five_items_across_turns_inner() {
             terminal.get("event").and_then(Value::as_str),
             Some("chat_done"),
             "turn {}: {terminal}",
+            completed + 1
+        );
+        assert_eq!(
+            results
+                .iter()
+                .filter(|result| result.get("tool_name").and_then(Value::as_str) == Some("todo"))
+                .count(),
+            1,
+            "turn {} should advance exactly one item; verification must not consume the next scripted write",
             completed + 1
         );
         let payload = tool_result_payload(&results, "todo");

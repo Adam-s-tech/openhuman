@@ -52,12 +52,12 @@ const AGENTS_MD_TO_INFERENCE_PROVIDER: Option<CapabilityPrivacy> = Some(Capabili
     destinations: &["Configured OpenHuman inference provider"],
 });
 
-// Vision sub-agent ships the attached image (raw pixels) to the managed
-// multimodal model for analysis.
+// Native multimodal and specialist routes send supported attachment bytes to
+// the configured inference provider. Other files remain available locally.
 const IMAGE_TO_BACKEND: Option<CapabilityPrivacy> = Some(CapabilityPrivacy {
     leaves_device: true,
     data_kind: PrivacyDataKind::Raw,
-    destinations: &["OpenHuman backend", "TinyHumans Neocortex"],
+    destinations: &["Configured OpenHuman inference provider"],
 });
 
 // Media generation sends the prompt (and any reference image URL) to GMI Cloud

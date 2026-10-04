@@ -312,9 +312,6 @@ pub(super) fn assemble_turn_harness(
     // recover policy from a task-local while the harness is driving.
     let stop_hooks_installed = stop_hooks;
 
-    // A single steering handle drives mid-flight steering (run queue), the
-    // early-exit pause, the model-call-cap pause, and stop-hook pauses, so they
-    // all reach the same loop. Created when any of them is active.
     // A steering handle is always created now: besides run-queue steering, the
     // early-exit / cap / stop-hook pauses, the repeated-tool-failure breaker
     // (below) also pauses through it, and it wants to fire on every path
@@ -335,13 +332,11 @@ pub(super) fn assemble_turn_harness(
     // Shared by the two breakers below: whichever halts writes the root cause here.
     let halt_summary: HaltSummarySlot = std::sync::Arc::new(std::sync::Mutex::new(None));
 
-    // Repeat-progress breaker (issue #4463, restoring #4088 / #4095): the failure
-    // breaker below resets on every success, so a model looping on a *successful*
-    // no-op tool or re-emitting an identical narration+call never trips it. This
-    // guard halts on identical successful `(tool, args)` batches / identical
-    // outputs, and on one call returning the identical result again with other
-    // calls in between (#6275), sharing the same halt-summary slot + steering
-    // handle. Polling tools (`wait_subagent`) stay exempt.
+    // Repeat-progress breaker (#4463, restoring #4088/#4095): the failure
+    // breaker resets on success, so it misses successful no-op loops and repeated
+    // narration+call batches. This guard catches identical successful calls or
+    // outputs, including repeats with other calls between them (#6275). Polling
+    // tools (`wait_subagent`) stay exempt.
     //
     // Pushed first / outermost: `after_tool` runs in reverse registration order,
     // so this guard fingerprints a result only after every other middleware

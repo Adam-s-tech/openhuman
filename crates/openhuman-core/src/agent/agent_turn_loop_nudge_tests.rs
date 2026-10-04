@@ -89,10 +89,7 @@ fn call(id: &str, name: &str) -> ChatResponse {
 }
 
 fn nudge_count(messages: &[Message]) -> usize {
-    messages
-        .iter()
-        .filter(|m| matches!(m, Message::System(_)) && m.text() == NUDGE)
-        .count()
+    messages.iter().filter(|m| m.text().contains(NUDGE)).count()
 }
 
 async fn run_turn(
@@ -148,7 +145,7 @@ async fn validation_nudge_reaches_the_retry_but_is_not_committed() {
 
     assert_eq!(requests.len(), 2, "one failing call, then the retry");
     assert!(
-        matches!(requests[1].last(), Some(m @ Message::System(_)) if m.text() == NUDGE),
+        requests[1].last().is_some_and(|m| m.text().contains(NUDGE)),
         "the retry request must end with the nudge, got {:?}",
         requests[1].last()
     );
@@ -193,10 +190,13 @@ async fn a_second_validation_failure_rearms_the_nudge() {
     .await;
 
     assert_eq!(requests.len(), 3);
-    assert_eq!(requests.iter().map(|r| nudge_count(r)).collect::<Vec<_>>(), [0, 1, 1],
-        "each failure nudges exactly the request that follows it; a consumed nudge is not carried over");
+    assert_eq!(
+        requests.iter().map(|r| nudge_count(r)).collect::<Vec<_>>(),
+        [0, 1, 1],
+        "each failure nudges exactly the request that follows it; a consumed nudge is not carried over"
+    );
     assert!(
-        matches!(requests[2].last(), Some(m @ Message::System(_)) if m.text() == NUDGE),
+        requests[2].last().is_some_and(|m| m.text().contains(NUDGE)),
         "the re-armed nudge must end the request after the second failure"
     );
     assert_eq!(

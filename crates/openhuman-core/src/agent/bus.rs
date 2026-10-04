@@ -288,6 +288,7 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
         channel_name,
         target_agent_id.as_deref().unwrap_or("root")
     );
+    let graph_origin = origin.clone();
     let outcome = turn_origin::with_origin(
         origin,
         with_file_state_agent_id(
@@ -313,6 +314,7 @@ async fn handle_agent_run_turn(req: AgentTurnRequest) -> Result<AgentTurnRespons
                     multimodal.clone(),
                     multimodal_files.clone(),
                     on_progress,
+                    Some(graph_origin),
                 )
                 .await
             }),
