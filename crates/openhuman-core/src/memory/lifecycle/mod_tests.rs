@@ -7,7 +7,11 @@ use crate::memory::test_fixtures::{bind_reference, config_in};
 fn the_policy_mirrors_the_recall_config() {
     let mut recall = MemoryRecallConfig::default();
     let default = policy(&recall);
-    assert_eq!(default, RecallPolicy::default(), "the defaults agree with TinyMemory's");
+    assert_eq!(
+        default,
+        RecallPolicy::default(),
+        "the defaults agree with TinyMemory's"
+    );
 
     recall.build_beliefs_every = 0;
     recall.team_limit = 0;
@@ -15,11 +19,19 @@ fn the_policy_mirrors_the_recall_config() {
     let tuned = policy(&recall);
     assert_eq!(tuned.build_beliefs_every, None);
     assert_eq!(tuned.team_limit, 0);
-    assert_eq!(tuned.budget_tokens, 1, "a zero budget is clamped, never refused");
+    assert_eq!(
+        tuned.budget_tokens, 1,
+        "a zero budget is clamped, never refused"
+    );
 
     let quiet = log_only(default.clone());
     assert_eq!(
-        (quiet.learnings_limit, quiet.brain_limit, quiet.history_limit, quiet.team_limit),
+        (
+            quiet.learnings_limit,
+            quiet.brain_limit,
+            quiet.history_limit,
+            quiet.team_limit
+        ),
         (0, 0, 0, 0)
     );
     assert_eq!(quiet.budget_tokens, default.budget_tokens);

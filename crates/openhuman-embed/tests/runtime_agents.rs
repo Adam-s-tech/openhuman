@@ -529,7 +529,10 @@ fn one_runtime_hosts_independently_configured_agents() {
                         .memory(MemoryBinding::new("employee-7").root("team:acme")),
                 )
                 .expect("a bound agent instantiates");
-            assert_eq!(bound.config().memory.agent_id.as_deref(), Some("employee-7"));
+            assert_eq!(
+                bound.config().memory.agent_id.as_deref(),
+                Some("employee-7")
+            );
             assert_eq!(bound.config().memory.root.as_deref(), Some("team:acme"));
             assert_eq!(beta.config().memory.agent_id, None);
             let err = runtime

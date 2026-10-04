@@ -16,7 +16,10 @@ fn by_default_an_agent_is_its_definition_under_the_default_root() {
 
     let nobody = MemoryIdentity::root().resolve(&config);
     assert_eq!(nobody.agent_id, DEFAULT_AGENT_ID);
-    assert_eq!(MemoryIdentity::agent("  ").resolve(&config).agent_id, DEFAULT_AGENT_ID);
+    assert_eq!(
+        MemoryIdentity::agent("  ").resolve(&config).agent_id,
+        DEFAULT_AGENT_ID
+    );
 }
 
 #[test]

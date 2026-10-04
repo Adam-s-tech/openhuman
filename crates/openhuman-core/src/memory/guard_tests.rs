@@ -24,7 +24,8 @@ async fn texts(engine: &ReferenceEngine) -> Vec<String> {
 async fn every_write_path_is_scrubbed() {
     let reference = Arc::new(ReferenceEngine::new());
     let guarded = ScrubbingEngine::wrap(reference.clone());
-    let item = |text: &str| StoreItem::document(format!("{text} key={SECRET}"), MemoryMeta::default());
+    let item =
+        |text: &str| StoreItem::document(format!("{text} key={SECRET}"), MemoryMeta::default());
 
     guarded.store(item("one")).await.unwrap();
     guarded

@@ -333,7 +333,10 @@ fn gather_falls_back_to_the_action_dir() {
     assert!(gathered.thread_id.is_none());
     assert!(gathered.tool_call_id.is_none());
     let meta = gathered.learn_meta();
-    assert!(meta.namespace.is_root(), "no agent in scope: the default root");
+    assert!(
+        meta.namespace.is_root(),
+        "no agent in scope: the default root"
+    );
     assert_eq!(meta.source.kind, SourceKind::Agent);
     assert_eq!(meta.tool_call.unwrap().name, MEMORY_TOOL_NAME);
 }
@@ -370,7 +373,10 @@ async fn learnings_are_shared_under_a_root_and_a_team_root_is_kept_apart() {
             .map(|hit| (hit.meta.namespace.to_string(), hit.meta.agent_id.clone()))
             .unwrap()
     };
-    assert_eq!(at("deploy day"), ("root".into(), Some("orchestrator".into())));
+    assert_eq!(
+        at("deploy day"),
+        ("root".into(), Some("orchestrator".into()))
+    );
     assert_eq!(at("arxiv"), ("root".into(), Some("researcher".into())));
     assert_eq!(
         at("british english"),
@@ -410,7 +416,11 @@ async fn learnings_are_shared_under_a_root_and_a_team_root_is_kept_apart() {
         &member(),
     )
     .await;
-    assert!(forgot.text().contains("\"forgotten\":0"), "{}", forgot.text());
+    assert!(
+        forgot.text().contains("\"forgotten\":0"),
+        "{}",
+        forgot.text()
+    );
     assert!(stored(&engine, MetaFilter::default())
         .await
         .iter()

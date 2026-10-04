@@ -270,7 +270,10 @@ fn a_source_can_store_at_an_agent_node() {
     params.namespace = Some("team:acme".into());
     let added = apply_add(&mut config, &params).unwrap();
     assert_eq!(added.namespace.as_deref(), Some("team:acme"));
-    assert_eq!(layout_of(&config, &added.id).root().to_string(), "team:acme");
+    assert_eq!(
+        layout_of(&config, &added.id).root().to_string(),
+        "team:acme"
+    );
     assert!(layout_of(&config, "unknown").root().is_root());
 
     let mut bad = add_params("link", "https://example.com/b");

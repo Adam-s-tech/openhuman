@@ -15,7 +15,12 @@ fn build(agent: &str) -> BackgroundJob {
 async fn duplicates_merge_and_the_queue_survives_a_reload() {
     let tmp = tempfile::tempdir().unwrap();
     let config = config_in(&tmp);
-    enqueue(&config, &Namespace::ROOT, vec![build("a"), build("a"), build("b")]).await;
+    enqueue(
+        &config,
+        &Namespace::ROOT,
+        vec![build("a"), build("a"), build("b")],
+    )
+    .await;
     enqueue(&config, &Namespace::ROOT, vec![build("a")]).await;
     let team: Namespace = "team:acme".parse().unwrap();
     enqueue(&config, &team, vec![build("a")]).await;
@@ -40,7 +45,10 @@ async fn due_jobs_wait_for_the_build_delay() {
     config.memory.recall.build_delay_secs = 0;
     let runs = run(&config, Selection::Due).await.unwrap();
     assert_eq!(runs.len(), 1);
-    assert_eq!(runs[0].outcome, "done", "the reference engine consolidates on demand");
+    assert_eq!(
+        runs[0].outcome, "done",
+        "the reference engine consolidates on demand"
+    );
     let queue = snapshot(&config).await;
     assert!(queue.pending.is_empty());
     assert_eq!(queue.history.len(), 1);
@@ -62,7 +70,11 @@ async fn one_job_runs_by_id_and_an_unknown_id_is_refused() {
         run(&config, Selection::One("nope".into())).await,
         Err(MemoryError::InvalidRequest(_))
     ));
-    assert_eq!(snapshot(&config).await.pending.len(), 1, "a refused run keeps the queue");
+    assert_eq!(
+        snapshot(&config).await.pending.len(),
+        1,
+        "a refused run keeps the queue"
+    );
 }
 
 #[tokio::test]

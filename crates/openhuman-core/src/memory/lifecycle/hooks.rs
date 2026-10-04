@@ -295,7 +295,12 @@ pub fn logged_reply(text: &str, calls: &[ToolCallSummary]) -> String {
     let lines: Vec<String> = calls
         .iter()
         .filter_map(|call| {
-            let result = call.result.as_deref()?.split_whitespace().collect::<Vec<_>>().join(" ");
+            let result = call
+                .result
+                .as_deref()?
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
             (!result.is_empty()).then(|| {
                 let result: String = result.chars().take(MAX_TOOL_LINE_CHARS).collect();
                 format!("- {} → {result}", call.name)

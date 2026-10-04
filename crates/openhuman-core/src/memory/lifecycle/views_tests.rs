@@ -100,11 +100,19 @@ async fn the_preview_reads_without_logging_and_agents_are_listed() {
     assert_eq!(turn.agent_id, "writer");
     assert!(turn.pack.markdown.contains("1st"));
 
-    let session = pack_preview(&config, PackPreviewParams::default()).await.unwrap();
+    let session = pack_preview(&config, PackPreviewParams::default())
+        .await
+        .unwrap();
     assert_eq!(session.mode, "session");
 
     let agents = agents_list(&config).await.unwrap();
-    assert_eq!(agents.agents, [AgentCount { agent_id: "writer".into(), turns: 1 }]);
+    assert_eq!(
+        agents.agents,
+        [AgentCount {
+            agent_id: "writer".into(),
+            turns: 1
+        }]
+    );
 }
 
 #[tokio::test]
@@ -113,7 +121,18 @@ async fn jobs_run_needs_an_engine_and_names_an_unknown_job() {
     let config = config_in(&tmp);
     assert!(jobs_run(&config, JobsRunParams::default()).await.is_err());
     bind_reference(&config);
-    assert!(jobs_run(&config, JobsRunParams::default()).await.unwrap().runs.is_empty());
-    assert!(jobs_run(&config, JobsRunParams { id: Some("x".into()) }).await.is_err());
+    assert!(jobs_run(&config, JobsRunParams::default())
+        .await
+        .unwrap()
+        .runs
+        .is_empty());
+    assert!(jobs_run(
+        &config,
+        JobsRunParams {
+            id: Some("x".into())
+        }
+    )
+    .await
+    .is_err());
     assert!(jobs_list(&config).await.pending.is_empty());
 }

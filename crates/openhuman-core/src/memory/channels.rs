@@ -55,9 +55,15 @@ pub fn record(workspace_dir: &Path, channel: &str, thread_id: &str) {
     if channel.is_empty() || thread_id.trim().is_empty() {
         return;
     }
-    let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _guard = LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut all = read(workspace_dir);
-    if all.entry(channel).or_default().insert(thread_id.to_string()) {
+    if all
+        .entry(channel)
+        .or_default()
+        .insert(thread_id.to_string())
+    {
         write(workspace_dir, &all);
     }
 }
@@ -85,10 +91,16 @@ pub async fn forget_channel(config: &Config, channel: &str) -> MemoryResult<usiz
             thread_id: Some(thread_id),
             ..MetaFilter::kinds([ItemKind::Conversation])
         };
-        forgotten += bound.engine.forget(ForgetTarget::Filter(filter)).await?.forgotten;
+        forgotten += bound
+            .engine
+            .forget(ForgetTarget::Filter(filter))
+            .await?
+            .forgotten;
     }
     {
-        let _guard = LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let _guard = LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut all = read(&config.workspace_dir);
         if all.remove(&key(channel)).is_some() {
             write(&config.workspace_dir, &all);

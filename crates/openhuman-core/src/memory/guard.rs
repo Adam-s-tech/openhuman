@@ -35,10 +35,15 @@ impl ScrubbingEngine {
 #[must_use]
 pub fn scrub(item: StoreItem) -> StoreItem {
     let kind = item.kind();
-    let scrubbed =
-        tinymemory_integrations::safety::scrub_item_with(item, crate::security::scrub::host_policy());
+    let scrubbed = tinymemory_integrations::safety::scrub_item_with(
+        item,
+        crate::security::scrub::host_policy(),
+    );
     if scrubbed.report.changed() {
-        tracing::debug!(kind = kind.as_str(), "[memory:guard] item scrubbed before store");
+        tracing::debug!(
+            kind = kind.as_str(),
+            "[memory:guard] item scrubbed before store"
+        );
     }
     scrubbed.value
 }

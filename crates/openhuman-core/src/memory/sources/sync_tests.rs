@@ -268,17 +268,15 @@ async fn store_all_skips_a_bad_item_but_fails_when_nothing_stored() {
         .unwrap(),
         1
     );
-    assert!(
-        store_all(
-            &config,
-            &bound,
-            vec![bad],
-            (MemorySourceKind::Folder, "/n", "src"),
-            &tinymemory_tools::MemoryLayout::default()
-        )
-            .await
-            .is_err()
-    );
+    assert!(store_all(
+        &config,
+        &bound,
+        vec![bad],
+        (MemorySourceKind::Folder, "/n", "src"),
+        &tinymemory_tools::MemoryLayout::default()
+    )
+    .await
+    .is_err());
     assert_eq!(
         store_all(
             &config,
@@ -287,8 +285,8 @@ async fn store_all_skips_a_bad_item_but_fails_when_nothing_stored() {
             (MemorySourceKind::Folder, "/n", "src"),
             &tinymemory_tools::MemoryLayout::default()
         )
-            .await
-            .unwrap(),
+        .await
+        .unwrap(),
         0
     );
 }

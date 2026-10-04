@@ -10,7 +10,10 @@ fn defaults_select_tinyhumans_with_logging_and_recall_on() {
     assert!(config.conversations.enabled);
     assert!(config.recall.enabled);
     assert_eq!(config.recall.budget_tokens, DEFAULT_RECALL_BUDGET_TOKENS);
-    assert_eq!(config.recall.pre_turn_timeout_ms, DEFAULT_PRE_TURN_TIMEOUT_MS);
+    assert_eq!(
+        config.recall.pre_turn_timeout_ms,
+        DEFAULT_PRE_TURN_TIMEOUT_MS
+    );
     assert_eq!(config.recall.build_delay_secs, DEFAULT_BUILD_DELAY_SECS);
     assert_eq!(config.agent_id, None);
     assert_eq!(config.root, None);
@@ -58,7 +61,10 @@ schedule_mins = 15
     assert_eq!(config.recall.budget_tokens, 500);
     assert_eq!(config.recall.team_limit, 0);
     assert!(config.recall.enabled, "unset fields keep their default");
-    assert_eq!(config.agents["researcher"].agent_id.as_deref(), Some("desk"));
+    assert_eq!(
+        config.agents["researcher"].agent_id.as_deref(),
+        Some("desk")
+    );
     assert_eq!(config.agents["researcher"].recall, Some(false));
     assert_eq!(config.sources.len(), 1);
     assert_eq!(config.sources[0].kind, MemorySourceKind::Folder);

@@ -1,8 +1,8 @@
 use super::*;
-use tinymemory_tools::MemoryLayout;
 use crate::config::schema::MemorySourceKind;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use tinymemory_api::{ItemKind, MetaFilter};
+use tinymemory_tools::MemoryLayout;
 
 fn record(id: &str, title: &str, content: &str) -> ConnectorRecord {
     ConnectorRecord {
@@ -104,10 +104,17 @@ async fn store_records_stores_the_non_empty_ones() {
         .iter()
         .all(|d| d.meta.source.kind == SourceKind::Composio));
     assert!(
-        docs.iter().all(|d| d.meta.namespace.to_string() == "source:notion"),
+        docs.iter()
+            .all(|d| d.meta.namespace.to_string() == "source:notion"),
         "filed under the toolkit's brain source"
     );
-    assert_eq!(crate::memory::lifecycle::jobs::snapshot(&config).await.pending.len(), 1);
+    assert_eq!(
+        crate::memory::lifecycle::jobs::snapshot(&config)
+            .await
+            .pending
+            .len(),
+        1
+    );
 }
 
 #[tokio::test]
@@ -117,9 +124,17 @@ async fn store_records_with_nothing_to_store_is_zero() {
     bind_reference(&config);
     let bound = crate::memory::engine::resolve(&config).engine().unwrap();
     assert_eq!(
-        store_records(&config, &bound, "notion", "c", "s", &MemoryLayout::default(), &[])
-            .await
-            .unwrap(),
+        store_records(
+            &config,
+            &bound,
+            "notion",
+            "c",
+            "s",
+            &MemoryLayout::default(),
+            &[]
+        )
+        .await
+        .unwrap(),
         0
     );
 }

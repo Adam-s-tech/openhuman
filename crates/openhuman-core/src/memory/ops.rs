@@ -7,7 +7,10 @@
 //! scrubbed of secrets and PII by the bound engine itself ([`super::guard`]).
 
 use chrono::Utc;
-use tinymemory_api::{FetchRequest, ForgetTarget, ItemId, LearningKind, ListRequest, MemoryMeta, RecallRequest, StoreItem, StoreReceipt};
+use tinymemory_api::{
+    FetchRequest, ForgetTarget, ItemId, LearningKind, ListRequest, MemoryMeta, RecallRequest,
+    StoreItem, StoreReceipt,
+};
 
 use crate::config::Config;
 

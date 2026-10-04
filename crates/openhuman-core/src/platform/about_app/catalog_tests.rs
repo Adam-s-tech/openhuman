@@ -495,11 +495,7 @@ fn memory_v2_capabilities_cite_live_surface_and_rpcs() {
         ("memory.engine", "engine", "memory_engine_set"),
         ("memory.ask", "ask", "memory_recall"),
         ("memory.learnings", "learnings", "memory_learn"),
-        (
-            "memory.conversations",
-            "conversations",
-            "memory_policy_set",
-        ),
+        ("memory.conversations", "conversations", "memory_policy_set"),
         ("memory.documents", "brain", "memory_brain_ingest"),
         ("memory.turn_pack", "settings", "memory_pack_preview"),
     ] {

@@ -33,7 +33,10 @@ fn pack() -> TurnPack {
 #[tokio::test]
 async fn the_pack_rides_every_request_of_the_turn() {
     let mut ctx = context(Some(pack()));
-    let history = vec![Message::system("You are helpful."), Message::user("How far is it?")];
+    let history = vec![
+        Message::system("You are helpful."),
+        Message::user("How far is it?"),
+    ];
 
     for _ in 0..2 {
         let mut request = ModelRequest::new(history.clone());
@@ -45,7 +48,11 @@ async fn the_pack_rides_every_request_of_the_turn() {
         let tail = request.messages.last().unwrap().text();
         assert!(tail.starts_with(OPEN_TAG), "{tail}");
         assert!(tail.contains("metric units"));
-        assert_eq!(&request.messages[..2], &history[..], "the transcript is untouched");
+        assert_eq!(
+            &request.messages[..2],
+            &history[..],
+            "the transcript is untouched"
+        );
     }
 }
 

@@ -79,7 +79,9 @@ pub(crate) fn instantiate(runtime: &Runtime, spec: AgentSpec) -> Result<AgentInn
     if let Some(binding) = parts.memory {
         let agent_id = binding.agent_id().trim();
         if agent_id.is_empty() {
-            return Err(AgentError::Invalid("a memory binding needs an agent id".into()));
+            return Err(AgentError::Invalid(
+                "a memory binding needs an agent id".into(),
+            ));
         }
         if let Some(root) = binding.root_namespace() {
             openhuman_core::memory::scope::validate_root(root)

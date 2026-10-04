@@ -30,7 +30,10 @@ pub(crate) fn bind_reference(config: &Config) -> Arc<ReferenceEngine> {
 }
 
 /// Every item `engine` holds that matches `filter`.
-pub(crate) async fn stored(engine: &ReferenceEngine, filter: MetaFilter) -> Vec<tinymemory_api::Hit> {
+pub(crate) async fn stored(
+    engine: &ReferenceEngine,
+    filter: MetaFilter,
+) -> Vec<tinymemory_api::Hit> {
     engine
         .list(ListRequest {
             filter,

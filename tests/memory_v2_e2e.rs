@@ -133,8 +133,14 @@ impl MockBackend {
             .iter()
             .map(|row| {
                 (
-                    row.get("url").and_then(Value::as_str).unwrap_or_default().to_string(),
-                    row.get("body").and_then(Value::as_str).unwrap_or_default().to_string(),
+                    row.get("url")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string(),
+                    row.get("body")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string(),
                 )
             })
             .collect()
@@ -407,7 +413,10 @@ async fn memory_is_off_when_signed_out() {
             json!({ "consent": true }),
         ),
         ("openhuman.memory_sources_sync", json!({})),
-        ("openhuman.memory_pack_preview", json!({ "query": "anything" })),
+        (
+            "openhuman.memory_pack_preview",
+            json!({ "query": "anything" }),
+        ),
         ("openhuman.memory_agents_list", json!({})),
         ("openhuman.memory_brain_sources", json!({})),
         ("openhuman.memory_brain_ingest", json!({ "text": "a doc" })),
@@ -1201,7 +1210,11 @@ async fn brain_pack_preview_and_jobs_round_trip() {
     );
 
     let sources = f.ok("openhuman.memory_brain_sources", json!({})).await;
-    assert_eq!(sources["sources"][0]["source"], json!("notion"), "{sources}");
+    assert_eq!(
+        sources["sources"][0]["source"],
+        json!("notion"),
+        "{sources}"
+    );
     let found = f
         .ok(
             "openhuman.memory_brain_search",
@@ -1234,12 +1247,16 @@ async fn brain_pack_preview_and_jobs_round_trip() {
     assert_eq!(after["pending"], json!([]));
     assert_eq!(after["history"][0]["outcome"], json!("scheduled"));
     assert_eq!(
-        f.code("openhuman.memory_jobs_run", json!({ "id": "nope" })).await,
+        f.code("openhuman.memory_jobs_run", json!({ "id": "nope" }))
+            .await,
         "INVALID_REQUEST"
     );
 
     let gone = f
-        .ok("openhuman.memory_brain_forget", json!({ "source": "notion" }))
+        .ok(
+            "openhuman.memory_brain_forget",
+            json!({ "source": "notion" }),
+        )
         .await;
     assert_eq!(gone["forgotten"], json!(1), "{gone}");
     let agents = f.ok("openhuman.memory_agents_list", json!({})).await;
@@ -1295,11 +1312,15 @@ async fn a_chat_turn_carries_its_pack_and_is_logged() {
     assert_eq!(accepted["accepted"], json!(true), "{accepted}");
 
     // Pre-turn: the model request carries the pack, recalled for the turn.
-    wait_for_request(&f, "an inference request carrying the memory pack", |url, body| {
-        url.contains("chat/completions")
-            && body.contains("memory-context")
-            && body.contains("launch events in Lisbon")
-    })
+    wait_for_request(
+        &f,
+        "an inference request carrying the memory pack",
+        |url, body| {
+            url.contains("chat/completions")
+                && body.contains("memory-context")
+                && body.contains("launch events in Lisbon")
+        },
+    )
     .await;
     // Pre-turn logs the user's message, post-turn the reply, each as one turn
     // of the thread under the answering agent's node.
@@ -1323,7 +1344,11 @@ async fn a_chat_turn_carries_its_pack_and_is_logged() {
         .request_rows()
         .await
         .into_iter()
-        .filter(|row| row["url"].as_str().is_some_and(|url| url.starts_with("/memory/")))
+        .filter(|row| {
+            row["url"]
+                .as_str()
+                .is_some_and(|url| url.starts_with("/memory/"))
+        })
         .collect();
     assert!(!memory_calls.is_empty());
     for row in &memory_calls {
@@ -1342,7 +1367,9 @@ async fn a_chat_turn_carries_its_pack_and_is_logged() {
         )
         .await;
     assert!(
-        transcript.to_string().contains("Where should the launch event be held?"),
+        transcript
+            .to_string()
+            .contains("Where should the launch event be held?"),
         "the turn was committed: {transcript}"
     );
     assert!(

@@ -19,21 +19,44 @@ fn document(mime: Option<&str>, path: Option<&str>) -> StoreItem {
 #[test]
 fn synced_items_are_filed_by_what_they_read() {
     let plain = document(None, Some("notes/a.md"));
-    assert_eq!(brain_source(MemorySourceKind::Github, "o/r", &plain), BrainSource::Github);
-    assert_eq!(brain_source(MemorySourceKind::Link, "https://x", &plain), BrainSource::Web);
-    assert_eq!(brain_source(MemorySourceKind::Rss, "https://x/feed", &plain), BrainSource::Web);
-    assert_eq!(brain_source(MemorySourceKind::Composio, "Notion", &plain), BrainSource::Notion);
+    assert_eq!(
+        brain_source(MemorySourceKind::Github, "o/r", &plain),
+        BrainSource::Github
+    );
+    assert_eq!(
+        brain_source(MemorySourceKind::Link, "https://x", &plain),
+        BrainSource::Web
+    );
+    assert_eq!(
+        brain_source(MemorySourceKind::Rss, "https://x/feed", &plain),
+        BrainSource::Web
+    );
+    assert_eq!(
+        brain_source(MemorySourceKind::Composio, "Notion", &plain),
+        BrainSource::Notion
+    );
     assert_eq!(
         brain_source(MemorySourceKind::Composio, "gmail", &plain),
         BrainSource::Other("gmail".into())
     );
-    assert_eq!(brain_source(MemorySourceKind::Folder, "/n", &plain), BrainSource::Markdown);
     assert_eq!(
-        brain_source(MemorySourceKind::File, "/n", &document(None, Some("deck/Q3.PDF"))),
+        brain_source(MemorySourceKind::Folder, "/n", &plain),
+        BrainSource::Markdown
+    );
+    assert_eq!(
+        brain_source(
+            MemorySourceKind::File,
+            "/n",
+            &document(None, Some("deck/Q3.PDF"))
+        ),
         BrainSource::Pdf
     );
     assert_eq!(
-        brain_source(MemorySourceKind::Folder, "/n", &document(Some("text/html"), None)),
+        brain_source(
+            MemorySourceKind::Folder,
+            "/n",
+            &document(Some("text/html"), None)
+        ),
         BrainSource::Web
     );
 }
@@ -110,7 +133,12 @@ async fn text_is_ingested_searched_counted_and_forgotten_per_source() {
     .await
     .unwrap();
     assert_eq!(gone.forgotten, 1);
-    assert_eq!(stored(&engine, MetaFilter::kinds([ItemKind::Document])).await.len(), 1);
+    assert_eq!(
+        stored(&engine, MetaFilter::kinds([ItemKind::Document]))
+            .await
+            .len(),
+        1
+    );
 }
 
 #[tokio::test]

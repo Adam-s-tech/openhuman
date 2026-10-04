@@ -1,6 +1,8 @@
 use super::*;
 
-use tinymemory_api::{ItemKind, LearningKind, MemoryEngine, MemoryMeta, MetaFilter, Role, StoreItem};
+use tinymemory_api::{
+    ItemKind, LearningKind, MemoryEngine, MemoryMeta, MetaFilter, Role, StoreItem,
+};
 
 use crate::memory::scope::MemoryIdentity;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
@@ -111,8 +113,17 @@ async fn recall_off_still_logs_and_logging_off_still_recalls() {
 
     config.memory.recall.enabled = false;
     let quiet = MemoryIdentity::agent("a").resolve(&config);
-    assert!(pre_turn(&config, &quiet, input("t", 0, "when do deploys happen?")).await.is_none());
-    assert_eq!(stored(&engine, MetaFilter::kinds([ItemKind::Conversation])).await.len(), 1);
+    assert!(
+        pre_turn(&config, &quiet, input("t", 0, "when do deploys happen?"))
+            .await
+            .is_none()
+    );
+    assert_eq!(
+        stored(&engine, MetaFilter::kinds([ItemKind::Conversation]))
+            .await
+            .len(),
+        1
+    );
 
     config.memory.recall.enabled = true;
     config.memory.conversations.enabled = false;
@@ -120,14 +131,18 @@ async fn recall_off_still_logs_and_logging_off_still_recalls() {
     let pack = pre_turn(&config, &reader, input("t", 2, "when do deploys happen?")).await;
     assert!(pack.expect("a pack").markdown.contains("Fridays"));
     assert_eq!(
-        stored(&engine, MetaFilter::kinds([ItemKind::Conversation])).await.len(),
+        stored(&engine, MetaFilter::kinds([ItemKind::Conversation]))
+            .await
+            .len(),
         1,
         "nothing new was logged"
     );
 
     config.memory.recall.enabled = false;
     let none = MemoryIdentity::agent("a").resolve(&config);
-    assert!(pre_turn(&config, &none, input("t", 4, "hi")).await.is_none());
+    assert!(pre_turn(&config, &none, input("t", 4, "hi"))
+        .await
+        .is_none());
 }
 
 #[tokio::test]
@@ -135,7 +150,9 @@ async fn pre_turn_without_an_engine_runs_the_turn_without_a_pack() {
     let tmp = tempfile::tempdir().unwrap();
     let config = config_in(&tmp);
     let identity = MemoryIdentity::agent("a").resolve(&config);
-    assert!(pre_turn(&config, &identity, input("t", 0, "hello")).await.is_none());
+    assert!(pre_turn(&config, &identity, input("t", 0, "hello"))
+        .await
+        .is_none());
     post_turn(&config, &identity, reply("t", 1, "hi")).await;
 }
 
@@ -160,11 +177,20 @@ async fn post_turn_logs_the_reply_and_queues_belief_builds() {
     assert!(turns[0].text.contains("read_file → outline.md"));
     assert_eq!(turns[0].meta.agent_id.as_deref(), Some("writer"));
     let pending = jobs::snapshot(&config).await.pending;
-    assert_eq!(pending.len(), 1, "turn index 1 is the 2nd turn: a build is due");
+    assert_eq!(
+        pending.len(),
+        1,
+        "turn index 1 is the 2nd turn: a build is due"
+    );
 
     config.memory.conversations.enabled = false;
     post_turn(&config, &identity, reply("t", 3, "Again.")).await;
-    assert_eq!(stored(&engine, MetaFilter::kinds([ItemKind::Conversation])).await.len(), 1);
+    assert_eq!(
+        stored(&engine, MetaFilter::kinds([ItemKind::Conversation]))
+            .await
+            .len(),
+        1
+    );
 }
 
 #[tokio::test]
@@ -173,7 +199,12 @@ async fn compaction_recalls_from_the_dropped_turns() {
     let config = config_in(&tmp);
     bind_reference(&config);
     let identity = MemoryIdentity::agent("a").resolve(&config);
-    let _ = pre_turn(&config, &identity, input("t", 0, "the project codename is Heron")).await;
+    let _ = pre_turn(
+        &config,
+        &identity,
+        input("t", 0, "the project codename is Heron"),
+    )
+    .await;
     post_turn(&config, &identity, reply("t", 1, "Noted: Heron.")).await;
 
     let dropped = vec![
@@ -182,5 +213,7 @@ async fn compaction_recalls_from_the_dropped_turns() {
     ];
     let pack = compaction(&config, &identity, "t", dropped).await;
     assert!(pack.expect("a pack").markdown.contains("Heron"));
-    assert!(compaction(&config, &identity, "t", Vec::new()).await.is_none());
+    assert!(compaction(&config, &identity, "t", Vec::new())
+        .await
+        .is_none());
 }

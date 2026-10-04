@@ -11,9 +11,7 @@
 //! the identity in scope (the default root outside an agent).
 
 use serde::{Deserialize, Serialize};
-use tinymemory_api::{
-    ExploreRequest, Facet, Hit, Namespace, StoreItem, WriteOptions,
-};
+use tinymemory_api::{ExploreRequest, Facet, Hit, Namespace, StoreItem, WriteOptions};
 use tinymemory_integrations::documents::{NativeConverter, RawDocument};
 use tinymemory_tools::{Brain, BrainSource, MemoryLayout};
 
@@ -61,7 +59,11 @@ pub fn brain_source(kind: MemorySourceKind, target: &str, item: &StoreItem) -> B
 
 /// `item` placed in `layout`'s brain under `source`: the source's node, and
 /// no agent id (the brain belongs to every agent).
-pub fn file_into(layout: &MemoryLayout, source: &BrainSource, mut item: StoreItem) -> MemoryResult<StoreItem> {
+pub fn file_into(
+    layout: &MemoryLayout,
+    source: &BrainSource,
+    mut item: StoreItem,
+) -> MemoryResult<StoreItem> {
     let meta = item.meta_mut();
     meta.namespace = layout.brain(source)?;
     meta.agent_id = None;
@@ -230,17 +232,14 @@ pub async fn ingest(config: &Config, params: BrainIngestParams) -> MemoryResult<
             meta.file_path = Some(path.display().to_string());
             tinymemory_integrations::brain::brain_document(&NativeConverter, &raw, source, meta)
                 .await
-                .map_err(|error| MemoryError::invalid(format!("cannot convert the file: {error}")))?
+                .map_err(|error| {
+                    MemoryError::invalid(format!("cannot convert the file: {error}"))
+                })?
         }
-        (None, Some(text)) => tinymemory_tools::BrainDocument::new(
-            source.unwrap_or(BrainSource::Markdown),
-            text,
-        ),
-        _ => {
-            return Err(MemoryError::invalid(
-                "pass exactly one of `path` or `text`",
-            ))
+        (None, Some(text)) => {
+            tinymemory_tools::BrainDocument::new(source.unwrap_or(BrainSource::Markdown), text)
         }
+        _ => return Err(MemoryError::invalid("pass exactly one of `path` or `text`")),
     };
     if let Some(title) = params.title.filter(|title| !title.trim().is_empty()) {
         document = document.titled(title);

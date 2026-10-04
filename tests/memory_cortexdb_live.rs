@@ -507,9 +507,7 @@ async fn run(cortex_url: String, cortex_key: String) {
     );
     let agents = stack.ok("openhuman.memory_agents_list", json!({})).await;
     assert!(
-        agents["agents"]
-            .as_array()
-            .is_some_and(|a| !a.is_empty()),
+        agents["agents"].as_array().is_some_and(|a| !a.is_empty()),
         "the answering agent is listed: {agents}"
     );
 
@@ -549,7 +547,9 @@ async fn run(cortex_url: String, cortex_key: String) {
         "the pack carries the learning: {preview}"
     );
 
-    stack.chat(&thread_b, "Where do we hold launch events?").await;
+    stack
+        .chat(&thread_b, "Where do we hold launch events?")
+        .await;
     let deadline = Instant::now() + PATIENCE;
     loop {
         let injected = stack.mock_bodies().await.into_iter().any(|(url, body)| {
@@ -571,9 +571,9 @@ async fn run(cortex_url: String, cortex_key: String) {
     // ---- background: the queued belief builds run on demand -------------------
     let jobs = stack.ok("openhuman.memory_jobs_run", json!({})).await;
     assert!(
-        jobs["runs"].as_array().is_some_and(|runs| runs
-            .iter()
-            .all(|run| run["outcome"] != json!("failed"))),
+        jobs["runs"]
+            .as_array()
+            .is_some_and(|runs| runs.iter().all(|run| run["outcome"] != json!("failed"))),
         "belief builds run on CortexDB: {jobs}"
     );
 

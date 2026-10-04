@@ -207,9 +207,20 @@ pub fn is_due(
 /// The layout source `source` files into: its own `namespace` (a layout
 /// root such as `team:acme`) when set, else the configured root.
 #[must_use]
-pub fn layout_of_source(config: &Config, source: &MemorySourceConfig) -> tinymemory_tools::MemoryLayout {
-    let default = || crate::memory::scope::MemoryIdentity::root().resolve(config).layout;
-    let Some(raw) = source.namespace.as_deref().filter(|raw| !raw.trim().is_empty()) else {
+pub fn layout_of_source(
+    config: &Config,
+    source: &MemorySourceConfig,
+) -> tinymemory_tools::MemoryLayout {
+    let default = || {
+        crate::memory::scope::MemoryIdentity::root()
+            .resolve(config)
+            .layout
+    };
+    let Some(raw) = source
+        .namespace
+        .as_deref()
+        .filter(|raw| !raw.trim().is_empty())
+    else {
         return default();
     };
     raw.parse::<tinymemory_api::Namespace>()
@@ -231,7 +242,11 @@ pub fn layout_of(config: &Config, source_id: &str) -> tinymemory_tools::MemoryLa
         .iter()
         .find(|source| source.id == source_id)
         .map_or_else(
-            || crate::memory::scope::MemoryIdentity::root().resolve(config).layout,
+            || {
+                crate::memory::scope::MemoryIdentity::root()
+                    .resolve(config)
+                    .layout
+            },
             |source| layout_of_source(config, source),
         )
 }

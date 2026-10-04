@@ -100,9 +100,17 @@ pub fn apply_policy_set(config: &mut Config, params: &PolicySetParams) -> Memory
         recall.budget_tokens = value;
     }
     for (name, value, slot) in [
-        ("learnings_limit", params.learnings_limit, &mut recall.learnings_limit),
+        (
+            "learnings_limit",
+            params.learnings_limit,
+            &mut recall.learnings_limit,
+        ),
         ("brain_limit", params.brain_limit, &mut recall.brain_limit),
-        ("history_limit", params.history_limit, &mut recall.history_limit),
+        (
+            "history_limit",
+            params.history_limit,
+            &mut recall.history_limit,
+        ),
         ("team_limit", params.team_limit, &mut recall.team_limit),
     ] {
         if let Some(value) = within(name, value, 0, 50)? {
@@ -112,7 +120,12 @@ pub fn apply_policy_set(config: &mut Config, params: &PolicySetParams) -> Memory
     if let Some(value) = within("build_beliefs_every", params.build_beliefs_every, 0, 1000)? {
         recall.build_beliefs_every = value;
     }
-    if let Some(value) = within("pre_turn_timeout_ms", params.pre_turn_timeout_ms, 100, 30_000)? {
+    if let Some(value) = within(
+        "pre_turn_timeout_ms",
+        params.pre_turn_timeout_ms,
+        100,
+        30_000,
+    )? {
         recall.pre_turn_timeout_ms = value;
     }
     tracing::info!("[memory:policy] recall policy updated");
@@ -148,7 +161,10 @@ pub struct PackPreviewView {
 
 /// `memory_pack_preview`: the pack a turn (with a query) or a session start
 /// (without one) would be given. Reads only; nothing is logged.
-pub async fn pack_preview(config: &Config, params: PackPreviewParams) -> MemoryResult<PackPreviewView> {
+pub async fn pack_preview(
+    config: &Config,
+    params: PackPreviewParams,
+) -> MemoryResult<PackPreviewView> {
     let (memory, identity) = super::named_agent_memory(config, params.agent_id.as_deref())?;
     let query = params.query.filter(|query| !query.trim().is_empty());
     let (mode, pack) = match query {

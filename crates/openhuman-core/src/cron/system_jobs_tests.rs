@@ -112,7 +112,10 @@ fn ensure_memory_jobs_seeds_both_jobs_and_retires_the_context_refresh() {
     let sync = system_rows(&config, SOURCES_SYNC_JOB);
     assert_eq!(background.len(), 1);
     assert_eq!(sync.len(), 1);
-    assert_eq!(background[0].schedule, every(BACKGROUND_INTERVAL_MINS as u32));
+    assert_eq!(
+        background[0].schedule,
+        every(BACKGROUND_INTERVAL_MINS as u32)
+    );
     assert_eq!(sync[0].schedule, every(SOURCES_SYNC_INTERVAL_MINS));
     assert!(
         system_rows(&config, RETIRED_CONTEXT_REFRESH_JOB).is_empty(),

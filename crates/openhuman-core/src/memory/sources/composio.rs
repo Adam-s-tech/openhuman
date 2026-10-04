@@ -86,7 +86,11 @@ pub async fn store_records(
         config,
         bound,
         items,
-        (crate::config::schema::MemorySourceKind::Composio, toolkit, source_id),
+        (
+            crate::config::schema::MemorySourceKind::Composio,
+            toolkit,
+            source_id,
+        ),
         layout,
     )
     .await

@@ -156,8 +156,13 @@ fn team_root(team: &str) -> Namespace {
 ///
 /// Why it is not one.
 pub fn validate_root(root: &str) -> Result<(), String> {
-    let root: Namespace = root.trim().parse().map_err(|error: tinymemory_api::Error| error.to_string())?;
-    MemoryLayout::new(root).map(|_| ()).map_err(|error| error.to_string())
+    let root: Namespace = root
+        .trim()
+        .parse()
+        .map_err(|error: tinymemory_api::Error| error.to_string())?;
+    MemoryLayout::new(root)
+        .map(|_| ())
+        .map_err(|error| error.to_string())
 }
 
 /// A configured root; an invalid one is logged and ignored.

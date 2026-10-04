@@ -192,11 +192,14 @@ pub async fn run(config: &Config, selection: Selection) -> MemoryResult<Vec<JobR
     let cutoff = Utc::now()
         - Duration::seconds(i64::try_from(config.memory.recall.build_delay_secs).unwrap_or(0));
     let (take, keep): (Vec<QueuedJob>, Vec<QueuedJob>) =
-        queue.pending.drain(..).partition(|queued| match &selection {
-            Selection::Due => queued.queued_at <= cutoff,
-            Selection::All => true,
-            Selection::One(id) => &queued.id == id,
-        });
+        queue
+            .pending
+            .drain(..)
+            .partition(|queued| match &selection {
+                Selection::Due => queued.queued_at <= cutoff,
+                Selection::All => true,
+                Selection::One(id) => &queued.id == id,
+            });
     if let Selection::One(id) = &selection {
         if take.is_empty() {
             queue.pending = keep;
@@ -236,7 +239,10 @@ pub async fn run(config: &Config, selection: Selection) -> MemoryResult<Vec<JobR
                 if let JobOutcome::Skipped { reason } = &report.outcome {
                     record.reason = Some(reason.clone());
                 }
-                record.built = report.consolidation.as_ref().and_then(|receipt| receipt.built);
+                record.built = report
+                    .consolidation
+                    .as_ref()
+                    .and_then(|receipt| receipt.built);
                 record.stored = report.stored.len();
                 for follow_up in report.follow_ups {
                     let id = job_id(&queued.root, &follow_up);
@@ -292,7 +298,10 @@ pub async fn run_due(config: &Config) {
     if let crate::cron::scheduler_gate::Policy::Paused { reason } =
         crate::cron::scheduler_gate::current_policy()
     {
-        tracing::debug!(?reason, "[memory:jobs] background paused; queue left for later");
+        tracing::debug!(
+            ?reason,
+            "[memory:jobs] background paused; queue left for later"
+        );
         return;
     }
     match run(config, Selection::Due).await {

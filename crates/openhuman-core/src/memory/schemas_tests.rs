@@ -104,7 +104,10 @@ fn required_inputs_match_the_spec() {
     assert_eq!(required("import_start"), ["consent"]);
     assert_eq!(optional("pack_preview"), ["query", "thread_id", "agent_id"]);
     assert_eq!(required("brain_search"), ["query"]);
-    assert_eq!(optional("brain_ingest"), ["path", "text", "source", "title"]);
+    assert_eq!(
+        optional("brain_ingest"),
+        ["path", "text", "source", "title"]
+    );
     assert_eq!(required("brain_forget"), ["source"]);
     assert_eq!(optional("jobs_run"), ["id"]);
     assert!(required("policy_set").is_empty());
@@ -274,15 +277,25 @@ async fn lifecycle_handlers_answer_over_a_bound_engine() {
     let sources = sources.get("result").unwrap_or(&sources);
     assert_eq!(sources["sources"][0]["source"], "notion");
 
-    let preview = call(&config, "pack_preview", json!({"query": "when are standups?"}))
-        .await
-        .unwrap();
+    let preview = call(
+        &config,
+        "pack_preview",
+        json!({"query": "when are standups?"}),
+    )
+    .await
+    .unwrap();
     let preview = preview.get("result").unwrap_or(&preview);
     assert_eq!(preview["mode"], "turn");
-    assert!(preview["pack"]["markdown"].as_str().unwrap().contains("9:30"));
+    assert!(preview["pack"]["markdown"]
+        .as_str()
+        .unwrap()
+        .contains("9:30"));
 
     let ran = call(&config, "jobs_run", json!({})).await.unwrap();
-    assert_eq!(ran.get("result").unwrap_or(&ran)["runs"][0]["outcome"], "done");
+    assert_eq!(
+        ran.get("result").unwrap_or(&ran)["runs"][0]["outcome"],
+        "done"
+    );
 
     let agents = call(&config, "agents_list", json!({})).await.unwrap();
     assert!(agents.get("result").unwrap_or(&agents)["agents"].is_array());

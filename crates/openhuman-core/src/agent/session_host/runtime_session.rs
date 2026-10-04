@@ -1152,7 +1152,8 @@ impl OpenHumanSessionHost {
                                 .unwrap_or_else(|poisoned| poisoned.into_inner())
                                 .active_turn_overrides,
                         );
-                        let current_input = view.history.last().filter(|last| **last == request.input);
+                        let current_input =
+                            view.history.last().filter(|last| **last == request.input);
                         let (enriched, memory_turn) = futures::join!(
                             prelude.enrich_request(
                                 &original_user_message,

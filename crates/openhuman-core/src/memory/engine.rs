@@ -22,7 +22,7 @@ use std::sync::{Arc, LazyLock, RwLock};
 
 use async_trait::async_trait;
 use sha2::{Digest, Sha256};
-use tinymemory_api::{MemoryEngine};
+use tinymemory_api::MemoryEngine;
 use tinymemory_integrations::{BearerSource, EngineCredential, EngineSettings};
 
 use crate::config::schema::MEMORY_CORTEXDB_KEY_NAME;

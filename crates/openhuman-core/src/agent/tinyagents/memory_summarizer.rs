@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use tinyagents_harness::error::Result;
-use tinyagents_harness::summarization::{SummaryRecord, SummaryRequest, Summarizer};
+use tinyagents_harness::summarization::{Summarizer, SummaryRecord, SummaryRequest};
 use tinyinference_llm::message::{ContentBlock, Message};
 use tinymemory_api::{Role, Turn};
 
@@ -59,7 +59,10 @@ impl MemoryRecallSummarizer {
         let (record, pack) = futures::join!(summary, recall);
         let mut record = record?;
         if let Some(pack) = pack {
-            append(&mut record.summary, &format!("\n\n{RECALLED_HEADING}\n\n{}", pack.markdown.trim()));
+            append(
+                &mut record.summary,
+                &format!("\n\n{RECALLED_HEADING}\n\n{}", pack.markdown.trim()),
+            );
             tracing::debug!(
                 thread_id = %self.turn.thread_id,
                 tokens = pack.tokens,

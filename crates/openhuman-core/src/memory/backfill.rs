@@ -213,32 +213,35 @@ pub fn turn_items(
         return Vec::new();
     };
     let base = u32::try_from(index.saturating_mul(2)).unwrap_or(u32::MAX - 1);
-    [(Role::User, &turn.user, base), (Role::Assistant, &turn.assistant, base + 1)]
-        .into_iter()
-        .filter(|(_, text, _)| !text.trim().is_empty())
-        .map(|(role, text, at_index)| StoreItem::Conversation {
-            meta: MemoryMeta {
-                namespace: node.clone(),
-                thread_id: Some(thread_id.to_string()),
-                turns: Some(TurnRange {
-                    first: at_index,
-                    last: at_index,
-                }),
-                agent_id: Some(identity.agent_id.clone()),
-                source: SourceRef {
-                    kind: SourceKind::Conversation,
-                    id: Some(thread_id.to_string()),
-                },
-                observed_at: Some(turn.at),
-                tags: vec![BACKFILL_TAG.to_string()],
-                ..MemoryMeta::default()
+    [
+        (Role::User, &turn.user, base),
+        (Role::Assistant, &turn.assistant, base + 1),
+    ]
+    .into_iter()
+    .filter(|(_, text, _)| !text.trim().is_empty())
+    .map(|(role, text, at_index)| StoreItem::Conversation {
+        meta: MemoryMeta {
+            namespace: node.clone(),
+            thread_id: Some(thread_id.to_string()),
+            turns: Some(TurnRange {
+                first: at_index,
+                last: at_index,
+            }),
+            agent_id: Some(identity.agent_id.clone()),
+            source: SourceRef {
+                kind: SourceKind::Conversation,
+                id: Some(thread_id.to_string()),
             },
-            turns: vec![Turn {
-                at: Some(turn.at),
-                ..Turn::new(role, text.as_str())
-            }],
-        })
-        .collect()
+            observed_at: Some(turn.at),
+            tags: vec![BACKFILL_TAG.to_string()],
+            ..MemoryMeta::default()
+        },
+        turns: vec![Turn {
+            at: Some(turn.at),
+            ..Turn::new(role, text.as_str())
+        }],
+    })
+    .collect()
 }
 
 /// The first turn of `thread_id` the lifecycle logged (not a backfill), as a
@@ -424,8 +427,10 @@ async fn run(
                 }
             }
             let end = group.last().map_or(0, |last| last + 1);
-            file.stored
-                .insert(plan.thread_id.clone(), u32::try_from(end).unwrap_or(u32::MAX));
+            file.stored.insert(
+                plan.thread_id.clone(),
+                u32::try_from(end).unwrap_or(u32::MAX),
+            );
             file.state.turns_stored += group.len() as u64;
             file.state.items_stored += count;
             write_file(workspace_dir, &file);
