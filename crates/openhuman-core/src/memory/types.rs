@@ -414,9 +414,6 @@ impl From<&Hit> for TurnCitation {
     }
 }
 
-/// Longest snippet a turn citation carries, in characters.
-pub const TURN_CITATION_SNIPPET_CHARS: usize = 280;
-
 impl From<&Citation> for TurnCitation {
     fn from(citation: &Citation) -> Self {
         Self {

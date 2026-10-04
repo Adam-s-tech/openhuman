@@ -80,6 +80,11 @@ async fn pre_turn_logs_the_user_turn_and_injects_what_memory_holds() {
         .expect("a pack");
     assert!(pack.markdown.contains("teal"), "{}", pack.markdown);
     assert!(!pack.refs.is_empty());
+    let chips = crate::memory::tools::take_turn_citations("t1");
+    assert!(
+        chips.iter().any(|chip| chip.snippet.contains("teal")),
+        "the pack's citations reach the chat: {chips:?}"
+    );
     assert!(pack.injection().starts_with(OPEN_TAG));
     assert!(pack.injection().ends_with(CLOSE_TAG));
 

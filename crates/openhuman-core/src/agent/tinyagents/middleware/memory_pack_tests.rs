@@ -26,6 +26,7 @@ fn pack() -> TurnPack {
         tokens: 14,
         refs: vec!["id-1".into()],
         engine: "reference".into(),
+        citations: Vec::new(),
     }
 }
 
