@@ -32,6 +32,7 @@ use crate::agent::tinyagents::tools::EarlyExitHook;
 use crate::agent::tinyagents::turn_models::TurnModels;
 use crate::agent::tinyagents::turn_outcome::{HaltSummarySlot, ToolOutcomeSink};
 use crate::agent::tinyagents::turn_policy::{run_policy_for, REPEATED_TOOL_FAILURE_THRESHOLD};
+use crate::agent::tinyagents::verify_before_finish;
 use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 
 use super::ToolPolicyEnforcement;
@@ -595,6 +596,12 @@ pub(super) fn assemble_turn_harness(
         summarizer_model,
         pause_at_cap && subagent_scope.is_none(),
         &tool_outcome_sink,
+    );
+    verify_before_finish::install(
+        &mut harness,
+        subagent_scope.is_some(),
+        tool_policy.as_ref().map(|p| p.agent_definition_id.as_str()),
+        &wrap_up_fired,
     );
 
     // Direct web lookup is bounded. Once enough search/fetch results have
