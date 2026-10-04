@@ -1263,7 +1263,7 @@ impl OpenHumanSessionHost {
                             prelude.prepare(new_session).await.map_err(|error| {
                                 tinyagents_runtime::RuntimeError::Driver(error.to_string())
                             })?;
-                        permanent::refresh_permanent_prefix(&prelude, &mut preparation, view.prefix);
+                        prelude.refresh_permanent_prefix(&mut preparation, view.prefix);
                         if overrides.suppress_tools {
                             // One-off tool-less turn: must not become the
                             // thread's recorded tool list.
