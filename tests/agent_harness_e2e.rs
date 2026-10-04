@@ -4660,10 +4660,14 @@ async fn todo_list_ticks_off_five_items_across_turns_inner() {
     let mut script = vec![
         todo_write(&FIVE_STEPS, 0),
         text_completion("Plan written; starting on the first step."),
+        text_completion("Checked the plan against the request; starting the first step."),
     ];
     for completed in 1..=FIVE_STEPS.len() {
         script.push(todo_write(&FIVE_STEPS, completed));
         script.push(text_completion(&format!("Step {completed} done.")));
+        script.push(text_completion(&format!(
+            "Checked step {completed} against the request; continuing."
+        )));
     }
     reset_script(script);
     let stack = boot_stack().await;
