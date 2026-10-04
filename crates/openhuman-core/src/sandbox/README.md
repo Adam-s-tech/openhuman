@@ -37,6 +37,11 @@ backend, and delegates local OS-level confinement to `tinybox-jail`.
   `read_only_mounts`/`read_write_mounts` carry the local jail's grant set
   (`grants.rs`, empty for other backends); `docker_overrides` is
   populated from `[runtime.docker]` only for the `Docker` backend.
+  A host that already isolates the core (container, CI or benchmark task
+  image, VM) sets `OPENHUMAN_SANDBOX=off` (`SANDBOX_OFF_ENV`; also `none`,
+  `0`, `false`, `disabled`), and `Sandboxed` then resolves to `None` for the
+  whole process: the outer isolation permits work (package installs, `/etc`
+  edits) that the action-dir jail would refuse.
 - `pub async fn create_sandbox_backend(policy) -> SandboxBackendHandle`
   (`ops.rs`): instantiates and probes the resolved backend.
 - `pub async fn execute_in_sandbox(policy, command, working_dir, extra_env, timeout) -> anyhow::Result<SandboxExecResult>`
