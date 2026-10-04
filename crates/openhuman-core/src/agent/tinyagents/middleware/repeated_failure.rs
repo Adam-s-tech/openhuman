@@ -14,8 +14,6 @@ use tinyagents_harness::no_progress::{
     ClassifiedFailure, ClassifiedFailureTracker, NoProgress, NoProgressTracker, ToolAttempt,
 };
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
-use tinyinference_llm::message::Message as TaMessage;
-use tinyinference_llm::model::ModelRequest;
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;
 
@@ -24,6 +22,7 @@ use super::loop_guards::{
     is_repeat_call_exempt, RECOVERABLE_NO_PROGRESS_FAILURE_THRESHOLD,
     RECOVERABLE_REPEAT_FAILURE_THRESHOLD,
 };
+use super::nudge_injector::PendingNudgeInjector;
 pub(crate) use crate::inference::failure_copy::user_actionable_escalation;
 use crate::inference::failure_copy::{
     recoverable_identical_halt_summary, recoverable_no_progress_halt_summary,
@@ -707,43 +706,6 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 self.handle.send(SteeringCommand::Pause);
                 self.tracker.reset();
             }
-        }
-        Ok(())
-    }
-}
-
-/// Appends queued [`RepeatedToolFailureMiddleware`] nudges to the next model
-/// request as system messages, then forgets them. The request is built from a
-/// copy of the working transcript, so nothing it adds is ever committed.
-pub(crate) struct PendingNudgeInjector {
-    pending: Arc<Mutex<Vec<String>>>,
-}
-
-#[async_trait]
-impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for PendingNudgeInjector {
-    fn name(&self) -> &str {
-        "pending_nudge_injector"
-    }
-
-    async fn before_model(
-        &self,
-        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
-        _state: &(),
-        request: &mut ModelRequest,
-    ) -> TaResult<()> {
-        let nudges = self
-            .pending
-            .lock()
-            .map(|mut pending| std::mem::take(&mut *pending))
-            .unwrap_or_default();
-        if !nudges.is_empty() {
-            tracing::debug!(
-                count = nudges.len(),
-                "[tinyagents::mw] request-scoped nudge(s) appended to the next model request"
-            );
-            request
-                .messages
-                .extend(nudges.into_iter().map(TaMessage::system));
         }
         Ok(())
     }
