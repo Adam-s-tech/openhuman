@@ -45,7 +45,6 @@ static AGENT_DEF_REGISTRY_INIT: OnceLock<()> = OnceLock::new();
 
 static SCRIPTED: OnceLock<Mutex<std::collections::VecDeque<Value>>> = OnceLock::new();
 static CAPTURED: OnceLock<Mutex<Vec<Value>>> = OnceLock::new();
-static SCRIPTED_UPSTREAM: OnceLock<SocketAddr> = OnceLock::new();
 
 fn scripted() -> std::sync::MutexGuard<'static, std::collections::VecDeque<Value>> {
     lock_or_recover(SCRIPTED.get_or_init(Default::default))
@@ -313,33 +312,6 @@ async fn serve_on_ephemeral(
     (addr, handle)
 }
 
-fn scripted_upstream_addr() -> SocketAddr {
-    *SCRIPTED_UPSTREAM.get_or_init(|| {
-        ensure_rpc_auth();
-        let (addr_tx, addr_rx) = std::sync::mpsc::sync_channel(1);
-        std::thread::Builder::new()
-            .name("prompt-scripted-upstream".into())
-            .spawn(move || {
-                let runtime = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .expect("build scripted upstream runtime");
-                runtime.block_on(async move {
-                    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-                        .await
-                        .expect("bind scripted upstream");
-                    addr_tx.send(listener.local_addr().expect("scripted upstream addr"))
-                        .expect("report scripted upstream addr");
-                    axum::serve(listener, scripted_upstream_router())
-                        .await
-                        .expect("serve scripted upstream");
-                });
-            })
-            .expect("spawn scripted upstream");
-        addr_rx.recv().expect("scripted upstream startup")
-    })
-}
-
 async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(180))
@@ -499,7 +471,7 @@ async fn boot_stack(extra_config: &str) -> Stack {
         EnvVarGuard::unset("VITE_BACKEND_URL"),
     ];
 
-    let mock_addr = scripted_upstream_addr();
+    let (mock_addr, mock_join) = serve_on_ephemeral(scripted_upstream_router()).await;
     let mock_origin = format!("http://{mock_addr}");
     write_min_config(&openhuman_home, &mock_origin, extra_config);
     write_min_config(
@@ -525,7 +497,7 @@ async fn boot_stack(extra_config: &str) -> Stack {
         rpc_base,
         _guards: guards,
         _tmp: tmp,
-        joins: vec![rpc_join],
+        joins: vec![mock_join, rpc_join],
     }
 }
 

@@ -209,6 +209,21 @@ fn attached_tools_survive_clones_and_session_resume() {
                 if index == 3 {
                     assert!(messages.iter().any(|m| m["role"] == "user"
                         && m["content"].as_str().unwrap_or("").contains("third user")));
+                    assert!(
+                        !messages.iter().any(|m| {
+                            let content = m["content"].as_str().unwrap_or("");
+                            content.contains("first user") || content.contains("second user")
+                        }),
+                        "a new session must not inherit the continuing session's history"
+                    );
+                }
+                if index == 2 {
+                    assert!(
+                        !messages.iter().any(|m| {
+                            m["content"].as_str().unwrap_or("").contains("first user")
+                        }),
+                        "a new session must start without the continuing session's history"
+                    );
                 }
             }
         })
