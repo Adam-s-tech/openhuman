@@ -268,7 +268,7 @@ fn a_source_can_store_at_an_agent_node() {
     let mut config = Config::default();
     let mut params = add_params("link", "https://example.com/a");
     params.namespace = Some("agent:researcher".into());
-    let added = add(&mut config, &params).unwrap();
+    let added = apply_add(&mut config, &params).unwrap();
     assert_eq!(added.namespace.as_deref(), Some("agent:researcher"));
     assert_eq!(
         namespace_of(&config, &added.id),
@@ -278,7 +278,7 @@ fn a_source_can_store_at_an_agent_node() {
 
     let mut bad = add_params("link", "https://example.com/b");
     bad.namespace = Some("nope".into());
-    assert_eq!(add(&mut config, &bad).unwrap_err().code(), INVALID_REQUEST);
+    assert_eq!(apply_add(&mut config, &bad).unwrap_err().code(), INVALID_REQUEST);
 
     let mut hand_edited = source("x", None);
     hand_edited.namespace = Some("not a node".into());
