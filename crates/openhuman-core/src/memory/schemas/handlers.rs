@@ -9,11 +9,12 @@ use crate::config::Config;
 use crate::core::all::ControllerFuture;
 use crate::core::Outcome;
 use crate::memory::error::{MemoryError, MemoryResult};
+use crate::memory::explore::{self, ExploreParams, ItemsGetParams};
 use crate::memory::types::{
-    ContextSetParams, ConversationsSetParams, EmptyParams, EngineSetParams, FetchParams,
-    ForgetParams, ImportStartParams, ImportStateView, ItemsListParams, LearnParams, RecallParams,
-    SourceAddedView, SourceRemovedView, SourcesAddParams, SourcesListView, SourcesRemoveParams,
-    SourcesSyncParams, SourcesSyncView,
+    ContextNodeParams, ContextSetParams, ConversationsSetParams, EmptyParams, EngineSetParams,
+    FetchParams, ForgetParams, ImportStartParams, ImportStateView, ItemsListParams, LearnParams,
+    RecallParams, SourceAddedView, SourceRemovedView, SourcesAddParams, SourcesListView,
+    SourcesRemoveParams, SourcesSyncParams, SourcesSyncView,
 };
 use crate::memory::{context, conversations, engine, import, ops, sources};
 
@@ -105,6 +106,34 @@ pub(super) fn items_list(params: Map<String, Value>) -> ControllerFuture {
     })
 }
 
+pub(super) fn explore(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let params = parse::<ExploreParams>(params)?;
+        finish(explore::explore(&load().await?, params).await)
+    })
+}
+
+pub(super) fn items_get(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let params = parse::<ItemsGetParams>(params)?;
+        finish(explore::items_get(&load().await?, params).await)
+    })
+}
+
+pub(super) fn conversations_backfill_status(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        parse::<EmptyParams>(params)?;
+        finish(conversations::backfill::status(&load().await?).await)
+    })
+}
+
+pub(super) fn conversations_backfill_start(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let params = parse::<conversations::backfill::BackfillStartParams>(params)?;
+        finish(conversations::backfill::start(&load().await?, params).await)
+    })
+}
+
 pub(super) fn conversations_get(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         parse::<EmptyParams>(params)?;
@@ -176,15 +205,15 @@ pub(super) fn sources_sync(params: Map<String, Value>) -> ControllerFuture {
 
 pub(super) fn context_get(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
-        parse::<EmptyParams>(params)?;
-        to_json(context::view(&load().await?))
+        let namespace = parse::<ContextNodeParams>(params)?.node()?;
+        to_json(context::view_for(&load().await?, &namespace))
     })
 }
 
 pub(super) fn context_refresh(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
-        parse::<EmptyParams>(params)?;
-        finish(context::refresh(&load().await?).await)
+        let namespace = parse::<ContextNodeParams>(params)?.node()?;
+        finish(context::refresh_for(&load().await?, &namespace).await)
     })
 }
 

@@ -249,6 +249,9 @@ fn merge_meta(meta: &mut MemoryMeta, host: MemoryMeta) {
         observed_at
     );
     meta.source = host.source;
+    // The host's node is authoritative: a caller cannot write into another
+    // agent's memory.
+    meta.namespace = host.namespace;
     for tag in host.tags {
         if !meta.tags.contains(&tag) {
             meta.tags.push(tag);
@@ -293,6 +296,29 @@ pub async fn store_on(bound: &BoundEngine, item: StoreItem) -> MemoryResult<Stor
     Ok(receipt)
 }
 
+/// Scrubs `items` and stores them on `bound` in one bulk call
+/// (`MemoryEngine::store_many`): each is listed on return, ranked recall
+/// may lag behind for all but the last. For imports and backfills.
+pub async fn store_many_on(
+    bound: &BoundEngine,
+    items: Vec<StoreItem>,
+) -> MemoryResult<Vec<StoreReceipt>> {
+    let count = items.len();
+    let policy = crate::security::scrub::host_policy();
+    let scrubbed: Vec<StoreItem> = items
+        .into_iter()
+        .map(|item| tinymemory::safety::scrub_item_with(item, policy).value)
+        .collect();
+    let receipts = bound.engine.store_many(scrubbed).await?;
+    tracing::debug!(
+        engine = %bound.id,
+        count,
+        replayed = receipts.iter().filter(|r| r.replayed).count(),
+        "[memory:ops] batch stored"
+    );
+    Ok(receipts)
+}
+
 /// `memory_forget`.
 pub async fn forget(config: &Config, params: ForgetParams) -> MemoryResult<ForgetView> {
     let ids: Vec<ItemId> = params
@@ -306,6 +332,14 @@ pub async fn forget(config: &Config, params: ForgetParams) -> MemoryResult<Forge
         return Err(MemoryError::invalid("forget needs at least one id"));
     }
     let bound = bound(config)?;
+    let ids = match params.reach {
+        Some(reach) => within_reach(&bound, ids, reach).await?,
+        None => ids,
+    };
+    if ids.is_empty() {
+        tracing::debug!(engine = %bound.id, "[memory:ops] forget: nothing in reach");
+        return Ok(ForgetView { forgotten: 0 });
+    }
     let report = bound.engine.forget(ForgetTarget::Ids(ids)).await?;
     tracing::debug!(engine = %bound.id, forgotten = report.forgotten, "[memory:ops] forget");
     Ok(ForgetView {
@@ -313,11 +347,32 @@ pub async fn forget(config: &Config, params: ForgetParams) -> MemoryResult<Forge
     })
 }
 
+/// The ids among `ids` naming an item in `reach`, read through `get` in
+/// chunks of its id limit.
+async fn within_reach(
+    bound: &BoundEngine,
+    ids: Vec<ItemId>,
+    reach: tinymemory::Reach,
+) -> MemoryResult<Vec<ItemId>> {
+    let mut kept = Vec::new();
+    for chunk in ids.chunks(tinymemory::explore::MAX_GET_IDS) {
+        let found = bound
+            .engine
+            .get(tinymemory::GetRequest {
+                ids: chunk.to_vec(),
+                reach: Some(reach.clone()),
+            })
+            .await?;
+        kept.extend(found.into_iter().map(|hit| hit.id));
+    }
+    Ok(kept)
+}
+
 /// `memory_items_list`.
 pub async fn items_list(config: &Config, params: ItemsListParams) -> MemoryResult<ItemsListView> {
     let bound = bound(config)?;
     let request = ListRequest {
-        filter: params.filter.unwrap_or_default(),
+        filter: super::explore::narrowed(params.filter, &params.path)?,
         limit: clamp_limit(params.limit),
         cursor: params.cursor,
     };

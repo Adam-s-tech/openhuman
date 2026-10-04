@@ -55,7 +55,7 @@ async fn refresh_writes_context_md_and_state() {
     assert_eq!(view.markdown, on_disk);
     assert!(view.generated_at.is_some());
     assert!(view.tokens > 0);
-    assert!(state_path(&config.workspace_dir).exists());
+    assert!(state_path(&config.workspace_dir, &Namespace::ROOT).exists());
 }
 
 #[test]
@@ -161,4 +161,91 @@ fn spec_for_never_goes_below_the_minimum_budget() {
     let mut config = config_in(&tmp);
     config.memory.context.budget_tokens = 1;
     assert_eq!(spec_for(&config).budget_tokens, MIN_BUDGET_TOKENS as usize);
+}
+
+fn as_agent(agent: &str) -> tinymemory::MemoryMeta {
+    tinymemory::MemoryMeta {
+        namespace: Namespace::agent(agent),
+        agent_id: Some(agent.to_string()),
+        ..tinymemory::MemoryMeta::default()
+    }
+}
+
+#[tokio::test]
+async fn each_agent_gets_its_own_context_md_from_its_reach() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut config = config_in(&tmp);
+    config.memory.agents.insert(
+        "planner".into(),
+        crate::config::schema::MemoryAgentConfig::default(),
+    );
+    bind_reference(&config);
+    let researcher = Namespace::agent("researcher");
+    for (text, meta) in [
+        ("The user is called Sam", None),
+        ("Prefer arxiv for papers", Some(as_agent("researcher"))),
+        ("Draft in British English", Some(as_agent("writer"))),
+    ] {
+        learn(&config, params(text, LearningKind::Preference), meta)
+            .await
+            .unwrap();
+    }
+
+    let view = refresh_for(&config, &researcher).await.unwrap();
+    assert_eq!(view.namespace, "agent:researcher");
+    assert!(view.markdown.contains("arxiv"), "{}", view.markdown);
+    assert!(view.markdown.contains("Sam"), "the root is inherited");
+    assert!(
+        !view.markdown.contains("British"),
+        "a sibling is out of reach"
+    );
+    let path = context_path_for(&config.workspace_dir, &researcher);
+    assert!(path.ends_with("memory/context/agent-researcher/context.md"));
+    assert!(path.is_file());
+    assert_eq!(
+        compiled_nodes(&config.workspace_dir),
+        vec![Namespace::ROOT, researcher.clone()]
+    );
+
+    // The cron job compiles the root, every compiled node and every
+    // configured agent.
+    assert_eq!(refresh_all(&config).await, 3);
+    assert!(context_path_for(&config.workspace_dir, &Namespace::agent("planner")).is_file());
+
+    let injected = crate::memory::scope::within_agent("researcher", async {
+        injection_block(&config).unwrap()
+    })
+    .await;
+    assert!(injected.contains("arxiv"));
+    let main = injection_block(&config).unwrap();
+    assert!(!main.contains("arxiv"), "the root's document is the root's");
+}
+
+#[tokio::test]
+async fn an_agent_without_a_document_falls_back_to_its_ancestor_s() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut config = config_in(&tmp);
+    bind_reference(&config);
+    learn(
+        &config,
+        params("The user is called Sam", LearningKind::Fact),
+        None,
+    )
+    .await
+    .unwrap();
+    refresh(&config).await.unwrap();
+    let injected =
+        crate::memory::scope::within_agent("scout", async { injection_block(&config) }).await;
+    assert!(injected.unwrap().contains("Sam"));
+
+    config.memory.agents.insert(
+        "quiet".into(),
+        crate::config::schema::MemoryAgentConfig {
+            context: Some(false),
+            ..Default::default()
+        },
+    );
+    let none =
+        crate::memory::scope::within_agent("quiet", async { injection_block(&config) }).await;
+    assert!(none.is_none(), "an agent can switch its context off");
 }

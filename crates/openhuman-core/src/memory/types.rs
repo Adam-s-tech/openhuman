@@ -167,6 +167,11 @@ pub struct LearnView {
 pub struct ForgetParams {
     /// Item ids.
     pub ids: Vec<String>,
+    /// Only ids of items in this reach are forgotten; an id outside it is
+    /// left alone as if it named nothing. The `memory` tool always sets the
+    /// calling agent's reach.
+    #[serde(default)]
+    pub reach: Option<tinymemory::Reach>,
 }
 
 /// `memory_forget` result.
@@ -188,6 +193,9 @@ pub struct ItemsListParams {
     /// Engine cursor.
     #[serde(default)]
     pub cursor: Option<String>,
+    /// Explorer path, applied on top of `filter` (see [`super::explore`]).
+    #[serde(default)]
+    pub path: Vec<super::explore::PathStep>,
 }
 
 /// `memory_items_list` result.
@@ -273,6 +281,8 @@ pub struct SourceView {
     pub error: Option<String>,
     /// Items stored by the last sync.
     pub items: u64,
+    /// The memory node the source stores at (`root` for the shared one).
+    pub namespace: String,
 }
 
 /// `memory_sources_list` result.
@@ -295,6 +305,10 @@ pub struct SourcesAddParams {
     /// Minutes between scheduled syncs.
     #[serde(default)]
     pub schedule_mins: Option<u32>,
+    /// The memory node to store the source's documents at
+    /// (`agent:researcher`); unset stores them at the root.
+    #[serde(default)]
+    pub namespace: Option<String>,
 }
 
 /// `memory_sources_add` result.
@@ -339,6 +353,8 @@ pub struct SourcesSyncView {
 /// `memory_context_*` result.
 #[derive(Debug, Clone, Serialize)]
 pub struct ContextView {
+    /// The memory node the document is about (`root` for the shared one).
+    pub namespace: String,
     /// The compiled document (empty when none).
     pub markdown: String,
     /// Its estimated tokens.
@@ -351,6 +367,31 @@ pub struct ContextView {
     pub budget_tokens: u32,
     /// Whether compilation and injection are on.
     pub enabled: bool,
+}
+
+/// `memory_context_get` / `memory_context_refresh` params.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct ContextNodeParams {
+    /// The memory node; the root when omitted.
+    #[serde(default)]
+    pub namespace: Option<String>,
+}
+
+impl ContextNodeParams {
+    /// The node named, checked.
+    ///
+    /// # Errors
+    ///
+    /// A malformed namespace.
+    pub fn node(&self) -> Result<tinymemory::Namespace, String> {
+        self.namespace
+            .as_deref()
+            .unwrap_or_default()
+            .parse()
+            .map_err(|error: tinymemory::Error| {
+                String::from(super::error::MemoryError::invalid(error.to_string()))
+            })
+    }
 }
 
 /// `memory_context_set` params.

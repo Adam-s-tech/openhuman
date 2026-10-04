@@ -1,8 +1,9 @@
 use super::*;
+use crate::memory::scope::MemoryIdentity;
 use crate::memory::test_fixtures::{bind_reference, config_in, stored};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use tinymemory::{ItemKind, MetaFilter};
+use tinymemory::{ItemKind, MetaFilter, Namespace};
 
 struct Ctx {
     root: PathBuf,
@@ -24,6 +25,15 @@ fn facts() -> CallFacts {
         thread_id: Some("thread-tool-1".into()),
         agent_id: Some("orchestrator".into()),
         tool_call_id: Some("call-9".into()),
+        ..CallFacts::of(&Config::default(), &MemoryIdentity::agent("orchestrator"))
+    }
+}
+
+/// The facts of a call made by `agent_id` (outside any team).
+fn facts_of(agent_id: &str) -> CallFacts {
+    CallFacts {
+        thread_id: Some(format!("thread-{agent_id}")),
+        ..CallFacts::of(&Config::default(), &MemoryIdentity::agent(agent_id))
     }
 }
 
@@ -322,7 +332,107 @@ fn gather_falls_back_to_the_action_dir() {
     assert_eq!(gathered.workspace.as_deref(), Some("/the/action/dir"));
     assert!(gathered.thread_id.is_none());
     assert!(gathered.tool_call_id.is_none());
-    let meta = gathered.learn_meta();
+    let meta = gathered.learn_meta(false);
+    assert!(meta.namespace.is_root(), "no agent in scope: the root");
     assert_eq!(meta.source.kind, SourceKind::Agent);
     assert_eq!(meta.tool_call.unwrap().name, MEMORY_TOOL_NAME);
+}
+
+#[tokio::test]
+async fn agents_keep_their_own_memory_and_share_on_request() {
+    let tmp = tempfile::tempdir().unwrap();
+    let config = config_in(&tmp);
+    let engine = bind_reference(&config);
+    let learn = |facts: CallFacts, text: &'static str, share: bool| {
+        let config = config.clone();
+        async move {
+            let result = run_action(
+                &config,
+                &json!({"action": "learn", "text": text, "share": share}),
+                &facts,
+            )
+            .await;
+            assert!(!result.is_error, "{}", result.text());
+        }
+    };
+    learn(facts(), "the main agent knows the deploy day", false).await;
+    learn(
+        facts_of("researcher"),
+        "the researcher prefers arxiv",
+        false,
+    )
+    .await;
+    learn(
+        facts_of("writer"),
+        "the writer drafts in british english",
+        false,
+    )
+    .await;
+    learn(facts_of("writer"), "the user is called Sam", true).await;
+
+    let all = stored(&engine, MetaFilter::kinds([ItemKind::Learning])).await;
+    let at = |text: &str| {
+        all.iter()
+            .find(|hit| hit.text.contains(text))
+            .map(|hit| (hit.meta.namespace.to_string(), hit.meta.agent_id.clone()))
+            .unwrap()
+    };
+    assert_eq!(
+        at("deploy day"),
+        ("root".into(), Some("orchestrator".into()))
+    );
+    assert_eq!(
+        at("arxiv"),
+        ("agent:researcher".into(), Some("researcher".into()))
+    );
+    assert_eq!(
+        at("Sam"),
+        ("root".into(), Some("writer".into())),
+        "shared to the root"
+    );
+
+    let fetched = run_action(
+        &config,
+        &json!({"action": "fetch", "query": "the", "limit": 50, "filter": {"reach": null}}),
+        &facts_of("researcher"),
+    )
+    .await;
+    let body = fetched.text();
+    assert!(body.contains("arxiv"), "{body}");
+    assert!(body.contains("deploy day"), "root memory is inherited");
+    assert!(body.contains("Sam"), "shared learnings are inherited");
+    assert!(
+        !body.contains("british english"),
+        "a sibling's memory is out of reach: {body}"
+    );
+
+    let writers = stored(&engine, MetaFilter::default())
+        .await
+        .into_iter()
+        .find(|hit| hit.text.contains("british english"))
+        .unwrap();
+    let forgot = run_action(
+        &config,
+        &json!({"action": "forget", "ids": [writers.id.0.clone()]}),
+        &facts_of("researcher"),
+    )
+    .await;
+    assert!(
+        forgot.text().contains("\"forgotten\":0"),
+        "{}",
+        forgot.text()
+    );
+    assert_eq!(
+        stored(&engine, MetaFilter::default())
+            .await
+            .iter()
+            .filter(|hit| hit.text.contains("british english"))
+            .count(),
+        1,
+        "a sibling's item is not forgotten"
+    );
+    assert!(stored(&engine, MetaFilter::default())
+        .await
+        .iter()
+        .all(|hit| hit.meta.namespace != Namespace::agent("nobody")));
 }

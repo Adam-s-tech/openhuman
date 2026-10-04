@@ -7,6 +7,7 @@ fn turn(thread: &str, text: &str, at: DateTime<Utc>) -> CommittedTurn {
     CommittedTurn {
         thread_id: thread.to_string(),
         agent_id: Some("orchestrator".into()),
+        namespace: tinymemory::Namespace::ROOT,
         workspace: Some("/work".into()),
         channel: Some("web".into()),
         user: text.to_string(),
@@ -292,4 +293,37 @@ fn view_and_apply_set_validate_and_report() {
     assert_eq!(view.batch_turns, 7);
     assert_eq!(view.idle_secs, 33);
     assert!(view.recent.is_empty());
+}
+
+#[tokio::test]
+async fn each_agent_s_turns_land_on_its_own_node() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut config = config_in(&tmp);
+    config.memory.conversations.batch_turns = 2;
+    let engine = bind_reference(&config);
+    let now = Utc::now();
+    let by = |agent: &str, text: &str| CommittedTurn {
+        agent_id: Some(agent.into()),
+        ..turn("t-agents", text, now)
+    };
+
+    record_turn(&config, by("orchestrator", "main question")).await;
+    record_turn(&config, by("researcher", "research question")).await;
+    record_turn(&config, by("researcher", "research follow-up")).await;
+    let items = conversations_in(&engine).await;
+    let at = |text: &str| {
+        items
+            .iter()
+            .find(|item| item.text.contains(text))
+            .map(|item| item.meta.namespace.to_string())
+    };
+    assert_eq!(at("main question").as_deref(), Some("root"));
+    assert_eq!(at("research question").as_deref(), Some("agent:researcher"));
+    assert!(
+        items
+            .iter()
+            .all(|item| !(item.text.contains("main question")
+                && item.text.contains("research question"))),
+        "a batch never mixes two agents"
+    );
 }

@@ -57,7 +57,7 @@ Transcripts are keyed by agent id and a turn resumes only its own thread.
 
 Layout under a runtime-owned root: `<root>/config.toml` and the credential
 store; `<root>/workspace/` with the session database, `session_raw/`
-transcripts and each agent's `personalities/<id>/skills/`; and
+transcripts and each agent's `agents/<id>/skills/`; and
 `<root>/agents/<id>/action/` as each agent's default working root (a sibling
 of the workspace, never inside it).
 

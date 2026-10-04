@@ -10,6 +10,7 @@
 //! numbers `meta.turns`, and the latest stored batches the UI lists — lives in
 //! `<workspace>/memory/conversations_state.json`. Turn text never touches it.
 
+pub mod backfill;
 pub mod buffer;
 
 use std::collections::{BTreeMap, HashMap};
@@ -141,6 +142,19 @@ fn remember_stored(workspace_dir: &Path, batch: &Batch, stored_at: DateTime<Utc>
     write_state(workspace_dir, &state);
 }
 
+/// How many turns of `thread_id` live ingestion has taken (stored or still
+/// buffered): the thread's most recent turns, which the backfill leaves alone.
+#[must_use]
+pub fn live_turns_taken(workspace_dir: &Path, thread_id: &str) -> u32 {
+    let _guard = STATE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    read_state(workspace_dir)
+        .threads
+        .get(thread_id)
+        .map_or(0, |counter| counter.next)
+}
+
 /// The latest stored batches, newest first.
 #[must_use]
 pub fn recent(workspace_dir: &Path) -> Vec<RecentConversation> {
@@ -150,7 +164,7 @@ pub fn recent(workspace_dir: &Path) -> Vec<RecentConversation> {
 /// Buffers one committed turn, storing its thread's batch when full.
 ///
 /// A no-op when conversations are disabled or memory is off.
-pub async fn record_turn(config: &Config, turn: CommittedTurn) {
+pub async fn record_turn(config: &Config, mut turn: CommittedTurn) {
     let settings = &config.memory.conversations;
     if !settings.enabled {
         tracing::trace!("[memory:conversations] disabled; turn dropped");
@@ -159,6 +173,10 @@ pub async fn record_turn(config: &Config, turn: CommittedTurn) {
     if !engine::is_on(config) {
         tracing::trace!("[memory:conversations] memory off; turn dropped");
         return;
+    }
+    // The answering agent's node; the main chat agent's is the root.
+    if let Some(agent_id) = turn.agent_id.as_deref() {
+        turn.namespace = crate::memory::scope::namespace_for(config, agent_id, None);
     }
     let index = next_turn_index(&config.workspace_dir, &turn.thread_id, turn.at);
     let ready = {
@@ -170,9 +188,21 @@ pub async fn record_turn(config: &Config, turn: CommittedTurn) {
             .or_default()
             .push(turn, index, settings.batch_turns)
     };
-    if let Some(batch) = ready {
+    for batch in ready {
         store_batch(config, batch).await;
     }
+}
+
+/// Every workspace with buffered turns: the idle flusher visits each, not
+/// only the default profile's.
+#[must_use]
+pub fn buffered_workspaces() -> Vec<std::path::PathBuf> {
+    BUFFERS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .keys()
+        .cloned()
+        .collect()
 }
 
 /// Stores every thread idle for `idle_secs` at `now`.

@@ -244,6 +244,7 @@ pub async fn run_sync_pass(
             toolkit,
             connection_id,
             source_id,
+            &crate::memory::sources::namespace_of(config, source_id),
             &response.batch.records,
         )
         .await

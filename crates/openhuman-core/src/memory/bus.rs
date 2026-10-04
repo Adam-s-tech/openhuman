@@ -50,6 +50,7 @@ pub fn committed_turn(event: &DomainEvent) -> Option<CommittedTurn> {
     Some(CommittedTurn {
         thread_id: thread_id.clone(),
         agent_id: agent_id.clone(),
+        namespace: tinymemory::Namespace::ROOT,
         workspace: workspace.clone(),
         channel: channel.clone(),
         user: user_text.clone(),
@@ -131,9 +132,8 @@ pub async fn run_system_job(config: &crate::config::Config, job: &str) {
                 tracing::debug!("[memory:bus] context disabled; refresh skipped");
                 return;
             }
-            if let Err(error) = super::context::refresh(config).await {
-                tracing::debug!(code = error.code(), "[memory:bus] context refresh skipped");
-            }
+            let compiled = super::context::refresh_all(config).await;
+            tracing::debug!(compiled, "[memory:bus] context documents refreshed");
         }
         SOURCES_SYNC_JOB => {
             let started = super::sources::sync_due(config, Utc::now());
@@ -169,10 +169,22 @@ pub fn register_memory_subscribers() {
             let mut ticker = tokio::time::interval(IDLE_SWEEP_INTERVAL);
             loop {
                 ticker.tick().await;
-                if let Ok(config) = crate::config::rpc::load_config_with_timeout().await {
+                // Every workspace with buffered turns, each with its own
+                // config, so an agent with its own workspace is flushed too.
+                for workspace in super::conversations::buffered_workspaces() {
+                    let loaded =
+                        crate::config::rpc::load_config_for_workspace_with_timeout(&workspace)
+                            .await;
+                    let Ok(config) = loaded else {
+                        continue;
+                    };
                     let flushed = super::conversations::flush_idle(&config, Utc::now()).await;
                     if flushed > 0 {
-                        tracing::debug!(flushed, "[memory:bus] idle threads stored");
+                        tracing::debug!(
+                            flushed,
+                            workspace = %workspace.display(),
+                            "[memory:bus] idle threads stored"
+                        );
                     }
                 }
             }

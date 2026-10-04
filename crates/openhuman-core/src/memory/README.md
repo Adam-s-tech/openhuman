@@ -29,10 +29,12 @@ Chat thread persistence is not memory: see [`threads/store`](../threads/store/RE
 | --- | --- |
 | `engine.rs` | `resolve` binds the `[memory]` engine or says why memory is off; engines are cached per config fingerprint. |
 | `ops.rs` | Select engine, recall, fetch, learn, forget, list. `store_item` scrubs first. |
-| `tools.rs` | The single `memory` agent tool (`recall`, `fetch`, `learn`, `forget`). |
-| `conversations/` | Per-thread turn buffer and idle flusher. Tool calls keep name and id only, never arguments. |
+| `explore.rs` | The explorer: `memory_explore` by facet under a `{facet, value}` path, `memory_items_get`, and the path → filter narrowing `memory_items_list` shares. |
+| `scope.rs` | Agent namespaces: the `MemoryIdentity` scoped around every agent turn and the memory node and reach it resolves to. |
+| `tools.rs` | The single `memory` agent tool (`recall`, `fetch`, `learn`, `forget`), confined to the calling agent's reach. |
+| `conversations/` | Per-thread turn buffer and idle flusher. Tool calls keep name and id only, never arguments. `backfill.rs` stores past chats from the thread store, resumably, with consent. |
 | `sources/` | Source registry, state and sync (folder, file, link, github, rss, composio). |
-| `context.rs` | Compile `<workspace>/memory/context.md` and build the `<memory-context>` injection for new sessions. |
+| `context.rs` | Compile one `context.md` per memory node (`<workspace>/memory/context.md` for the root, `memory/context/<kind>-<id>/…` for others) and build the acting agent's `<memory-context>` injection for new sessions. |
 | `import.rs` | Consent-gated, resumable v1 import; state in `<workspace>/memory/import_state.json`. |
 | `exit.rs` | Stores buffered turns on quit within `EXIT_BUDGET` (2 s). |
 | `bus.rs` | Turn-commit subscriber and the `memory_context_refresh` / `memory_sources_sync` cron jobs. |
@@ -44,7 +46,8 @@ Chat thread persistence is not memory: see [`threads/store`](../threads/store/RE
 ## RPC
 
 `openhuman.memory_engines_list`, `_engine_get`, `_engine_set`, `_recall`,
-`_fetch`, `_learn`, `_forget`, `_items_list`, `_conversations_get/set`,
+`_fetch`, `_learn`, `_forget`, `_items_list`, `_explore`, `_items_get`,
+`_conversations_get/set`, `_conversations_backfill_status/start`,
 `_sources_list/add/remove/sync`, `_context_get/refresh/set`,
 `_import_scan/start/status`. Params and results are in the spec. The MCP server
 exposes `memory.recall`, `memory.fetch`, `memory.list`, `memory.learn` and
@@ -52,7 +55,8 @@ exposes `memory.recall`, `memory.fetch`, `memory.list`, `memory.learn` and
 
 ## Persistence
 
-No local database. Items live in the engine. Local files: `<workspace>/memory/context.md`,
+No local database. Items live in the engine. Local files: `<workspace>/memory/context.md`
+(and `memory/context/…` per agent node),
 `context_state.json`, `import_state.json`; the sources registry is `[[memory.sources]]`
 in `config.toml`; the CortexDB key is in the OS keychain.
 

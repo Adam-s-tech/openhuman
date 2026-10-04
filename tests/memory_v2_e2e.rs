@@ -10,6 +10,7 @@
 //! - conversations settings;
 //! - sources: add a folder, sync it, read its items back, remove it;
 //! - context.md: refresh / get / set;
+//! - the explorer: explore by facet under a path, list by path, get by id;
 //! - the v1 import gate (scan finds nothing, start needs consent);
 //! - the retired v1 methods no longer dispatch.
 //!
@@ -32,7 +33,7 @@ use std::sync::atomic::{AtomicI64, Ordering};
 use std::time::{Duration, Instant};
 use tokio::sync::MutexGuard;
 
-use env_guard::{env_lock_with_file_keyring, EnvVarGuard};
+use env_guard::{env_lock_with_file_keyring_async, EnvVarGuard};
 use rpc_harness::{rpc, serve_rpc};
 use serde_json::{json, Value};
 
@@ -143,13 +144,13 @@ struct Fixture {
     home: tempfile::TempDir,
     join: tokio::task::JoinHandle<Result<(), std::io::Error>>,
     _guards: Vec<EnvVarGuard>,
-    _lock: MutexGuard<'static, ()>,
+    _lock: tokio::sync::MutexGuard<'static, ()>,
 }
 
 impl Fixture {
     /// Boots the stack; `signed_in` stores the mock session first.
     async fn new(signed_in: bool) -> Self {
-        let lock = env_lock_with_file_keyring();
+        let lock = env_lock_with_file_keyring_async().await;
         tinyhumans_boot::boot();
         let mock = MockBackend::start().await;
         let home = tempfile::tempdir().expect("tempdir");
@@ -361,6 +362,12 @@ async fn memory_is_off_when_signed_out() {
         ("openhuman.memory_learn", json!({ "text": "a fact" })),
         ("openhuman.memory_forget", json!({ "ids": ["x"] })),
         ("openhuman.memory_items_list", json!({})),
+        ("openhuman.memory_explore", json!({ "facet": "kind" })),
+        ("openhuman.memory_items_get", json!({ "ids": ["x"] })),
+        (
+            "openhuman.memory_conversations_backfill_start",
+            json!({ "consent": true }),
+        ),
         ("openhuman.memory_sources_sync", json!({})),
         ("openhuman.memory_context_refresh", json!({})),
         ("openhuman.memory_import_start", json!({ "consent": true })),
@@ -1187,9 +1194,239 @@ async fn context_get_set_and_refresh() {
     assert_eq!(read_back["budget_tokens"], json!(500));
 }
 
+#[tokio::test]
+async fn past_conversations_backfill_needs_consent_and_reports_status() {
+    let f = Fixture::new(true).await;
+    let status = f
+        .ok("openhuman.memory_conversations_backfill_status", json!({}))
+        .await;
+    assert_eq!(status["state"]["phase"], json!("idle"), "{status}");
+    assert_eq!(status["pending_threads"], json!(0));
+    assert_eq!(
+        f.code(
+            "openhuman.memory_conversations_backfill_start",
+            json!({ "consent": false })
+        )
+        .await,
+        "INVALID_REQUEST"
+    );
+    let started = f
+        .ok(
+            "openhuman.memory_conversations_backfill_start",
+            json!({ "consent": true }),
+        )
+        .await;
+    assert_eq!(started["pending_turns"], json!(0), "{started}");
+}
+
+// ---------------------------------------------------------------------------
+// Explorer
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn explore_drills_down_and_items_get_reads_whole() {
+    let f = Fixture::new(true).await;
+    let folder = write_folder(f.home.path());
+    let target = folder.to_string_lossy().to_string();
+    let first = f.learn("The standup moved to ten").await;
+    let second = f.learn("Invoices go out on the first").await;
+    let added = f
+        .ok(
+            "openhuman.memory_sources_add",
+            json!({ "kind": "folder", "target": target }),
+        )
+        .await;
+    let source_id = added["source"]["id"].as_str().unwrap().to_string();
+    f.ok("openhuman.memory_sources_sync", json!({ "id": source_id }))
+        .await;
+    wait_for_source(&f, &source_id, 2).await;
+
+    // Root: by kind.
+    let kinds = f
+        .ok("openhuman.memory_explore", json!({ "facet": "kind" }))
+        .await;
+    assert_eq!(kinds["facet"], json!("kind"));
+    let count = |page: &Value, value: &str| {
+        page["buckets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|b| b["value"] == json!(value))
+            .and_then(|b| b["count"].as_u64())
+    };
+    assert_eq!(count(&kinds, "learning"), Some(2), "{kinds}");
+    assert_eq!(count(&kinds, "document"), Some(2), "{kinds}");
+    assert_eq!(kinds["total"], json!(4));
+    assert_eq!(kinds["truncated"], json!(false));
+
+    // Drill: documents by source id, then by file.
+    let path = json!([{ "facet": "kind", "value": "document" }]);
+    let sources = f
+        .ok(
+            "openhuman.memory_explore",
+            json!({ "facet": "source_id", "path": path }),
+        )
+        .await;
+    assert_eq!(count(&sources, &source_id), Some(2), "{sources}");
+    let files = f
+        .ok(
+            "openhuman.memory_explore",
+            json!({
+                "facet": "file_path",
+                "path": [
+                    { "facet": "kind", "value": "document" },
+                    { "facet": "source_id", "value": source_id },
+                ],
+            }),
+        )
+        .await;
+    assert_eq!(files["buckets"].as_array().unwrap().len(), 2, "{files}");
+
+    // The same path lists the items there.
+    let listed = f
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "path": [{ "facet": "kind", "value": "learning" }] }),
+        )
+        .await;
+    let mut listed_ids = ids_of(&listed, "items");
+    listed_ids.sort();
+    let mut learned = vec![first.clone(), second.clone()];
+    learned.sort();
+    assert_eq!(listed_ids, learned);
+
+    // Read whole, in the order asked, unknown ids left out.
+    let got = f
+        .ok(
+            "openhuman.memory_items_get",
+            json!({ "ids": [second, "no-such-item", first] }),
+        )
+        .await;
+    assert_eq!(ids_of(&got, "items"), vec![second.clone(), first.clone()]);
+    assert!(got["items"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("Invoices go out on the first"));
+
+    // Bad facets and paths are invalid requests.
+    for (method, params) in [
+        ("openhuman.memory_explore", json!({ "facet": "colour" })),
+        (
+            "openhuman.memory_explore",
+            json!({ "facet": "kind", "path": [{ "facet": "kind", "value": "memo" }] }),
+        ),
+        (
+            "openhuman.memory_explore",
+            json!({ "facet": "kind", "limit": 0 }),
+        ),
+        ("openhuman.memory_items_get", json!({ "ids": [] })),
+        (
+            "openhuman.memory_items_list",
+            json!({ "path": [{ "facet": "workspace", "value": " " }] }),
+        ),
+    ] {
+        assert_eq!(
+            f.code(method, params.clone()).await,
+            "INVALID_REQUEST",
+            "{params}"
+        );
+    }
+}
+
 // ---------------------------------------------------------------------------
 // v1 import gate
 // ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn agent_namespaces_keep_memory_apart_over_rpc() {
+    let f = Fixture::new(true).await;
+    let learn_at = |text: &'static str, namespace: &'static str| {
+        let f = &f;
+        async move {
+            f.ok(
+                "openhuman.memory_learn",
+                json!({ "text": text, "kind": "fact", "meta": { "namespace": namespace } }),
+            )
+            .await["id"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        }
+    };
+    let shared = f.learn("The user is called Sam").await;
+    let researcher = learn_at("Prefer arxiv for papers", "agent:researcher").await;
+    let writer = learn_at("Draft in British English", "agent:writer").await;
+
+    // The namespace facet counts each node.
+    let nodes = f
+        .ok("openhuman.memory_explore", json!({ "facet": "namespace" }))
+        .await;
+    let values: Vec<&str> = nodes["buckets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| b["value"].as_str().unwrap())
+        .collect();
+    for node in ["root", "agent:researcher", "agent:writer"] {
+        assert!(values.contains(&node), "{nodes}");
+    }
+
+    // A researcher's reach: its node and the root, never the writer's.
+    let listed = f
+        .ok(
+            "openhuman.memory_items_list",
+            json!({ "filter": { "reach": { "at": "agent:researcher" } }, "limit": 50 }),
+        )
+        .await;
+    let ids = ids_of(&listed, "items");
+    assert!(
+        ids.contains(&shared) && ids.contains(&researcher),
+        "{listed}"
+    );
+    assert!(
+        !ids.contains(&writer),
+        "a sibling is out of reach: {listed}"
+    );
+
+    // `get` and `forget` within a reach leave the sibling's item alone.
+    let got = f
+        .ok(
+            "openhuman.memory_items_get",
+            json!({ "ids": [writer], "reach": { "at": "agent:researcher" } }),
+        )
+        .await;
+    assert_eq!(got["items"], json!([]));
+    let forgot = f
+        .ok(
+            "openhuman.memory_forget",
+            json!({ "ids": [writer], "reach": { "at": "agent:researcher" } }),
+        )
+        .await;
+    assert_eq!(forgot["forgotten"], json!(0));
+
+    // A malformed node is refused.
+    let refused = f
+        .call(
+            "openhuman.memory_context_get",
+            json!({ "namespace": "not a node" }),
+        )
+        .await;
+    assert!(refused.get("error").is_some(), "{refused}");
+
+    // Each node compiles its own context.md.
+    let brief = f
+        .ok(
+            "openhuman.memory_context_refresh",
+            json!({ "namespace": "agent:researcher" }),
+        )
+        .await;
+    assert_eq!(brief["namespace"], json!("agent:researcher"));
+    let text = brief["markdown"].as_str().unwrap();
+    assert!(text.contains("arxiv") && text.contains("Sam"), "{brief}");
+    assert!(!text.contains("British"), "{brief}");
+    let root = f.ok("openhuman.memory_context_get", json!({})).await;
+    assert_eq!(root["namespace"], json!("root"));
+}
 
 #[tokio::test]
 async fn import_scan_finds_nothing_and_start_needs_consent() {
@@ -1258,8 +1495,12 @@ async fn memory_v2_registers_exactly_the_documented_methods() {
         "learn",
         "forget",
         "items_list",
+        "explore",
+        "items_get",
         "conversations_get",
         "conversations_set",
+        "conversations_backfill_status",
+        "conversations_backfill_start",
         "sources_list",
         "sources_add",
         "sources_remove",

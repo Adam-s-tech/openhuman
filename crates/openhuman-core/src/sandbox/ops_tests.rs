@@ -609,3 +609,27 @@ async fn local_handle_status_matches_the_backend_actually_in_force() {
         "backend = {name}"
     );
 }
+
+#[test]
+fn sandbox_off_value_accepts_off_spellings() {
+    for v in ["off", "OFF", " none ", "0", "false", "Disabled"] {
+        assert!(
+            sandbox_off_value(Some(v)),
+            "{v:?} should disable the sandbox"
+        );
+    }
+}
+
+#[test]
+fn sandbox_off_value_keeps_sandbox_on_otherwise() {
+    for v in [
+        None,
+        Some(""),
+        Some("on"),
+        Some("1"),
+        Some("true"),
+        Some("local"),
+    ] {
+        assert!(!sandbox_off_value(v), "{v:?} must leave the sandbox on");
+    }
+}

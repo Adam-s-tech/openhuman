@@ -19,13 +19,21 @@ set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 harness="$repo/vendor/tinymemory/integration/cortexdb/docker-compose.yml"
-compose=(docker compose --project-name openhuman-memory-cortexdb -f "$harness")
-port="${CORTEXDB_PORT:-3141}"
+compose=(docker compose --project-name openhuman-memory-cortexdb-test -f "$harness")
+port="${CORTEXDB_PORT:-3142}"
 url="http://127.0.0.1:$port"
 export CORTEXDB_PORT="$port"
 
 if [ ! -f "$harness" ]; then
   echo "missing $harness; run: git submodule update --init --recursive vendor/" >&2
+  exit 1
+fi
+
+# A test run owns its own Compose project and tears it down with its volumes,
+# so it must never share one with a server someone is using. Refuse a port
+# that already answers rather than reuse or replace what is there.
+if curl --silent --max-time 2 "$url/v1/admin/health" >/dev/null 2>&1; then
+  echo "something already serves $url; pick a free CORTEXDB_PORT" >&2
   exit 1
 fi
 

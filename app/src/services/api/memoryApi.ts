@@ -200,6 +200,80 @@ export interface ItemsListRequest {
   filter?: MetaFilter;
   limit?: number;
   cursor?: string;
+  /** Explorer path; the core narrows `filter` by each step. */
+  path?: PathStep[];
+}
+
+// ─── Explorer ────────────────────────────────────────────────────────────────
+
+/**
+ * A metadata dimension the explorer groups by — TinyMemory's standard facets,
+ * the same for every engine.
+ */
+export type Facet =
+  | 'kind'
+  | 'source'
+  | 'source_id'
+  | 'workspace'
+  | 'folder'
+  | 'file_path'
+  | 'language'
+  | 'repo'
+  | 'url'
+  | 'thread'
+  | 'agent'
+  | 'tool_call'
+  | 'tag'
+  | 'namespace';
+
+export const FACETS: readonly Facet[] = [
+  'kind',
+  'namespace',
+  'source',
+  'source_id',
+  'workspace',
+  'folder',
+  'file_path',
+  'language',
+  'repo',
+  'url',
+  'thread',
+  'agent',
+  'tool_call',
+  'tag',
+];
+
+/** One step down the explorer: the items whose `facet` is `value`. */
+export interface PathStep {
+  facet: Facet;
+  value: string;
+}
+
+export interface ExploreRequest {
+  facet: Facet;
+  path?: PathStep[];
+  filter?: MetaFilter;
+  limit?: number;
+  scan_limit?: number;
+}
+
+export interface FacetBucket {
+  value: string;
+  count: number;
+}
+
+export interface ExplorePage {
+  facet: Facet;
+  /** Largest first. */
+  buckets: FacetBucket[];
+  /** Items under the path (that were read, when `truncated`). */
+  total: number;
+  /** Of those, items with no value for the facet. */
+  missing: number;
+  /** Values left out by the bucket limit. */
+  more_buckets: number;
+  /** The engine stopped scanning early, so counts are a lower bound. */
+  truncated: boolean;
 }
 
 export interface ItemsPage {
@@ -248,6 +322,8 @@ export interface SourceAddRequest {
 }
 
 export interface MemoryContext {
+  /** The memory node the brief is about; `root` is the one every agent shares. */
+  namespace: string;
   markdown: string;
   tokens: number;
   generated_at: string | null;
@@ -280,6 +356,25 @@ export interface ImportState {
   imported: number;
   total: number;
   error?: string | null;
+}
+
+/** Progress of storing past chats (`memory_conversations_backfill_*`). */
+export interface BackfillState {
+  phase: ImportPhase;
+  threads_total: number;
+  threads_done: number;
+  turns_stored: number;
+  items_stored: number;
+  error?: string | null;
+  finished_at?: string | null;
+}
+
+export interface BackfillView {
+  state: BackfillState;
+  /** Threads that still have turns from before automatic saving. */
+  pending_threads: number;
+  /** Turns still to store across them. */
+  pending_turns: number;
 }
 
 /** The structured error codes a memory RPC can fail with. */
@@ -409,6 +504,15 @@ export function memoryItemsList(req: ItemsListRequest = {}): Promise<ItemsPage> 
   return call<ItemsPage>(CORE_RPC_METHODS.memoryItemsList, req);
 }
 
+export function memoryExplore(req: ExploreRequest): Promise<ExplorePage> {
+  return call<ExplorePage>(CORE_RPC_METHODS.memoryExplore, req);
+}
+
+/** Items read whole, in the order asked; unknown ids are left out. */
+export function memoryItemsGet(ids: string[]): Promise<{ items: Hit[] }> {
+  return call<{ items: Hit[] }>(CORE_RPC_METHODS.memoryItemsGet, { ids });
+}
+
 // ─── Conversations ───────────────────────────────────────────────────────────
 
 export function memoryConversationsGet(): Promise<ConversationsSettings> {
@@ -448,12 +552,16 @@ export function memorySourcesSync(id?: string): Promise<{ started: string[] }> {
 
 // ─── context.md ──────────────────────────────────────────────────────────────
 
-export function memoryContextGet(): Promise<MemoryContext> {
-  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextGet);
+/** The memory node every agent shares. */
+export const ROOT_NAMESPACE = 'root';
+
+/** The brief of one memory node (`root` when omitted). */
+export function memoryContextGet(namespace?: string): Promise<MemoryContext> {
+  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextGet, { namespace });
 }
 
-export function memoryContextRefresh(): Promise<MemoryContext> {
-  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextRefresh);
+export function memoryContextRefresh(namespace?: string): Promise<MemoryContext> {
+  return call<MemoryContext>(CORE_RPC_METHODS.memoryContextRefresh, { namespace });
 }
 
 export function memoryContextSet(update: ContextUpdate): Promise<MemoryContext> {
@@ -469,6 +577,15 @@ export function memoryImportScan(): Promise<ImportScan> {
 /** Start the upload of local v1 data to the selected engine. Requires explicit consent. */
 export function memoryImportStart(): Promise<{ state: ImportState }> {
   return call<{ state: ImportState }>(CORE_RPC_METHODS.memoryImportStart, { consent: true });
+}
+
+export function memoryConversationsBackfillStatus(): Promise<BackfillView> {
+  return call<BackfillView>(CORE_RPC_METHODS.memoryConversationsBackfillStatus);
+}
+
+/** Starts storing past chats. Only the consent dialog calls this. */
+export function memoryConversationsBackfillStart(): Promise<BackfillView> {
+  return call<BackfillView>(CORE_RPC_METHODS.memoryConversationsBackfillStart, { consent: true });
 }
 
 export function memoryImportStatus(): Promise<{ state: ImportState }> {

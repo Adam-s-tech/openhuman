@@ -76,17 +76,26 @@ pub async fn sync_one(config: &Config, source: &MemorySourceConfig) -> MemoryRes
             "[memory:sources] some items could not be read"
         );
     }
-    store_all(&bound, collected.items, &source.id).await
+    store_all(
+        &bound,
+        collected.items,
+        &source.id,
+        &super::namespace_of_source(source),
+    )
+    .await
 }
 
+/// Stores `items` at `namespace`, the source's memory node.
 pub(super) async fn store_all(
     bound: &BoundEngine,
     items: Vec<tinymemory::StoreItem>,
     source_id: &str,
+    namespace: &tinymemory::Namespace,
 ) -> MemoryResult<u64> {
     let mut stored = 0u64;
     let mut last_error = None;
-    for item in items {
+    for mut item in items {
+        item.meta_mut().namespace = namespace.clone();
         match store_on(bound, item).await {
             Ok(_) => stored += 1,
             Err(error @ (MemoryError::Unauthorized(_) | MemoryError::Off(_))) => return Err(error),

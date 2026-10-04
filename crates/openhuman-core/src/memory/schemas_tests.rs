@@ -6,7 +6,7 @@ use crate::memory::test_fixtures::{bind_reference, config_in};
 use serde_json::{json, Map, Value};
 
 /// Every method of the spec's RPC table (`docs/specs/memory-v2.md`), exactly.
-const SPEC_METHODS: [&str; 20] = [
+const SPEC_METHODS: [&str; 24] = [
     "openhuman.memory_engines_list",
     "openhuman.memory_engine_get",
     "openhuman.memory_engine_set",
@@ -15,8 +15,12 @@ const SPEC_METHODS: [&str; 20] = [
     "openhuman.memory_learn",
     "openhuman.memory_forget",
     "openhuman.memory_items_list",
+    "openhuman.memory_explore",
+    "openhuman.memory_items_get",
     "openhuman.memory_conversations_get",
     "openhuman.memory_conversations_set",
+    "openhuman.memory_conversations_backfill_status",
+    "openhuman.memory_conversations_backfill_start",
     "openhuman.memory_sources_list",
     "openhuman.memory_sources_add",
     "openhuman.memory_sources_remove",
@@ -97,6 +101,9 @@ fn required_inputs_match_the_spec() {
         optional("context_set"),
         ["enabled", "interval_mins", "budget_tokens"]
     );
+    for node in ["context_get", "context_refresh"] {
+        assert_eq!(optional(node), ["namespace"], "{node}");
+    }
     assert_eq!(
         optional("conversations_set"),
         ["enabled", "batch_turns", "idle_secs"]
@@ -106,8 +113,6 @@ fn required_inputs_match_the_spec() {
         "engine_get",
         "conversations_get",
         "sources_list",
-        "context_get",
-        "context_refresh",
         "import_scan",
         "import_status",
     ] {
@@ -149,6 +154,8 @@ async fn memory_off_surfaces_the_memory_off_code() {
         ("learn", json!({"text": "t"})),
         ("forget", json!({"ids": ["a"]})),
         ("items_list", json!({})),
+        ("explore", json!({"facet": "kind"})),
+        ("items_get", json!({"ids": ["a"]})),
         ("context_refresh", json!({})),
         ("sources_sync", json!({})),
     ] {

@@ -19,6 +19,7 @@ async fn stored_digests(config: &Config, flow_id: &str) -> Vec<tinymemory::Hit> 
             filter: Some(digest_filter(flow_id)),
             limit: Some(100),
             cursor: None,
+            path: Vec::new(),
         },
     )
     .await

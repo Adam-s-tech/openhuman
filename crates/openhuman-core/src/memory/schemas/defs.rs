@@ -4,7 +4,7 @@
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 /// Every function of the namespace, in spec order.
-pub const FUNCTIONS: [&str; 20] = [
+pub const FUNCTIONS: [&str; 24] = [
     "engines_list",
     "engine_get",
     "engine_set",
@@ -13,8 +13,12 @@ pub const FUNCTIONS: [&str; 20] = [
     "learn",
     "forget",
     "items_list",
+    "explore",
+    "items_get",
     "conversations_get",
     "conversations_set",
+    "conversations_backfill_status",
+    "conversations_backfill_start",
     "sources_list",
     "sources_add",
     "sources_remove",
@@ -64,7 +68,31 @@ fn filter() -> FieldSchema {
     opt(
         "filter",
         TypeSchema::Json,
-        "MetaFilter: metadata fields, kinds, sources, tags_any, observed_after/before.",
+        "MetaFilter: metadata fields, kinds, sources, tags_any, observed_after/before, and reach ({at: namespace, inherit, descendants}) to read only some memory nodes.",
+    )
+}
+
+fn reach() -> FieldSchema {
+    opt(
+        "reach",
+        TypeSchema::Json,
+        "Reach {at: namespace, inherit, descendants}: only items in these memory nodes count; every node when omitted.",
+    )
+}
+
+fn namespace() -> FieldSchema {
+    opt(
+        "namespace",
+        TypeSchema::String,
+        "Memory node, e.g. `agent:researcher` or `team:acme/agent:writer`; the root when omitted.",
+    )
+}
+
+fn path() -> FieldSchema {
+    opt(
+        "path",
+        TypeSchema::Json,
+        "Explorer path: [{facet, value}], each step narrowing the items (see memory_explore).",
     )
 }
 
@@ -141,15 +169,35 @@ pub fn schema(function: &str) -> ControllerSchema {
             namespace: "memory",
             function: "forget",
             description: "Remove items by id.",
-            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids.")],
+            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids."), reach()],
             outputs: out("{forgotten: number}"),
         },
         "items_list" => ControllerSchema {
             namespace: "memory",
             function: "items_list",
             description: "Page through stored items, newest first.",
-            inputs: vec![filter(), limit(), cursor()],
+            inputs: vec![filter(), limit(), cursor(), path()],
             outputs: out("{items: Hit[], next_cursor?}"),
+        },
+        "explore" => ControllerSchema {
+            namespace: "memory",
+            function: "explore",
+            description: "Count stored items per value of one facet (kind, source, source_id, workspace, folder, file_path, language, repo, url, thread, agent, tool_call, tag), under an explorer path.",
+            inputs: vec![
+                req("facet", TypeSchema::String, "The facet to group by."),
+                path(),
+                filter(),
+                opt("limit", TypeSchema::BoundedU64 { min: 1, max: 500 }, "Most buckets, largest first (default 50)."),
+                opt("scan_limit", TypeSchema::BoundedU64 { min: 1, max: 50_000 }, "Most items a listing-based engine reads (default 5000)."),
+            ],
+            outputs: out("{facet, buckets: {value, count}[], total, missing, more_buckets, truncated}"),
+        },
+        "items_get" => ControllerSchema {
+            namespace: "memory",
+            function: "items_get",
+            description: "Read stored items whole by id, in the order asked; unknown ids are left out.",
+            inputs: vec![req("ids", TypeSchema::Array(Box::new(TypeSchema::String)), "Item ids (1 to 200)."), reach()],
+            outputs: out("{items: Hit[]}"),
         },
         "conversations_get" => ControllerSchema {
             namespace: "memory",
@@ -169,6 +217,20 @@ pub fn schema(function: &str) -> ControllerSchema {
                 ],
             outputs: out("Same as memory_conversations_get."),
         },
+        "conversations_backfill_status" => ControllerSchema {
+            namespace: "memory",
+            function: "conversations_backfill_status",
+            description: "Progress of storing past chats, and how many threads and turns from before automatic ingestion are still unstored.",
+            inputs: vec![],
+            outputs: out("{state: {phase, threads_total, threads_done, turns_stored, items_stored, error?, finished_at?}, pending_threads, pending_turns}"),
+        },
+        "conversations_backfill_start" => ControllerSchema {
+            namespace: "memory",
+            function: "conversations_backfill_start",
+            description: "Store past chats (turns from before automatic ingestion) as conversation memory, in the background. Uploads chat history to the selected engine, so it requires consent: true.",
+            inputs: vec![req("consent", TypeSchema::Bool, "The user agreed to upload past chats to the engine.")],
+            outputs: out("Same as memory_conversations_backfill_status."),
+        },
         "sources_list" => ControllerSchema {
             namespace: "memory",
             function: "sources_list",
@@ -185,6 +247,7 @@ pub fn schema(function: &str) -> ControllerSchema {
                     req("target", TypeSchema::String, "Path, URL, owner/repo, feed URL or Composio toolkit."),
                     opt("label", TypeSchema::String, "Display label (default: the target)."),
                     opt("schedule_mins", TypeSchema::BoundedU64 { min: 15, max: u64::from(u32::MAX) }, "Minutes between scheduled syncs; omit for on demand only."),
+                    opt("namespace", TypeSchema::String, "Memory node to store the documents at, e.g. `agent:researcher`; the root (shared by every agent) when omitted."),
                 ],
             outputs: out("{source: Source}"),
         },
@@ -208,15 +271,15 @@ pub fn schema(function: &str) -> ControllerSchema {
         "context_get" => ControllerSchema {
             namespace: "memory",
             function: "context_get",
-            description: "The compiled context.md and its settings.",
-            inputs: vec![],
-            outputs: out("{markdown, tokens, generated_at, interval_mins, budget_tokens, enabled}"),
+            description: "The compiled context.md of one memory node (the root by default) and its settings.",
+            inputs: vec![namespace()],
+            outputs: out("{namespace, markdown, tokens, generated_at, interval_mins, budget_tokens, enabled}"),
         },
         "context_refresh" => ControllerSchema {
             namespace: "memory",
             function: "context_refresh",
-            description: "Recompile context.md now.",
-            inputs: vec![],
+            description: "Recompile one memory node's context.md now (the root by default).",
+            inputs: vec![namespace()],
             outputs: out("Same as memory_context_get."),
         },
         "context_set" => ControllerSchema {

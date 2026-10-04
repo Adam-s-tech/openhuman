@@ -21,6 +21,27 @@ pub const SANDBOX_ENV_PASSTHROUGH: &[&str] = &[
     "PATH", "HOME", "TERM", "LANG", "LC_ALL", "LC_CTYPE", "USER", "SHELL", "TMPDIR",
 ];
 
+/// Host switch that turns the agent sandbox off for the whole process.
+///
+/// For hosts that already isolate the core (a container, a CI or benchmark
+/// task image, a VM): the OS jail confines commands to the action dir, which
+/// breaks work such as installing packages or editing `/etc` that the outer
+/// isolation already permits. `off`, `none`, `0`, `false` or `disabled`
+/// (case-insensitive) disable it; anything else, or unset, leaves it on.
+pub const SANDBOX_OFF_ENV: &str = "OPENHUMAN_SANDBOX";
+
+/// Whether `value` (the `OPENHUMAN_SANDBOX` setting) disables the sandbox.
+pub fn sandbox_off_value(value: Option<&str>) -> bool {
+    matches!(
+        value.map(|v| v.trim().to_ascii_lowercase()).as_deref(),
+        Some("off" | "none" | "0" | "false" | "disabled")
+    )
+}
+
+fn sandbox_disabled_by_host() -> bool {
+    sandbox_off_value(std::env::var(SANDBOX_OFF_ENV).ok().as_deref())
+}
+
 /// Resolve a `SandboxPolicy` from the agent's `SandboxMode`, the
 /// session origin, and the global runtime config.
 ///
@@ -40,6 +61,13 @@ pub fn resolve_sandbox_policy(
     let backend = match mode {
         SandboxMode::None => SandboxBackendKind::None,
         SandboxMode::ReadOnly => SandboxBackendKind::None,
+        SandboxMode::Sandboxed if sandbox_disabled_by_host() => {
+            tracing::debug!(
+                env = SANDBOX_OFF_ENV,
+                "[sandbox] host disabled the sandbox; running sandboxed mode unconfined"
+            );
+            SandboxBackendKind::None
+        }
         SandboxMode::Sandboxed => {
             if runtime_config.kind == "docker" || is_remote_session {
                 SandboxBackendKind::Docker

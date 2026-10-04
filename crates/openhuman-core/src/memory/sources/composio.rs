@@ -67,19 +67,21 @@ pub fn record_item(
     })
 }
 
-/// Stores every non-empty record. Returns how many were stored.
+/// Stores every non-empty record at `namespace`. Returns how many were
+/// stored.
 pub async fn store_records(
     bound: &BoundEngine,
     toolkit: &str,
     connection_id: &str,
     source_id: &str,
+    namespace: &tinymemory::Namespace,
     records: &[ConnectorRecord],
 ) -> MemoryResult<u64> {
     let items: Vec<StoreItem> = records
         .iter()
         .filter_map(|record| record_item(toolkit, connection_id, source_id, record))
         .collect();
-    super::sync::store_all(bound, items, source_id).await
+    super::sync::store_all(bound, items, source_id, namespace).await
 }
 
 /// Syncs every active connection of the source's toolkit.

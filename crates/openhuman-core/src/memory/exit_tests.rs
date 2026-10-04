@@ -10,6 +10,7 @@ fn turn(thread_id: &str) -> CommittedTurn {
     CommittedTurn {
         thread_id: thread_id.to_string(),
         agent_id: Some("orchestrator".into()),
+        namespace: tinymemory::Namespace::ROOT,
         workspace: None,
         channel: None,
         user: "hello".into(),

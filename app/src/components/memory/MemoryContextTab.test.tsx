@@ -5,16 +5,23 @@ import type { MemoryContext } from '../../services/api/memoryApi';
 import { renderWithProviders } from '../../test/test-utils';
 import MemoryContextTab from './MemoryContextTab';
 
-const hoisted = vi.hoisted(() => ({ get: vi.fn(), refresh: vi.fn(), set: vi.fn() }));
+const hoisted = vi.hoisted(() => ({
+  get: vi.fn(),
+  refresh: vi.fn(),
+  set: vi.fn(),
+  explore: vi.fn(),
+}));
 
 vi.mock('../../services/api/memoryApi', async importOriginal => ({
   ...(await importOriginal<typeof import('../../services/api/memoryApi')>()),
   memoryContextGet: (...a: unknown[]) => hoisted.get(...a),
   memoryContextRefresh: (...a: unknown[]) => hoisted.refresh(...a),
   memoryContextSet: (...a: unknown[]) => hoisted.set(...a),
+  memoryExplore: (...a: unknown[]) => hoisted.explore(...a),
 }));
 
 const CTX: MemoryContext = {
+  namespace: 'root',
   markdown: '# About you\n\n- Works on **OpenHuman**',
   tokens: 321,
   generated_at: '2026-10-01T09:00:00Z',
@@ -27,6 +34,16 @@ beforeEach(() => {
   hoisted.get.mockReset().mockResolvedValue(CTX);
   hoisted.refresh.mockReset();
   hoisted.set.mockReset();
+  hoisted.explore
+    .mockReset()
+    .mockResolvedValue({
+      facet: 'namespace',
+      buckets: [{ value: 'root', count: 3 }],
+      total: 3,
+      missing: 0,
+      more_buckets: 0,
+      truncated: false,
+    });
 });
 
 describe('MemoryContextTab', () => {
@@ -82,5 +99,45 @@ describe('MemoryContextTab', () => {
     hoisted.get.mockRejectedValue(new Error('MEMORY_OFF'));
     renderWithProviders(<MemoryContextTab />);
     expect(await screen.findByTestId('memory-context-error')).toHaveTextContent('MEMORY_OFF');
+  });
+
+  it('shows one brief per memory node and regenerates the selected one', async () => {
+    hoisted.explore.mockResolvedValue({
+      facet: 'namespace',
+      buckets: [
+        { value: 'agent:researcher', count: 2 },
+        { value: 'root', count: 5 },
+      ],
+      total: 7,
+      missing: 0,
+      more_buckets: 0,
+      truncated: false,
+    });
+    hoisted.get.mockImplementation(async (node: string) =>
+      node === 'agent:researcher' ? { ...CTX, namespace: node, markdown: 'Prefers **arxiv**' } : CTX
+    );
+    hoisted.refresh.mockImplementation(async (node: string) => ({
+      ...CTX,
+      namespace: node,
+      markdown: 'Fresh **brief**',
+    }));
+    renderWithProviders(<MemoryContextTab />);
+    const picker = await screen.findByTestId('memory-context-node');
+    expect(hoisted.get).toHaveBeenCalledWith('root');
+    expect(picker).toHaveTextContent('Shared (root)');
+    fireEvent.change(picker, { target: { value: 'agent:researcher' } });
+    await waitFor(() =>
+      expect(screen.getByTestId('memory-context-markdown')).toHaveTextContent('arxiv')
+    );
+    expect(hoisted.get).toHaveBeenLastCalledWith('agent:researcher');
+    fireEvent.click(screen.getByTestId('memory-context-regenerate'));
+    await waitFor(() => expect(hoisted.refresh).toHaveBeenCalledWith('agent:researcher'));
+  });
+
+  it('hides the node picker when only the shared node exists or exploring fails', async () => {
+    hoisted.explore.mockRejectedValue(new Error('engine busy'));
+    renderWithProviders(<MemoryContextTab />);
+    await screen.findByTestId('memory-context-markdown');
+    expect(screen.queryByTestId('memory-context-node')).not.toBeInTheDocument();
   });
 });

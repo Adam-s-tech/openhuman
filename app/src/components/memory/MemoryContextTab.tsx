@@ -1,8 +1,11 @@
 /**
  * Memory → Context: the compiled `context.md` brief a new session starts with.
- * Renders the markdown, when it was generated and how many tokens it costs,
- * regenerates it on demand (`memory_context_refresh`), and edits the schedule
- * and budget (`memory_context_set`).
+ * Every memory node has its own (the shared root for the main assistant, one
+ * per agent); a node picker lists the nodes memory holds
+ * (`memory_explore` by `namespace`). Renders the selected node's markdown,
+ * when it was generated and how many tokens it costs, regenerates it on
+ * demand (`memory_context_refresh`), and edits the shared schedule and budget
+ * (`memory_context_set`).
  *
  * debug logging: DEBUG=openhuman:memory:context
  */
@@ -19,10 +22,16 @@ import {
   memoryContextRefresh,
   memoryContextSet,
   memoryErrorMessage,
+  memoryExplore,
+  ROOT_NAMESPACE,
 } from '../../services/api/memoryApi';
-import { Alert, AlertDescription, Button, Card, NumberField, Switch } from '../ui';
+import { Alert, AlertDescription, Button, Card, NativeSelect, NumberField, Switch } from '../ui';
 import { CenteredLoadingState } from '../ui/LoadingState';
+import { namespaceLabel } from './memoryFacetLabels';
 import { fill, formatTimestamp, parsePositiveInt } from './memoryFormat';
+
+/** Most memory nodes the picker lists. */
+const NODE_LIMIT = 100;
 
 const log = debug('openhuman:memory:context');
 
@@ -34,6 +43,8 @@ export default function MemoryContextTab() {
   const [saving, setSaving] = useState(false);
   const [interval, setIntervalValue] = useState('');
   const [budget, setBudget] = useState('');
+  const [node, setNode] = useState(ROOT_NAMESPACE);
+  const [nodes, setNodes] = useState<string[]>([ROOT_NAMESPACE]);
 
   const apply = useCallback((next: MemoryContext) => {
     setCtx(next);
@@ -43,7 +54,22 @@ export default function MemoryContextTab() {
 
   useEffect(() => {
     let cancelled = false;
-    memoryContextGet()
+    memoryExplore({ facet: 'namespace', limit: NODE_LIMIT })
+      .then(page => {
+        if (cancelled) return;
+        const found = page.buckets.map(bucket => bucket.value).filter(v => v !== ROOT_NAMESPACE);
+        log('nodes: %d', found.length);
+        setNodes([ROOT_NAMESPACE, ...found.sort()]);
+      })
+      .catch(err => log('nodes unavailable: %o', err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    memoryContextGet(node)
       .then(next => {
         if (!cancelled) apply(next);
       })
@@ -55,13 +81,13 @@ export default function MemoryContextTab() {
     return () => {
       cancelled = true;
     };
-  }, [apply]);
+  }, [apply, node]);
 
   const regenerate = async () => {
     setRefreshing(true);
     setError(null);
     try {
-      const next = await memoryContextRefresh();
+      const next = await memoryContextRefresh(node);
       log('refreshed: tokens=%d', next.tokens);
       apply(next);
     } catch (err) {
@@ -116,6 +142,26 @@ export default function MemoryContextTab() {
         <Alert variant="destructive" data-testid="memory-context-error">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {nodes.length > 1 && (
+        <Card
+          title={t('memoryPage.context.node')}
+          headerRight={
+            <NativeSelect
+              aria-label={t('memoryPage.context.node')}
+              data-testid="memory-context-node"
+              value={node}
+              onChange={e => setNode(e.target.value)}>
+              {nodes.map(value => (
+                <option key={value} value={value}>
+                  {namespaceLabel(value, t)}
+                </option>
+              ))}
+            </NativeSelect>
+          }>
+          <p className="px-4 py-3 text-xs text-content-muted">{t('memoryPage.context.nodeHint')}</p>
+        </Card>
       )}
 
       <Card

@@ -7,15 +7,22 @@
 //! - `workspace` — the agent's working folder (`action_dir`, or the turn's
 //!   isolated workspace when one is scoped);
 //! - `thread_id` and `agent_id`;
+//! - `namespace` — the acting agent's memory node ([`super::scope`]), or,
+//!   for `learn` with `share: true`, the nearest shared node above it (its
+//!   team's, else the root);
 //! - `tool_call` — this call's name and provider-assigned id;
 //! - `source.kind = agent`.
+//!
+//! `recall`, `fetch` and `forget` are confined to the agent's reach: its own
+//! node and the nodes it inherits, never a sibling agent's. A `reach` in the
+//! model's filter is overwritten.
 
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
 
 use async_trait::async_trait;
 use serde_json::{json, Value};
-use tinymemory::{MemoryMeta, SourceKind, SourceRef, ToolCallRef};
+use tinymemory::{MemoryMeta, Namespace, Reach, SourceKind, SourceRef, ToolCallRef};
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult, ToolRunContext};
 
 use crate::config::Config;
@@ -90,6 +97,12 @@ pub struct CallFacts {
     pub agent_id: Option<String>,
     /// The provider-assigned tool-call id.
     pub tool_call_id: Option<String>,
+    /// The calling agent's memory node.
+    pub namespace: Namespace,
+    /// Where the agent's shared learnings go.
+    pub shared_namespace: Namespace,
+    /// What the agent may read.
+    pub reach: Reach,
 }
 
 impl CallFacts {
@@ -102,21 +115,48 @@ impl CallFacts {
             .map(std::path::Path::to_path_buf)
             .or_else(crate::agent::turn_workspace::current)
             .unwrap_or_else(|| config.action_dir.clone());
+        let identity = super::scope::current().unwrap_or_else(|| {
+            // Outside a scoped turn (a legacy driver), fall back to the
+            // parent context's agent, else the root.
+            crate::agent::harness::fork_context::current_parent()
+                .map_or_else(super::scope::MemoryIdentity::root, |parent| {
+                    super::scope::MemoryIdentity::agent(&parent.agent_definition_id)
+                })
+        });
         Self {
             workspace: Some(workspace.display().to_string()),
             thread_id: context
                 .and_then(ToolRunContext::thread_id)
                 .map(str::to_string),
-            agent_id: crate::agent::harness::fork_context::current_parent()
-                .map(|parent| parent.agent_definition_id),
             tool_call_id: crate::tools::host_extensions::tool_call_id(context),
+            ..Self::of(config, &identity)
         }
     }
 
-    /// The metadata `learn` stamps on the stored item.
+    /// The facts of a call made by `identity` under `config`, with no run
+    /// context.
     #[must_use]
-    pub fn learn_meta(&self) -> MemoryMeta {
+    pub fn of(config: &Config, identity: &super::scope::MemoryIdentity) -> Self {
+        let namespace = identity.namespace(config);
+        Self {
+            agent_id: identity.agent_id.clone(),
+            shared_namespace: namespace.shared_ancestor(),
+            reach: identity.reach(config),
+            namespace,
+            ..Self::default()
+        }
+    }
+
+    /// The metadata `learn` stamps on the stored item: at the agent's own
+    /// node, or at its shared node when `share`.
+    #[must_use]
+    pub fn learn_meta(&self, share: bool) -> MemoryMeta {
         MemoryMeta {
+            namespace: if share {
+                self.shared_namespace.clone()
+            } else {
+                self.namespace.clone()
+            },
             workspace: self.workspace.clone(),
             thread_id: self.thread_id.clone(),
             agent_id: self.agent_id.clone(),
@@ -152,7 +192,8 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
     tracing::debug!(action = %action, "[memory:tool] dispatch");
     let result: Result<Value, String> = match action.as_str() {
         "recall" => match parse::<RecallParams>(args) {
-            Ok(params) => {
+            Ok(mut params) => {
+                confine(&mut params.filter, facts);
                 let question = params.question.clone();
                 ops::recall(config, params)
                     .await
@@ -171,17 +212,21 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
             Err(error) => Err(error),
         },
         "fetch" => match parse::<FetchParams>(args) {
-            Ok(params) => ops::fetch(config, params)
-                .await
-                .map(|view| json!(view))
-                .map_err(render_error),
+            Ok(mut params) => {
+                confine(&mut params.filter, facts);
+                ops::fetch(config, params)
+                    .await
+                    .map(|view| json!(view))
+                    .map_err(render_error)
+            }
             Err(error) => Err(error),
         },
         "learn" => match parse::<LearnParams>(args) {
             Ok(mut params) => {
                 params.meta = None;
                 let kind = params.kind.unwrap_or(tinymemory::LearningKind::Fact);
-                ops::learn(config, params, Some(facts.learn_meta()))
+                let share = args.get("share").and_then(Value::as_bool) == Some(true);
+                ops::learn(config, params, Some(facts.learn_meta(share)))
                     .await
                     .map(|view| {
                         BUS.publish(DomainEvent::MemoryStored {
@@ -196,10 +241,13 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
             Err(error) => Err(error),
         },
         "forget" => match parse::<ForgetParams>(args) {
-            Ok(params) => ops::forget(config, params)
-                .await
-                .map(|view| json!(view))
-                .map_err(render_error),
+            Ok(mut params) => {
+                params.reach = Some(facts.reach.clone());
+                ops::forget(config, params)
+                    .await
+                    .map(|view| json!(view))
+                    .map_err(render_error)
+            }
             Err(error) => Err(error),
         },
         other => Err(format!(
@@ -210,6 +258,11 @@ pub async fn run_action(config: &Config, args: &Value, facts: &CallFacts) -> Too
         Ok(value) => ToolResult::success(value.to_string()),
         Err(message) => ToolResult::error(message),
     }
+}
+
+/// Confines a model-supplied filter to the calling agent's reach.
+fn confine(filter: &mut Option<tinymemory::MetaFilter>, facts: &CallFacts) {
+    filter.get_or_insert_with(Default::default).reach = Some(facts.reach.clone());
 }
 
 fn render_error(error: MemoryError) -> String {
@@ -227,8 +280,10 @@ impl Tool for MemoryTool {
          `recall` answers a question from memory with citations; `fetch` returns raw \
          matching items (filter by metadata such as workspace, repo, file_path, kinds); \
          `learn` stores a durable fact, preference, procedure or correction about the \
-         user or their work; `forget` removes items by id. Recall before asking the user \
-         something they may already have told you; learn things worth remembering next time."
+         user or their work — in your own memory, or with `share: true` in the memory \
+         your team or every agent shares; `forget` removes items by id. You read your own \
+         memory plus what is shared with you. Recall before asking the user something they \
+         may already have told you; learn things worth remembering next time."
     }
 
     fn parameters_schema(&self) -> Value {
@@ -249,6 +304,7 @@ impl Tool for MemoryTool {
                 "text": {"type": "string", "description": "learn: the learning, one self-contained sentence."},
                 "kind": {"type": "string", "enum": ["preference", "fact", "procedure", "correction", "other"], "description": "learn: what kind of learning (default fact)."},
                 "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "learn: confidence (default 0.8)."},
+                "share": {"type": "boolean", "description": "learn: store in shared memory every agent (or your team) reads, instead of your own (default false)."},
                 "ids": {"type": "array", "items": {"type": "string"}, "description": "forget: item ids to remove."}
             },
             "required": ["action"]
