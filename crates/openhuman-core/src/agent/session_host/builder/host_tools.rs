@@ -201,10 +201,11 @@ pub(super) fn scope_def(
     host_tools: &MergedHostTurnTools,
 ) -> Option<crate::agent::harness::definition::AgentDefinition> {
     let mut definition = definition.cloned()?;
-    if matches!(
-        definition.tools,
-        crate::agent::harness::definition::ToolScope::Named(_)
-    ) {
+    if let crate::agent::harness::definition::ToolScope::Named(names) = &mut definition.tools {
+        names.retain(|name| !host_tools.withheld.contains(name));
+        definition
+            .extra_tools
+            .retain(|name| !host_tools.withheld.contains(name));
         definition
             .extra_tools
             .extend(host_tools.scope_additions.iter().cloned());
