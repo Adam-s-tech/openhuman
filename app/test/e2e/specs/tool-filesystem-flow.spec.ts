@@ -1,4 +1,8 @@
 // @ts-nocheck
+import { randomUUID } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { waitForApp } from '../helpers/app-helpers';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
 import { resetApp } from '../helpers/reset-app';
@@ -7,6 +11,12 @@ import { startMockServer, stopMockServer } from '../mock-server';
 const USER_ID = 'e2e-tool-filesystem';
 const PERSONA_FILE = 'SOUL.md';
 const TEST_CONTENT = 'Filesystem RPC E2E canary';
+
+function workspaceDir(): string {
+  const workspace = process.env.OPENHUMAN_WORKSPACE;
+  if (!workspace) throw new Error('OPENHUMAN_WORKSPACE is required for path escape assertions');
+  return workspace;
+}
 
 describe('Workspace persona files — read, write, and path restriction', () => {
   before(async function beforeSuite() {
@@ -39,19 +49,20 @@ describe('Workspace persona files — read, write, and path restriction', () => 
   });
 
   it('rejects traversal and absolute paths without writing outside the workspace', async () => {
-    const invalidNames = ['../escape-967.txt', '/tmp/openhuman-967-absolute-escape.txt'];
-    for (const filename of invalidNames) {
+    const escapedFile = path.resolve(workspaceDir(), '..', `e2e-escape-${randomUUID()}.txt`);
+    const traversalName = path.relative(workspaceDir(), escapedFile);
+    for (const filename of [traversalName, escapedFile]) {
       const result = await callOpenhumanRpc('openhuman.workspace_file_write', {
         filename,
         contents: 'must not be written',
       });
       expect(result.ok).toBe(false);
       expect(result.error?.toLowerCase()).toMatch(/editable|allow|invalid|not found|unknown/);
+
+      const read = await callOpenhumanRpc('openhuman.workspace_file_read', { filename });
+      expect(read.ok).toBe(false);
     }
 
-    const traversal = await callOpenhumanRpc('openhuman.workspace_file_read', {
-      filename: invalidNames[0],
-    });
-    expect(traversal.ok).toBe(false);
+    await expect(fs.readFile(escapedFile, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });
