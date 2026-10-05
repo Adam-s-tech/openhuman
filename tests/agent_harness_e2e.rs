@@ -3309,11 +3309,11 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
     let cache_dir = tempdir().expect("catalog cache tempdir");
     let _catalog = EnvVarGuard::set(
         "OPENHUMAN_SKILL_REGISTRY_CATALOG_URL",
-        &format!("{registry}/skills.json"),
+        format!("{registry}/skills.json"),
     );
     let _download = EnvVarGuard::set(
         "OPENHUMAN_SKILL_REGISTRY_DOWNLOAD_BASE_URL",
-        &format!("{registry}/skills"),
+        format!("{registry}/skills"),
     );
     let _local_http = EnvVarGuard::set("OPENHUMAN_SKILL_INSTALL_ALLOW_LOCAL_HTTP", "1");
     let _cache = EnvVarGuard::set_to_path("OPENHUMAN_SKILL_REGISTRY_CACHE_DIR", cache_dir.path());
@@ -3730,11 +3730,11 @@ async fn orchestrator_raw_skill_install_through_use_skill_needs_approval_inner()
     let cache_dir = tempdir().expect("catalog cache tempdir");
     let _catalog = EnvVarGuard::set(
         "OPENHUMAN_SKILL_REGISTRY_CATALOG_URL",
-        &format!("{registry}/skills.json"),
+        format!("{registry}/skills.json"),
     );
     let _download = EnvVarGuard::set(
         "OPENHUMAN_SKILL_REGISTRY_DOWNLOAD_BASE_URL",
-        &format!("{registry}/skills"),
+        format!("{registry}/skills"),
     );
     let _local_http = EnvVarGuard::set("OPENHUMAN_SKILL_INSTALL_ALLOW_LOCAL_HTTP", "1");
     let _cache = EnvVarGuard::set_to_path("OPENHUMAN_SKILL_REGISTRY_CACHE_DIR", cache_dir.path());
@@ -3878,7 +3878,7 @@ async fn agent_calls_a_tool_on_an_mcp_server_installed_from_the_registry_inner()
     let (registry_addr, registry_join) = serve_mcp_registry_fixture().await;
     let _registry = EnvVarGuard::set(
         "MCP_OFFICIAL_REGISTRY_BASE",
-        &format!("http://{registry_addr}"),
+        format!("http://{registry_addr}"),
     );
     reset_script(Vec::new());
     let stack = boot_stack().await;
@@ -4114,7 +4114,7 @@ async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
     let (registry_addr, registry_join) = serve_mcp_registry_fixture().await;
     let _registry = EnvVarGuard::set(
         "MCP_OFFICIAL_REGISTRY_BASE",
-        &format!("http://{registry_addr}"),
+        format!("http://{registry_addr}"),
     );
     reset_script(Vec::new());
     let stack = boot_stack().await;
