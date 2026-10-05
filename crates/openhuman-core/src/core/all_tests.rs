@@ -194,13 +194,13 @@ fn all_registered_controllers_is_nonempty() {
 
 #[test]
 fn all_controller_schemas_matches_registered_count() {
-    // Take one registry snapshot: extensions may register concurrently between
-    // two public lookups, so comparing separate snapshots is racy.
     let view = registry_view();
     let visible: Vec<_> = view.iter().filter(|g| group_allowed(g.group)).collect();
-    let schemas = visible.iter().filter(|g| !g.controller.schema.function.is_empty()).count();
-    let controllers = visible.len();
-    assert_eq!(schemas, controllers);
+    let schemas = visible
+        .iter()
+        .filter(|g| !g.controller.schema.function.is_empty())
+        .count();
+    assert_eq!(schemas, visible.len());
 }
 
 /// With the `voice` feature on (the default), the voice + audio_toolkit
