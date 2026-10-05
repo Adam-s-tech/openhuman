@@ -195,12 +195,9 @@ fn all_registered_controllers_is_nonempty() {
 #[test]
 fn all_controller_schemas_matches_registered_count() {
     let view = registry_view();
-    let visible: Vec<_> = view.iter().filter(|g| group_allowed(g.group)).collect();
-    let schemas = visible
-        .iter()
-        .filter(|g| !g.controller.schema.function.is_empty())
-        .count();
-    assert_eq!(schemas, visible.len());
+    let schemas = controller_schemas(&view);
+    let controllers = registered_controllers(&view);
+    assert_eq!(schemas.len(), controllers.len());
 }
 
 /// With the `voice` feature on (the default), the voice + audio_toolkit
